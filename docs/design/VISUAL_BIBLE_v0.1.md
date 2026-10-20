@@ -225,3 +225,8 @@ Every map concept must supply:
 ## J. Player/NPC bible cross-reference
 
 Playable avatar appearances, NPC silhouettes, costumes, first-person equipment, user-customizable palettes, sprite layer rules and related visual acceptance tests are authored in `CHARACTER_NPC_BIBLE_v0.1.md`. Map-binding and sprite-data metadata are in `CHARACTER_ASSET_SCHEMA_v0.1.json`. These are proposed production defaults; user-owned creature sprites remain canonical creature art. The opening chapter requires Mara, Old Fen and Iri as visible NPCs, and Bellkeeper Sol as a **nonphysical inscription**. Character palette/canvas/timing targets must be verified against the low-end rendering prototype before freezing.
+
+
+## K. UI/UX and readability design (2026-10-20)
+
+Refer to `UI_UX_BIBLE_v0.1.md`, `UI_SCREEN_CONTRACTS_v0.1.json` and `UI_WIREFRAMES_v0.1.md`. World pixel framebuffer and high-resolution UI need separate composition to preserve readable language and Android taps. UI components adopt Deep Tide, Lantern Gold, Signal Mint, Ivory and category accents but must never rely solely on color. First-person exploration retains clear screen center with optional compass overlay and context prompts. **Do not reproduce the reference screenshot's health/ammunition shooter HUD.** The user's monster sprites are canonical original art and must not be replaced by unrelated generated creatures for starter cards or battle portraits. All menu titles and store branding remain proposed until commercial clearance; final screens require actual device art signoff.
