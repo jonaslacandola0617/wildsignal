@@ -26,9 +26,9 @@
 **Z01** point definitions (0-based):
 - Spawn `Z01_SPAWN_SQUARE` at (3,8); overlook town/beacon.
 - NPC `NPC_001_MARA` at (6,1); onboarding guide, accessible by walking near NW.
-- `Z01_COMPASS_WORKSHOP` and `STARTER_ALTAR` are metadata placed on `I` at (11,5); two interaction states in same workshop (combine UI, do not hide second objective).
+- `Z01_COMPASS_WORKSHOP` and `STARTER_ALTAR` are metadata placed on `I` at (10,5); two interaction states in same workshop (combine UI, do not hide second objective).
 - Exit `PORTAL_Z01_Z02` at (13,8) → `Z02_SPAWN_FROM_TOWN` at (1,1), requires `FLAG_STARTER_SELECTED`.
-- Architecture blocks (4,3) through (7,6) with gap tile decorations represent one building; use exterior menu interaction at (11,5) as a simplified workshop façade.
+- Architecture blocks (4,3) through (7,6) with gap tile decorations represent one building; use exterior menu interaction at (10,5) as a simplified workshop façade.
 - Walkable checkpoints for start, NPC, workshop, exit must be graph-connected; portals cannot be triggered through walls.
 - Important correction for final map: town hall and workshop each deserve physically legible distinct entrances; prototype may combine services but art-ready map must distinguish both.
 
@@ -47,7 +47,7 @@
 ###############
 ```
 - Spawn `Z02_SPAWN_FROM_TOWN` at (1,1). 
-- Signal marker `PROP_SIGNAL_MARKER` at (11,4): Q003 clue; sets `FLAG_MARKER_INSPECTED`.
+- Signal marker `PROP_SIGNAL_MARKER` at (10,4): Q003 clue; sets `FLAG_MARKER_INSPECTED`.
 - Creature event `C_MOSSWAKE_WILD` at (3,8): first nonhostile species observation, no forced combat.
 - Exit `PORTAL_Z02_Z03` at (13,8) → `Z03_SPAWN_FOREST` at (1,1), requires `FLAG_MARKER_INSPECTED`.
 - Backtrack `PORTAL_Z02_Z01_BACK`: metadata interactable at (1,1), returns to (12,8) in Z01. A single cell may be a spawn + return portal if it's marked in metadata; future art must visually explain it.
@@ -68,7 +68,7 @@
 ```
 - Spawn `Z03_SPAWN_FOREST` at (1,1), with metadata back portal at (1,1) → Z02 (12,8).
 - `LANDMARK_SINGING_ROOT` at (7,7), marked `I`; sets `FLAG_WAYSTONE_FOUND` and unlocks puzzle attempt.
-- `PROP_VEILED_WALL` at (11,4), `P`; inspect first marker + singing root then solve A→B→C mini-interactions in a local overlay; open gate as a **quest-state transition**, no need to physically delete wall for prototype.
+- `PROP_VEILED_WALL` at (10,4), `P`; inspect first marker + singing root then solve A→B→C mini-interactions in a local overlay; open gate as a **quest-state transition**, no need to physically delete wall for prototype.
 - `C_FERN_RING` at (3,8): optional wild encounter.
 - `PORTAL_Z03_Z04` at (13,8) → Z04 (1,1); requires `FLAG_RUIN_GATE_OPEN`.
 - Optional pocket for cache: art prop near (9,1), not a required route.
@@ -90,7 +90,7 @@
 ```
 - Spawn `Z04_SPAWN_RUIN` at (1,1), metadata back portal to Z03 (12,8).
 - `TRIGGER_INTRO_BATTLE` at (3,8); set `FLAG_INTRO_BATTLE_WON` only after deterministic success. After defeat, respawn Z04 (1,1) with restored starter, no lost progression.
-- `SIGIL_PUZZLE` at (11,4), `P`: A→B→C interactions in overlay; prerequisite `FLAG_INTRO_BATTLE_WON`. Story-level puzzle uniqueness TBD.
+- `SIGIL_PUZZLE` at (10,4), `P`: A→B→C interactions in overlay; prerequisite `FLAG_INTRO_BATTLE_WON`. Story-level puzzle uniqueness TBD.
 - `PEDESTAL_FIRST_SIGNAL` at (7,7), `T`; chapter reward if puzzle completed, sets `FLAG_FIRST_SIGNAL_COMPLETE`. **Additional required save flag** `FLAG_SIGIL_PUZZLE_COMPLETE` introduced here, and should be added to narrative/quest event data.
 - `G` at (13,8) is **return-only shortcut** to forest after chapter completion. It does not lead to new zone.
 - Important: story pacing and geometry should put battle before sigil/altar in visually obvious order. Current schematic is a connected navigation/trigger feasibility proof only, not designed to force encounter on all walkable paths. Trigger or gate placement must be rewritten in final level art map to prevent skipping the required battle.
