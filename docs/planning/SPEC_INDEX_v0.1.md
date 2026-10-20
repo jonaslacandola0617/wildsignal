@@ -86,3 +86,8 @@ The user explicitly requested no implementation yet; current engine research tas
 ## 7. Current device and art-source reality (2026-10-20)
 
 Read `docs/planning/HARDWARE_AND_SPRITE_RECOVERY_INTAKE_v0.1.md` before assigning Codex's test environment or requiring layered creature sources. Owner has an Intel i3 10th-gen / 4 GB RAM PC and Samsung Galaxy S10+, but **no confirmed 2 GB test device**, and the original editable Aseprite creature sheet is **unavailable** (broken old desktop). The surviving flattened user-owned 10×10 pixel sheet is acceptable source for carefully reviewed per-creature reconstruction; historical editable layers cannot be assumed recoverable. No program, device benchmark or sprite extraction has occurred as a result of this planning update.
+
+
+## 8. Windows 7–11 compatibility (D-012; owner 2026-10-20)
+
+Owner's Windows development PC runs **Windows 11**, i3 10th gen/4GB. Game must aim for **Windows 7, 8, 8.1, 10, 11**. Initial proposed technical minimum is **Windows 7 SP1 x64**, with 32-bit OS support still open. Do not mistake SDL3 source-level compatibility for a tested WILDSIGNAL binary on those OSes. Steam dropped 7/8/8.1 client support in 2024; **legacy standalone distribution is separate from the modern Steam storefront** and not yet established. Full platform/test/distribution specification: `docs/architecture/WINDOWS_7_11_COMPATIBILITY_v0.1.md`. Source of approved target: `docs/planning/DECISION_REGISTER_v0.1.md` D-012, mirrored in JSON. Legacy co-op security and exact OS minimum remain test-gated. This extension contains planning only.
