@@ -1,6 +1,6 @@
 # WILDSIGNAL — World & Environment Bible v0.1
 
-**Status: PROPOSAL. Not approved to implement.**  
+**Status: WORLD DESIGN PROPOSAL. Offline-playable adventure is CONFIRMED; maps, names and story details remain proposed.**  
 **Owner:** Game design / world design. **Date:** 2026-10-20.  
 **Related documents:** Creature Bible v0.1 (draft PR #1); Visual Bible v0.1; Master Pre-production Plan v0.1.
 **Rule:** Codex must not invent unspecified geography or imply proposed location names are final; create test/blockout maps only until this spec is approved.
@@ -16,6 +16,7 @@ Pillars:
 4. **Companions change exploration:** physical follower, reactions, signals and optional shortcut access; no starter choice blocks the critical story.
 5. **Small rich zones rather than empty open world:** reusable tilesets, intentional landmarks, manageable sightlines, separate loadable zones to respect low-end memory.
 6. **Multiplayer-friendly boundaries:** safe social hubs, readable nearby avatars and instanced activities where needed.
+7. **Offline-first:** all story-critical paths, puzzles, NPCs, creature acquisition and checkpoints must work without server access, online presence or account verification. Multiplayer enriches rather than blocks exploration.
 
 ### World-fiction premise (proposal)
 The Wayfinders explore the scattered isles of the **Signal Archipelago** (world name provisional). Ancient "resonance" stations once stabilized the relationship between inhabitants and creatures. Strange signals are resurfacing from below the ruins, changing weather, migration and creature behavior. Wayfinders carry Resonance Compasses to investigate, build trust and open forgotten passages. Avoid copying names/iconography/capture devices from other franchises.
@@ -25,6 +26,7 @@ The Wayfinders explore the scattered isles of the **Signal Archipelago** (world 
 - Later: optional regional day/night phases and simple weather states (clear, rain, fog, storm). Network server owns shared state; clients render a synchronized approximation.
 - No expensive fully dynamic global illumination. Lighting variations come from authored color grading, distance fog, pre-shaded art and a small number of dynamic effects.
 - A quest-critical species and route must remain discoverable even if weather/time would otherwise hide its normal spawn.
+- Offline world state (time, weather, puzzles, creatures and quest triggers) runs from locally saved state. In online sessions, the server controls any shared events; client visual state can interpolate without changing quest rules. Offline progress need not be trusted for server-owned trade/PvP items.
 
 ## 2. Geographic structure: region graph (NOT cartographically finalized)
 
@@ -72,7 +74,7 @@ This is a **travel graph**, not a scale-accurate map. For an initial release, is
 - **Landmarks:** Beacon Square (spawn), Wayfinder Hall (tutorial/companion services), Compass Workshop (first quest), South Dock (later boat travel), Market Lane (future cosmetics/shops), Forest Gate.
 - **Navigational loop:** Square → Hall → Workshop → Gate → Square. No dead-end maze in first town. Use silhouette of central lantern tower visible from several approach directions.
 - **Gameplay:** player introduction, controls, choose one starter, equip following companion, first save, talk to 1–2 NPCs.
-- **Multiplayer:** safe-zone social space; no combat; cap nearby displayed avatars using level-of-detail sprite policies; important conversation panels cannot be obstructed.
+- **Multiplayer:** in offline mode the safe town is fully functional with zero network activity; in online mode optionally display other players in designated hub instances, with no combat; cap nearby avatars and ensure conversations are unobstructed.
 - **Performance:** limited water animation; distant coastline billboard/backdrop; do not show hundreds of NPCs.
 - **Audio:** gentle harbor ambience, wood creaks, gull-like original fauna, distant bell.
 - **Lighting:** warm orange lanterns contrasted against muted twilight teal; environmental readability prioritized.
@@ -198,7 +200,7 @@ Every map authored or implemented needs a checked-in spec containing:
 - Interactables with IDs, triggers, requirements, fallback paths, reward IDs, story flags.
 - NPCs with IDs, dialogue keys, shop IDs and daily schedules if any.
 - Soundscape events with distances and priorities.
-- Multiplayer policy: shared hub vs player instances; visibility cap, encounter instancing, state authority.
+- Multiplayer policy: independent offline local simulation or online authoritative hub/instance, visibility cap, encounter instancing, state authority. Every portal/path essential to solo progression must be available offline.
 - Save/reload state: puzzle flags, defeated/befriended states and player progress.
 - Device budgets: target peak memory for the zone, visible sprite count and worst-case CPU/frame timings measured on actual low-end devices.
 - Acceptance tests: navigation without getting lost, no blocked quests for any starter, fallback interaction always works, save/restore correctly reproduces state, no collision leaks.
@@ -231,3 +233,15 @@ Every map authored or implemented needs a checked-in spec containing:
 ## 8. Codex instruction
 
 **Do not treat proposed map list as permission to build all regions.** After approval, first implement a graybox test (Quay → Mosswake → Liltwood → Antechamber) with place-holder textures and owned creature art when provided. It must pass keyboard and touchscreen navigation, following, one encounter, a companion puzzle with no starter softlock, save/load, and performance logging. Build the renderer/collision systems to support data-authored future locations without baking one-off rules into code.
+
+
+## 9. Offline-first world invariants — CONFIRMED
+
+- The introductory journey from Lantern Quay to Echo Hollow is fully playable and completable **without an internet connection**.
+- World exit/entry portals, story puzzle triggers, companions, battle outcomes, checkpoints and quest completion persist to a local save while offline.
+- Never require another real player to finish an essential story puzzle. Future co-op puzzles must have solo variants or remain entirely optional.
+- Public/online social actors cannot obscure quest objects, move story-critical NPCs, or alter offline save outcomes.
+- Every multiplayer zone must also have an offline variant or be clearly labeled **optional online-only**; early core-story zones must have an offline variant.
+- Art/layout decisions cannot assume real-time multiplayer crowds. Quay must feel populated through authored NPCs and ambient wildlife offline.
+- Zone transitions and loading must be deterministic and backed by transition IDs with linked spawn coordinates in LEVEL_MAPS_FIRST_SIGNAL_v0.1.md.
+- Offline save and online server-authoritative state are different trust domains (details in OFFLINE_ONLINE_SYSTEMS_v0.1.md). Shared visuals and maps do not imply shared ownership inventories.
