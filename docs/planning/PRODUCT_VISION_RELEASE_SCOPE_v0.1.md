@@ -116,3 +116,8 @@ Offline mode must continue working if server subscription lapses. Never silently
 6. Target age range and localization priorities, to be determined by actual audience testing.
 
 **Planning approval is not coding authorization:** Codex must not implement the proposed full scope, IAP or network stack without separately approved task packets, feasibility evidence and design/technical signoff. The next task is pre-production planning, not game implementation.
+
+
+## 12. Windows 7–11 client reach — owner requirement 2026-10-20
+
+**Developer hardware:** Windows 11 i3/4 GB. **Game compatibility intention:** native offline play on Windows 7, 8, 8.1, 10, 11; the technical proposal starts at Win7 SP1 **x64**, with 32-bit scope not approved. **Distribution channel is different:** Steam stopped supporting Win7/8/8.1 as of Jan 2024. Target Steam launch for supported modern Windows clients and plan a separately delivered legacy standalone executable, independent of Steam sign-in for core offline adventures. Standalone provider/installer is not yet selected; do not advertise a legacy Steam route. Approved Android↔Windows two-player online co-op remains launch scope but Win7/8.1 online security/authentication support is an unresolved feasibility gate (offline content cannot be blocked by account/login). Final minimum OS/RAM specifications await true runtime tests and separate owner review. See `docs/architecture/WINDOWS_7_11_COMPATIBILITY_v0.1.md` and decision D-012.
