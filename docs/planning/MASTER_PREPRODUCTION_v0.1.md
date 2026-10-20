@@ -257,3 +257,11 @@ The owner explicitly approved for **planning purposes**: `D-020` F2P with cosmet
 **Product/engineering distinctions:** D-021 is approved as a *target*, not a fixed signed-off map/species deliverable; D-023 is a launch requirement under current plan, not a disposable option. Reducing scope or delaying co-op requires explicit owner review rather than quiet unilateral rescheduling. Product approval does not authorize coding, store integration or infrastructure spend.
 
 **Next planning-only milestone:** `docs/planning/NEXT_MILESTONE_ASSET_ENGINE_READINESS_v0.1.md` — prepare artifact provenance, starter sprite extraction specs, three environmental benchmark camera references, exact device/testing plan, cross-system reconciliation, cosmetic/trust UX and commercial checkout compliance paper. Existing future `ENGINE-001` / `RENDER-001` Codex task packets remain **NOT STARTED and NOT AUTHORIZED** by this update.
+
+
+## 19. Actual hardware and asset-source facts (owner, 2026-10-20)
+
+- **Available development PC:** Intel i3 **10th-gen** with **4 GB RAM**; CPU suffix/GPU, Windows version, SSD space to be identified. Respect low-resource local workflow and delegate Android SDK/NDK builds to cloud CI where possible.
+- **Available Android device:** **Samsung Galaxy S10+**, exact RAM/SoC/OS unknown; appropriate real-device test for interface/thermal performance but not representative of entry-level 2 GB Android phones. Separate 2 GB Android and 2 GB Windows tests remain **blocked/unverified**; no compatibility claim yet.
+- **Original art source:** owner's hand-drawn sheet survives as combined flattened image; editable historical **Aseprite project is unavailable**, formerly on broken desktop. Maintain original user artwork/provenance. Extraction/alpha cleanup/new animations can use PNG-derived editable new masters, without AI redraw or mandatory old-drive restoration.
+- **Planning artifact:** `docs/planning/HARDWARE_AND_SPRITE_RECOVERY_INTAKE_v0.1.md` is the canonical available-hardware and source-file recovery intake; planning only, no sprite extraction, CI run or game code authorized.
