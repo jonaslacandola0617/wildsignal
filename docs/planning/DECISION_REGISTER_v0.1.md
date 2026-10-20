@@ -1,6 +1,6 @@
 # WILDSIGNAL — Canonical Design Decisions & Open Questions v0.1
 
-**Date:** 2026-10-20. **Status:** Living decision register for owner signoff; never assume an unapproved proposal is binding code requirements.
+**Date:** 2026-10-20. **Status:** Four product decisions explicitly APPROVED FOR PLANNING on 2026-10-20. Technical feasibility, content lock, prices, detailed online implementation and Codex build authorization remain open.
 **Git history:** Creature Bible resides in **draft PR #1**; world/systems/proposed scope and engine files in **draft PR #2**. Both were checked OPEN/DRAFT/UNMERGED this turn.
 **Protocol:** One row per actual decision, with source and affected work. Owner approval updates status `CONFIRMED` and approval date; a prior proposed spec does not become confirmed merely by appearing in multiple files.
 
@@ -32,11 +32,11 @@
 
 | Decision ID | Current recommendation | Status | Downstream blocker |
 |---|---|---|---|
-| D-020 | Free-to-play with ONLY noncompetitive cosmetic IAP (premium + cosmetic alternative retained) | OPEN | monetization, economy, store/account business model |
-| D-021 | Commercial 1.0 aspiration 6 zones (Z01–Z06), 18–24 completed species, 3–5h story | RECOMMENDED *upper-bound scenario*, must size costs | narrative, mapping, art; see smaller fallback |
-| D-022 | Shrink fallback commercial 1.0 to 4 expanded zones and 9 species if benchmarks/art effort make D-021 untenable; preserve promised finished experience | RECOMMENDED contingency, not automatic override | content schedule |
-| D-023 | 2-player co-op/hub and mixed Windows↔Android lobbies at 1.0; online trading/ranked PvP postlaunch | RECOMMENDED | online trust and server expenses |
-| D-024 | Two independent progression/trust domains: local offline and server-verified online with optional cosmetic appearance projection | RECOMMENDED | player empathy, account and inventory sync |
+| D-020 | **Free-to-play on Steam and Google Play with OPTIONAL cosmetic-only purchases**, no competitive/stat/progression benefits. Exact pricing/SKUs and payment integration unapproved. | **CONFIRMED for planning, 2026-10-20** | monetization, economy, store/billing compliance |
+| D-021 | **Aspirational commercial 1.0 scope: 6 zones (Z01–Z06), 18–24 completed species, 3–5h main story**, expressly subject to feasibility and playtests, not a fixed promise or content freeze. | **CONFIRMED planning target, 2026-10-20; feasibility GATED** | narrative/art/QA scope, costs, real production evidence |
+| D-022 | Four expanded zones / nine species remains a **contingency option** if D-021 is not feasible; changing the approved aspirational target requires an explicit scope review with owner, not automatic silent shrink. | **OPEN contingency; not approved as new release scope** | production capacity and scope review |
+| D-023 | **Two-player cross-platform co-op at commercial 1.0 launch (Android↔Windows)**. Online trading and ranked PvP remain later optional phases; do not silently defer launch co-op. | **CONFIRMED for planning, 2026-10-20** | network authority, backend and operating costs |
+| D-024 | **Local offline story inventory and server-verified online progression are separate**; in casual co-op, show appearance of familiar offline companions **where technically feasible** without importing their unverified stats, trade rights or rank. Exact presentation/recovery remains to design. | **CONFIRMED for planning, 2026-10-20; projection feasibility GATED** | companion UX, accounts, server validation, trust boundaries |
 | D-025 | Original starter art mappings WS-004 Glintle/Flora, WS-008 Driftfin/Tide, WS-050 Brumlet/Ember | RECOMMENDED; original sprite art is confirmed | sprite animation, battle schema |
 | D-026 | First-nine species proposal, including Tumbletail/Puddlefin/Mossmelt/Signalit/Craglet/Hushflame | RECOMMENDED | roster approval, habitats |
 | D-027 | Trust-building Invite/Observe/Help/Friendly Spar instead of capture device | RECOMMENDED | core loop/progression |
@@ -105,6 +105,17 @@ Decision rationale: <why>
 Next review trigger: <measured evidence or milestone>
 ```
 
-**Next owner choices best handled together:** D-020 (F2P vs premium), D-021/022 (release upper-bound vs fallback), D-023 (2-player online scope), D-024 (offline buddy handling). Independently, approve ENGINE-001 benchmark-only Codex work packet to resolve D-040 to D-045 through testing.
+**Owner decisions D-020, D-021, D-023 and D-024 were resolved for planning on 2026-10-20.** Remaining decisions: exact cosmetics/pricing/store operations, launch pacing/cost and scope feasibility, co-op protocol, casual companion projection UX, and real-device renderer feasibility. **No Codex implementation has been authorized by these approvals.** Next pre-production milestone: `docs/planning/NEXT_MILESTONE_ASSET_ENGINE_READINESS_v0.1.md` (docs and validation plans only).
 
 **Do NOT merge all design PRs solely because documentation exists.** Merge when reviewed, record approvals and then generate small Codex tasks.
+
+
+## 7. Owner decision event — 2026-10-20
+
+**Explicit user approval in current planning conversation:**
+1. **D-020**: free-to-play with cosmetic-only purchases.
+2. **D-021**: aspirational commercial 1.0 with six zones, 18–24 species, 3–5h story **subject to feasibility**.
+3. **D-023**: two-player cross-platform co-op at launch.
+4. **D-024**: separate server-verified online progression; cosmetic offline companion appearances in casual co-op *where feasible*.
+
+**Meaning of approval:** Binding **product planning direction**, not approved prices, finished content quotas, build results, finalized art or permission to start coding. No automatic transfer of local creatures or items into online competitive/tradable inventories. D-022 (smaller launch fallback) remains a risk mitigation option to bring back for explicit review if budgets fail. No purchased item influences species rarity, power, encounters, XP, story progression or ranked rewards. See Product Vision and Offline/Online Architecture for proposed implementation consequences.
