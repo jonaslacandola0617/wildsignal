@@ -27,7 +27,7 @@
 | D-009 | Full solo story progression playable offline; online multiplayer optional | CONFIRMED | save trust, UX, account boundaries |
 | D-010 | Multiplayer included in overall vision and optional purchases intended for revenue | CONFIRMED intent; exact release scope OPEN | product roadmap |
 | D-011 | ChatGPT leads planning/spec; Codex implements after decisions approved | CONFIRMED workflow | PRs, task packets |
-| D-012 | Developer PC Windows 11 (i3 10th gen, 4 GB); GAME intended for **Windows 7, 8, 8.1, 10 and 11**. Windows 7 SP1 x64 proposed minimum OS/architecture for validation, not yet proven. | **CONFIRMED compatibility target, 2026-10-20; verification GATED** | legacy Windows binary, Steam distribution separation, security and testing |
+| D-012 | Owner's development PC runs **Windows 11** (i3 10th gen, 4 GB). WILDSIGNAL targets **64-bit Windows 7, 8, 8.1, 10 and 11** only; **32-bit OS and 32-bit game binaries are out of scope**. Windows 7 SP1 is the proposed oldest test baseline; actual compatibility unverified. | **CONFIRMED x64-only compatibility target, 2026-10-20; verification GATED** | build architecture, legacy Win7–11 binary, Steam distribution separation and OS/security tests |
 
 ## 2. Recommended but awaiting owner approval
 
@@ -54,7 +54,7 @@
 |---|---|---|---|
 | D-040 | CPU raycaster vs sector/portal wall renderer vs small CPU rasterizer | BLOCKED_BY_TEST | renderer/low-end visual benchmark |
 | D-041 | 320×180 / 400×225 / 480×270 baseline, optional 60fps | BLOCKED_BY_TEST | P95/P99 frame time and pixel readability on devices |
-| D-042 | Owner targets game compatibility on Windows 7–11; final Windows 7 SP1 x64 minimum specification, legacy CRT/SDL imports, 32-bit support, real Windows RAM/performance and Android min OS remain unverified | BLOCKED_BY_TEST | Win7/8/8.1/10/11 functional build test, legacy distribution, hardware/OS and security evidence |
+| D-042 | x64 is approved and 32-bit game/OS support is explicitly excluded; actual Windows 7 SP1 x64 minimum-runtime feasibility, legacy CRT/SDL imports, Windows RAM/performance and Android min OS remain unverified | BLOCKED_BY_TEST | 64-bit Win7/8/8.1/10/11 functional tests, standalone distribution, hardware/OS and security evidence |
 | D-043 | FOV/pitch, vertical architecture, wall/floor height and outdoor vista illusion | BLOCKED_BY_TEST | screenshot comparing original mood, measured fidelity |
 | D-044 | Memory/cache budget and threading to maintain 30 FPS with animated sprite foliage | BLOCKED_BY_TEST | 20-minute soak, RSS/PSS, battery, memory trace |
 | D-045 | SDL3 software-presentation vs framebuffer upload and UI crispness strategy | BLOCKED_BY_TEST | actual Windows and Android behavior |
@@ -124,6 +124,11 @@ Next review trigger: <measured evidence or milestone>
 
 ## 8. Windows platform compatibility approval — 2026-10-20
 
-**D-012 confirmed by owner:** development is performed on a **Windows 11** i3 10th-gen / 4 GB RAM PC; the **game must target Windows 7, 8, 8.1, 10 and 11**. Supporting `Windows 7 SP1 x64` is the proposed initial technical floor, not an owner-expressed choice of 64-bit only. Native 32-bit editions remain an explicit open scope choice. SDL3 documents legacy Windows support, but the complete pinned C++20 runtime/dependencies and game are **NOT yet tested**. Steam client support for Windows 7/8/8.1 ended Jan 1 2024, so the legacy-OS game needs a **separately planned standalone delivery path** and offline-first runtime independent of Steam. Secure online co-op on legacy OS needs separate verification; do not remove the general Android↔Windows launch co-op requirement or promise Win7 online parity without tests. See `docs/architecture/WINDOWS_7_11_COMPATIBILITY_v0.1.md`.
+**D-012 confirmed by owner:** development is performed on a **Windows 11** i3 10th-gen / 4 GB RAM PC; the **game must target Windows 7, 8, 8.1, 10 and 11**. Owner has **explicitly approved 64-bit only**: no 32-bit Windows OS editions or x86 executables are planned. `Windows 7 SP1 x64` remains the proposed *earliest practical test baseline*, not yet verified running WILDSIGNAL. SDL3 documents legacy Windows support, but the complete pinned C++20 runtime/dependencies and game are **NOT yet tested**. Steam client support for Windows 7/8/8.1 ended Jan 1 2024, so the legacy-OS game needs a **separately planned standalone delivery path** and offline-first runtime independent of Steam. Secure online co-op on legacy OS needs separate verification; do not remove the general Android↔Windows launch co-op requirement or promise Win7 online parity without tests. See `docs/architecture/WINDOWS_7_11_COMPATIBILITY_v0.1.md`.
 
 **No game implementation authorized** by this platform-planning amendment.
+
+
+## 9. 64-bit scope explicitly confirmed — 2026-10-20
+
+User responded **“64 bit is enough.”** This closes the architecture-scope question: the Windows game supports **x86_64 (64-bit Windows OS and 64-bit game binary)** as its sole planned Windows architecture. Do **not** include Win32/x86 builds, 32-bit compatibility test cases or store claims in initial release scope. The requested Windows version range remains **7, 8, 8.1, 10, 11**, with Windows 7 SP1 x64 proposed as oldest operational baseline and still requiring real tests. Windows 7/8/8.1 Steam-client support is not available; plan separate legacy standalone delivery. This is a confirmed planning constraint **not permission to start implementation**.
