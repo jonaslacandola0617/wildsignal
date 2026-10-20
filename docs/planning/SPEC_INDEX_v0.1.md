@@ -81,3 +81,8 @@ For planning crosschecks also read `docs/architecture/CODEX_R_AND_D_TASKS_v0.1.m
 Earlier `DECISION_REGISTER_v0.1.json` used a conflicting sequence of `D-###` IDs compared with the Markdown register. This was corrected in the current branch: JSON is now a **canonical mirror** of Markdown using the same 42 decision IDs; previous JSON content remains accessible through Git history but its old ID assignments are DEPRECATED. Tools and Codex must use only the current paired register revisions, never mix legacy JSON row meanings.
 
 The user explicitly requested no implementation yet; current engine research tasks remain documentation only. The next milestone is specification/source/test readiness, not starting C++ code.
+
+
+## 7. Current device and art-source reality (2026-10-20)
+
+Read `docs/planning/HARDWARE_AND_SPRITE_RECOVERY_INTAKE_v0.1.md` before assigning Codex's test environment or requiring layered creature sources. Owner has an Intel i3 10th-gen / 4 GB RAM PC and Samsung Galaxy S10+, but **no confirmed 2 GB test device**, and the original editable Aseprite creature sheet is **unavailable** (broken old desktop). The surviving flattened user-owned 10×10 pixel sheet is acceptable source for carefully reviewed per-creature reconstruction; historical editable layers cannot be assumed recoverable. No program, device benchmark or sprite extraction has occurred as a result of this planning update.
