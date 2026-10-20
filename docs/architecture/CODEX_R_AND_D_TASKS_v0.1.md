@@ -63,3 +63,8 @@
 **No broad "build all WILDSIGNAL" prompt.** Every future coding issue references: exact signed-off docs commit, in-scope/out-of-scope behaviors, stable IDs, tests, test device and evidence. If a proposed design detail affects permanent save IDs, commerce, network authority or art identity, ask for approval. Implementation should be incremental and code-reviewed.
 
 **One potential development strategy:** ENGINE-001 → RENDER-001 → BENCH-001 for feasibility; if aesthetics fail, RENDER-002 then BENCH-001 again; CI-001 can run in parallel after platform bootstrap. This is not an instruction to start these today.
+
+
+## Legacy Windows requirements to add when ENGINE-001/CI-001 are authorized
+
+**D-012 confirmed target:** Owner builds/develops on Win11 i3/4GB; game compatibility must be evaluated on Win7 SP1, Win8, Win8.1, Win10, Win11. Add `WINLEG-001..010` from `WINDOWS_7_11_COMPATIBILITY_v0.1.md`. ENGINE-001 must not assume Win10-only runtime calls, Steam client access for Win7/8.1, or the existence of Win7 support merely because SDL3 builds successfully. Cloud CI can compile legacy-compatible binaries; **real old-OS start-up testing still needed**. Win7 SP1 x64 is a proposed floor, 32-bit coverage unresolved, account/co-op support on legacy OS security-gated. These are task descriptions for later approval, **not commands to implement now**.
