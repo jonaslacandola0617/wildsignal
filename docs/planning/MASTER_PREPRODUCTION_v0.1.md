@@ -223,3 +223,16 @@ Added `docs/design/CHARACTER_NPC_BIBLE_v0.1.md` for playable Wayfinder body/skin
 - **First demo UI scope** should be a functional subset: MAIN_MENU, AVATAR_CREATE, STARTER_PICK, EXPLORE, COMPASS, DIALOGUE, PUZZLE, BATTLE_SELECT/PLAYBACK/RESULT, PAUSE. SAVE_SLOTS + SETTINGS required before broader alpha; Fieldbook/Party/Bond screens phase in only when owned creature recruitment system exists. **Screen catalog scope is not authorization to implement every screen at once.**
 - The UI must not invent creature/battle truth or save success. All transitions dispatch typed intents to local simulation or online authoritative backend. Offline mode never requires an account.
 - Critical architecture still needs approval: rendering backend, exact mobile minimum device and UI safe areas, final trust-realm policy, creature-bond method, combat math and initial 3-6 wild species.
+
+
+## 17. Gate 1 and Gate 2 plans (2026-10-20)
+
+New review-only artifacts on this draft branch:
+- `docs/planning/PRODUCT_VISION_RELEASE_SCOPE_v0.1.md` proposes a distinct renderer proof, first 15–20min playable, and commercial 1.0 with 6 zones, 18–24 original species, 3–5h story, 2-person co-op, and a **not-yet-approved** cosmetic-IAP commercial model. These numbers are aspirational *scope ceilings* subject to budget and tests, not feature commitments.
+- `docs/architecture/ENGINE_ARCHITECTURE_ADR_v0.1.md` proposes native C++20/SDL3/CMake with Android NDK/Gradle, a CPU-rendered pixel framebuffer and platform-separated modules; renderer R1/R2/R3 still **unselected**.
+- `docs/architecture/RENDERING_BENCHMARK_PLAN_v0.1.md` specifies equivalent town/forest/ruin test scenes, 30fps/2GB-class memory hypotheses, device matrix, raw capture schema, Android thermals and scored architectural bakeoff. **Zero benchmarks performed.**
+- `docs/planning/DECISION_REGISTER_v0.1.json` separates user CONFIRMED game requirements from unapproved proposals/blocked decisions.
+- `docs/planning/CANONICAL_SPEC_INDEX_v0.1.md` explicitly tracks PR #1 and PR #2, maps superseded, battle data authority, review/merge order and version pinning. Review PRs before attempting implementation against floating branch heads.
+- `docs/planning/CODEX_ENGINE_PROOF_TASK_PACKETS_v0.1.md` bounds the first possible Codex work to technical feasibility and acceptance evidence, **not** full game implementation.
+
+**Immediate owner decisions still open:** release pricing, final 1.0 scope and multiplayer/trading phasing, local vs verified-online companion continuity. **Blocked technical decision:** benchmark-proven renderer and minimum supported low-end devices. **Avoid claiming production readiness based on authored design documents alone.**
