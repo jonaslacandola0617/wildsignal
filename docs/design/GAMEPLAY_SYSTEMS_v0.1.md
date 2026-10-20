@@ -32,7 +32,7 @@ Town preparations → travel → observe creature/ecological clues → discover 
 - Each party up to 3; 1 active; 4 moves.
 - Phases: PREPARE → SELECT_ACTION → LOCK_COMMANDS → ORDER → EXECUTE → STATUS → KO_CHECK → NEXT_TURN / END.
 - Available actions: one of 4 moves, swap, item, retreat (if permitted).
-- Order: move priority first, speed second, deterministic PRNG tie-break; all calculated by single simulation module with explicit seed.
+- Order: move priority first, effective speed second; on exact ties the **current detailed Battle Bible proposal** uses deterministic seat alternation by turn parity (odd seat 0, even seat 1), *not an RNG tie-break*. All combat randomness (if later moves require it) uses the battle-owned seeded PRNG. Final battle priority rules await review.
 - Encounter uses arena view preserving surrounding zone palette; battle UI at separate high-resolution layer.
 - **Numerical proposal now drafted:** see `BATTLE_BALANCE_BIBLE_v0.1.md`, `FIRST_NINE_CREATURES_v0.1.json`, and `BATTLE_TEST_VECTORS_v0.1.json`. The numbers are not yet approved. Do not code an alternative damage formula from this abbreviated section.
 - Pause/local menu behavior: offline battle paused immediately; online battle follows server timing/disconnect policy to define.
@@ -80,3 +80,8 @@ The first nine species and optional creature invitations are proposed in `BONDIN
 ## UI binding contract (2026-10-20)
 
 The UI draft in `UI_UX_BIBLE_v0.1.md` and `UI_SCREEN_CONTRACTS_v0.1.json` is a read-only view of gameplay/battle/quest state. It sends typed action IDs to local simulation (offline) or server (online) and never directly modifies HP, creature ownership, battle status, quest flags, trade or inventory. Four battle move slots must retain the move order in FIRST_NINE_CREATURES_v0.1.json; all costs and effects render from data. Mobile taps and keyboard keys map to the same action IDs. `UI_ACCEPTANCE_TESTS_v0.1.json` supplies acceptance cases before release. UI routes and dimensions remain proposed, not yet code.
+
+
+## Cross-system source alignment (2026-10-20)
+
+Old abbreviated text about random tie-breaking was superseded by the proposed deterministic seat-parity tie in `BATTLE_BALANCE_BIBLE_v0.1.md`. The detailed Battle Bible remains PROPOSED; these updates remove a stale contradiction rather than confirming the mechanic. For Q001–Q005 exact entity/flag IDs, see `FIRST_SLICE_CONSISTENCY_GATE_v0.1.md` and the 48×32 blockout fixture.
