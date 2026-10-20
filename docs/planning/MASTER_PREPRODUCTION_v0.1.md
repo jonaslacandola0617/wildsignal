@@ -183,3 +183,18 @@ New companion documents on this PR:
 ## 13. Character & NPC art design v0.1 (proposed)
 
 Added `docs/design/CHARACTER_NPC_BIBLE_v0.1.md` for playable Wayfinder body/skin/hair/outfits, first-person compass view, animation source standards, cosmetics, quest-linked dialogue and NPC story roles; `docs/design/CHARACTER_ASSET_SCHEMA_v0.1.json` records data bindings. Existing NPC spatial identities remain: Mara `NPC_001_MARA` Z01 (18,11), Fen `NPC_002_FEN` Z01 (33,8), Iri `NPC_003_IRI` Z03 (21,25). Bellkeeper Sol is ONLY a memory/inscription in Z04 first chapter and has no physical map actor. These art/design proposals do not authorize purchased cosmetic SKU implementation, character sprite production or multiplayer profile sync yet. Character design approval and art-pipeline performance prototype are the next gates.
+
+
+## 14. Full creature artwork catalog v0.1 (2026-10-20)
+
+- `docs/design/CREATURE_CATALOG_v0.1.json` now inventories **all 100 cells**, WS-001 through WS-100, row-major; each has a readable visual motif, provisional affinity and proposed region. **Only the user's ownership and existing artwork are confirmed; species identities, habitat/type choices, names, gameplay balance and evolution lines remain for approval.**
+- `docs/design/CREATURE_CATALOG_GUIDE_v0.1.md` covers original-file preservation, manual sprite extraction and alpha review, pivot metadata, directional animation, resource atlases and commercial rights ledger.
+- The provided sheet is RGB 850×832 with a lime background/grid, not a ready transparent sprite atlas. Do not assume a fixed native sprite resolution or auto-chroma-key the original unreviewed.
+- Three provisional starter mappings remain WS-004 / R01C04 Glintle (Flora), WS-008 / R01C08 Driftfin (Tide), WS-050 / R05C10 Brumlet (Ember). Names/affinities remain creative proposals.
+- Production gate: initial playable uses three starters + 3–6 selected wild species, **not all 100 full animation sets**. Existing art may be used with user authorization, but decide whether to commit original files in a public repo separately.
+
+### Immediate design next steps
+1. Choose 3–6 wild-species IDs for Mosswake/Liltwood/Echo Hollow and define ecology/trust interactions.
+2. Define actual battle stats, move logic and starter abilities via deterministic combat specification and test vectors.
+3. Specify capture/bonding behavior, evolution families and progression to avoid inconsistent content tags.
+4. Test sprite extraction/alpha quality on the three starters before setting texture-packing or CPU memory budgets.
