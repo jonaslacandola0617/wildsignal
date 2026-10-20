@@ -21,7 +21,7 @@
 | World | topology, each zone's actual grid/collision, portals, scale, travel time, secrets | World Bible; annotated level maps |
 | Narrative | protagonists, factions, NPC identities, quest/cutscene scripts, lore timeline | Narrative Bible and dialogue sheets |
 | Creatures | IDs for all 100, species names, official starter choices, ecology, rights ledger, sprite cutouts | Creature Catalog + Art Ledger |
-| Combat | damage, stat formulas, turn priority, moves, statuses, PvP rules, retreat/capture/bond logic | Battle Rules v1 + test vectors |
+| Combat | **Full formula/status/turn-order proposal and test vectors drafted**; balancing and PvP rules still unapproved | BATTLE_BALANCE_BIBLE_v0.1.md + BATTLE_TEST_VECTORS_v0.1.json |
 | Economy | rewards, creature acquisition limits, crafting, shops, progression pacing, anti-exploitation | Economy Balance Bible |
 | UI/UX | HUD, inventory, menus, touch layouts, onboarding, accessibility, controller support | Screen flow + UI component specs |
 | Art | camera treatment, texture pixel density, sprite direction sets, lighting/fog, character customization | Visual Bible + asset templates |
@@ -198,3 +198,17 @@ Added `docs/design/CHARACTER_NPC_BIBLE_v0.1.md` for playable Wayfinder body/skin
 2. Define actual battle stats, move logic and starter abilities via deterministic combat specification and test vectors.
 3. Specify capture/bonding behavior, evolution families and progression to avoid inconsistent content tags.
 4. Test sprite extraction/alpha quality on the three starters before setting texture-packing or CPU memory budgets.
+
+
+## 15. Battle and first-nine wildlife design v0.1 — draft review package
+
+**New docs on world-preproduction draft branch:**
+- `docs/design/FIRST_NINE_CREATURES_v0.1.json`: 3 starter candidates + 6 wild creature art IDs, original sprite mapping, proposed roles/stat blocks, **18 typed moves** with integer energy cost/power and explicit status effects. These are candidate names and values, not canon.
+- `docs/design/BATTLE_BALANCE_BIBLE_v0.1.md`: proposed deterministic integer formulas, 1v1/3 party structure, status lifecycles, priority, end-round effects, encounter balance and server trust requirements.
+- `docs/design/BATTLE_TEST_VECTORS_v0.1.json`: arithmetic fixtures, seed=1 xorshift32 sequence, status and two-turn replay expected state. Fixture calculations verified during planning; no C++ executable test has run.
+- `docs/design/BONDING_ENCOUNTERS_v0.1.md`: six ecological encounter/assist/invite flows, ambient animations, species-specific habitat placement and no-starter-softlock policy.
+- `docs/design/CREATURE_CATALOG_v0.1.json` updated to cross-reference proposed wild names/habitats. All 100 artwork positions remain distinct; none automatically treated as evolutions.
+
+**First wild candidate locations:** Tumbletail WS-005 and Puddlefin WS-021 in Mosswake; Mossmelt WS-012 and Signalit WS-001 in Liltwood; Craglet WS-024 guardian and Hushflame WS-067 in Echo Hollow. Additional proposed spawn IDs are **not yet present** in the 48×32 world fixture. Do not fabricate completed map data or claim all recruitments are active in game.
+
+**Next approval gates:** exact first nine assignments/names; bonding progression versus classic capture model; whether Signal Energy supports compelling tactics; status durations; final boss difficulty; reserved party space; PVP level normalization; map placements. Do not start a comprehensive 100-creature roster or commercial economy until these are playtested.
