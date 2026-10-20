@@ -9,7 +9,7 @@
 - Creatures physically accompany players and meaningfully affect exploration.
 - Turn-based combat; Windows/Steam and Android/Google Play, low-end-first; C++ and lightweight native libraries.
 - **CONFIRMED 2026-10-20: Offline-first story adventure + optional online multiplayer.** Offline mode must support exploration, creature bonding/battles, quests and local saves with no login or internet. Online is additive: co-op, presence, trading, PvP and account services. Exact cross-mode data bridge is a design proposal pending explicit approval.
-- Planned online multiplayer/cross-play and optional non-pay-to-win monetization.
+- **CONFIRMED 2026-10-20 planning baseline:** free-to-play with optional cosmetic-only purchases; aspirational launch 6 zones/18–24 species/3–5h story *subject to feasibility*; two-player Android↔Windows co-op at commercial launch; distinct offline local and server-verified online progression with visual-only familiar offline companion presentation in casual co-op where feasible.
 - ChatGPT handles planning and specifications; Codex handles implementation.
 
 ## 2. What is NOT yet decided (major gaps and accountable deliverables)
@@ -27,7 +27,7 @@
 | Art | camera treatment, texture pixel density, sprite direction sets, lighting/fog, character customization | Visual Bible + asset templates |
 | Engine | raycaster vs other 2.5D renderer, collision, save schema, resource loading | Architecture Decision Records + benchmark |
 | Multiplayer | **offline/online model chosen**; server authority, zone capacities, instancing, matchmaking, trade, sync and security decisions outstanding | Offline/Online Systems v0.1; Network/Backend Spec |
-| Monetization | purchase SKUs, store platforms, entitlements, refunds, receipts, cosmetic design | Store + Entitlement Spec |
+| Monetization | **F2P cosmetic-only model approved**; pricing, SKU design, server receipts, refunds, entitlements, compliance and operating budget still missing | Store + Entitlement Spec |
 | Audio | licensed music plan, biome cues, feedback, mixing, audio platform budget | Audio Bible |
 | Distribution | NDK/Windows CI, store signing, Steamworks, Google Billing and review | CI/CD & Compliance Checklist |
 | QA | minimum supported hardware, regression tests, profiling, user testing, acceptance criteria | QA Matrix + release gates |
@@ -159,7 +159,7 @@ Combat rules -> deterministic battle logic -> save schema / server authority
 
 **Approved functional requirement:** WILDSIGNAL must remain an offline-playable single-player adventure after installation and initial asset availability. No mandatory account, login, recurring entitlement verification or server call for offline story, creature companionship, battle and local saving. Online multiplayer is opt-in and requires connectivity. Updates/downloads and first-time installation may still require a store connection; that does not change runtime offline-game requirement.
 
-**Not approved yet:** whether the online-account character and local-story character are separate progression profiles; whether any noncompetitive offline companion may appear in casual co-op; and whether story milestones may carry over. Do not imply seamless offline inventory import, which conflicts with secure PvP/trading.
+**Approved for planning 2026-10-20:** online-account/verified character progression is separate from offline-local progression; familiar offline companions may be **shown cosmetically** in casual co-op *where technically feasible*, without importing their unverified battle stats, inventory, trading rights or rewards. Exact projection UI/fallback, quest-sharing, save migration and store receipt rules remain unapproved. Do not imply seamless offline inventory import.
 
 New companion documents on this PR:
 - `docs/design/LEVEL_MAPS_FIRST_SIGNAL_v0.1.md`: precise prototype tile grids, triggers, portal links and spatial acceptance tests.
@@ -228,10 +228,10 @@ Added `docs/design/CHARACTER_NPC_BIBLE_v0.1.md` for playable Wayfinder body/skin
 ## 17. Gate 1 and Gate 2 plans (2026-10-20)
 
 New review-only artifacts on this draft branch:
-- `docs/planning/PRODUCT_VISION_RELEASE_SCOPE_v0.1.md` proposes a distinct renderer proof, first 15–20min playable, and commercial 1.0 with 6 zones, 18–24 original species, 3–5h story, 2-person co-op, and a **not-yet-approved** cosmetic-IAP commercial model. These numbers are aspirational *scope ceilings* subject to budget and tests, not feature commitments.
+- `docs/planning/PRODUCT_VISION_RELEASE_SCOPE_v0.1.md` defines the renderer proof, first 15–20min slice, and **owner-approved aspirational** 1.0 planning target of six zones, 18–24 species, 3–5h story, two-player co-op at launch, with **owner-approved F2P cosmetic-only purchases**. Scope quantities remain feasibility-gated, not guarantees or authorization to develop everything immediately.
 - `docs/architecture/ENGINE_ARCHITECTURE_ADR_v0.1.md` proposes native C++20/SDL3/CMake with Android NDK/Gradle, a CPU-rendered pixel framebuffer and platform-separated modules; renderer R1/R2/R3 still **unselected**.
 - `docs/architecture/RENDERING_BENCHMARK_PLAN_v0.1.md` specifies equivalent town/forest/ruin test scenes, 30fps/2GB-class memory hypotheses, device matrix, raw capture schema, Android thermals and scored architectural bakeoff. **Zero benchmarks performed.**
-- `docs/planning/DECISION_REGISTER_v0.1.json` separates user CONFIRMED game requirements from unapproved proposals/blocked decisions.
+- `docs/planning/DECISION_REGISTER_v0.1.md` and its matching `DECISION_REGISTER_v0.1.json` mirror **identical D-IDs** (legacy JSON IDs were reconciled 2026-10-20); both distinguish CONFIRMED planning choices from pending proposals/blocked decisions.
 - `docs/planning/CANONICAL_SPEC_INDEX_v0.1.md` explicitly tracks PR #1 and PR #2, maps superseded, battle data authority, review/merge order and version pinning. Review PRs before attempting implementation against floating branch heads.
 - `docs/planning/CODEX_ENGINE_PROOF_TASK_PACKETS_v0.1.md` bounds the first possible Codex work to technical feasibility and acceptance evidence, **not** full game implementation.
 
@@ -242,9 +242,18 @@ New review-only artifacts on this draft branch:
 
 - **Canonical entry point for newer planning:** `docs/planning/SPEC_INDEX_v0.1.md`. This explicitly tracks two open DRAFT PRs, latest authoritative data versions, and owner-approval rules.
 - `docs/planning/PRODUCT_VISION_RELEASE_SCOPE_v0.1.md` now proposes a commercial 1.0 envelope: **six zones, 18–24 integrated original creatures, 3–5 hours story, small optional two-player cross-platform co-op**, conditional cosmetic IAP; these are *aspirational upper-bound design targets*, NOT a commitment. Smaller four-zone / nine-creature fallback must remain feasible.
-- The monetization decision is OPEN: F2P optional cosmetics recommended versus premium upfront with cosmetic purchases. User's desire for IAP is confirmed; launch SKUs/prices are not.
+- **Monetization model confirmed for planning:** free-to-play with optional cosmetic-only purchases, never paid battle/progression benefits. Prices/SKUs, receipt processing and launch checkout sequencing remain gated, not approved.
 - `docs/architecture/ENGINE_ARCHITECTURE_v0.1.md` proposes native C++20/SDL3/CMake with separate gameplay/core, renderer and platform adapters. Raycast vs sector/portal is **NOT selected**.
 - `docs/architecture/RENDER_BENCHMARK_PLAN_v0.1.md` defines controlled Quay/forest/ruin scenes, 320×180..480×270, real Windows/Android, p95/thermal/peak memory metrics; no benchmarks have been executed and low-end RAM claims remain goals.
 - `docs/architecture/CODEX_R_AND_D_TASKS_v0.1.md` gives small ENGINE-001, RENDER-001/002, BENCH-001, CI-001 planning packets. They require owner approval before coding and are NOT feature authorizations.
 - `docs/planning/DECISION_REGISTER_v0.1.md` now distinguishes explicit user requirements, recommendations, test blockers and deferred expansion. Do not promote proposed docs by duplication or merge alone.
 - **Process gate:** review product/multiplayer/economy choices; approve benchmark-only engineering task; measure feasibility before committing final dungeon geometry or massive art production.
+
+
+## 18. OWNER-APPROVED PRODUCT BASELINE — 2026-10-20
+
+The owner explicitly approved for **planning purposes**: `D-020` F2P with cosmetic-only IAP; `D-021` six-zone/18–24-species/3–5h aspirational 1.0 (dependent on realistic resources and playtesting); `D-023` two-player Android↔Windows co-op **at commercial launch**; and `D-024` separate local offline and server-verified online progression, with a familiar offline-companion **appearance projection** in casual co-op where feasible. Preserve the offline adventure with zero mandatory logins. Visual-only projection never carries untrusted stats, trading rights, creature ownership, rewards or purchase entitlements. If projection fails feasibility, prepare and review a graceful UX fallback before shipping.
+
+**Product/engineering distinctions:** D-021 is approved as a *target*, not a fixed signed-off map/species deliverable; D-023 is a launch requirement under current plan, not a disposable option. Reducing scope or delaying co-op requires explicit owner review rather than quiet unilateral rescheduling. Product approval does not authorize coding, store integration or infrastructure spend.
+
+**Next planning-only milestone:** `docs/planning/NEXT_MILESTONE_ASSET_ENGINE_READINESS_v0.1.md` — prepare artifact provenance, starter sprite extraction specs, three environmental benchmark camera references, exact device/testing plan, cross-system reconciliation, cosmetic/trust UX and commercial checkout compliance paper. Existing future `ENGINE-001` / `RENDER-001` Codex task packets remain **NOT STARTED and NOT AUTHORIZED** by this update.
