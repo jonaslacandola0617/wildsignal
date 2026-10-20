@@ -75,3 +75,8 @@ Battle formulas/affinities, starter species art assignments, bond acquisition, c
 ## Detailed design dependency (2026-10-20)
 
 The first nine species and optional creature invitations are proposed in `BONDING_ENCOUNTERS_v0.1.md` and `FIRST_NINE_CREATURES_v0.1.json`. The low-level battle status, energy, damage and turn-order rules are in `BATTLE_BALANCE_BIBLE_v0.1.md`. **When there is a contradiction, treat the detailed v0.1 Battle Bible/typed move definitions as the current *proposal*, not an approved rule.** Player ownership, friendly spar and all story encounters remain playable offline. The first compulsory guardian is WS-024 Craglet at level 3, with no automatic invitation until a distinct post-chapter encounter.
+
+
+## UI binding contract (2026-10-20)
+
+The UI draft in `UI_UX_BIBLE_v0.1.md` and `UI_SCREEN_CONTRACTS_v0.1.json` is a read-only view of gameplay/battle/quest state. It sends typed action IDs to local simulation (offline) or server (online) and never directly modifies HP, creature ownership, battle status, quest flags, trade or inventory. Four battle move slots must retain the move order in FIRST_NINE_CREATURES_v0.1.json; all costs and effects render from data. Mobile taps and keyboard keys map to the same action IDs. `UI_ACCEPTANCE_TESTS_v0.1.json` supplies acceptance cases before release. UI routes and dimensions remain proposed, not yet code.
