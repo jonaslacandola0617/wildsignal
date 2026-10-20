@@ -236,3 +236,15 @@ New review-only artifacts on this draft branch:
 - `docs/planning/CODEX_ENGINE_PROOF_TASK_PACKETS_v0.1.md` bounds the first possible Codex work to technical feasibility and acceptance evidence, **not** full game implementation.
 
 **Immediate owner decisions still open:** release pricing, final 1.0 scope and multiplayer/trading phasing, local vs verified-online companion continuity. **Blocked technical decision:** benchmark-proven renderer and minimum supported low-end devices. **Avoid claiming production readiness based on authored design documents alone.**
+
+
+## 17. Product and C++ engine readiness milestone (2026-10-20)
+
+- **Canonical entry point for newer planning:** `docs/planning/SPEC_INDEX_v0.1.md`. This explicitly tracks two open DRAFT PRs, latest authoritative data versions, and owner-approval rules.
+- `docs/planning/PRODUCT_VISION_RELEASE_SCOPE_v0.1.md` now proposes a commercial 1.0 envelope: **six zones, 18–24 integrated original creatures, 3–5 hours story, small optional two-player cross-platform co-op**, conditional cosmetic IAP; these are *aspirational upper-bound design targets*, NOT a commitment. Smaller four-zone / nine-creature fallback must remain feasible.
+- The monetization decision is OPEN: F2P optional cosmetics recommended versus premium upfront with cosmetic purchases. User's desire for IAP is confirmed; launch SKUs/prices are not.
+- `docs/architecture/ENGINE_ARCHITECTURE_v0.1.md` proposes native C++20/SDL3/CMake with separate gameplay/core, renderer and platform adapters. Raycast vs sector/portal is **NOT selected**.
+- `docs/architecture/RENDER_BENCHMARK_PLAN_v0.1.md` defines controlled Quay/forest/ruin scenes, 320×180..480×270, real Windows/Android, p95/thermal/peak memory metrics; no benchmarks have been executed and low-end RAM claims remain goals.
+- `docs/architecture/CODEX_R_AND_D_TASKS_v0.1.md` gives small ENGINE-001, RENDER-001/002, BENCH-001, CI-001 planning packets. They require owner approval before coding and are NOT feature authorizations.
+- `docs/planning/DECISION_REGISTER_v0.1.md` now distinguishes explicit user requirements, recommendations, test blockers and deferred expansion. Do not promote proposed docs by duplication or merge alone.
+- **Process gate:** review product/multiplayer/economy choices; approve benchmark-only engineering task; measure feasibility before committing final dungeon geometry or massive art production.
