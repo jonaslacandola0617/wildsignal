@@ -106,3 +106,8 @@ Created `PRODUCT_VISION_RELEASE_SCOPE_v0.1.md`, `ENGINE_ARCHITECTURE_ADR_v0.1.md
 **Proposed native stack:** C++20 with SDL3, CMake, Android Gradle/NDK and optional SDL software/streaming presentation; Android Play target API 36+ based on currently published 2026 policy. CPU raycast, sector/portal and tiny raster candidates **must be compared on physical devices**. Do not assert 2GB compatibility until measured.
 
 **Canonical governance:** PR #1 Creature Bible and PR #2 remaining spec are separate and still drafts at time of audit. Merge order and schema reconciliation required before Codex can treat docs as canonical.
+
+
+## 6. Changes since audit (2026-10-20, planning branch only)
+
+The missing product-scope planning deliverable is now drafted at `docs/planning/PRODUCT_VISION_RELEASE_SCOPE_v0.1.md`. The requested lightweight native C++ architecture and renderer/memory/device test approach are drafted at `docs/architecture/ENGINE_ARCHITECTURE_v0.1.md` and `docs/architecture/RENDER_BENCHMARK_PLAN_v0.1.md`. Codex R&D packets, approval-status decision register and canonical spec index are available in `docs/architecture/CODEX_R_AND_D_TASKS_v0.1.md`, `docs/planning/DECISION_REGISTER_v0.1.md`, and `docs/planning/SPEC_INDEX_v0.1.md`. **This completes DOCUMENTATION for those areas only; it does not complete owner approval, code, commercial planning or measured hardware tests.** Commercial v1 target remains provisional. Next: product scope signoff and device benchmark authorization.
