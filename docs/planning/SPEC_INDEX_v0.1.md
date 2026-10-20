@@ -90,4 +90,9 @@ Read `docs/planning/HARDWARE_AND_SPRITE_RECOVERY_INTAKE_v0.1.md` before assignin
 
 ## 8. Windows 7–11 compatibility (D-012; owner 2026-10-20)
 
-Owner's Windows development PC runs **Windows 11**, i3 10th gen/4GB. Game must aim for **Windows 7, 8, 8.1, 10, 11**. Initial proposed technical minimum is **Windows 7 SP1 x64**, with 32-bit OS support still open. Do not mistake SDL3 source-level compatibility for a tested WILDSIGNAL binary on those OSes. Steam dropped 7/8/8.1 client support in 2024; **legacy standalone distribution is separate from the modern Steam storefront** and not yet established. Full platform/test/distribution specification: `docs/architecture/WINDOWS_7_11_COMPATIBILITY_v0.1.md`. Source of approved target: `docs/planning/DECISION_REGISTER_v0.1.md` D-012, mirrored in JSON. Legacy co-op security and exact OS minimum remain test-gated. This extension contains planning only.
+Owner's Windows development PC runs **Windows 11**, i3 10th gen/4GB. Game must aim for **Windows 7, 8, 8.1, 10, 11**. **64-bit Windows OS and x86_64 executable only** are now owner-approved; **32-bit Windows and 32-bit executables are excluded**. Windows 7 SP1 x64 remains the proposed oldest test floor. Do not mistake SDL3 source-level compatibility for a tested WILDSIGNAL binary on those OSes. Steam dropped 7/8/8.1 client support in 2024; **legacy standalone distribution is separate from the modern Steam storefront** and not yet established. Full platform/test/distribution specification: `docs/architecture/WINDOWS_7_11_COMPATIBILITY_v0.1.md`. Source of approved target: `docs/planning/DECISION_REGISTER_v0.1.md` D-012, mirrored in JSON. Legacy co-op security and exact OS minimum remain test-gated. This extension contains planning only.
+
+
+## 9. Closed compatibility question (2026-10-20)
+
+The owner chose **64-bit only**. Do not request further Windows x86 compatibility decisions or create an x86 CI path. Verify Win7 SP1 x64 through Win11 x64 runtime behavior before advertising old-OS support. D-012 and D-042 in the synchronized Markdown/JSON decision registers define the final scope and outstanding proof.
