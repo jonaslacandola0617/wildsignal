@@ -170,3 +170,10 @@ None of these authorizes quest production, shop/IAP, social network service or s
 - Google Play Billing backend: https://developer.android.com/google/play/billing/backend
 
 **Review gate:** Do not promote ADR-002/003/004 to "approved" or finalize complex map geometry until measured renderer tests on real target hardware and gameplay camera art approval.
+
+
+## 10. Owner-confirmed Windows 7–11 portability requirement (2026-10-20)
+
+**Host:** owner has **Windows 11**, Intel i3 10th-gen/4GB RAM. **Game target:** Windows 7, 8, 8.1, 10, 11 (per owner, D-012), with **Windows 7 SP1 x64 initially proposed as compatibility floor** pending actual tests. **Do not equate Windows 11 build success with legacy support.** See `WINDOWS_7_11_COMPATIBILITY_v0.1.md` for the platform/distribution test matrix, native 32-bit scope question, legacy CRT/Windows API imports and online security concerns.
+
+**Architectural consequence:** game's platform-neutral core and core offline save must never depend on Steamworks/modern Chromium/Win10-only APIs. Test SDL3 and pinned C++20 runtime loading on Win7 SP1 x64; keep Win7-compatible build flags, native filesystem/audio/window APIs and alternate SDL presentation path. Steam client is not supported on Win7/8/8.1 since Jan 2024, so future standalone non-Steam distribution is needed if owner wants gamers on those systems. Steam on modern Windows, Android Google Play and the approved Android↔Windows co-op launch plan remain distinct from this legacy delivery route. No choice of renderer, CRT, toolchain or x86 target is locked until tested. No implementation started.
