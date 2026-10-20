@@ -23,7 +23,7 @@
 | Creatures | IDs for all 100, species names, official starter choices, ecology, rights ledger, sprite cutouts | Creature Catalog + Art Ledger |
 | Combat | **Full formula/status/turn-order proposal and test vectors drafted**; balancing and PvP rules still unapproved | BATTLE_BALANCE_BIBLE_v0.1.md + BATTLE_TEST_VECTORS_v0.1.json |
 | Economy | rewards, creature acquisition limits, crafting, shops, progression pacing, anti-exploitation | Economy Balance Bible |
-| UI/UX | HUD, inventory, menus, touch layouts, onboarding, accessibility, controller support | Screen flow + UI component specs |
+| UI/UX | **UI bible, 26 screen contracts, wireframes and 40 acceptance tests drafted**; final art, touch testing and flow approvals outstanding | UI_UX_BIBLE_v0.1.md; UI_SCREEN_CONTRACTS_v0.1.json; UI_WIREFRAMES_v0.1.md; UI_ACCEPTANCE_TESTS_v0.1.json |
 | Art | camera treatment, texture pixel density, sprite direction sets, lighting/fog, character customization | Visual Bible + asset templates |
 | Engine | raycaster vs other 2.5D renderer, collision, save schema, resource loading | Architecture Decision Records + benchmark |
 | Multiplayer | **offline/online model chosen**; server authority, zone capacities, instancing, matchmaking, trade, sync and security decisions outstanding | Offline/Online Systems v0.1; Network/Backend Spec |
@@ -212,3 +212,14 @@ Added `docs/design/CHARACTER_NPC_BIBLE_v0.1.md` for playable Wayfinder body/skin
 **First wild candidate locations:** Tumbletail WS-005 and Puddlefin WS-021 in Mosswake; Mossmelt WS-012 and Signalit WS-001 in Liltwood; Craglet WS-024 guardian and Hushflame WS-067 in Echo Hollow. Additional proposed spawn IDs are **not yet present** in the 48×32 world fixture. Do not fabricate completed map data or claim all recruitments are active in game.
 
 **Next approval gates:** exact first nine assignments/names; bonding progression versus classic capture model; whether Signal Energy supports compelling tactics; status durations; final boss difficulty; reserved party space; PVP level normalization; map placements. Do not start a comprehensive 100-creature roster or commercial economy until these are playtested.
+
+
+## 16. UI/UX pre-production v0.1 (DRAFT, 2026-10-20)
+
+- `docs/design/UI_UX_BIBLE_v0.1.md` defines root navigation, player input parity, minimal first-person HUD, battle move-energy cards, local save behavior, fieldbook/party UI, accessibility, mobile/PC layout constraints and later online commerce gating.
+- `docs/design/UI_SCREEN_CONTRACTS_v0.1.json` contains **26 screens and 154 component definitions** with proposed rectangles in normalized 1000×562 safe-content reference space. This is not yet physical dp/sp validation and not finished artwork.
+- `docs/design/UI_WIREFRAMES_v0.1.md` includes readable monochrome layout mockups and cross-references all screens. Final compositions require pixel-art review and on-device screenshot tests.
+- `docs/design/UI_ACCEPTANCE_TESTS_v0.1.json` has **40** design acceptance cases (21 P0 first playable, 14 P1 pre-beta, 5 P2 online/commerce) — **all unexecuted**.
+- **First demo UI scope** should be a functional subset: MAIN_MENU, AVATAR_CREATE, STARTER_PICK, EXPLORE, COMPASS, DIALOGUE, PUZZLE, BATTLE_SELECT/PLAYBACK/RESULT, PAUSE. SAVE_SLOTS + SETTINGS required before broader alpha; Fieldbook/Party/Bond screens phase in only when owned creature recruitment system exists. **Screen catalog scope is not authorization to implement every screen at once.**
+- The UI must not invent creature/battle truth or save success. All transitions dispatch typed intents to local simulation or online authoritative backend. Offline mode never requires an account.
+- Critical architecture still needs approval: rendering backend, exact mobile minimum device and UI safe areas, final trust-realm policy, creature-bond method, combat math and initial 3-6 wild species.
