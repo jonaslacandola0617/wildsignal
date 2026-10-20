@@ -95,3 +95,14 @@
 A task is ready only if it references a precise **approved spec version**, states in/out of scope, uses stable data IDs, defines platform controls and constraints, enumerates error/recovery behavior, includes an executable acceptance test, and marks unknown performance numbers as **measure** rather than promise. Codex may not fabricate game systems to fill holes silently.
 
 **Reality check:** Full planning before development cannot guarantee error-free implementation. Technical unknowns and player response require experiments. We can eliminate unapproved design guesses, avoid contradictory documentation and keep art coherent by freezing decisions progressively.
+
+
+## 6. Audit follow-up: Gate 1 and 2 now documented (not resolved)
+
+Created `PRODUCT_VISION_RELEASE_SCOPE_v0.1.md`, `ENGINE_ARCHITECTURE_ADR_v0.1.md`, `RENDERING_BENCHMARK_PLAN_v0.1.md`, `DECISION_REGISTER_v0.1.json`, `CANONICAL_SPEC_INDEX_v0.1.md`, and `CODEX_ENGINE_PROOF_TASK_PACKETS_v0.1.md` as review drafts. These files **close documentation gaps but do not constitute implementation/owner approval or performance evidence**.
+
+**Proposed release target:** 6 zones, 18–24 species, roughly 3–5h offline story and small 2-player cross-platform co-op, conditional cosmetic monetization. Further trade/ranked PvP delayed pending verification. Owner sign-off required.
+
+**Proposed native stack:** C++20 with SDL3, CMake, Android Gradle/NDK and optional SDL software/streaming presentation; Android Play target API 36+ based on currently published 2026 policy. CPU raycast, sector/portal and tiny raster candidates **must be compared on physical devices**. Do not assert 2GB compatibility until measured.
+
+**Canonical governance:** PR #1 Creature Bible and PR #2 remaining spec are separate and still drafts at time of audit. Merge order and schema reconciliation required before Codex can treat docs as canonical.
