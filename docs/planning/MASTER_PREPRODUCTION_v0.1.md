@@ -1,6 +1,6 @@
 # WILDSIGNAL — Master Pre-Production Plan v0.1
 
-**Status:** PROPOSAL / production-audit report, 2026-10-20. **Developer:** Codex, *after* approvals. **Intent:** Remove unbounded interpretation, not eliminate the need for implementation testing.
+**Status:** Mixed: confirmed product decisions + proposed implementation and world details; updated 2026-10-20. **Developer:** Codex, *after* approvals. **Intent:** Remove unbounded interpretation, not eliminate the need for implementation testing.
 **Other specs:** WORLD_BIBLE_v0.1.md; VISUAL_BIBLE_v0.1.md; CREATURE_BIBLE_v0.1.md in separate draft PR #1.
 
 ## 1. What's truly decided
@@ -8,14 +8,15 @@
 - Real-time first-person pseudo-3D/pixel-art exploration; "beautiful but mysterious" forests and ruins.
 - Creatures physically accompany players and meaningfully affect exploration.
 - Turn-based combat; Windows/Steam and Android/Google Play, low-end-first; C++ and lightweight native libraries.
-- Planned multiplayer/cross-play and optional non-pay-to-win monetization.
+- **CONFIRMED 2026-10-20: Offline-first story adventure + optional online multiplayer.** Offline mode must support exploration, creature bonding/battles, quests and local saves with no login or internet. Online is additive: co-op, presence, trading, PvP and account services. Exact cross-mode data bridge is a design proposal pending explicit approval.
+- Planned online multiplayer/cross-play and optional non-pay-to-win monetization.
 - ChatGPT handles planning and specifications; Codex handles implementation.
 
 ## 2. What is NOT yet decided (major gaps and accountable deliverables)
 
 | Domain | Missing decisions | Required specification / approval |
 |---|---|---|
-| Product | core differentiator, target audience and age rating, single-player offline policy | Product Vision + feature priority |
+| Product | core differentiator, target audience and age rating; **offline play requirement is confirmed** | Product Vision + feature priority |
 | Scope | first release size, first playable vs public release, cost/time/solo capacity | Scope Matrix & milestones |
 | World | topology, each zone's actual grid/collision, portals, scale, travel time, secrets | World Bible; annotated level maps |
 | Narrative | protagonists, factions, NPC identities, quest/cutscene scripts, lore timeline | Narrative Bible and dialogue sheets |
@@ -25,7 +26,7 @@
 | UI/UX | HUD, inventory, menus, touch layouts, onboarding, accessibility, controller support | Screen flow + UI component specs |
 | Art | camera treatment, texture pixel density, sprite direction sets, lighting/fog, character customization | Visual Bible + asset templates |
 | Engine | raycaster vs other 2.5D renderer, collision, save schema, resource loading | Architecture Decision Records + benchmark |
-| Multiplayer | server authority, zone capacities, instancing, matchmaking, trade, network failure and security | Network/Backend Spec |
+| Multiplayer | **offline/online model chosen**; server authority, zone capacities, instancing, matchmaking, trade, sync and security decisions outstanding | Offline/Online Systems v0.1; Network/Backend Spec |
 | Monetization | purchase SKUs, store platforms, entitlements, refunds, receipts, cosmetic design | Store + Entitlement Spec |
 | Audio | licensed music plan, biome cues, feedback, mixing, audio platform budget | Audio Bible |
 | Distribution | NDK/Windows CI, store signing, Steamworks, Google Billing and review | CI/CD & Compliance Checklist |
@@ -51,7 +52,7 @@ Prioritized immediate decisions:
 - Starter assignment names to source sprite cells; define if there is battle-to-bond, social befriending, or a mix.
 - Choose 1v1 only for vertical slice; determine max active and carried companions.
 - Define how map interactions avoid starter-based story locks.
-- Determine if offline exploration/save is required when not connected; implications for server authority and trading.
+- **Resolved:** Offline exploration, battles, bonding, story and local save are required without internet. **Unresolved:** online progression separation/import and server-verified creature ownership. Compare proposals in OFFLINE_ONLINE_SYSTEMS_v0.1.md; do not implement speculative sync.
 - Specify device test matrix; budget is benchmarked not assumed.
 - Confirm renderer feasibility with a separate technical experiment before committing map assets.
 - Set assets license/provenance policy and decide which source art may be in public GitHub.
@@ -149,6 +150,21 @@ Combat rules -> deterministic battle logic -> save schema / server authority
 ## 10. Review requests for user
 - Approve the **world structure as a planning baseline** or revise geography/regions.
 - Confirm the **first-person experience as permanent** vs optional third-person in social areas.
-- Decide **offline exploration vs online-only** (a major backend architecture fork).
+- **Decided:** offline adventure + optional online multiplayer. Approve or revise the *two-realm trust proposal* in OFFLINE_ONLINE_SYSTEMS_v0.1.md (local vs verified account progression).
 - Confirm **creature bonding method** (battle, noncombat, or both).
 - Prioritize immediate artwork prototypes: a first-person town view, forest view, ruin chamber view — all matching source sprite scale.
+
+
+## 11. 2026-10-20 approved connectivity decision and immediate child specifications
+
+**Approved functional requirement:** WILDSIGNAL must remain an offline-playable single-player adventure after installation and initial asset availability. No mandatory account, login, recurring entitlement verification or server call for offline story, creature companionship, battle and local saving. Online multiplayer is opt-in and requires connectivity. Updates/downloads and first-time installation may still require a store connection; that does not change runtime offline-game requirement.
+
+**Not approved yet:** whether the online-account character and local-story character are separate progression profiles; whether any noncompetitive offline companion may appear in casual co-op; and whether story milestones may carry over. Do not imply seamless offline inventory import, which conflicts with secure PvP/trading.
+
+New companion documents on this PR:
+- `docs/design/LEVEL_MAPS_FIRST_SIGNAL_v0.1.md`: precise prototype tile grids, triggers, portal links and spatial acceptance tests.
+- `docs/design/NARRATIVE_QUESTS_v0.1.md`: first-session story, NPCs, dialogue and state/trigger matrix.
+- `docs/design/GAMEPLAY_SYSTEMS_v0.1.md`: companion state, command rules, turn-based battle, access/input and game-state acceptance tests.
+- `docs/architecture/OFFLINE_ONLINE_SYSTEMS_v0.1.md`: offline-first runtime, account/trust separation, local saves and server-authoritative online systems.
+
+**Design/development gate:** precise prototype grids are REVIEW DRAFTS, not approved final maps. Codex should not build beyond experimental graybox until the user signs off on the topology, game modes and essential UX.
