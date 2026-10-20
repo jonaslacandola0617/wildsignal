@@ -1,6 +1,6 @@
 # WILDSIGNAL — Canonical Design Decisions & Open Questions v0.1
 
-**Date:** 2026-10-20. **Status:** Four product decisions explicitly APPROVED FOR PLANNING on 2026-10-20. Technical feasibility, content lock, prices, detailed online implementation and Codex build authorization remain open.
+**Date:** 2026-10-20. **Status:** Four commercial/trust planning decisions approved, plus Windows 7–11 game compatibility explicitly requested by owner, 2026-10-20. Technical feasibility, content lock, prices, detailed online implementation and Codex build authorization remain open.
 **Git history:** Creature Bible resides in **draft PR #1**; world/systems/proposed scope and engine files in **draft PR #2**. Both were checked OPEN/DRAFT/UNMERGED this turn.
 **Protocol:** One row per actual decision, with source and affected work. Owner approval updates status `CONFIRMED` and approval date; a prior proposed spec does not become confirmed merely by appearing in multiple files.
 
@@ -27,6 +27,7 @@
 | D-009 | Full solo story progression playable offline; online multiplayer optional | CONFIRMED | save trust, UX, account boundaries |
 | D-010 | Multiplayer included in overall vision and optional purchases intended for revenue | CONFIRMED intent; exact release scope OPEN | product roadmap |
 | D-011 | ChatGPT leads planning/spec; Codex implements after decisions approved | CONFIRMED workflow | PRs, task packets |
+| D-012 | Developer PC Windows 11 (i3 10th gen, 4 GB); GAME intended for **Windows 7, 8, 8.1, 10 and 11**. Windows 7 SP1 x64 proposed minimum OS/architecture for validation, not yet proven. | **CONFIRMED compatibility target, 2026-10-20; verification GATED** | legacy Windows binary, Steam distribution separation, security and testing |
 
 ## 2. Recommended but awaiting owner approval
 
@@ -53,7 +54,7 @@
 |---|---|---|---|
 | D-040 | CPU raycaster vs sector/portal wall renderer vs small CPU rasterizer | BLOCKED_BY_TEST | renderer/low-end visual benchmark |
 | D-041 | 320×180 / 400×225 / 480×270 baseline, optional 60fps | BLOCKED_BY_TEST | P95/P99 frame time and pixel readability on devices |
-| D-042 | Actual minimum Android device/API, minimum Windows RAM/OS, no dedicated GPU | BLOCKED_BY_TEST | real device baselines, store policy and OS headroom |
+| D-042 | Owner targets game compatibility on Windows 7–11; final Windows 7 SP1 x64 minimum specification, legacy CRT/SDL imports, 32-bit support, real Windows RAM/performance and Android min OS remain unverified | BLOCKED_BY_TEST | Win7/8/8.1/10/11 functional build test, legacy distribution, hardware/OS and security evidence |
 | D-043 | FOV/pitch, vertical architecture, wall/floor height and outdoor vista illusion | BLOCKED_BY_TEST | screenshot comparing original mood, measured fidelity |
 | D-044 | Memory/cache budget and threading to maintain 30 FPS with animated sprite foliage | BLOCKED_BY_TEST | 20-minute soak, RSS/PSS, battery, memory trace |
 | D-045 | SDL3 software-presentation vs framebuffer upload and UI crispness strategy | BLOCKED_BY_TEST | actual Windows and Android behavior |
@@ -119,3 +120,10 @@ Next review trigger: <measured evidence or milestone>
 4. **D-024**: separate server-verified online progression; cosmetic offline companion appearances in casual co-op *where feasible*.
 
 **Meaning of approval:** Binding **product planning direction**, not approved prices, finished content quotas, build results, finalized art or permission to start coding. No automatic transfer of local creatures or items into online competitive/tradable inventories. D-022 (smaller launch fallback) remains a risk mitigation option to bring back for explicit review if budgets fail. No purchased item influences species rarity, power, encounters, XP, story progression or ranked rewards. See Product Vision and Offline/Online Architecture for proposed implementation consequences.
+
+
+## 8. Windows platform compatibility approval — 2026-10-20
+
+**D-012 confirmed by owner:** development is performed on a **Windows 11** i3 10th-gen / 4 GB RAM PC; the **game must target Windows 7, 8, 8.1, 10 and 11**. Supporting `Windows 7 SP1 x64` is the proposed initial technical floor, not an owner-expressed choice of 64-bit only. Native 32-bit editions remain an explicit open scope choice. SDL3 documents legacy Windows support, but the complete pinned C++20 runtime/dependencies and game are **NOT yet tested**. Steam client support for Windows 7/8/8.1 ended Jan 1 2024, so the legacy-OS game needs a **separately planned standalone delivery path** and offline-first runtime independent of Steam. Secure online co-op on legacy OS needs separate verification; do not remove the general Android↔Windows launch co-op requirement or promise Win7 online parity without tests. See `docs/architecture/WINDOWS_7_11_COMPATIBILITY_v0.1.md`.
+
+**No game implementation authorized** by this platform-planning amendment.
