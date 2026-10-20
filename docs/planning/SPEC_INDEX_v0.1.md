@@ -96,3 +96,19 @@ Owner's Windows development PC runs **Windows 11**, i3 10th gen/4GB. Game must a
 ## 9. Closed compatibility question (2026-10-20)
 
 The owner chose **64-bit only**. Do not request further Windows x86 compatibility decisions or create an x86 CI path. Verify Win7 SP1 x64 through Win11 x64 runtime behavior before advertising old-OS support. D-012 and D-042 in the synchronized Markdown/JSON decision registers define the final scope and outstanding proof.
+
+
+## 10. Current asset/engine-readiness document package (2026-10-20)
+
+| Area | Newly available planning file | Status |
+|---|---|---|
+| Original artwork indexing | `docs/design/assets/ORIGINAL_SPRITE_SHEET_MANIFEST_v0.1.json` | Source pixels inspected, 100 candidate crop records; no PNG exports |
+| Four pilot sprite restoration | `docs/design/assets/PILOT_SPRITE_RECOVERY_SPEC_v0.1.md` | Method/QA planned, not executed |
+| Three benchmark hero scenes | `docs/design/HERO_SCENE_TARGETS_v0.1.md` | Visual composition brief, not rendered or approved |
+| Devices/legacy Win x64 | `docs/architecture/DEVICE_VALIDATION_MATRIX_v0.1.md` | Requirements listed; ALL TESTS NOT RUN |
+| Co-op and cosmetic projection | `docs/planning/COOP_COSMETIC_HANDOFF_v0.1.md` | Product/UX paper flow, no networking/commerce |
+| Q001–Q005 references and blockers | `docs/planning/FIRST_SLICE_CONSISTENCY_GATE_v0.1.md` | Some prose contradictions fixed; quest-gate/collision tests still outstanding |
+
+**Owner artwork policy:** The original source PNG bytes are in the user's file Library and are **not published to the public GitHub repo**. Git contains only text manifests/specs and a SHA-256 fingerprint so source provenance can later be checked. The original historical Aseprite editable master is unavailable. Reconstructed editable sprite sources may be created in a later, separately authorized asset-editing milestone.
+
+**Production gate:** No game code, Windows/Android build, transparency export, co-op server or purchase integration has been created by this package. Future ENGINE-001 and sprite cleanup tasks require their own explicit approval.
