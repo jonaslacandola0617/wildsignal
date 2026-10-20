@@ -52,7 +52,7 @@ Voice acting is NOT assumed. Text/localizable dialogue, emotes, portrait and sou
 ### Q005: The Chamber's Answer
 - Trigger: enter Echo Hollow and cross `TRIGGER_INTRO_BATTLE`.
 - Encounter: one authored intro 1v1 vs nontradeable NPC-owned wild/guardian creature, creature spec TBD; player allowed retry after healing, no item-loss softlock.
-- Post-battle: complete 3-sigil A→B→C chamber puzzle (sets FLAG_SIGIL_PUZZLE_COMPLETE), then activate pedestal; no online partner required.
+- Post-battle: solve a three-switch pattern puzzle (initial A=off/B=on/C=off; target A=on/B=off/C=on, toggle any order). Set FLAG_SIGIL_PUZZLE_COMPLETE, then activate pedestal; no online partner required.
 - Sample inscription: "A signal is not a command. It is a question."
 - Reward: `FLAG_FIRST_SIGNAL_COMPLETE=1`; unlock fast return/return portal to Liltwood and save at Lantern Quay. Ending reveal: deeper network visible but inaccessible.
 - Failure: losing battle returns to nearest checkpoint, restores companion to safe HP and preserves Q001–Q004 completion.
