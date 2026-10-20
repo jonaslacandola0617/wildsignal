@@ -25,7 +25,10 @@
       "cost": 0,
       "accuracy": 10000,
       "priority": 0,
-      "effect": "none"
+      "effect": "none",
+      "target": "enemy",
+      "effects": [],
+      "resolutionOrder": "spend_energy;accuracy_if_needed;deal_damage_if_attack;apply_effects_in_list_order_if_legal_target_and_alive"
     },
     {
       "id": "BRACE",
@@ -36,7 +39,19 @@
       "cost": 1,
       "accuracy": 10000,
       "priority": 1,
-      "effect": "GUARD 1 incoming hit this round"
+      "effect": "GUARD 1 incoming hit this round",
+      "target": "self",
+      "effects": [
+        {
+          "kind": "applyStatus",
+          "target": "self",
+          "status": "GUARD",
+          "duration": "current_round",
+          "damageMultiplierPercent": 50,
+          "charges": 1
+        }
+      ],
+      "resolutionOrder": "spend_energy;accuracy_if_needed;deal_damage_if_attack;apply_effects_in_list_order_if_legal_target_and_alive"
     },
     {
       "id": "SPROUT_DART",
@@ -47,7 +62,10 @@
       "cost": 2,
       "accuracy": 10000,
       "priority": 0,
-      "effect": "none"
+      "effect": "none",
+      "target": "enemy",
+      "effects": [],
+      "resolutionOrder": "spend_energy;accuracy_if_needed;deal_damage_if_attack;apply_effects_in_list_order_if_legal_target_and_alive"
     },
     {
       "id": "LANTERN_GROVE",
@@ -58,7 +76,27 @@
       "cost": 3,
       "accuracy": 10000,
       "priority": 1,
-      "effect": "GUARD this round + REGEN(3,2 end phases)"
+      "effect": "GUARD this round + REGEN(3,2 end phases)",
+      "target": "self",
+      "effects": [
+        {
+          "kind": "applyStatus",
+          "target": "self",
+          "status": "GUARD",
+          "duration": "current_round",
+          "damageMultiplierPercent": 50,
+          "charges": 1
+        },
+        {
+          "kind": "applyStatus",
+          "target": "self",
+          "status": "REGEN",
+          "ticks": 2,
+          "tickPhase": "end_of_round_including_application",
+          "hpPerTick": 3
+        }
+      ],
+      "resolutionOrder": "spend_energy;accuracy_if_needed;deal_damage_if_attack;apply_effects_in_list_order_if_legal_target_and_alive"
     },
     {
       "id": "ROOT_THREAD",
@@ -69,7 +107,18 @@
       "cost": 2,
       "accuracy": 10000,
       "priority": 0,
-      "effect": "SLOW 2 subsequent turn start phases"
+      "effect": "SLOW 2 subsequent turn start phases",
+      "target": "enemy",
+      "effects": [
+        {
+          "kind": "applyStatus",
+          "target": "enemy",
+          "status": "SLOW",
+          "fullFutureTurns": 2,
+          "swiftMultiplierPercent": 75
+        }
+      ],
+      "resolutionOrder": "spend_energy;accuracy_if_needed;deal_damage_if_attack;apply_effects_in_list_order_if_legal_target_and_alive"
     },
     {
       "id": "SLIPSTREAM",
@@ -80,7 +129,10 @@
       "cost": 2,
       "accuracy": 10000,
       "priority": 0,
-      "effect": "none"
+      "effect": "none",
+      "target": "enemy",
+      "effects": [],
+      "resolutionOrder": "spend_energy;accuracy_if_needed;deal_damage_if_attack;apply_effects_in_list_order_if_legal_target_and_alive"
     },
     {
       "id": "MIST_HUSH",
@@ -91,7 +143,18 @@
       "cost": 2,
       "accuracy": 10000,
       "priority": 0,
-      "effect": "SLOW 2 subsequent turns"
+      "effect": "SLOW 2 subsequent turns",
+      "target": "enemy",
+      "effects": [
+        {
+          "kind": "applyStatus",
+          "target": "enemy",
+          "status": "SLOW",
+          "fullFutureTurns": 2,
+          "swiftMultiplierPercent": 75
+        }
+      ],
+      "resolutionOrder": "spend_energy;accuracy_if_needed;deal_damage_if_attack;apply_effects_in_list_order_if_legal_target_and_alive"
     },
     {
       "id": "QUICK_DART",
@@ -102,7 +165,10 @@
       "cost": 1,
       "accuracy": 10000,
       "priority": 1,
-      "effect": "none"
+      "effect": "none",
+      "target": "enemy",
+      "effects": [],
+      "resolutionOrder": "spend_energy;accuracy_if_needed;deal_damage_if_attack;apply_effects_in_list_order_if_legal_target_and_alive"
     },
     {
       "id": "CURRENT_SHIELD",
@@ -113,7 +179,24 @@
       "cost": 2,
       "accuracy": 10000,
       "priority": 0,
-      "effect": "GUARD this round + HEAL 3 immediate"
+      "effect": "GUARD this round + HEAL 3 immediate",
+      "target": "self",
+      "effects": [
+        {
+          "kind": "applyStatus",
+          "target": "self",
+          "status": "GUARD",
+          "duration": "current_round",
+          "damageMultiplierPercent": 50,
+          "charges": 1
+        },
+        {
+          "kind": "heal",
+          "target": "self",
+          "hp": 3
+        }
+      ],
+      "resolutionOrder": "spend_energy;accuracy_if_needed;deal_damage_if_attack;apply_effects_in_list_order_if_legal_target_and_alive"
     },
     {
       "id": "CINDER_BEAT",
@@ -124,7 +207,18 @@
       "cost": 2,
       "accuracy": 10000,
       "priority": 0,
-      "effect": "FOCUS +25% next damaging hit, duration 2 following turns"
+      "effect": "FOCUS +25% next damaging hit, duration 2 following turns",
+      "target": "self",
+      "effects": [
+        {
+          "kind": "applyStatus",
+          "target": "self",
+          "status": "FOCUS",
+          "fullFutureTurns": 2,
+          "nextLandedAttackBonusPercent": 25
+        }
+      ],
+      "resolutionOrder": "spend_energy;accuracy_if_needed;deal_damage_if_attack;apply_effects_in_list_order_if_legal_target_and_alive"
     },
     {
       "id": "EMBER_KNOCK",
@@ -135,7 +229,10 @@
       "cost": 2,
       "accuracy": 10000,
       "priority": 0,
-      "effect": "none"
+      "effect": "none",
+      "target": "enemy",
+      "effects": [],
+      "resolutionOrder": "spend_energy;accuracy_if_needed;deal_damage_if_attack;apply_effects_in_list_order_if_legal_target_and_alive"
     },
     {
       "id": "COAL_FLICK",
@@ -146,7 +243,19 @@
       "cost": 3,
       "accuracy": 10000,
       "priority": 0,
-      "effect": "BURN 2 end phases (3 HP per phase)"
+      "effect": "BURN 2 end phases (3 HP per phase)",
+      "target": "enemy",
+      "effects": [
+        {
+          "kind": "applyStatus",
+          "target": "enemy",
+          "status": "BURN",
+          "ticks": 2,
+          "tickPhase": "end_of_round_including_application",
+          "hpPerTick": -3
+        }
+      ],
+      "resolutionOrder": "spend_energy;accuracy_if_needed;deal_damage_if_attack;apply_effects_in_list_order_if_legal_target_and_alive"
     },
     {
       "id": "BURROW_BUMP",
@@ -157,7 +266,10 @@
       "cost": 2,
       "accuracy": 10000,
       "priority": 0,
-      "effect": "none"
+      "effect": "none",
+      "target": "enemy",
+      "effects": [],
+      "resolutionOrder": "spend_energy;accuracy_if_needed;deal_damage_if_attack;apply_effects_in_list_order_if_legal_target_and_alive"
     },
     {
       "id": "STONE_SHELL",
@@ -168,7 +280,24 @@
       "cost": 2,
       "accuracy": 10000,
       "priority": 0,
-      "effect": "GUARD this round + HEAL 3 immediate"
+      "effect": "GUARD this round + HEAL 3 immediate",
+      "target": "self",
+      "effects": [
+        {
+          "kind": "applyStatus",
+          "target": "self",
+          "status": "GUARD",
+          "duration": "current_round",
+          "damageMultiplierPercent": 50,
+          "charges": 1
+        },
+        {
+          "kind": "heal",
+          "target": "self",
+          "hp": 3
+        }
+      ],
+      "resolutionOrder": "spend_energy;accuracy_if_needed;deal_damage_if_attack;apply_effects_in_list_order_if_legal_target_and_alive"
     },
     {
       "id": "SOFT_GLOW",
@@ -179,7 +308,10 @@
       "cost": 2,
       "accuracy": 10000,
       "priority": 0,
-      "effect": "none"
+      "effect": "none",
+      "target": "enemy",
+      "effects": [],
+      "resolutionOrder": "spend_energy;accuracy_if_needed;deal_damage_if_attack;apply_effects_in_list_order_if_legal_target_and_alive"
     },
     {
       "id": "ECHO_WISP",
@@ -190,7 +322,18 @@
       "cost": 2,
       "accuracy": 10000,
       "priority": 0,
-      "effect": "SLOW 2 subsequent turns"
+      "effect": "SLOW 2 subsequent turns",
+      "target": "enemy",
+      "effects": [
+        {
+          "kind": "applyStatus",
+          "target": "enemy",
+          "status": "SLOW",
+          "fullFutureTurns": 2,
+          "swiftMultiplierPercent": 75
+        }
+      ],
+      "resolutionOrder": "spend_energy;accuracy_if_needed;deal_damage_if_attack;apply_effects_in_list_order_if_legal_target_and_alive"
     },
     {
       "id": "MOSS_MEND",
@@ -201,7 +344,16 @@
       "cost": 3,
       "accuracy": 10000,
       "priority": 0,
-      "effect": "HEAL 8 immediate"
+      "effect": "HEAL 8 immediate",
+      "target": "self",
+      "effects": [
+        {
+          "kind": "heal",
+          "target": "self",
+          "hp": 8
+        }
+      ],
+      "resolutionOrder": "spend_energy;accuracy_if_needed;deal_damage_if_attack;apply_effects_in_list_order_if_legal_target_and_alive"
     },
     {
       "id": "RESTORING_GLOW",
@@ -212,7 +364,19 @@
       "cost": 3,
       "accuracy": 10000,
       "priority": 0,
-      "effect": "REGEN(3,2 end phases)"
+      "effect": "REGEN(3,2 end phases)",
+      "target": "self",
+      "effects": [
+        {
+          "kind": "applyStatus",
+          "target": "self",
+          "status": "REGEN",
+          "ticks": 2,
+          "tickPhase": "end_of_round_including_application",
+          "hpPerTick": 3
+        }
+      ],
+      "resolutionOrder": "spend_energy;accuracy_if_needed;deal_damage_if_attack;apply_effects_in_list_order_if_legal_target_and_alive"
     }
   ],
   "species": [
@@ -459,5 +623,16 @@
       "evolutionFamily": null,
       "proposed": true
     }
-  ]
+  ],
+  "effectExecution": "For attack move, apply effects only after landed damage and if target still alive. For support moves, apply effects in order immediately. Apply_status refreshes same status rather than stacking. Guard is end-of-round or one-hit; burn/regen tick end of application round.",
+  "statCaps": {
+    "level": {
+      "min": 1,
+      "max": 30
+    },
+    "energy": {
+      "min": 0,
+      "max": 8
+    }
+  }
 }
