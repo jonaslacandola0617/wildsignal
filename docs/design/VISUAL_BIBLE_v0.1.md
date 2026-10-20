@@ -220,3 +220,8 @@ Every map concept must supply:
 - Quantitative sprite/texture/particle/lighting budgets, based on device tests not guesses.
 
 **Instruction to Codex:** Keep all art parameters configurable; build ONE representative room for each of town, forest, ruin before authoring many maps. Never replace the owner's creature sprites with generic AI art or synthesize new species without approval.
+
+
+## J. Player/NPC bible cross-reference
+
+Playable avatar appearances, NPC silhouettes, costumes, first-person equipment, user-customizable palettes, sprite layer rules and related visual acceptance tests are authored in `CHARACTER_NPC_BIBLE_v0.1.md`. Map-binding and sprite-data metadata are in `CHARACTER_ASSET_SCHEMA_v0.1.json`. These are proposed production defaults; user-owned creature sprites remain canonical creature art. The opening chapter requires Mara, Old Fen and Iri as visible NPCs, and Bellkeeper Sol as a **nonphysical inscription**. Character palette/canvas/timing targets must be verified against the low-end rendering prototype before freezing.
