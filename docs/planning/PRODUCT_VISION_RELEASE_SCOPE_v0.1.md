@@ -1,7 +1,7 @@
 # WILDSIGNAL — Product Vision & Release Scope v0.1
 
-**Status: REVIEW PROPOSAL, NOT PRODUCTION LOCK.** Date: 2026-10-20.  
-**Owner decision required for pricing/online trust model/release feature set.**
+**Status: PRODUCT PLANNING BASELINE APPROVED IN PART, NOT PRODUCTION LOCK.** Date: 2026-10-20.  
+**Owner explicitly approved D-020, D-021, D-023 and D-024:** free-to-play with cosmetic-only purchases; aspirational six-zone/18–24-creature/3–5-hour release target subject to feasibility; two-player Android↔Windows co-op at commercial launch; distinct offline and verified-online progression, with offline companion cosmetic appearance in casual co-op where feasible. Prices, billing, art, technical implementation and release date remain unapproved.
 **Binding user requirements (confirmed):** original pixel-art creature companion adventure; "beautiful but mysterious" Doom-inspired first-person *2.5D* presentation; light enough for low-end Android and Windows PCs; built around C++ and lightweight libraries; offline adventure plus optional online multiplayer; intended commercial release on Steam and Google Play; optional purchases for revenue; original user-owned creature sprites.
 **Design sources:** WORLD_BIBLE_v0.1.md, VISUAL_BIBLE_v0.1.md, FIRST_SIGNAL_ZONE_BLUEPRINT_v0.2.md, CREATURE_CATALOG_v0.1.json, UI_UX_BIBLE_v0.1.md, OFFLINE_ONLINE_SYSTEMS_v0.1.md, BATTLE_BALANCE_BIBLE_v0.1.md.
 
@@ -39,39 +39,39 @@ Target feelings: wonder > discovery > trust > strategic confidence > community. 
 - **No online dependency;** a separate two-player connection lab may follow but is not a feature required to enjoy this slice.
 - **Pass:** all starters can finish with no softlocks; reasonable pace confirmed by user tests; no critical mobile tap failures; controlled memory and reproducible combat.
 
-### M3 — Commercial 1.0 (PROPOSED SCOPE; requires budget/reality check)
+### M3 — Commercial 1.0 (OWNER-APPROVED ASPIRATIONAL PLANNING TARGET; feasibility not established)
 - **Platforms:** Windows via Steam; Android via Google Play, same base game/content and cross-play as supported.
 - **Main story:** target 3–5 hours for first playthrough, plus optional exploration/creature discovery (estimate only; needs story production sizing).
-- **Map content:** 6 distinct explorable zones: Lantern Quay, Mosswake Path, Liltwood Forest, Echo Hollow, Tideglass Inlet, Ashbell Works. Only first 4 are preliminary blockouts. Final scene/quest count not approved.
-- **Creature content:** **18–24** fully integrated original creature species as *aspirational cap*, not automatic approval to consume all 100 artworks. 3 starters, 9 candidate prototype species; remaining roster chosen after art/balance validation.
+- **Map content:** owner-approved *aspirational* six distinct explorable zones: Lantern Quay, Mosswake Path, Liltwood Forest, Echo Hollow, Tideglass Inlet, Ashbell Works. Only first 4 are preliminary blockouts. Final scene/quest count not approved.
+- **Creature content:** owner-approved aspirational **18–24** fully integrated original species; feasibility and specific roster/animation approval remain gating conditions. Not automatic approval to use all 100 artworks. 3 starters, 9 candidate prototype species; remaining roster chosen after art/balance validation.
 - **Combat/companions:** 1v1 turn based, party cap proposal 3, 4 moves, elemental/Signal Energy mechanics after balancing, creature follows and ecology interactions, growth and up to one evolution opportunity for select species if art exists.
 - **Offline:** entire core campaign, discover, befriend, battle, quest and save without account/network. Local backup/migration included.
-- **Online MVP:** lobby with friend invite/join code; player presence and visible companions; **2-person cooperative expedition** in 1–2 supported zones with clear mode boundaries, server-verified online creatures/rewards; basic profile and disconnection recovery.
+- **Online launch requirement (approved for planning):** lobby with friend invite/join code; player presence and visible companions; **two-player Android↔Windows cross-platform cooperative expedition** in 1–2 supported zones; server-verified online creatures/rewards, basic profile and reconnection recovery. This cannot silently be moved postlaunch.
 - **Cross-play:** Windows/Android clients can join the same supported lobby and co-op zone; no compulsory Steam-only authentication for Android.
-- **Paid items:** only **if F2P model approved** and receipt/backend implementation ready, small set (e.g., 3–6) of cosmetic scarves, backpacks and companion adornments with no competitive advantages. The store itself is optional until payment verification/compliance tests pass.
+- **Paid items:** **F2P plus optional cosmetic-only purchases is approved for planning**. Proposed initial 3–6 cosmetics (scarves, backpacks, companion adornments); specific SKU/prices, launch store timetable and backend receipt verification are open production gates. No stat, capture, XP, story, signal-energy or matchmaking advantage. If storefront cannot safely launch, any staging change must be reviewed rather than silently shipping monetization without verification.
 - **Suggested nonlaunch features:** ranked PvP, global creature exchange, auction house, large MMO map, clans/guilds, seasons, live economy, breeding, full 100-creature animated roster, user-generated text chat, voice chat and dozens of cosmetic layers.
 - **Trading:** player-requested feature from early vision, **planned** but NOT necessarily safe for 1.0. Prefer limited server-validated trading in update 1.1 after ownership security and moderation are proven.
 - **Casual PvP:** suggested **post-1.0** unless time/budget allow; authoritatively simulated PvP proof may be tested before release but ranked ladders deferred.
-- **Explicit risk:** 3–5 hours + six zones + 18–24 animated creatures + cross-platform co-op + IAP is still a substantial multi-discipline production; reduce to 2–3h/fewer species or delay online launch if evidence demands. Any removal of the user's intended multiplayer requirement needs their approval.
+- **Explicit risk:** 3–5 hours + six zones + 18–24 animated creatures + cross-platform co-op + IAP is a substantial multi-discipline project; return for explicit owner approval before reducing scope, postponing the **approved launch co-op**, changing monetization, or announcing a new schedule.
 
-## 4. Commercial model options (UNDECIDED)
+## 4. Commercial model (APPROVED FOR PLANNING) and nonselected alternatives
 
 | Model | User benefit | Costs/risks | Recommendation |
 |---|---|---|---|
-| A. Free-to-play + cosmetic IAP | Low access barrier, good for mobile adoption and shared friend invitations | Requires backend revenue to cover servers; modest conversion may not cover ongoing costs; demands purchase/store compliance | **PROPOSED DEFAULT**, not confirmed |
+| A. Free-to-play + cosmetic IAP | Low access barrier, good for mobile adoption and shared friend invitations | Requires backend revenue to cover servers; modest conversion may not cover ongoing costs; demands purchase/store compliance | **OWNER APPROVED, 2026-10-20** |
 | B. Premium upfront + optional cosmetic IAP | Predictable unit revenue per purchase, smaller need for high conversion | More friction for mobile trials/cross-play; must justify content price and value | Valid fallback if costs or market tests favor |
 | C. Free demo + premium expansion | Easy trial and clearer content value | More entitlement complexity across Steam/Google; story gating risks audience confusion | Consider later if product structure supports |
 
 **Do not invent retail prices** without market validation, currency review and platform margins. Never tie story-critical companions, progression speed, combat stats or power to payment; avoid loot boxes and predatory daily rewards. A separate store-ready spec is still required for taxes, platform billing, customer support, receipts, refunds, parental restrictions and platform rules.
 
-## 5. Two progression/trust realms (DRAFT architecture; explicitly open)
+## 5. Two progression/trust realms (APPROVED PRINCIPLE; implementation details OPEN)
 
-The product MUST deliver meaningful full local offline play. The **recommended online security default**, awaiting owner approval:
+The product MUST deliver meaningful full local offline play. The **following separate trust domains are owner-approved for planning (2026-10-20)**:
 - **Local Adventure:** entirely device-owned character, quests, creatures and inventory; save file editable by its owner.
 - **Online Expedition:** server-owned verified character/creatures/items for co-op rewards, trading and any PvP; shared species assets and optional same-looking starter; no unrestricted import of edited local inventory.
-- A cosmetic-like companion projection may permit your offline buddy's **appearance** during noncompetitive guest co-op but without importing stats/items; requires extra UX/abuse design.
+- A cosmetic-like companion projection is **part of the approved desired casual-co-op experience where feasible**: your offline buddy's **appearance** may be represented without importing stats/items, trade rights or ranked eligibility. Visual mapping, consent, anti-spoofing, fallback and UX require experiments. It is not a purchasable cosmetic entitlement.
 - **Critical player-experience test:** after forming an emotional bond offline, does online's distinct character feel like abandoning that companion? If it does, revisit separate-realms design before coding.
-- Alternative: unverified/nontradeable local companions in casual co-op with server rules; higher cost and risk. Never allow these into competitive/tradable economy without verifiable server provenance.
+- Nontradeable unverified local companions carrying actual gameplay stats into online sessions were **not selected**. Reopen only with a new owner decision. Never allow them into competitive/tradable economy without verifiable server provenance.
 - The phrase "cross-platform progress" must not appear in marketing until actual interoperable account entitlements/saves are proven. Cross-play != cross-buy != cross-save.
 
 ## 6. Product economics and operating assumptions
@@ -98,7 +98,7 @@ Offline mode must continue working if server subscription lapses. Never silently
 | Turn-based battles | isolated sim tests | 1 encounter | PvE progression | ranked PvP expansion |
 | Offline saving | smoke test | local slot | robust versioned backups | optional cloud/local transfer |
 | Multiplayer | none | independent proof | 2-person co-op & hub | trading, advanced PvP, guilds |
-| Monetization | none | none | cosmetic store **conditional** | expand cosmetics |
+| Monetization | none | none | cosmetic-only model **approved**; real checkout gated by billing compliance and explicit launch plan | expand cosmetics |
 | Real-money equipment/stat items | never | never | never | never |
 | Accessibility | input proof | core readable UI | localization-ready accessible UI | extended controls |
 
@@ -108,11 +108,11 @@ Offline mode must continue working if server subscription lapses. Never silently
 - **Commercial 1.0 DoD:** official store requirements verified near submission, all ownership/license tracked, performance acceptance on supported hardware, moderation for optional online features, server uptime/reconnect validation, local story completely playable with network disabled; store IAP verified end to end if sold.
 
 ## 9. Owner sign-off questions
-1. Pricing: propose F2P + cosmetic-only IAP; approve or choose premium variant?
-2. 1.0: six zones and 18–24 fully playable species target, 3–5h offline story; shrink/expand based on reality?
-3. Online release: 2-player co-op at 1.0, trading and ranked PvP later; is that acceptable?
-4. Two trusted profiles vs verified-only multiplayer/guest-only companions, and how to avoid feeling like player loses offline friends?
+1. **Resolved 2026-10-20:** free-to-play + cosmetic-only purchases approved; exact price/SKU, currency, refund and entitlement timing still open.
+2. **Resolved as feasibility-gated aspiration:** six zones, 18–24 species, 3–5h story; owner must review evidence before changing target.
+3. **Resolved:** two-player Android↔Windows co-op required in commercial 1.0; trading and ranked PvP remain later.
+4. **Resolved principle:** separate offline and server-verified online progression; familiar offline companion may appear cosmetically in casual co-op where feasible. Exact client/UI projection protocol remains open.
 5. Should we support optional controller for 1.0 on Steam? **Recommendation yes** after core keyboard/touch pipeline.
 6. Target age range and localization priorities, to be determined by actual audience testing.
 
-**Codex must not treat this document as authority to implement six regions, 24 species, or billing without separate approved milestone packets.**
+**Planning approval is not coding authorization:** Codex must not implement the proposed full scope, IAP or network stack without separately approved task packets, feasibility evidence and design/technical signoff. The next task is pre-production planning, not game implementation.
