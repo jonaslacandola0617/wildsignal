@@ -107,3 +107,16 @@ See `docs/planning/HARDWARE_AND_SPRITE_RECOVERY_INTAKE_v0.1.md` for the verified
 ## 6. Legacy Windows compatibility extension (2026-10-20)
 
 Owner's desktop OS confirmed **Windows 11**; desired game support explicitly **Windows 7, 8, 8.1, 10 and 11**. PRE-TECH-001 must therefore select a Win7 SP1 compatible `x64` ABI/toolchain candidate without locking unsupported imports, define legacy startup/save/audio/SDL test rigs, distinguish Steam (supported modern Windows) versus standalone (Win7/8/8.1) distribution, and avoid mandatory online/Steam calls in offline mode. An extra task `PRE-WINLEG-001`: record Win7/Win8/Win8.1/Win10/Win11 per-OS acceptance matrix and test-hardware availability; document 32-bit OS question and secure-legacy-online risk. Actual builds remain unauthorized. Detailed `docs/architecture/WINDOWS_7_11_COMPATIBILITY_v0.1.md`.
+
+
+## 7. Planning deliverables produced from the owner's "proceed" instruction (2026-10-20)
+
+**Completed AS DOCUMENTS ONLY; no art edits or implementation:**
+1. **PRE-ART-001** — `docs/design/assets/ORIGINAL_SPRITE_SHEET_MANIFEST_v0.1.json`: inspected actual user-owned Library PNG (850×832 RGB), recorded its source SHA256 and 100 immutable row/column source records, with **candidate** crop boxes (not exported sprites). The source PNG remains outside public Git.
+2. **PRE-ART-002** — `docs/design/assets/PILOT_SPRITE_RECOVERY_SPEC_v0.1.md`: four pilot source IDs WS-004/008/050/024, original appearance observations, lossless alpha/restoration QA, reconstructed editable art protocol and proposed minimal animation budget. Actual sprite extraction and new animations **NOT STARTED**.
+3. **PRE-VIS-001** — `docs/design/HERO_SCENE_TARGETS_v0.1.md`: three comparable first-person benchmark composition briefs (Z01 Quay / Z03 Liltwood / Z04 Echo), lighting/palette, camera starts, sprite count tests and unsupported renderer features. Actual images and environment assets **NOT CREATED**.
+4. **PRE-TECH-001** — `docs/architecture/DEVICE_VALIDATION_MATRIX_v0.1.md`: owner Win11 i3/4GB and Galaxy S10+ as real available devices, explicit x64-only Windows 7–11 functional test plan, unavailable legacy/2GB baseline cells and performance-report template. No results recorded.
+5. **PRE-NET-001 + PRE-COMM-001** — `docs/planning/COOP_COSMETIC_HANDOFF_v0.1.md`: two-player Win↔Android casual co-op onboarding paper flow, server-verified progression boundary, optional cosmetic local-companion appearance, non-pay-to-win IAP constraints, pending receipt/account/security questions. No checkout/network implementation.
+6. **PRE-SYS-001** — `docs/planning/FIRST_SLICE_CONSISTENCY_GATE_v0.1.md`: Quest/move/map ID traceability, explicit discrepancies resolved in Q003/Q004/Q005 prose and battle tie-summary, and 14 remaining implementation/geometry/asset validation blockers.
+
+**Review outcome required before moving to code:** owner approves/private storage strategy for original art exports; pilot source IDs and derivative transparency policy; three scene visual briefs; available actual baseline device details; future small ENGINE-001 implementation test packet **separately**. Completion of written deliverables is NOT proof of renderer performance, battle implementation, 2GB Android support or Windows 7 startup.
