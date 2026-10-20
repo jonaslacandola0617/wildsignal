@@ -26,6 +26,7 @@
 |---|---|---|
 | `docs/planning/DECISION_REGISTER_v0.1.json` | Confirmation status of every major decision | Confirmed items + proposed items |
 | `docs/planning/PRODUCT_VISION_RELEASE_SCOPE_v0.1.md` | Pitch, launch scope, free/premium options, future roadmap | Proposed |
+| `docs/planning/CODEX_ENGINE_PROOF_TASK_PACKETS_v0.1.md` | Narrow Codex technical task packets and acceptance evidence | For approval; no code yet |
 | `docs/planning/MASTER_PREPRODUCTION_v0.1.md` | Milestones, blocked work, QA gates | Working draft |
 | `docs/planning/PRODUCTION_READINESS_AUDIT_v0.1.md` | Remaining gaps and release readiness | Working draft |
 | `docs/architecture/ENGINE_ARCHITECTURE_ADR_v0.1.md` | C++ architecture and renderer alternatives | Proposed; ADR-005 blocked |
