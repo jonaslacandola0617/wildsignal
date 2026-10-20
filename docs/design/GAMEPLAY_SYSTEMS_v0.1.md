@@ -34,7 +34,7 @@ Town preparations → travel → observe creature/ecological clues → discover 
 - Available actions: one of 4 moves, swap, item, retreat (if permitted).
 - Order: move priority first, speed second, deterministic PRNG tie-break; all calculated by single simulation module with explicit seed.
 - Encounter uses arena view preserving surrounding zone palette; battle UI at separate high-resolution layer.
-- Effects/damage/stat curve TBD in Battle Spec; never invent numeric formulas without approval.
+- **Numerical proposal now drafted:** see `BATTLE_BALANCE_BIBLE_v0.1.md`, `FIRST_NINE_CREATURES_v0.1.json`, and `BATTLE_TEST_VECTORS_v0.1.json`. The numbers are not yet approved. Do not code an alternative damage formula from this abbreviated section.
 - Pause/local menu behavior: offline battle paused immediately; online battle follows server timing/disconnect policy to define.
 - KO recovery: no loss of owned starter in tutorial; retriable; clear return-to-checkpoint.
 - PvP: eventual server-resolved deterministic simulator; online XP/creature transactions server-owned.
@@ -70,3 +70,8 @@ Town preparations → travel → observe creature/ecological clues → discover 
 
 ## Approvals pending
 Battle formulas/affinities, starter species art assignments, bond acquisition, combat effect list, save slot cap, player inventory limits, healing economy, online shared profile plan, player defeat handling.
+
+
+## Detailed design dependency (2026-10-20)
+
+The first nine species and optional creature invitations are proposed in `BONDING_ENCOUNTERS_v0.1.md` and `FIRST_NINE_CREATURES_v0.1.json`. The low-level battle status, energy, damage and turn-order rules are in `BATTLE_BALANCE_BIBLE_v0.1.md`. **When there is a contradiction, treat the detailed v0.1 Battle Bible/typed move definitions as the current *proposal*, not an approved rule.** Player ownership, friendly spar and all story encounters remain playable offline. The first compulsory guardian is WS-024 Craglet at level 3, with no automatic invitation until a distinct post-chapter encounter.
