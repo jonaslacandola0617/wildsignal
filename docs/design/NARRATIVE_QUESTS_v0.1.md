@@ -51,7 +51,7 @@ Voice acting is NOT assumed. Text/localizable dialogue, emotes, portrait and sou
 
 ### Q005: The Chamber's Answer
 - Trigger: enter Echo Hollow and cross `TRIGGER_INTRO_BATTLE`.
-- Encounter: one authored intro 1v1 vs nontradeable NPC-owned wild/guardian creature, creature spec TBD; player allowed retry after healing, no item-loss softlock.
+- Encounter candidate: WS-024 (Craglet, original owner-art sprite R03C04) Lv3 as guardian trial, 1v1; entity `TRIGGER_INTRO_BATTLE`. The creature may be invited only during a distinct, optional post-chapter habitat encounter, not as an immediate Q005 reward. Starter losses allow retry after healing, no item-loss softlock. This encounter identity and level are proposed, not approved.
 - Post-battle: solve a three-switch pattern puzzle (initial A=off/B=on/C=off; target A=on/B=off/C=on, toggle any order). Set FLAG_SIGIL_PUZZLE_COMPLETE, then activate pedestal; no online partner required.
 - Sample inscription: "A signal is not a command. It is a question."
 - Reward: `FLAG_FIRST_SIGNAL_COMPLETE=1`; unlock fast return/return portal to Liltwood and save at Lantern Quay. Ending reveal: deeper network visible but inaccessible.
