@@ -115,11 +115,12 @@
     {
       "id": "D-012",
       "status": "CONFIRMED",
-      "statusText": "CONFIRMED compatibility target, 2026-10-20; verification GATED",
-      "decision": "Developer PC Windows 11 (i3 10th gen, 4 GB); GAME intended for Windows 7, 8, 8.1, 10 and 11. Windows 7 SP1 x64 proposed minimum OS/architecture for validation, not yet proven.",
-      "downstream": "legacy Windows binary, Steam distribution separation, security and testing",
+      "statusText": "CONFIRMED x64-only compatibility target, 2026-10-20; verification GATED",
+      "decision": "Owner's development PC runs Windows 11 (i3 10th gen, 4 GB). WILDSIGNAL targets 64-bit Windows 7, 8, 8.1, 10 and 11 only; 32-bit OS and 32-bit game binaries are out of scope. Windows 7 SP1 is the proposed oldest test baseline; actual compatibility unverified.",
+      "downstream": "build architecture, legacy Win7–11 binary, Steam distribution separation and OS/security tests",
       "approvedAt": "2026-10-20",
-      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md",
+      "approvalScope": "64-bit Windows 7–11 target confirmed for planning, excludes x86 builds; runtime and distribution are untested"
     },
     {
       "id": "D-020",
@@ -269,8 +270,8 @@
       "id": "D-042",
       "status": "BLOCKED_BY_TEST",
       "statusText": "BLOCKED_BY_TEST",
-      "decision": "Owner targets game compatibility on Windows 7–11; final Windows 7 SP1 x64 minimum specification, legacy CRT/SDL imports, 32-bit support, real Windows RAM/performance and Android min OS remain unverified",
-      "downstream": "Win7/8/8.1/10/11 functional build test, legacy distribution, hardware/OS and security evidence",
+      "decision": "x64 is approved and 32-bit game/OS support is explicitly excluded; actual Windows 7 SP1 x64 minimum-runtime feasibility, legacy CRT/SDL imports, Windows RAM/performance and Android min OS remain unverified",
+      "downstream": "64-bit Win7/8/8.1/10/11 functional tests, standalone distribution, hardware/OS and security evidence",
       "approvedAt": null,
       "source": "docs/planning/DECISION_REGISTER_v0.1.md"
     },
