@@ -67,4 +67,7 @@
 
 ## Legacy Windows requirements to add when ENGINE-001/CI-001 are authorized
 
-**D-012 confirmed target:** Owner builds/develops on Win11 i3/4GB; game compatibility must be evaluated on Win7 SP1, Win8, Win8.1, Win10, Win11. Add `WINLEG-001..010` from `WINDOWS_7_11_COMPATIBILITY_v0.1.md`. ENGINE-001 must not assume Win10-only runtime calls, Steam client access for Win7/8.1, or the existence of Win7 support merely because SDL3 builds successfully. Cloud CI can compile legacy-compatible binaries; **real old-OS start-up testing still needed**. Win7 SP1 x64 is a proposed floor, 32-bit coverage unresolved, account/co-op support on legacy OS security-gated. These are task descriptions for later approval, **not commands to implement now**.
+**D-012 confirmed target:** Owner builds/develops on Win11 i3/4GB; game compatibility must be evaluated on Win7 SP1, Win8, Win8.1, Win10, Win11. Add `WINLEG-001..010` from `WINDOWS_7_11_COMPATIBILITY_v0.1.md`. ENGINE-001 must not assume Win10-only runtime calls, Steam client access for Win7/8.1, or the existence of Win7 support merely because SDL3 builds successfully. Cloud CI can compile legacy-compatible binaries; **real old-OS start-up testing still needed**. The Windows architecture is **owner-approved x64 only**; Win7 SP1 x64 is a proposed oldest runtime-test floor, 32-bit support is explicitly out of scope, and account/co-op support on legacy OS remains security-gated. These are task descriptions for later approval, **not commands to implement now**.
+
+
+**Task acceptance update:** future ENGINE-001, WINLEG and CI-001 packets must target Windows **x64 binaries and 64-bit Win7–11 OS versions exclusively**. Do not add a 32-bit compiler job. Owner has not yet authorized starting any of these tasks.
