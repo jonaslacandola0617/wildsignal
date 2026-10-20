@@ -75,8 +75,13 @@ Potentially, **if the broken desktop's SSD/HDD still works**. If owner wants, a 
 ## E. Owner platform compatibility update — 2026-10-20
 
 - Owner's development PC is **Windows 11**, Intel Core i3 10th gen, 4 GB system RAM.
-- Owner explicitly requests the **game** to work on **Windows 7, Windows 8, Windows 8.1, Windows 10 and Windows 11**. Windows 7 SP1 **x64** is our proposed first compatibility baseline; native 32-bit Windows support awaits clarification.
+- Owner explicitly requests the **game** to work on **Windows 7, Windows 8, Windows 8.1, Windows 10 and Windows 11**. The owner has **approved 64-bit-only Windows games and OS support**; Windows 7 SP1 x64 remains our *proposed oldest tested OS baseline*, with no x86/Win32 game or OS editions planned.
 - **Separate software support from distribution:** Steam stopped supporting Windows 7/8/8.1 in 2024. Therefore plan a standalone client for legacy Windows, not a guarantee that the Steam client works there. Windows 10/11 remain Steam distribution targets.
 - SDL3's Windows README documents support back to XP, but C++ runtime, SDL build/version, plugins, TLS, graphics presentation and the exact game must be verified on Windows 7.
 - Legacy Windows online features require security review. Offline story is fully targeted on old OS; co-op feature parity there is not yet proven.
 - See `docs/architecture/WINDOWS_7_11_COMPATIBILITY_v0.1.md` for OS matrix, legacy import checks, distribution and test cases. **No Win7/8 build or test has occurred.**
+
+
+## F. Final architecture clarification (owner, 2026-10-20)
+
+**“64 bit is enough.”** Windows desktop game binaries and OS targets are x86_64/64-bit only. This decision closes the former question about Win32 or 32-bit downloads. Windows 11 i3/4GB remains development machine; Windows 7 SP1 x64 through 11 x64 compatibility remains a test goal, not an established fact.
