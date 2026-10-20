@@ -1,0 +1,394 @@
+{
+  "schema": "wildsignal-ui-acceptance-v0.1",
+  "status": "DESIGN_TESTS_NOT_EXECUTED",
+  "priorityMeaning": {
+    "P0": "must pass before first playable slice",
+    "P1": "before content expansion/beta",
+    "P2": "online/store later"
+  },
+  "sources": [
+    "UI_UX_BIBLE_v0.1.md",
+    "UI_SCREEN_CONTRACTS_v0.1.json",
+    "UI_WIREFRAMES_v0.1.md",
+    "BATTLE_BALANCE_BIBLE_v0.1.md",
+    "OFFLINE_ONLINE_SYSTEMS_v0.1.md"
+  ],
+  "hardwareProfiles": "To be recorded after benchmark devices selected. Never claim passed without real execution.",
+  "cases": [
+    {
+      "id": "UI-001",
+      "priority": "P0",
+      "screens": [
+        "SCR_BOOT",
+        "SCR_MAIN_MENU"
+      ],
+      "expected": "With network disabled launch fresh app; no sign-in prompt and New Local Adventure enabled.",
+      "executionStatus": "not_run"
+    },
+    {
+      "id": "UI-002",
+      "priority": "P0",
+      "screens": [
+        "SCR_MAIN_MENU",
+        "SCR_SAVE_SLOTS"
+      ],
+      "expected": "On first launch no valid save: Continue is disabled or hidden; New Local Adventure works.",
+      "executionStatus": "not_run"
+    },
+    {
+      "id": "UI-003",
+      "priority": "P0",
+      "screens": [
+        "SCR_AVATAR_CREATE"
+      ],
+      "expected": "Enter playable name and select all proposed categories using keyboard alone; input focus visible.",
+      "executionStatus": "not_run"
+    },
+    {
+      "id": "UI-004",
+      "priority": "P0",
+      "screens": [
+        "SCR_AVATAR_CREATE",
+        "SCR_EXPLORE"
+      ],
+      "expected": "Complete character creation fully in Android airplane mode; no server call needed.",
+      "executionStatus": "not_run"
+    },
+    {
+      "id": "UI-005",
+      "priority": "P0",
+      "screens": [
+        "SCR_STARTER_PICK"
+      ],
+      "expected": "Select each WS-004/008/050 and preview original source art; confirm twice, grants exactly one local starter.",
+      "executionStatus": "not_run"
+    },
+    {
+      "id": "UI-006",
+      "priority": "P0",
+      "screens": [
+        "SCR_STARTER_PICK"
+      ],
+      "expected": "Cancel confirmation; no starter granted and selection reopens without lost choices.",
+      "executionStatus": "not_run"
+    },
+    {
+      "id": "UI-007",
+      "priority": "P0",
+      "screens": [
+        "SCR_STARTER_PICK"
+      ],
+      "expected": "Interrupt save during starter confirmation; recovery never duplicates or loses starter.",
+      "executionStatus": "not_run"
+    },
+    {
+      "id": "UI-008",
+      "priority": "P0",
+      "screens": [
+        "SCR_EXPLORE"
+      ],
+      "expected": "On Android 16:9 and 20:9, both look drag and virtual joystick work without button overlap; no notch occlusion.",
+      "executionStatus": "not_run"
+    },
+    {
+      "id": "UI-009",
+      "priority": "P0",
+      "screens": [
+        "SCR_EXPLORE"
+      ],
+      "expected": "On Windows, no touchscreen joystick drawn; WASD, mouse-look, E and Esc have clear UI equivalents.",
+      "executionStatus": "not_run"
+    },
+    {
+      "id": "UI-010",
+      "priority": "P0",
+      "screens": [
+        "SCR_EXPLORE"
+      ],
+      "expected": "No focused target: context prompt hidden. One target in reach: correct label. Out-of-reach target: no false interaction.",
+      "executionStatus": "not_run"
+    },
+    {
+      "id": "UI-011",
+      "priority": "P0",
+      "screens": [
+        "SCR_EXPLORE",
+        "SCR_COMPASS"
+      ],
+      "expected": "Before Q001 compass acquisition show locked state with Fen hint; after acquisition show real scan UI.",
+      "executionStatus": "not_run"
+    },
+    {
+      "id": "UI-012",
+      "priority": "P0",
+      "screens": [
+        "SCR_EXPLORE",
+        "SCR_DIALOGUE"
+      ],
+      "expected": "Dialog opens, player stops moving, mouse is released, Esc/Android back closes; dialogue remains re-readable.",
+      "executionStatus": "not_run"
+    },
+    {
+      "id": "UI-013",
+      "priority": "P0",
+      "screens": [
+        "SCR_PUZZLE"
+      ],
+      "expected": "Forest puzzle supports A→B→C on keyboard and touch; wrong order resets safely; no time limit.",
+      "executionStatus": "not_run"
+    },
+    {
+      "id": "UI-014",
+      "priority": "P0",
+      "screens": [
+        "SCR_PUZZLE"
+      ],
+      "expected": "Echo Hollow ON/OFF/ON toggle puzzle distinctly presents switch states, separate from forest sequence.",
+      "executionStatus": "not_run"
+    },
+    {
+      "id": "UI-015",
+      "priority": "P0",
+      "screens": [
+        "SCR_BATTLE_SELECT"
+      ],
+      "expected": "Moves 1..4 reflect active species typed move slots and real energy costs; unaffordable disabled with reason.",
+      "executionStatus": "not_run"
+    },
+    {
+      "id": "UI-016",
+      "priority": "P0",
+      "screens": [
+        "SCR_BATTLE_SELECT",
+        "SCR_BATTLE_PLAYBACK"
+      ],
+      "expected": "Submitting move once locks buttons; rapidly pressing/tapping again does not advance second action.",
+      "executionStatus": "not_run"
+    },
+    {
+      "id": "UI-017",
+      "priority": "P0",
+      "screens": [
+        "SCR_BATTLE_PLAYBACK"
+      ],
+      "expected": "Skip animation changes animation duration only, not HP/energy/status event list or winner.",
+      "executionStatus": "not_run"
+    },
+    {
+      "id": "UI-018",
+      "priority": "P0",
+      "screens": [
+        "SCR_BATTLE_RESULT"
+      ],
+      "expected": "Tutorial guardian loss offers retry without item loss; reward shown after success once only.",
+      "executionStatus": "not_run"
+    },
+    {
+      "id": "UI-019",
+      "priority": "P0",
+      "screens": [
+        "SCR_PAUSE"
+      ],
+      "expected": "While offline paused, battles/world simulation does not advance, no forced turn timer.",
+      "executionStatus": "not_run"
+    },
+    {
+      "id": "UI-020",
+      "priority": "P0",
+      "screens": [
+        "SCR_PAUSE",
+        "SCR_SAVE_SLOTS"
+      ],
+      "expected": "Save shows 'Saved locally' only after durable write acknowledgement; failed write gives actionable error.",
+      "executionStatus": "not_run"
+    },
+    {
+      "id": "UI-021",
+      "priority": "P0",
+      "screens": [
+        "SCR_PAUSE",
+        "SCR_MAIN_MENU"
+      ],
+      "expected": "Exit and reload retains creature, zone, quest flags and puzzle progress without connectivity.",
+      "executionStatus": "not_run"
+    },
+    {
+      "id": "UI-022",
+      "priority": "P1",
+      "screens": [
+        "SCR_OBSERVE",
+        "SCR_BOND"
+      ],
+      "expected": "Creature invitation only enabled at >= proposed trust threshold; no unlimited repeat rewards.",
+      "executionStatus": "not_run"
+    },
+    {
+      "id": "UI-023",
+      "priority": "P1",
+      "screens": [
+        "SCR_PARTY"
+      ],
+      "expected": "When party full, incoming creature reaches reserve or recruitment is gated until reserve exists; never deleted.",
+      "executionStatus": "not_run"
+    },
+    {
+      "id": "UI-024",
+      "priority": "P1",
+      "screens": [
+        "SCR_FIELD_BOOK"
+      ],
+      "expected": "Undiscovered and unreleased species are not presented as available to collect.",
+      "executionStatus": "not_run"
+    },
+    {
+      "id": "UI-025",
+      "priority": "P1",
+      "screens": [
+        "SCR_JOURNAL"
+      ],
+      "expected": "Quest clues and resolved objectives available without going online; journal survives close and reopen.",
+      "executionStatus": "not_run"
+    },
+    {
+      "id": "UI-026",
+      "priority": "P1",
+      "screens": [
+        "SCR_INVENTORY"
+      ],
+      "expected": "Compass cannot be discarded; inventory display never modifies authoritative item counts.",
+      "executionStatus": "not_run"
+    },
+    {
+      "id": "UI-027",
+      "priority": "P1",
+      "screens": [
+        "SCR_SETTINGS"
+      ],
+      "expected": "150% text scale does not clip primary menu buttons and 48dp primary touch targets remain.",
+      "executionStatus": "not_run"
+    },
+    {
+      "id": "UI-028",
+      "priority": "P1",
+      "screens": [
+        "SCR_SETTINGS"
+      ],
+      "expected": "Reduced motion and mute preserve visual equivalent of signal and battle status clues.",
+      "executionStatus": "not_run"
+    },
+    {
+      "id": "UI-029",
+      "priority": "P1",
+      "screens": [
+        "SCR_WORLD_MAP"
+      ],
+      "expected": "Map shows visited area but no undiscovered secret route; keyboard and Android back work.",
+      "executionStatus": "not_run"
+    },
+    {
+      "id": "UI-030",
+      "priority": "P1",
+      "screens": [
+        "SCR_SAVE_SLOTS"
+      ],
+      "expected": "Corrupted primary save prompts backup restore, never silently resets or overwrites player progress.",
+      "executionStatus": "not_run"
+    },
+    {
+      "id": "UI-031",
+      "priority": "P2",
+      "screens": [
+        "SCR_ONLINE_HOME"
+      ],
+      "expected": "Offline Online Expedition explains connection requirement while Local Adventure remains enabled.",
+      "executionStatus": "not_run"
+    },
+    {
+      "id": "UI-032",
+      "priority": "P2",
+      "screens": [
+        "SCR_ONLINE_HOME",
+        "SCR_ONLINE_LOBBY"
+      ],
+      "expected": "Online disconnection returns to retry/leave flow, with no writes to local story save.",
+      "executionStatus": "not_run"
+    },
+    {
+      "id": "UI-033",
+      "priority": "P2",
+      "screens": [
+        "SCR_ONLINE_HOME",
+        "SCR_PARTY"
+      ],
+      "expected": "No trusted online trade/PvP rewards can be claimed from edited local save.",
+      "executionStatus": "not_run"
+    },
+    {
+      "id": "UI-034",
+      "priority": "P2",
+      "screens": [
+        "SCR_TRADE"
+      ],
+      "expected": "Trade confirmation gated by server final state and idempotent confirmation; later phase only.",
+      "executionStatus": "not_run"
+    },
+    {
+      "id": "UI-035",
+      "priority": "P2",
+      "screens": [
+        "SCR_COSMETIC_STORE"
+      ],
+      "expected": "No UI can grant cosmetic entitlements before verified store receipt; later phase only.",
+      "executionStatus": "not_run"
+    },
+    {
+      "id": "UI-036",
+      "priority": "P1",
+      "screens": [
+        "SCR_EXPLORE",
+        "SCR_BATTLE_SELECT",
+        "SCR_PAUSE"
+      ],
+      "expected": "Phone thermal/low-memory UX stress: 30-minute navigation, repeated screen changes, no runaway retained atlases, actual profiling required.",
+      "executionStatus": "not_run"
+    },
+    {
+      "id": "UI-037",
+      "priority": "P1",
+      "screens": [
+        "SCR_EXPLORE",
+        "SCR_PAUSE"
+      ],
+      "expected": "Alt+Tab/application background suspends or safely retains input focus; no runaway camera rotation on return.",
+      "executionStatus": "not_run"
+    },
+    {
+      "id": "UI-038",
+      "priority": "P1",
+      "screens": [
+        "SCR_OBSERVE"
+      ],
+      "expected": "Wild ecology interaction is accessible without mandatory optional combat; Invite label remains correct for local-only creature ownership.",
+      "executionStatus": "not_run"
+    },
+    {
+      "id": "UI-039",
+      "priority": "P1",
+      "screens": [
+        "SCR_DIALOGUE"
+      ],
+      "expected": "Dialogue expands 50% length without critical text truncation and speaker remains identifiable.",
+      "executionStatus": "not_run"
+    },
+    {
+      "id": "UI-040",
+      "priority": "P1",
+      "screens": [
+        "SCR_EXPLORE",
+        "SCR_COMPASS"
+      ],
+      "expected": "Low-vision/color-blind cues: signal indicators use text and glyph pattern, not only cyan glow.",
+      "executionStatus": "not_run"
+    }
+  ]
+}
