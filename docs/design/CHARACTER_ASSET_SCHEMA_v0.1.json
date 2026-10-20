@@ -1,0 +1,156 @@
+{
+  "schema_version": "0.1-draft",
+  "status": "PROPOSED",
+  "purpose": "Character sprite authoring records and NPC encounter binding; all asset paths are future targets, not existing files",
+  "rendering": {
+    "direction_convention": [
+      "front",
+      "right",
+      "back",
+      "left"
+    ],
+    "world_scale": "TBD after prototype",
+    "default_frame_canvas_px": [
+      48,
+      64
+    ],
+    "pivot_px": [
+      24,
+      60
+    ],
+    "native_pixel_filter": "nearest",
+    "cosmetics_change_collision": false
+  },
+  "player": {
+    "id": "player_wayfinder",
+    "starting_preset": "harbor_fieldwear",
+    "characterCreation": {
+      "name": true,
+      "frame": [
+        "a",
+        "b",
+        "c"
+      ],
+      "skin_palette": "authored ramps TBD",
+      "hair_shape": "TBD",
+      "hair_color": "TBD",
+      "jacket_color": "TBD"
+    },
+    "spriteStates": [
+      "idle",
+      "walk",
+      "compass_rest",
+      "compass_scan",
+      "compass_signal_alert",
+      "compass_interact"
+    ],
+    "offline_available": true,
+    "first_person_display": "optional arms + compass, separate UI pass"
+  },
+  "npcs": [
+    {
+      "id": "NPC_001",
+      "world_entity": "NPC_001_MARA",
+      "name": "Mara Venn",
+      "zone": "Z01",
+      "position": [
+        18,
+        11
+      ],
+      "role": "guide",
+      "silhouette": "asymmetrical coral scarf, brass compass, map",
+      "quest": [
+        "Q001",
+        "Q002"
+      ],
+      "palette": [
+        "#183B41",
+        "#E38A70",
+        "#E8C878"
+      ]
+    },
+    {
+      "id": "NPC_002",
+      "world_entity": "NPC_002_FEN",
+      "name": "Old Fen",
+      "zone": "Z01",
+      "position": [
+        33,
+        8
+      ],
+      "role": "technician",
+      "silhouette": "short broad profile, goggles, lamp gloves",
+      "quest": [
+        "Q001"
+      ],
+      "palette": [
+        "#B99B5F",
+        "#6F5D4B",
+        "#82C9D4"
+      ]
+    },
+    {
+      "id": "NPC_003",
+      "world_entity": "NPC_003_IRI",
+      "name": "Iri",
+      "zone": "Z03",
+      "position": [
+        21,
+        25
+      ],
+      "role": "caretaker",
+      "silhouette": "leaf poncho, rust-orange satchel, walking reed",
+      "quest": [
+        "Q003",
+        "Q004"
+      ],
+      "palette": [
+        "#367D62",
+        "#79B77C",
+        "#BA704E"
+      ]
+    },
+    {
+      "id": "NPC_004",
+      "world_entity": null,
+      "name": "Bellkeeper Sol",
+      "zone": "Z04",
+      "position": null,
+      "role": "inscription_only",
+      "silhouette": "ancient silver ring inscriptions, dark indigo future robes",
+      "quest": [
+        "Q005"
+      ],
+      "physical_actor_in_first_slice": false
+    }
+  ],
+  "art": {
+    "npcs": [
+      "front_idle",
+      "back_idle",
+      "right_idle",
+      "left_idle",
+      "gesture"
+    ],
+    "portraits": [
+      "neutral",
+      "concerned",
+      "helpful"
+    ],
+    "sourceMasterRequired": true,
+    "sourceProvenanceRequired": true
+  },
+  "dependencies": [
+    "Visual Bible v0.1",
+    "Narrative Quests v0.1",
+    "First Signal Blockout v0.2",
+    "Character NPC Bible v0.1"
+  ],
+  "openDecisions": [
+    "pixel source scale",
+    "author sprite atlas layering",
+    "frames and palette combinations",
+    "final cosmetics",
+    "exact UI pixel size"
+  ]
+}
