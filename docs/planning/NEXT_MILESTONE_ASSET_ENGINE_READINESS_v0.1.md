@@ -13,9 +13,9 @@
 ## 1. Deliverables in this milestone — documents and reviewable plans
 
 ### PRE-ART-001: Owned creature master archive + provenance plan
-**Dependency:** creator's original 10×10 pixel sheet `image(20261020-050620).png` and any source pixel-editor/layer files if available. Do **not** request user to redraw artwork.
+**Known available original-art source:** creator's surviving combined 10×10 raster sheet `image(20261020-050620).png` (earlier catalog reference); **editable Aseprite master is unavailable**, formerly stored on a broken desktop. It is NOT a prerequisite. Plan lossless segmentation and creation of new editable derivative files; never request redraw of original creature designs.
 **Documentation output:**
-- Asset-source register with creator, original/canonical filename and version, ownership statement provided by creator, approximate creation date if known, sheet grid layout, grid padding, native pixel/art cell bounds (verify rather than assume), editor/project source if available.
+- Asset-source register with creator, original/canonical surviving flat image and version, ownership statement provided by creator, approximate creation date if known, 10×10 grid layout, padding, native sprite bounds (verify), and a clear note that original historical Aseprite layers are lost. Optional old-disk recovery does not block progress.
 - Decide art visibility: whether originals go in public Git, Git LFS or private Drive/library (the user retains commercial ownership; collaborator access requires explicit choice).
 - Naming strategy: `WS-001..WS-100` immutable slot identity; (WS-004, WS-008, WS-050) starter candidate names remain provisional until owner approval.
 **Acceptance:** can unambiguously trace chosen sprite in production to source-cell ID without overwriting original. No undocumented AI-redraw of creator's creature artwork.
@@ -35,7 +35,7 @@
 **Acceptance:** art owner approves "this screenshot target feels like WILDSIGNAL" for each scene; no final hard-to-render complex architecture until proof.
 
 ### PRE-TECH-001: Device, toolchain, and benchmark **planning**, not tests
-**Documentation output:** minimum actual device available to test (model/RAM/OS) for Android and Windows; C++ toolchain/SDL3 versions to investigate, native Windows + cloud Android build workflow, build/app size considerations, development-machine disk/RAM constraints and source control approach. No hard guaranteed 2GB minimum yet.
+**Owner-supplied baseline devices:** Windows-capable Intel Core i3 **10th generation with 4 GB RAM** (exact CPU/GPU/Windows version unverified), and **Samsung Galaxy S10+** smartphone (actual RAM/SoC/Android version unverified; device family often 8–12 GB RAM). **Documentation output:** record their exact variants, native Windows + cloud Android build workflow, toolchains and source-control method. **No separate 2 GB RAM device has been confirmed available**, so 2 GB compatibility remains untested.
 **Test protocol:** 320×180/400×225/480×270 world framebuffer, 30 FPS candidate, p95/p99 frame times, PSS/RSS, battery/thermals, sprite/fog overdraw, 20 min stress scene. Compare simple raycast and sector wall renderer in later R&D only if initial renderer cannot meet visuals.
 **Acceptance:** named test hardware or explicit lack-of-hardware blocker, methodology with known measurement tools, signed-off test scenes and recorded reference camera compositions.
 **Stop condition:** if no real low-end device/test strategy, do not assert final minimum specifications.
@@ -95,3 +95,10 @@
 | Cosmetic store spec | User approves SKU policy | Game backend/platform integration later | no-pay-to-win and receipt test plan |
 
 **Success:** when this milestone is complete, an ENGINE-001 technical *experiment* can be separately approved and handed to Codex with exact specs, realistic goals and reviewable evidence. The first playable/game implementation remains a later project gate.
+
+
+## 5. Hardware and lost-editor-source intake (owner update 2026-10-20)
+
+See `docs/planning/HARDWARE_AND_SPRITE_RECOVERY_INTAKE_v0.1.md` for the verified user-supplied device inventory, unknown hardware fields and non-destructive flattened-sheet reconstruction workflow. The Galaxy S10+ is useful for actual Android touch, notches and thermals, but is **not a proxy for a 2 GB entry-level phone**; the 4 GB i3 PC is the available low-memory Windows baseline. Cloud Android builds are preferred over heavy local SDK installations if the machine struggles.
+
+**New source-policy invariant:** Original editable Aseprite file is unavailable from a broken desktop; this is not a reason to discard or replace the user's 100 designs. The flattened surviving sprite sheet is the primary available art source. Preserve it unmodified, crop each of the 100 immutable grid IDs losslessly, manually verify transparent masks and create **new** editable layered files for later animation. Seek old drive recovery only as an optional enhancement, not a release blocker. No sprite cleanup or new art has been performed merely by publishing this plan.
