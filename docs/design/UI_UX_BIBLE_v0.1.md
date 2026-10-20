@@ -238,3 +238,11 @@ Combat costs and status durations come from typed FIRST_NINE_CREATURES.v0.1 data
 - `UI-007` optional online UI states; must be gated by tested backend and separate entitlement model.
 
 **Task packet mandatory:** exact actions, accessibility checks, visual screenshot on both platforms, offline airplane-mode test, performance evidence and regression test logs. No storefront purchasing in first playable.
+
+
+## 16. 2026-10-20 product approval: UX implications
+
+- **Approved:** free-to-play with cosmetic-only purchases; online microtransactions may not improve combat, stats, capture/trust, XP, exploration or story progress. Prices and store UI implementation remain gated.
+- **Approved for commercial 1.0 planning:** two-player Android↔Windows cooperative exploration at launch; friend/lobby/join flow and disconnection recovery must be in the launch UX acceptance plan rather than presumed post-launch extras.
+- **Approved:** separate local offline and verified online profiles. Show explicit domain labels and do not offer inventory import to online trade/PvP. A familiar offline companion's **visual-only appearance** can be shown in casual co-op if feasible and authorized; server still owns actual online creature/ability/rewards. If unavailable, provide an honest fallback and never silently claim ownership transfer.
+- **Unchanged:** this UI document and its 26 screen contracts are proposals. Only a scoped subset is required for first offline vertical slice; actual online/shop implementation needs separate explicit Codex tasks after approval.
