@@ -1,6 +1,6 @@
 # WILDSIGNAL — Pre-production Specification Index v0.1
 
-**Status:** Draft index; not approved release specification. Updated 2026-10-20.
+**Status:** Authoritative document index; four owner decisions APPROVED FOR PLANNING 2026-10-20, detailed assets and code NOT yet production-locked.
 **Branch:** `docs/world-preproduction-v0.1` (open draft PR #2).
 **Companion branch:** `docs/creature-bible-v0.1` (open draft PR #1). Creature Bible is NOT yet on this branch or main; check PR review/merge order. **Do not imply all docs are merged to main.**
 **Implementation status:** planning materials only, no game engine, gameplay or real performance tests claimed.
@@ -9,14 +9,14 @@
 
 | Rank | File | Authority |
 |---|---|---|
-| 1 | `docs/planning/DECISION_REGISTER_v0.1.md` | current CONFIRMED/OPEN/BLOCKED list, supersession rules |
+| 1 | `docs/planning/DECISION_REGISTER_v0.1.md` + `DECISION_REGISTER_v0.1.json` | matching stable decision IDs; D-020/021/023/024 now confirmed planning directions |
 | 2 | `docs/planning/PRODUCT_VISION_RELEASE_SCOPE_v0.1.md` | proposed product promise, milestones, pricing alternatives |
 | 3 | `docs/planning/MASTER_PREPRODUCTION_v0.1.md` | original phase plan / inter-system dependencies |
 | 4 | `docs/planning/PRODUCTION_READINESS_AUDIT_v0.1.md` | what is still missing/untested |
 | 5 | `docs/architecture/ENGINE_ARCHITECTURE_v0.1.md` | C++/SDL3 platform-neutral engine proposal |
 | 6 | `docs/architecture/RENDER_BENCHMARK_PLAN_v0.1.md` | hardware-renderer acceptance and decision evidence |
 
-For planning crosschecks also read `docs/architecture/CODEX_R_AND_D_TASKS_v0.1.md` (future tasks, not assigned).
+For planning crosschecks also read `docs/architecture/CODEX_R_AND_D_TASKS_v0.1.md` (future tasks, not assigned) and `docs/planning/NEXT_MILESTONE_ASSET_ENGINE_READINESS_v0.1.md` (next **planning-only** milestone).
 
 ## 2. Creative and gameplay reference documents
 
@@ -48,7 +48,7 @@ For planning crosschecks also read `docs/architecture/CODEX_R_AND_D_TASKS_v0.1.m
 
 **Actually user-confirmed:** WILDSIGNAL working title; owned original creature art; beautiful/mysterious first-person pixel-art 2.5D tone; C++ lightweight approach; Windows Steam + Android Play; offline single-player and optional online multiplayer; turn-based combat and following creatures; planned IAP and Codex as implementer.
 
-**Proposed:** 6 zones and 18–24 species for candidate 1.0, versus fallback of 4 expanded zones/9 species; F2P cosmetic-only vs premium cosmetic; two trusted progression realms; exact first nine creature names/stats/affinities/encounter mechanics; SDL3/renderer selection; number of avatar bodies, all 26 UI screens and detailed zone layouts.
+**Approved FOR PLANNING 2026-10-20:** free-to-play with optional cosmetic-only purchases (D-020); aspirational 6 zones and 18–24 species/3–5h 1.0 subject to feasibility (D-021); 2-player Android↔Windows co-op at commercial launch (D-023); separate offline-local and online server-verified progression plus feasible visual-only appearance of familiar offline companion in casual co-op (D-024). **Still proposed:** alternate four-zone contingency, exact first nine creature names/stats/affinities/encounter mechanics, SDL3/renderer selection, avatar bodies, screens, map geometry, prices and SKU details.
 
 **Unknown until measured:** actual low-end FPS/RAM/thermals, arches/height/pitch/occlusion fidelity, device OS/API support and final resource budgets.
 
@@ -63,7 +63,7 @@ For planning crosschecks also read `docs/architecture/CODEX_R_AND_D_TASKS_v0.1.m
 
 ## 5. Near-term approval and development progression
 
-**A. Product lock:** choose monetization, 1.0 content target, friend-co-op features, offline companion online presentation. Update Decision Register D-020..D-024.
+**A. Owner baseline approved:** D-020, D-021, D-023, D-024 confirmed for planning. Resolve remaining detailed economy, co-op instance/visual projection UX, and feasibility-gated scope. Do not treat approving the target as approval of a production schedule.
 
 **B. Engine proof approval:** approve ENGINE-001/RENDER-001/CI-001 **only as experiments**, not full game. Measure required 2D pixel quality against reference screenshots, FPS/thermals/RAM and practical development process.
 
@@ -74,3 +74,10 @@ For planning crosschecks also read `docs/architecture/CODEX_R_AND_D_TASKS_v0.1.m
 **E. Online proof → candidate release:** author secure co-op trust, store commerce, larger content after tests and budget.
 
 **Keep draft PRs open until reviewed.** Main remains the source of released/approved artifacts only after deliberate merges.
+
+
+## 6. 2026-10-20 consistency fix
+
+Earlier `DECISION_REGISTER_v0.1.json` used a conflicting sequence of `D-###` IDs compared with the Markdown register. This was corrected in the current branch: JSON is now a **canonical mirror** of Markdown using the same 42 decision IDs; previous JSON content remains accessible through Git history but its old ID assignments are DEPRECATED. Tools and Codex must use only the current paired register revisions, never mix legacy JSON row meanings.
+
+The user explicitly requested no implementation yet; current engine research tasks remain documentation only. The next milestone is specification/source/test readiness, not starting C++ code.
