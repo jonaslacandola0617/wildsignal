@@ -1,15 +1,15 @@
 # WILDSIGNAL — Windows 7–11 Compatibility & Distribution Plan v0.1
 
-**Date:** 2026-10-20. **Status:** **Owner-confirmed compatibility TARGET**, not yet tested or guaranteed. **No implementation authorized.**
+**Date:** 2026-10-20. **Status:** **Owner-confirmed 64-bit-only Windows 7–11 compatibility TARGET**, not yet tested or guaranteed. **32-bit Windows is explicitly out of scope. No implementation authorized.**
 **Local developer computer:** Windows **11**, Intel Core i3 10th generation, 4 GB RAM (exact processor/GPU/Windows build still unknown).
 **Intended game OS coverage:** Windows **7 SP1, 8, 8.1, 10, 11**. The owner said “Windows 7–11”; the explicit versions in that range are listed for testing.
 
 ## 1. Key distinction: binary compatibility vs store/online support
 
-1. **Native binary target:** Design a Windows **x86_64** executable that can launch and run offline game content on Win7 SP1 through Win11. **x64 is a proposed initial architecture boundary**, not an owner-confirmed 32-bit exclusion. The game engine, audio, input, save and graphics dependencies must all function on the *oldest* OS. A program that compiles on Win11 isn't proof it runs on Win7.
+1. **Native binary target (OWNER APPROVED):** Design **only Windows x86_64** game binaries for **64-bit Windows OSes** that can launch and run offline content on Win7 SP1 through Win11. **Do not build x86/Win32 binaries or claim 32-bit OS support.** Windows 7 SP1 is a *proposed oldest OS test floor* subject to proof. The game engine, audio, input, save and graphics dependencies must all function on that oldest tested OS. Compiling on Win11 is not proof it runs on Win7.
 2. **SDL3:** The upstream SDL3 Windows README explicitly says all desktop Windows versions back to Windows XP are supported. This suggests SDL3 is compatible, **but does not guarantee** our chosen SDL3 release, compiler runtime, third-party dependencies, renderer or the complete executable on Win7. Pin and test actual builds.
 3. **Steam:** Valve stopped supporting Windows 7, 8 and 8.1 on **January 1, 2024**. Existing installations may persist but are not supported, cannot be relied upon to function or receive security updates. Thus WILDSIGNAL's **Steam channel is for Windows 10/11**, subject to Steam's current client restrictions, and older OS compatibility requires a **separate standalone/DRM-free distribution path** (proposed; choose provider/domain/installer/legal terms later). Do not advertise Steam on Windows 7/8/8.1.
-4. **32-bit Windows:** Valve also ended support for 32-bit Windows client systems starting January 1, 2026. 32-bit *game executables* may continue to run on 64-bit systems; this does not mean the Steam client supports 32-bit operating systems. **Native 32-bit Win7–10 game builds are NOT an approved requirement** until owner decides their priority and we validate toolchain/rendering.
+4. **32-bit Windows OUT OF SCOPE (owner decision 2026-10-20):** The game does not target 32-bit Windows installations or 32-bit executables. No x86 compilation, QA matrix or 32-bit downloads are planned. This is distinct from Steam's legacy OS support status. Reopening 32-bit support requires a new owner decision.
 5. **Security and multiplayer:** Microsoft no longer issues standard Windows 7 security updates and 8.1 is also out of support. Running optional authenticated internet features on insecure OSes requires explicit security review (TLS, certificate store/trust, server compatibility, safe updates and incident policy). **Local offline adventure remains primary compatibility goal; do not promise online co-op on Win7/8/8.1 until tested and approved.** Cross-platform online co-op remains an approved **commercial launch feature** for Windows/Android on supported OS clients.
 6. **Windows legacy prerequisites:** Win7 baseline for discussion is **SP1 with SHA-2 signing and relevant servicing updates** (e.g., KB4474419/KB4490628 when needed), not any untouched 2009 installation. Avoid graphics features requiring DirectX 12/modern Vulkan, unsupported UCRT/Visual C++ runtime packages or missing APIs without a compatible fallback. Test whether selected C++20 runtime binaries import Win8+/Win10-only functions, not only Windows API macros.
 7. **Store model:** Free-to-play with optional cosmetic-only purchases remains approved. For any standalone Win7/8/8.1 version, **online store checkout and receipt entitlements require separate policy/backend planning**. Do not circumvent Steam/Google Play payment rules or embed credentials; if checkout isn't safe/available on old OS, optional cosmetics may be unavailable while offline gameplay works.
@@ -23,7 +23,7 @@
 | Windows 8.1 **x64** | TARGET | **Not supported by Steam** | Feasibility/security gated | Unverified |
 | Windows 10 **x64** | TARGET | Supported distribution target, verify current policies | Launch co-op target | Unverified |
 | Windows 11 **x64** | TARGET; **owner's development OS** | Supported distribution target, verify current policies | Launch co-op target | Unverified |
-| Windows 7–10 **x86 32-bit** | **Unresolved scope**; may need additional build | 32-bit Windows Steam client unsupported | Unresolved | Not committed |
+| Windows 7–11 **x86 32-bit OS** | **Out of scope by owner choice** | No supported distribution target | Not supported | **Excluded** |
 
 No claim that a 4 GB RAM PC or a 2 GB legacy PC already achieves 30 FPS. Installed memory minimum is a separate benchmark decision; OS support does not imply a RAM guarantee.
 
@@ -49,7 +49,7 @@ No claim that a 4 GB RAM PC or a 2 GB legacy PC already achieves 30 FPS. Install
 7. Crossplay account/co-op on legacy Windows OSes only if security audit passes; never request disabling TLS checks or installing obsolete browser components.
 8. Record hardware/model/GPU/OS service pack, memory, FPS p50/p95/p99, audio/input correctness, longest session/thermal, screenshots and exact failure reason.
 9. Where physical Win7/Win8 systems unavailable, log **NOT TESTED** and do not claim support on store/system requirements page.
-10. 32-bit program/OS support requires separate owner approval and x86 compiler/dependency/test matrix.
+10. 32-bit OS/build is explicitly **excluded** and must not enter required test/build checklists. Reopening requires a new owner decision.
 
 ### Test cases for issue/task tracking
 - `WINLEG-001` Win7 SP1 x64 boot, graphics, mouse/keyboard, audio and saves offline.
@@ -64,7 +64,7 @@ No claim that a 4 GB RAM PC or a 2 GB legacy PC already achieves 30 FPS. Install
 - `WINLEG-010` minimum RAM/integrated GPU **real hardware performance**; do not infer from OS version.
 
 ## 5. Development/distribution choices awaiting signoff
-- Is **Windows 7 SP1 x64** sufficient (recommended baseline), or must 32-bit OS editions also be supported?
+- **Resolved:** only 64-bit Windows OS and x86_64 game executables are in scope. **Unresolved:** whether Win7 SP1 x64 can actually run the selected compiled C++/SDL3 dependencies, and whether the separate legacy distribution path is practical.
 - Which separate distribution provider can legally, safely and conveniently deliver a free-to-play standalone binary for Windows 7/8/8.1? Candidate examples: direct website or third-party storefront that permits a DRM-free standalone package; **no provider yet selected or validated**.
 - Does the Windows 7/8.1 version require optional online co-op, or is offline-game support sufficient if a security audit shows risk? This is not a stealth downgrade from the approved Android↔Windows co-op launch feature; identify supported Windows client OSes clearly.
 - How can the developer obtain Windows 7/8/8.1 clean test environments? Do not ship or distribute Windows OS images without rights.
@@ -77,3 +77,8 @@ No claim that a 4 GB RAM PC or a 2 GB legacy PC already achieves 30 FPS. Install
 - Microsoft Windows 7 SP1 SHA-2 update prerequisites: https://support.microsoft.com/en-us/help/4474419 and https://support.microsoft.com/en-us/help/4490628
 
 **Source-policy note:** This draft incorporates actual policies as of check date but is not a guarantee of future Steam/API changes. Re-check near shipping.
+
+
+## 7. 64-bit-only scope confirmation
+
+**Owner's exact answer (2026-10-20): “64 bit is enough.”** This settles the x86 versus x64 architecture question for WILDSIGNAL: target only **Windows x64 on 64-bit Windows 7, 8, 8.1, 10, 11**. Previous passages in other revisions treating 32-bit support as an open question are superseded. Windows 7 SP1 x64 is the first proposed *test floor*, not verified compatibility. Optional online features on old unsupported Windows OSes remain security/feasibility-gated; the offline core must not depend on Steam login. No game code was written under this planning update.
