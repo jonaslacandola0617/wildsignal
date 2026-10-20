@@ -113,14 +113,22 @@
       "source": "docs/planning/DECISION_REGISTER_v0.1.md"
     },
     {
+      "id": "D-012",
+      "status": "CONFIRMED",
+      "statusText": "CONFIRMED compatibility target, 2026-10-20; verification GATED",
+      "decision": "Developer PC Windows 11 (i3 10th gen, 4 GB); GAME intended for Windows 7, 8, 8.1, 10 and 11. Windows 7 SP1 x64 proposed minimum OS/architecture for validation, not yet proven.",
+      "downstream": "legacy Windows binary, Steam distribution separation, security and testing",
+      "approvedAt": "2026-10-20",
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
       "id": "D-020",
       "status": "CONFIRMED",
       "statusText": "CONFIRMED for planning, 2026-10-20",
       "decision": "Free-to-play on Steam and Google Play with OPTIONAL cosmetic-only purchases, no competitive/stat/progression benefits. Exact pricing/SKUs and payment integration unapproved.",
       "downstream": "monetization, economy, store/billing compliance",
       "approvedAt": "2026-10-20",
-      "source": "docs/planning/DECISION_REGISTER_v0.1.md",
-      "approvalScope": "owner-approved for planning; implementation and feasibility remain separately gated"
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
     },
     {
       "id": "D-021",
@@ -129,8 +137,7 @@
       "decision": "Aspirational commercial 1.0 scope: 6 zones (Z01–Z06), 18–24 completed species, 3–5h main story, expressly subject to feasibility and playtests, not a fixed promise or content freeze.",
       "downstream": "narrative/art/QA scope, costs, real production evidence",
       "approvedAt": "2026-10-20",
-      "source": "docs/planning/DECISION_REGISTER_v0.1.md",
-      "approvalScope": "owner-approved for planning; implementation and feasibility remain separately gated"
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
     },
     {
       "id": "D-022",
@@ -148,8 +155,7 @@
       "decision": "Two-player cross-platform co-op at commercial 1.0 launch (Android↔Windows). Online trading and ranked PvP remain later optional phases; do not silently defer launch co-op.",
       "downstream": "network authority, backend and operating costs",
       "approvedAt": "2026-10-20",
-      "source": "docs/planning/DECISION_REGISTER_v0.1.md",
-      "approvalScope": "owner-approved for planning; implementation and feasibility remain separately gated"
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
     },
     {
       "id": "D-024",
@@ -158,8 +164,7 @@
       "decision": "Local offline story inventory and server-verified online progression are separate; in casual co-op, show appearance of familiar offline companions where technically feasible without importing their unverified stats, trade rights or rank. Exact presentation/recovery remains to design.",
       "downstream": "companion UX, accounts, server validation, trust boundaries",
       "approvedAt": "2026-10-20",
-      "source": "docs/planning/DECISION_REGISTER_v0.1.md",
-      "approvalScope": "owner-approved for planning; implementation and feasibility remain separately gated"
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
     },
     {
       "id": "D-025",
@@ -264,8 +269,8 @@
       "id": "D-042",
       "status": "BLOCKED_BY_TEST",
       "statusText": "BLOCKED_BY_TEST",
-      "decision": "Actual minimum Android device/API, minimum Windows RAM/OS, no dedicated GPU",
-      "downstream": "real device baselines, store policy and OS headroom",
+      "decision": "Owner targets game compatibility on Windows 7–11; final Windows 7 SP1 x64 minimum specification, legacy CRT/SDL imports, 32-bit support, real Windows RAM/performance and Android min OS remain unverified",
+      "downstream": "Win7/8/8.1/10/11 functional build test, legacy distribution, hardware/OS and security evidence",
       "approvedAt": null,
       "source": "docs/planning/DECISION_REGISTER_v0.1.md"
     },
