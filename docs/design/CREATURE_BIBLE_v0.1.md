@@ -10,6 +10,7 @@
 - Working game title: **WILDSIGNAL** (trademark/marketplace availability **not checked**).
 - Visual direction: first-person retro/pixel-art pseudo-3D, colorful yet mysterious, forest environments, ancient ruins, a sense of discovery. Blend cozy nature, mystical exploration, and restrained danger.
 - Original creature-focused IP for eventual commercial distribution.
+- User confirms the 10x10 creature sprite sheet was hand-created by them years ago (not AI-generated), they own it, and they authorize direct use of the artwork in WILDSIGNAL. Record this user-supplied provenance in the art ledger.
 - Creatures are persistent companions: follow the player, react to the world, assist with exploration.
 - **Turn-based** creature combat, with real-time exploration.
 - Windows and Android targets, including low-end devices; C++ with lightweight cross-platform libraries rather than a heavyweight local game engine.
@@ -22,9 +23,9 @@
 
 ## 1. Visual reference and intellectual property rule
 
-The user shared a 10-column × 10-row sheet of appealing pixel-art creatures on 2026-10-20. **The source and commercial reuse rights of that sheet have not been established.** Use it as an *internal style and shape-language reference only* until provenance, license, and ownership have been confirmed. Do not include the sheet or crop its sprites into the distributed game or public repository without verified rights. The references below use **row/column (1-based)** to identify candidates, not assets approved for use.
+The user shared a 10-column × 10-row sheet of original pixel-art creatures on 2026-10-20. On the next turn, the user **confirmed that they personally drew this artwork years ago, that it is not AI-generated, that they own it, and that the project can use it directly**. The earlier unverified-rights restriction is withdrawn. This sheet is WILDSIGNAL's **owned base creature artwork**; preserve the original designs rather than requiring unrelated redraws. Row/column (1-based) addresses refer to the user's source sprites. The original image should be retained in the project's asset ledger with creator, creation history (approximate if necessary), source filename, and rights note. Public-repo redistribution/commit of the raw sheet can be coordinated with the owner; inclusion in final game assets is authorized by the owner. This does not imply all future third-party contributions are cleared.
 
-Qualities to preserve in newly created original creatures:
+Qualities to preserve in existing owned sprites and any future original creature additions:
 - Bold, readable silhouettes even at ~32–64 source pixels.
 - Friendly, expressive faces; a few delightful asymmetries.
 - Distinct creature families: forest, aquatic, ember, fungus, stone, spirit, insects.
@@ -74,21 +75,21 @@ Eight possible affinities:
 
 ## 6. First starter trio — provisional concept studies
 
-These names were used in earlier concept discussions and are retained for continuity. The cited sprite-sheet positions are **inspiration**, not authorized final artwork.
+These names were used in earlier concept discussions and are retained for continuity. The cited sprite-sheet positions identify **owned source sprites that may be used directly**. Exact species names, roles and battle/exploration mechanics are still *proposals*. Preserve the source design when animating, making additional viewing angles, and designing evolutions.
 
 ### S01 — Glintle | Flora | "Lantern Guardian"
 - **Visual reference:** R1C4, green-and-gold compact forest creature.
-- **Original redesign brief:** A distinct tiny bioluminescent forest guide with mossy body markings, luminous throat/signal light, and expressive large eyes. Do not copy the exact referenced silhouette.
+- **Art-production brief:** Preserve the owner's R1C4 sprite as Glintle's starting appearance, including its silhouette and palette. Develop additional idle, walking, follow, alert and battle frames matching that art; optional glow effects may be added without replacing the design.
 - **Personality:** cautious, observant, affectionate once trusted; watches wall markings and pauses at hidden routes.
 - **Combat role:** support/defender; protective growth, gradual recovery, field-control techniques.
 - **Exploration behavior:** highlights hidden forest markings and reacts to secret paths.
 - **Signature move concept:** **Lantern Grove** — protect against the next hit and restore a small amount of health afterward.
 - **Evolution hook:** earns a new form after a bond milestone and restoring a lost forest beacon.
-- **Final anatomy, name and evolution stages:** pending art/legal review.
+- **Species name, signature move, abilities and evolution stages:** pending creative approval; base sprite is owned project artwork.
 
 ### S02 — Driftfin | Tide | "Current Glider"
 - **Visual reference:** R1C8, small bright-blue bubbly aquatic creature.
-- **Original redesign brief:** A small amphibious glider with water-filled wing fins and a floating, bobbing idle; use a silhouette distinct from R1C8.
+- **Art-production brief:** Preserve the owner's R1C8 small blue sprite as Driftfin's starting appearance. Extend it with animations for bouncing/gliding, puddle curiosity, and battle cues; any new fins or markings should be approved against the source sprite.
 - **Personality:** curious, excitable, easily distracted by rain, puddles and moving water.
 - **Combat role:** speed/controller; disrupts turn order and affects the opponent's momentum.
 - **Exploration behavior:** senses underground waterways, hidden pools and stream currents.
@@ -98,7 +99,7 @@ These names were used in earlier concept discussions and are retained for contin
 
 ### S03 — Brumlet | Ember | "Ember Drummer"
 - **Visual reference:** R5C10, round orange-red ember critter.
-- **Original redesign brief:** A warm glowing core enclosed by an asymmetrical charcoal/shell body, with two rhythmic drumming appendages; do not replicate R5C10.
+- **Art-production brief:** Preserve the owner's R5C10 little orange ember sprite as Brumlet's starting appearance. Add expressive rhythmic idle and attack frames, plus a subtle warm glow; do not impose an unrelated body redesign.
 - **Personality:** boisterous, loyal, percussion-obsessed; reacts to machines and ancient bells.
 - **Combat role:** offense/tempo; burst hits balanced by setup and defensive risk.
 - **Exploration behavior:** lights dormant braziers, activates heat-driven mechanisms, responds to rhythmic puzzles.
@@ -110,7 +111,7 @@ These names were used in earlier concept discussions and are retained for contin
 
 ## 7. Reference shortlist from the shared creature sheet
 
-**These are visual study selections, not game assets and not yet official species.**
+**These are positions in the owner's original pixel-art creature sheet.** The source sprites are permitted project assets; names, region placements and official species status are not yet approved.
 
 | Sheet cell | Visible motif | Potential ecology / role |
 |---|---|---|
@@ -164,8 +165,8 @@ Production cap for initial vertical slice: **3 starters + 3–6 wild prototype s
 
 ## 11. Design questions awaiting approval
 
-1. **Are the sprite-sheet creatures original art that you own, commercially licensed art, or inspiration found elsewhere?** This determines whether any exact sprites can legally ship.
-2. Do you approve starter names and original redesign briefs: Glintle, Driftfin, Brumlet?
+1. **Resolved:** The sheet consists of user-owned, hand-created pixel art, explicitly authorized for WILDSIGNAL use; not AI-generated.
+2. Do you approve assigning the existing sprites R1C4, R1C8, and R5C10 to the working starter names Glintle, Driftfin, and Brumlet? Their original designs should be retained.
 3. Should bonding replace traditional capturing, or should the game have both?
 4. Should the first version offer 1v1 battles only, with PvP and multiplayer cooperative activities added later?
 5. What minimum Android versions and actual test devices can we benchmark?
@@ -174,8 +175,8 @@ Production cap for initial vertical slice: **3 starters + 3–6 wild prototype s
 
 1. Add a machine-readable **species data schema** (not creature art) matching the approved concept fields.
 2. Build a deterministic **turn-based combat simulation** with unit tests and no rendering dependencies.
-3. Prototype one stationary first-person encounter with a temporary original placeholder creature.
+3. Prototype one stationary first-person encounter using a temporary placeholder until the user's owned sprite file is included in the asset pipeline; then use the actual sprite.
 4. Add companion-following behavior and one environmental interaction.
 5. Test resource usage on Windows and Android before expanding art/content scope.
 
-**No creature sheet sprites are approved for public distribution without rights verification.**
+**Rights note:** The user has affirmed ownership of the original creature sheet and authorized its use in WILDSIGNAL. No AI-generated content disclosure is needed *because of this sheet*. Other assets and subsequent AI-generated content, if any, must be tracked independently.
