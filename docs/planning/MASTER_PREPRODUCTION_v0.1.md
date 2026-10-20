@@ -178,3 +178,8 @@ New companion documents on this PR:
 - The proposed Echo Hollow sigil puzzle uses switch state A=0/B=1/C=0 toward A=1/B=0/C=1; it is distinct from the forest veil A→B→C pattern and not final until user approval.
 - User said **proceed** with environment planning. This authorizes continuing documentation, *not* final creative signoff of maps or irreversible programming/production choices.
 - Offline adventure is confirmed; the recommended two-trust-realm online economy is **still proposed**, not officially confirmed.
+
+
+## 13. Character & NPC art design v0.1 (proposed)
+
+Added `docs/design/CHARACTER_NPC_BIBLE_v0.1.md` for playable Wayfinder body/skin/hair/outfits, first-person compass view, animation source standards, cosmetics, quest-linked dialogue and NPC story roles; `docs/design/CHARACTER_ASSET_SCHEMA_v0.1.json` records data bindings. Existing NPC spatial identities remain: Mara `NPC_001_MARA` Z01 (18,11), Fen `NPC_002_FEN` Z01 (33,8), Iri `NPC_003_IRI` Z03 (21,25). Bellkeeper Sol is ONLY a memory/inscription in Z04 first chapter and has no physical map actor. These art/design proposals do not authorize purchased cosmetic SKU implementation, character sprite production or multiplayer profile sync yet. Character design approval and art-pipeline performance prototype are the next gates.
