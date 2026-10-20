@@ -1,22 +1,22 @@
 # WILDSIGNAL — Offline/Online Architecture v0.1
 
-**CONFIRMED:** Offline story adventure with local saving and no mandatory login; optional online multiplayer. **PROPOSED:** Data-trust policy and two-profile model.
+**CONFIRMED (user, 2026-10-20):** Offline adventure with no mandatory account; optional two-player Android↔Windows co-op at commercial launch; independent local offline and server-verified online progression; familiar local companions may be displayed cosmetically in casual co-op *where feasible*. Exact implementation, account recovery and presentation fallbacks are still proposed.
 
 ## Player modes
 - **Local Adventure (offline):** from a cold start with airplane mode: create/choose local save, explore all story-critical regions, choose starter, befriend creatures, turn-based battles, solve puzzles, unlock chapters, return to save; no network calls required for game logic. Multiple local save slots are a later scope decision.
-- **Online Expedition (opt-in):** explicit sign-in/account; join a server-authoritative hub or an instance with friends; presence, co-op, PvP and trading as optional activities. Network outage returns an intelligible error and lets player return to local adventure without corrupting any save.
+- **Online Expedition (opt-in):** explicit sign-in/account; join a server-authoritative hub or 2-player cross-platform co-op instance at launch. Trading and ranked PvP are **postlaunch plans**, not minimum initial online features. An outage permits exit to local adventure without corrupting its save.
 - **Shared client code:** deterministic battle/world simulation and content data may be shared, but local simulation and server simulation have different authority boundaries.
 
-## Crucial unresolved product decision: how offline companions interact with online progression
-### PROPOSAL A (RECOMMENDED for secure trading): Two trust realms
+## Approved trust boundary and open cosmetic projection details
+### OWNER-APPROVED PLANNING DECISION: Two trust realms
 - Local save has local story flags, inventory, earned creatures and local economy.
 - Online account has server-authored online character, tradable creatures, currency, cosmetics, matchmaking rank and online reward history.
 - Players may choose visually matching avatars and starters, but this is not a direct import of local items.
-- Casual co-op can optionally project local companion *appearances* as guest-only cosmetics while battle inventory and rewards come from server-validated profile. Requires design work and unambiguous labels.
+- **Approved product direction, feasibility-gated:** casual co-op should display the *appearance* of the familiar offline companion where technically feasible, but this is an untrusted, noncompetitive **visual projection**. The server verifies any allowed cosmetic species/shape ID and controls all battle stats, rewards, inventories and entitlements. A cosmetic projection is **not a purchased cosmetic SKU** or transferable companion. If secure/clear presentation is not feasible, show verified online companion instead and inform the player; owner review required for UX fallback.
 - Online story progress can be separate; alternatively share noncompetitive quest completion cosmetics only after server verification.
 
-### PROPOSAL B: Limited attested import
-- An offline creature could enter casual online co-op marked **unverified/non-tradable**. Never enter trading, ranking, global market, or competitive PvP.
+### REJECTED AS CURRENT PLAN: Limited attested import
+- An offline creature could theoretically enter casual online co-op marked **unverified/non-tradable**, but this is **not the selected planning model**. Do not implement it unless separately approved. Never enter trading, ranking, global market, or competitive PvP.
 - Server limits unverified inventories and never grants tradable rewards from their stats. Hard to explain and defend; more implementation complexity. Do not implement without approval.
 
 ### Not acceptable
@@ -51,4 +51,18 @@
 7. Android app reinstall/cloud restore and Windows save migration tested separately.
 8. Permission/privacy and entitlement checks validated for each storefront.
 
-**APPROVAL NEEDED:** A or B; online progression and co-op guest companion policy; offline save slots, migration and backup UX; disconnect behavior.
+**APPROVED:** Separate local and server-verified online progression; desired *visual-only* local-companion representation in casual co-op when feasible; two-player Android↔Windows co-op at launch. **APPROVAL/VALIDATION STILL NEEDED:** secure companion visual projection allowlist and fallback behavior; avatar selection and account linkage; online quest persistence; offline save slots/migration/backup UX; disconnect and co-op quest ownership; exact server deployment, multiplayer security, trading and PvP postlaunch.
+
+
+## 2026-10-20 Trust-domain projection acceptance requirements (new)
+
+1. An offline local creature `WS-004` may inspire a matching **visual** appearance in a casual lobby only when that appearance passes the server's allowed-species/cosmetic whitelist. This does not create online possession of `WS-004`, upgrade an online creature, or entitle trading.
+2. Display two distinct labels if both are shown in UI: **Local Adventure companion** and **Online Expedition companion**. Avoid implying an online character's stats/identity are imported.
+3. Online combat and co-op rewards depend exclusively on server-authored online creature ID, stats and event outcomes. Offline SaveData edits change no server results.
+4. The projected appearance must not mislead opponents or teammates about competitive species if PvP is eventually added; keep projection limited to casual modes, or display a separate verified identity/stat label.
+5. When cosmetic projection unavailable (unreleased species, missing asset, incompatible client version or security rule), show a known available verified cosmetic or online companion, tell player the difference, and do not silently copy creature ownership.
+6. Each online instance supports exactly two player slots for launch baseline, with Windows/Android clients able to join either slot. Larger rooms only after measured test and approval.
+7. Offline story can always start, load and finish if account or online service fails; online-only UX is clearly labeled.
+8. No online inventory/trade/receipt system treats local checksum or encrypted local file as proof of legitimate provenance.
+
+**Implementation remains unauthorized until a separate approved task and acceptance test.**
