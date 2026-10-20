@@ -1,0 +1,1591 @@
+{
+  "schema": "wildsignal-art-source-manifest-v0.1",
+  "dataStatus": "Measured unaltered source file; geometric cutlines are candidate, not independently validated transparent creature masks",
+  "artifactPrivacy": "Manifest is text metadata only. DO NOT publish actual user-owned pixel sheet or exports to GitHub without the owner's explicit approval.",
+  "source": {
+    "assetId": "SRC_CREATURE_SHEET_001",
+    "filename": "image(20261020-050620).png",
+    "libraryRef": "user-owned Library artwork (original bytes not committed in this PR)",
+    "sha256": "d49b383f1df8a2d42823c9e184b734df0c4d026a1a9d60448e6932bfa64c3fbe",
+    "sourceByteSize": 971540,
+    "width": 850,
+    "height": 832,
+    "pixelMode": "RGB",
+    "alpha": false,
+    "gridRows": 10,
+    "gridColumns": 10,
+    "visualAssessment": "10x10 white line-separated lime-background, original user-drawn creatures, small dark baseline marks near some feet",
+    "preservation": "Do not alter/archive new derivative in public repo absent owner choice"
+  },
+  "cellCropPlan": {
+    "format": "left/top inclusive, right/bottom exclusive",
+    "xPattern": "left=6+84*col0, rightExclusive=88+84*col0",
+    "yPattern": "top=6+82*row0, bottomExclusive=86+82*row0",
+    "candidateCellSize": [
+      82,
+      80
+    ],
+    "edgePolicy": "Reject if creature or drop shadow touches candidate box; use inspection to expand crop only within owned source boundaries while avoiding neighboring creature; do not use nearest shade as transparent globally",
+    "note": "Derived by examining white 2px-ish gridline positions in this 850x832 RGB image. These are planning coordinates only; no crops were exported."
+  },
+  "positions": [
+    {
+      "speciesId": "WS-001",
+      "cell": "R01C01",
+      "candidateExtractRectPixels": {
+        "left": 6,
+        "top": 6,
+        "rightExclusive": 88,
+        "bottomExclusive": 86
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-002",
+      "cell": "R01C02",
+      "candidateExtractRectPixels": {
+        "left": 90,
+        "top": 6,
+        "rightExclusive": 172,
+        "bottomExclusive": 86
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-003",
+      "cell": "R01C03",
+      "candidateExtractRectPixels": {
+        "left": 174,
+        "top": 6,
+        "rightExclusive": 256,
+        "bottomExclusive": 86
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-004",
+      "cell": "R01C04",
+      "candidateExtractRectPixels": {
+        "left": 258,
+        "top": 6,
+        "rightExclusive": 340,
+        "bottomExclusive": 86
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-005",
+      "cell": "R01C05",
+      "candidateExtractRectPixels": {
+        "left": 342,
+        "top": 6,
+        "rightExclusive": 424,
+        "bottomExclusive": 86
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-006",
+      "cell": "R01C06",
+      "candidateExtractRectPixels": {
+        "left": 426,
+        "top": 6,
+        "rightExclusive": 508,
+        "bottomExclusive": 86
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-007",
+      "cell": "R01C07",
+      "candidateExtractRectPixels": {
+        "left": 510,
+        "top": 6,
+        "rightExclusive": 592,
+        "bottomExclusive": 86
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-008",
+      "cell": "R01C08",
+      "candidateExtractRectPixels": {
+        "left": 594,
+        "top": 6,
+        "rightExclusive": 676,
+        "bottomExclusive": 86
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-009",
+      "cell": "R01C09",
+      "candidateExtractRectPixels": {
+        "left": 678,
+        "top": 6,
+        "rightExclusive": 760,
+        "bottomExclusive": 86
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-010",
+      "cell": "R01C10",
+      "candidateExtractRectPixels": {
+        "left": 762,
+        "top": 6,
+        "rightExclusive": 844,
+        "bottomExclusive": 86
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-011",
+      "cell": "R02C01",
+      "candidateExtractRectPixels": {
+        "left": 6,
+        "top": 88,
+        "rightExclusive": 88,
+        "bottomExclusive": 168
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-012",
+      "cell": "R02C02",
+      "candidateExtractRectPixels": {
+        "left": 90,
+        "top": 88,
+        "rightExclusive": 172,
+        "bottomExclusive": 168
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-013",
+      "cell": "R02C03",
+      "candidateExtractRectPixels": {
+        "left": 174,
+        "top": 88,
+        "rightExclusive": 256,
+        "bottomExclusive": 168
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-014",
+      "cell": "R02C04",
+      "candidateExtractRectPixels": {
+        "left": 258,
+        "top": 88,
+        "rightExclusive": 340,
+        "bottomExclusive": 168
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-015",
+      "cell": "R02C05",
+      "candidateExtractRectPixels": {
+        "left": 342,
+        "top": 88,
+        "rightExclusive": 424,
+        "bottomExclusive": 168
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-016",
+      "cell": "R02C06",
+      "candidateExtractRectPixels": {
+        "left": 426,
+        "top": 88,
+        "rightExclusive": 508,
+        "bottomExclusive": 168
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-017",
+      "cell": "R02C07",
+      "candidateExtractRectPixels": {
+        "left": 510,
+        "top": 88,
+        "rightExclusive": 592,
+        "bottomExclusive": 168
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-018",
+      "cell": "R02C08",
+      "candidateExtractRectPixels": {
+        "left": 594,
+        "top": 88,
+        "rightExclusive": 676,
+        "bottomExclusive": 168
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-019",
+      "cell": "R02C09",
+      "candidateExtractRectPixels": {
+        "left": 678,
+        "top": 88,
+        "rightExclusive": 760,
+        "bottomExclusive": 168
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-020",
+      "cell": "R02C10",
+      "candidateExtractRectPixels": {
+        "left": 762,
+        "top": 88,
+        "rightExclusive": 844,
+        "bottomExclusive": 168
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-021",
+      "cell": "R03C01",
+      "candidateExtractRectPixels": {
+        "left": 6,
+        "top": 170,
+        "rightExclusive": 88,
+        "bottomExclusive": 250
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-022",
+      "cell": "R03C02",
+      "candidateExtractRectPixels": {
+        "left": 90,
+        "top": 170,
+        "rightExclusive": 172,
+        "bottomExclusive": 250
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-023",
+      "cell": "R03C03",
+      "candidateExtractRectPixels": {
+        "left": 174,
+        "top": 170,
+        "rightExclusive": 256,
+        "bottomExclusive": 250
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-024",
+      "cell": "R03C04",
+      "candidateExtractRectPixels": {
+        "left": 258,
+        "top": 170,
+        "rightExclusive": 340,
+        "bottomExclusive": 250
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-025",
+      "cell": "R03C05",
+      "candidateExtractRectPixels": {
+        "left": 342,
+        "top": 170,
+        "rightExclusive": 424,
+        "bottomExclusive": 250
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-026",
+      "cell": "R03C06",
+      "candidateExtractRectPixels": {
+        "left": 426,
+        "top": 170,
+        "rightExclusive": 508,
+        "bottomExclusive": 250
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-027",
+      "cell": "R03C07",
+      "candidateExtractRectPixels": {
+        "left": 510,
+        "top": 170,
+        "rightExclusive": 592,
+        "bottomExclusive": 250
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-028",
+      "cell": "R03C08",
+      "candidateExtractRectPixels": {
+        "left": 594,
+        "top": 170,
+        "rightExclusive": 676,
+        "bottomExclusive": 250
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-029",
+      "cell": "R03C09",
+      "candidateExtractRectPixels": {
+        "left": 678,
+        "top": 170,
+        "rightExclusive": 760,
+        "bottomExclusive": 250
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-030",
+      "cell": "R03C10",
+      "candidateExtractRectPixels": {
+        "left": 762,
+        "top": 170,
+        "rightExclusive": 844,
+        "bottomExclusive": 250
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-031",
+      "cell": "R04C01",
+      "candidateExtractRectPixels": {
+        "left": 6,
+        "top": 252,
+        "rightExclusive": 88,
+        "bottomExclusive": 332
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-032",
+      "cell": "R04C02",
+      "candidateExtractRectPixels": {
+        "left": 90,
+        "top": 252,
+        "rightExclusive": 172,
+        "bottomExclusive": 332
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-033",
+      "cell": "R04C03",
+      "candidateExtractRectPixels": {
+        "left": 174,
+        "top": 252,
+        "rightExclusive": 256,
+        "bottomExclusive": 332
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-034",
+      "cell": "R04C04",
+      "candidateExtractRectPixels": {
+        "left": 258,
+        "top": 252,
+        "rightExclusive": 340,
+        "bottomExclusive": 332
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-035",
+      "cell": "R04C05",
+      "candidateExtractRectPixels": {
+        "left": 342,
+        "top": 252,
+        "rightExclusive": 424,
+        "bottomExclusive": 332
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-036",
+      "cell": "R04C06",
+      "candidateExtractRectPixels": {
+        "left": 426,
+        "top": 252,
+        "rightExclusive": 508,
+        "bottomExclusive": 332
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-037",
+      "cell": "R04C07",
+      "candidateExtractRectPixels": {
+        "left": 510,
+        "top": 252,
+        "rightExclusive": 592,
+        "bottomExclusive": 332
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-038",
+      "cell": "R04C08",
+      "candidateExtractRectPixels": {
+        "left": 594,
+        "top": 252,
+        "rightExclusive": 676,
+        "bottomExclusive": 332
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-039",
+      "cell": "R04C09",
+      "candidateExtractRectPixels": {
+        "left": 678,
+        "top": 252,
+        "rightExclusive": 760,
+        "bottomExclusive": 332
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-040",
+      "cell": "R04C10",
+      "candidateExtractRectPixels": {
+        "left": 762,
+        "top": 252,
+        "rightExclusive": 844,
+        "bottomExclusive": 332
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-041",
+      "cell": "R05C01",
+      "candidateExtractRectPixels": {
+        "left": 6,
+        "top": 334,
+        "rightExclusive": 88,
+        "bottomExclusive": 414
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-042",
+      "cell": "R05C02",
+      "candidateExtractRectPixels": {
+        "left": 90,
+        "top": 334,
+        "rightExclusive": 172,
+        "bottomExclusive": 414
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-043",
+      "cell": "R05C03",
+      "candidateExtractRectPixels": {
+        "left": 174,
+        "top": 334,
+        "rightExclusive": 256,
+        "bottomExclusive": 414
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-044",
+      "cell": "R05C04",
+      "candidateExtractRectPixels": {
+        "left": 258,
+        "top": 334,
+        "rightExclusive": 340,
+        "bottomExclusive": 414
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-045",
+      "cell": "R05C05",
+      "candidateExtractRectPixels": {
+        "left": 342,
+        "top": 334,
+        "rightExclusive": 424,
+        "bottomExclusive": 414
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-046",
+      "cell": "R05C06",
+      "candidateExtractRectPixels": {
+        "left": 426,
+        "top": 334,
+        "rightExclusive": 508,
+        "bottomExclusive": 414
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-047",
+      "cell": "R05C07",
+      "candidateExtractRectPixels": {
+        "left": 510,
+        "top": 334,
+        "rightExclusive": 592,
+        "bottomExclusive": 414
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-048",
+      "cell": "R05C08",
+      "candidateExtractRectPixels": {
+        "left": 594,
+        "top": 334,
+        "rightExclusive": 676,
+        "bottomExclusive": 414
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-049",
+      "cell": "R05C09",
+      "candidateExtractRectPixels": {
+        "left": 678,
+        "top": 334,
+        "rightExclusive": 760,
+        "bottomExclusive": 414
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-050",
+      "cell": "R05C10",
+      "candidateExtractRectPixels": {
+        "left": 762,
+        "top": 334,
+        "rightExclusive": 844,
+        "bottomExclusive": 414
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-051",
+      "cell": "R06C01",
+      "candidateExtractRectPixels": {
+        "left": 6,
+        "top": 416,
+        "rightExclusive": 88,
+        "bottomExclusive": 496
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-052",
+      "cell": "R06C02",
+      "candidateExtractRectPixels": {
+        "left": 90,
+        "top": 416,
+        "rightExclusive": 172,
+        "bottomExclusive": 496
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-053",
+      "cell": "R06C03",
+      "candidateExtractRectPixels": {
+        "left": 174,
+        "top": 416,
+        "rightExclusive": 256,
+        "bottomExclusive": 496
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-054",
+      "cell": "R06C04",
+      "candidateExtractRectPixels": {
+        "left": 258,
+        "top": 416,
+        "rightExclusive": 340,
+        "bottomExclusive": 496
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-055",
+      "cell": "R06C05",
+      "candidateExtractRectPixels": {
+        "left": 342,
+        "top": 416,
+        "rightExclusive": 424,
+        "bottomExclusive": 496
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-056",
+      "cell": "R06C06",
+      "candidateExtractRectPixels": {
+        "left": 426,
+        "top": 416,
+        "rightExclusive": 508,
+        "bottomExclusive": 496
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-057",
+      "cell": "R06C07",
+      "candidateExtractRectPixels": {
+        "left": 510,
+        "top": 416,
+        "rightExclusive": 592,
+        "bottomExclusive": 496
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-058",
+      "cell": "R06C08",
+      "candidateExtractRectPixels": {
+        "left": 594,
+        "top": 416,
+        "rightExclusive": 676,
+        "bottomExclusive": 496
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-059",
+      "cell": "R06C09",
+      "candidateExtractRectPixels": {
+        "left": 678,
+        "top": 416,
+        "rightExclusive": 760,
+        "bottomExclusive": 496
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-060",
+      "cell": "R06C10",
+      "candidateExtractRectPixels": {
+        "left": 762,
+        "top": 416,
+        "rightExclusive": 844,
+        "bottomExclusive": 496
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-061",
+      "cell": "R07C01",
+      "candidateExtractRectPixels": {
+        "left": 6,
+        "top": 498,
+        "rightExclusive": 88,
+        "bottomExclusive": 578
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-062",
+      "cell": "R07C02",
+      "candidateExtractRectPixels": {
+        "left": 90,
+        "top": 498,
+        "rightExclusive": 172,
+        "bottomExclusive": 578
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-063",
+      "cell": "R07C03",
+      "candidateExtractRectPixels": {
+        "left": 174,
+        "top": 498,
+        "rightExclusive": 256,
+        "bottomExclusive": 578
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-064",
+      "cell": "R07C04",
+      "candidateExtractRectPixels": {
+        "left": 258,
+        "top": 498,
+        "rightExclusive": 340,
+        "bottomExclusive": 578
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-065",
+      "cell": "R07C05",
+      "candidateExtractRectPixels": {
+        "left": 342,
+        "top": 498,
+        "rightExclusive": 424,
+        "bottomExclusive": 578
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-066",
+      "cell": "R07C06",
+      "candidateExtractRectPixels": {
+        "left": 426,
+        "top": 498,
+        "rightExclusive": 508,
+        "bottomExclusive": 578
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-067",
+      "cell": "R07C07",
+      "candidateExtractRectPixels": {
+        "left": 510,
+        "top": 498,
+        "rightExclusive": 592,
+        "bottomExclusive": 578
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-068",
+      "cell": "R07C08",
+      "candidateExtractRectPixels": {
+        "left": 594,
+        "top": 498,
+        "rightExclusive": 676,
+        "bottomExclusive": 578
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-069",
+      "cell": "R07C09",
+      "candidateExtractRectPixels": {
+        "left": 678,
+        "top": 498,
+        "rightExclusive": 760,
+        "bottomExclusive": 578
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-070",
+      "cell": "R07C10",
+      "candidateExtractRectPixels": {
+        "left": 762,
+        "top": 498,
+        "rightExclusive": 844,
+        "bottomExclusive": 578
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-071",
+      "cell": "R08C01",
+      "candidateExtractRectPixels": {
+        "left": 6,
+        "top": 580,
+        "rightExclusive": 88,
+        "bottomExclusive": 660
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-072",
+      "cell": "R08C02",
+      "candidateExtractRectPixels": {
+        "left": 90,
+        "top": 580,
+        "rightExclusive": 172,
+        "bottomExclusive": 660
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-073",
+      "cell": "R08C03",
+      "candidateExtractRectPixels": {
+        "left": 174,
+        "top": 580,
+        "rightExclusive": 256,
+        "bottomExclusive": 660
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-074",
+      "cell": "R08C04",
+      "candidateExtractRectPixels": {
+        "left": 258,
+        "top": 580,
+        "rightExclusive": 340,
+        "bottomExclusive": 660
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-075",
+      "cell": "R08C05",
+      "candidateExtractRectPixels": {
+        "left": 342,
+        "top": 580,
+        "rightExclusive": 424,
+        "bottomExclusive": 660
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-076",
+      "cell": "R08C06",
+      "candidateExtractRectPixels": {
+        "left": 426,
+        "top": 580,
+        "rightExclusive": 508,
+        "bottomExclusive": 660
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-077",
+      "cell": "R08C07",
+      "candidateExtractRectPixels": {
+        "left": 510,
+        "top": 580,
+        "rightExclusive": 592,
+        "bottomExclusive": 660
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-078",
+      "cell": "R08C08",
+      "candidateExtractRectPixels": {
+        "left": 594,
+        "top": 580,
+        "rightExclusive": 676,
+        "bottomExclusive": 660
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-079",
+      "cell": "R08C09",
+      "candidateExtractRectPixels": {
+        "left": 678,
+        "top": 580,
+        "rightExclusive": 760,
+        "bottomExclusive": 660
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-080",
+      "cell": "R08C10",
+      "candidateExtractRectPixels": {
+        "left": 762,
+        "top": 580,
+        "rightExclusive": 844,
+        "bottomExclusive": 660
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-081",
+      "cell": "R09C01",
+      "candidateExtractRectPixels": {
+        "left": 6,
+        "top": 662,
+        "rightExclusive": 88,
+        "bottomExclusive": 742
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-082",
+      "cell": "R09C02",
+      "candidateExtractRectPixels": {
+        "left": 90,
+        "top": 662,
+        "rightExclusive": 172,
+        "bottomExclusive": 742
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-083",
+      "cell": "R09C03",
+      "candidateExtractRectPixels": {
+        "left": 174,
+        "top": 662,
+        "rightExclusive": 256,
+        "bottomExclusive": 742
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-084",
+      "cell": "R09C04",
+      "candidateExtractRectPixels": {
+        "left": 258,
+        "top": 662,
+        "rightExclusive": 340,
+        "bottomExclusive": 742
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-085",
+      "cell": "R09C05",
+      "candidateExtractRectPixels": {
+        "left": 342,
+        "top": 662,
+        "rightExclusive": 424,
+        "bottomExclusive": 742
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-086",
+      "cell": "R09C06",
+      "candidateExtractRectPixels": {
+        "left": 426,
+        "top": 662,
+        "rightExclusive": 508,
+        "bottomExclusive": 742
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-087",
+      "cell": "R09C07",
+      "candidateExtractRectPixels": {
+        "left": 510,
+        "top": 662,
+        "rightExclusive": 592,
+        "bottomExclusive": 742
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-088",
+      "cell": "R09C08",
+      "candidateExtractRectPixels": {
+        "left": 594,
+        "top": 662,
+        "rightExclusive": 676,
+        "bottomExclusive": 742
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-089",
+      "cell": "R09C09",
+      "candidateExtractRectPixels": {
+        "left": 678,
+        "top": 662,
+        "rightExclusive": 760,
+        "bottomExclusive": 742
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-090",
+      "cell": "R09C10",
+      "candidateExtractRectPixels": {
+        "left": 762,
+        "top": 662,
+        "rightExclusive": 844,
+        "bottomExclusive": 742
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-091",
+      "cell": "R10C01",
+      "candidateExtractRectPixels": {
+        "left": 6,
+        "top": 744,
+        "rightExclusive": 88,
+        "bottomExclusive": 824
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-092",
+      "cell": "R10C02",
+      "candidateExtractRectPixels": {
+        "left": 90,
+        "top": 744,
+        "rightExclusive": 172,
+        "bottomExclusive": 824
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-093",
+      "cell": "R10C03",
+      "candidateExtractRectPixels": {
+        "left": 174,
+        "top": 744,
+        "rightExclusive": 256,
+        "bottomExclusive": 824
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-094",
+      "cell": "R10C04",
+      "candidateExtractRectPixels": {
+        "left": 258,
+        "top": 744,
+        "rightExclusive": 340,
+        "bottomExclusive": 824
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-095",
+      "cell": "R10C05",
+      "candidateExtractRectPixels": {
+        "left": 342,
+        "top": 744,
+        "rightExclusive": 424,
+        "bottomExclusive": 824
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-096",
+      "cell": "R10C06",
+      "candidateExtractRectPixels": {
+        "left": 426,
+        "top": 744,
+        "rightExclusive": 508,
+        "bottomExclusive": 824
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-097",
+      "cell": "R10C07",
+      "candidateExtractRectPixels": {
+        "left": 510,
+        "top": 744,
+        "rightExclusive": 592,
+        "bottomExclusive": 824
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-098",
+      "cell": "R10C08",
+      "candidateExtractRectPixels": {
+        "left": 594,
+        "top": 744,
+        "rightExclusive": 676,
+        "bottomExclusive": 824
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-099",
+      "cell": "R10C09",
+      "candidateExtractRectPixels": {
+        "left": 678,
+        "top": 744,
+        "rightExclusive": 760,
+        "bottomExclusive": 824
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    },
+    {
+      "speciesId": "WS-100",
+      "cell": "R10C10",
+      "candidateExtractRectPixels": {
+        "left": 762,
+        "top": 744,
+        "rightExclusive": 844,
+        "bottomExclusive": 824
+      },
+      "alphaQuality": "NOT_REVIEWED",
+      "pivotPixels": null,
+      "finalTransparentAsset": null,
+      "speciesNameStatus": "PROPOSED_OR_UNASSIGNED",
+      "reviewFlag": "Manual source-pixel and gridline inspection required"
+    }
+  ],
+  "pilot": [
+    {
+      "speciesId": "WS-004",
+      "workingName": "Glintle",
+      "cell": "R01C04",
+      "visualSourceNote": "small green-and-gold upright insect/owl-like silhouette with pointy yellow ears/horns; do not reinterpret as another character",
+      "script": "preserve antennas/face and flat feet",
+      "extractRect": {
+        "left": 258,
+        "top": 6,
+        "rightExclusive": 340,
+        "bottomExclusive": 86
+      },
+      "workingNameApproved": false
+    },
+    {
+      "speciesId": "WS-008",
+      "workingName": "Driftfin",
+      "cell": "R01C08",
+      "visualSourceNote": "bright blue round-bodied creature with small bubbles rising above head",
+      "script": "floating bubbles require separate mask/FX review",
+      "extractRect": {
+        "left": 594,
+        "top": 6,
+        "rightExclusive": 676,
+        "bottomExclusive": 86
+      },
+      "workingNameApproved": false
+    },
+    {
+      "speciesId": "WS-050",
+      "workingName": "Brumlet",
+      "cell": "R05C10",
+      "visualSourceNote": "orange-red small round fiery creature with ember dots rising above top",
+      "script": "bright highlights and floating ember dots require alpha review",
+      "extractRect": {
+        "left": 762,
+        "top": 334,
+        "rightExclusive": 844,
+        "bottomExclusive": 414
+      },
+      "workingNameApproved": false
+    },
+    {
+      "speciesId": "WS-024",
+      "workingName": "Craglet",
+      "cell": "R03C04",
+      "visualSourceNote": "brown-red angular rocky creature with large shoulders and claws",
+      "script": "protect dark outline and protruding features",
+      "extractRect": {
+        "left": 258,
+        "top": 170,
+        "rightExclusive": 340,
+        "bottomExclusive": 250
+      },
+      "workingNameApproved": false
+    }
+  ]
+}
