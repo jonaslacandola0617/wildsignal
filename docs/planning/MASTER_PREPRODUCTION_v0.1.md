@@ -168,3 +168,13 @@ New companion documents on this PR:
 - `docs/architecture/OFFLINE_ONLINE_SYSTEMS_v0.1.md`: offline-first runtime, account/trust separation, local saves and server-authoritative online systems.
 
 **Design/development gate:** precise prototype grids are REVIEW DRAFTS, not approved final maps. Codex should not build beyond experimental graybox until the user signs off on the topology, game modes and essential UX.
+
+
+## 12. World-layout iteration v0.2 (draft on this PR)
+
+- `docs/design/maps/FIRST_SIGNAL_BLOCKOUT_v0.2.json` is a **validated navigational fixture** with four 48×32 tile grids, portal destination IDs, creature/quest entities and visible path cells. Every designated entity/portal is flood-fill reachable from the principal spawn. These checks do not prove quest-state sequencing or visual composition.
+- `docs/design/FIRST_SIGNAL_ZONE_BLUEPRINT_v0.2.md` annotates every region, quest-critical location, environment art kit, hero camera, soundscape, companion puzzle, rescue behavior and acceptance gate.
+- `docs/design/LEVEL_MAPS_FIRST_SIGNAL_v0.1.md` is historical and **superseded for geometry and tile coordinates**. Do not mix coordinate versions.
+- The proposed Echo Hollow sigil puzzle uses switch state A=0/B=1/C=0 toward A=1/B=0/C=1; it is distinct from the forest veil A→B→C pattern and not final until user approval.
+- User said **proceed** with environment planning. This authorizes continuing documentation, *not* final creative signoff of maps or irreversible programming/production choices.
+- Offline adventure is confirmed; the recommended two-trust-realm online economy is **still proposed**, not officially confirmed.
