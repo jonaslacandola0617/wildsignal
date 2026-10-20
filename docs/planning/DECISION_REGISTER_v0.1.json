@@ -1,0 +1,321 @@
+{
+  "schema_version": "0.1",
+  "status": "PROPOSED_REVIEWS_STILL_REQUIRED",
+  "updateRule": "Only owner explicitly approves design; 'proceed' authorizes planning, not all proposals. Versions supersede, never silently overwrite decisions.",
+  "statusVocabulary": [
+    "CONFIRMED",
+    "PROPOSED",
+    "BLOCKED",
+    "DEPRECATED"
+  ],
+  "entries": [
+    {
+      "id": "D-001",
+      "status": "CONFIRMED",
+      "decision": "Original creature-collecting RPG WILDSIGNAL working title",
+      "notes": "Title clearance must be checked before branding commercial release",
+      "area": "Product",
+      "evidence": "User conversation 2026-10-20",
+      "owner": "project_owner",
+      "reviewedAt": null,
+      "approvedAt": "2026-10-20"
+    },
+    {
+      "id": "D-002",
+      "status": "CONFIRMED",
+      "decision": "Visual tone beautiful but mysterious: cute creatures, lush nature and ancient mysterious ruins",
+      "notes": "Esthetic reference not a source asset license",
+      "area": "Visual",
+      "evidence": "User screenshot + selection",
+      "owner": "project_owner",
+      "reviewedAt": null,
+      "approvedAt": "2026-10-20"
+    },
+    {
+      "id": "D-003",
+      "status": "CONFIRMED",
+      "decision": "Primary first-person retro 2.5D pixel-art perspective; 2D-authored world preferred",
+      "notes": "Exact renderer, pitch/height and optional third-person are unapproved",
+      "area": "Engine",
+      "evidence": "User screenshot + conversation",
+      "owner": "project_owner",
+      "reviewedAt": null,
+      "approvedAt": "2026-10-20"
+    },
+    {
+      "id": "D-004",
+      "status": "CONFIRMED",
+      "decision": "C++ with lightweight libraries, without Unity/Unreal/Godot as development dependency",
+      "notes": "SDL3 and exact library stack only proposed",
+      "area": "Engine",
+      "evidence": "User request",
+      "owner": "project_owner",
+      "reviewedAt": null,
+      "approvedAt": "2026-10-20"
+    },
+    {
+      "id": "D-005",
+      "status": "CONFIRMED",
+      "decision": "Windows PC release planned via Steam and Android release planned via Google Play",
+      "notes": "Actual store account/payment/review requirements remain future work",
+      "area": "Product",
+      "evidence": "User request",
+      "owner": "project_owner",
+      "reviewedAt": null,
+      "approvedAt": "2026-10-20"
+    },
+    {
+      "id": "D-006",
+      "status": "CONFIRMED",
+      "decision": "Entire story/creature-bonding and PvE adventure playable offline; multiplayer is optional online add-on",
+      "notes": "Offline experience not dependent on server",
+      "area": "Game mode",
+      "evidence": "User selected offline adventure + online multiplayer",
+      "owner": "project_owner",
+      "reviewedAt": null,
+      "approvedAt": "2026-10-20"
+    },
+    {
+      "id": "D-007",
+      "status": "CONFIRMED",
+      "decision": "Turn-based 1v1-oriented creature battles",
+      "notes": "Party count, combat formula, moves and Signal Energy not approved",
+      "area": "Combat",
+      "evidence": "User selected turn-based",
+      "owner": "project_owner",
+      "reviewedAt": null,
+      "approvedAt": "2026-10-20"
+    },
+    {
+      "id": "D-008",
+      "status": "CONFIRMED",
+      "decision": "Companions physically follow, react and assist exploration",
+      "notes": "Specific AI and animation states draft",
+      "area": "Companion",
+      "evidence": "User agreed to follower mechanic",
+      "owner": "project_owner",
+      "reviewedAt": null,
+      "approvedAt": "2026-10-20"
+    },
+    {
+      "id": "D-009",
+      "status": "CONFIRMED",
+      "decision": "Original hand-created 10x10 sprite sheet from user, owner authorizes game use",
+      "notes": "Retain asset ledger and original file; no generic AI replacement",
+      "area": "Art",
+      "evidence": "User corrected provenance and asserted ownership",
+      "owner": "project_owner",
+      "reviewedAt": null,
+      "approvedAt": "2026-10-20"
+    },
+    {
+      "id": "D-010",
+      "status": "CONFIRMED",
+      "decision": "Codex is implementation collaborator; ChatGPT creates planning, designs and technical specifications",
+      "notes": "No gameplay code requested yet",
+      "area": "Process",
+      "evidence": "User clarification",
+      "owner": "project_owner",
+      "reviewedAt": null,
+      "approvedAt": "2026-10-20"
+    },
+    {
+      "id": "D-011",
+      "status": "PROPOSED",
+      "decision": "Starter names Glintle, Driftfin, Brumlet map to WS-004, WS-008, WS-050",
+      "notes": "Owner to approve names and biology",
+      "area": "Creatures",
+      "evidence": "CREATURE_BIBLE_v0.1 and FIRST_NINE_CREATURES_v0.1",
+      "owner": "project_owner",
+      "reviewedAt": null,
+      "approvedAt": null
+    },
+    {
+      "id": "D-012",
+      "status": "PROPOSED",
+      "decision": "Nine initial playable species + 18 moves; affinity cycle Flora/Tide/Ember",
+      "notes": "Numbers and wild names to playtest and approve",
+      "area": "Combat",
+      "evidence": "BATTLE_BALANCE_BIBLE_v0.1",
+      "owner": "project_owner",
+      "reviewedAt": null,
+      "approvedAt": null
+    },
+    {
+      "id": "D-013",
+      "status": "PROPOSED",
+      "decision": "Trust-based creature invitation with observe + assist + friendly spar, deterministic threshold",
+      "notes": "Alternative classic battle/capture method still to decide",
+      "area": "Creature system",
+      "evidence": "BONDING_ENCOUNTERS_v0.1",
+      "owner": "project_owner",
+      "reviewedAt": null,
+      "approvedAt": null
+    },
+    {
+      "id": "D-014",
+      "status": "PROPOSED",
+      "decision": "Release model free-to-play with cosmetics only",
+      "notes": "Premium/premium demo possible; revenue assumptions unvalidated",
+      "area": "Commercial",
+      "evidence": "PRODUCT_VISION_RELEASE_SCOPE_v0.1",
+      "owner": "project_owner",
+      "reviewedAt": null,
+      "approvedAt": null
+    },
+    {
+      "id": "D-015",
+      "status": "PROPOSED",
+      "decision": "Commercial 1.0 targets 6 zones, 18–24 species, 3–5h story, 2-player co-op",
+      "notes": "Requires budget/feasibility owner signoff; multiplayer still intended",
+      "area": "Scope",
+      "evidence": "PRODUCT_VISION_RELEASE_SCOPE_v0.1",
+      "owner": "project_owner",
+      "reviewedAt": null,
+      "approvedAt": null
+    },
+    {
+      "id": "D-016",
+      "status": "PROPOSED",
+      "decision": "Separate offline-local and online server-trusted creature progression with cosmetic guest projection",
+      "notes": "Emotional continuity and security trade-off not approved",
+      "area": "Online trust",
+      "evidence": "OFFLINE_ONLINE_SYSTEMS_v0.1",
+      "owner": "project_owner",
+      "reviewedAt": null,
+      "approvedAt": null
+    },
+    {
+      "id": "D-017",
+      "status": "PROPOSED",
+      "decision": "Party of 3, 4 moves per creature, 0-8 Signal Energy",
+      "notes": "Battle balance proof needed",
+      "area": "Combat",
+      "evidence": "BATTLE_BALANCE_BIBLE_v0.1",
+      "owner": "project_owner",
+      "reviewedAt": null,
+      "approvedAt": null
+    },
+    {
+      "id": "D-018",
+      "status": "PROPOSED",
+      "decision": "Zone world graph: Lantern Quay, Mosswake Path, Liltwood, Echo Hollow + later Tideglass/Ashbell etc",
+      "notes": "Names, exact full geography and level scale draft",
+      "area": "World",
+      "evidence": "WORLD_BIBLE_v0.1",
+      "owner": "project_owner",
+      "reviewedAt": null,
+      "approvedAt": null
+    },
+    {
+      "id": "D-019",
+      "status": "PROPOSED",
+      "decision": "Four 48x32 zone maps as blockouts with Q001–Q005 scripted prologue",
+      "notes": "They are *not* final art-ready maps",
+      "area": "Level",
+      "evidence": "FIRST_SIGNAL_BLOCKOUT_v0.2.json",
+      "owner": "project_owner",
+      "reviewedAt": null,
+      "approvedAt": null
+    },
+    {
+      "id": "D-020",
+      "status": "PROPOSED",
+      "decision": "Native C++20, SDL3, CMake, Gradle/NDK Android bridge",
+      "notes": "Benchmark/build before codebase commitment",
+      "area": "Engine",
+      "evidence": "ENGINE_ARCHITECTURE_ADR_v0.1",
+      "owner": "project_owner",
+      "reviewedAt": null,
+      "approvedAt": null
+    },
+    {
+      "id": "D-021",
+      "status": "BLOCKED",
+      "decision": "Renderer selection between R1 grid raycast, R2 sector portal, R3 tiny software raster",
+      "notes": "Requires real Windows/Android visual/performance bakeoff",
+      "area": "Engine",
+      "evidence": "RENDERING_BENCHMARK_PLAN_v0.1",
+      "owner": "project_owner",
+      "reviewedAt": null,
+      "approvedAt": null
+    },
+    {
+      "id": "D-022",
+      "status": "BLOCKED",
+      "decision": "Minimum devices/OS and 2GB RAM compatibility claims",
+      "notes": "Real physical devices and repeatable benchmarks required",
+      "area": "Performance",
+      "evidence": "RENDERING_BENCHMARK_PLAN_v0.1",
+      "owner": "project_owner",
+      "reviewedAt": null,
+      "approvedAt": null
+    },
+    {
+      "id": "D-023",
+      "status": "BLOCKED",
+      "decision": "Store release monetization integration and entitlements",
+      "notes": "Need pricing decision, backend receipt verification, current store policies",
+      "area": "Commerce",
+      "evidence": "PRODUCT_VISION_RELEASE_SCOPE_v0.1",
+      "owner": "project_owner",
+      "reviewedAt": null,
+      "approvedAt": null
+    },
+    {
+      "id": "D-024",
+      "status": "PROPOSED",
+      "decision": "26 UI screens in design catalog with sharp UI separate from low-res world and two input schemes",
+      "notes": "Do not build all screens in first vertical slice",
+      "area": "UI",
+      "evidence": "UI_UX_BIBLE_v0.1",
+      "owner": "project_owner",
+      "reviewedAt": null,
+      "approvedAt": null
+    },
+    {
+      "id": "D-025",
+      "status": "PROPOSED",
+      "decision": "1.0 online scope two-person co-op + hub; trading/ranked PvP afterwards",
+      "notes": "User wants multiplayer, feature phasing requires approval",
+      "area": "Online",
+      "evidence": "PRODUCT_VISION_RELEASE_SCOPE_v0.1",
+      "owner": "project_owner",
+      "reviewedAt": null,
+      "approvedAt": null
+    },
+    {
+      "id": "D-026",
+      "status": "BLOCKED",
+      "decision": "Public branding/trademark store checks for title WILDSIGNAL",
+      "notes": "Search and legal clearance before launch/merchandise",
+      "area": "Brand",
+      "evidence": "Production audit",
+      "owner": "project_owner",
+      "reviewedAt": null,
+      "approvedAt": null
+    },
+    {
+      "id": "D-027",
+      "status": "PROPOSED",
+      "decision": "Pin source asset archive and keep pixel-editable originals separate from public code",
+      "notes": "Need actual masters and explicit public repo source-sharing decision",
+      "area": "Assets",
+      "evidence": "CREATURE_CATALOG_GUIDE_v0.1",
+      "owner": "project_owner",
+      "reviewedAt": null,
+      "approvedAt": null
+    },
+    {
+      "id": "D-028",
+      "status": "PROPOSED",
+      "decision": "30fps minimum benchmark target and ~250MiB scene budget on target devices",
+      "notes": "Measurement goals, not verified performance claims",
+      "area": "Engine",
+      "evidence": "RENDERING_BENCHMARK_PLAN_v0.1",
+      "owner": "project_owner",
+      "reviewedAt": null,
+      "approvedAt": null
+    }
+  ]
+}
