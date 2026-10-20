@@ -5,7 +5,7 @@
 **Structured catalog:** `docs/design/CREATURE_CATALOG_v0.1.json`.
 
 ## Identification
-Each row-major ID maps permanently to a position: top left = WS-001 (R01C01); lower right = WS-100 (R10C10). Every ID references owned visual artwork. IDs do NOT imply 100 gameplay-ready species. All nonstarter names, stats, habitat and evolution relationships are unapproved.
+Each row-major ID maps permanently to a position: top left = WS-001 (R01C01); lower right = WS-100 (R10C10). Every ID references owned visual artwork. IDs do NOT imply 100 gameplay-ready species. Nine first-roster working names and roles (3 starters + 6 wild) are now proposed in `FIRST_NINE_CREATURES_v0.1.json`, but none are approved as final commercial names. Remaining sprite IDs have no species names; evolution relationships are unapproved.
 
 ## Candidate starters
 - WS-004 / R01C04 → **Glintle** (proposed Flora support/exploration).
@@ -147,3 +147,8 @@ Source sprite shapes should be preserved; don't replace with generic placeholder
 - Confirm whether original file/layer masters can be included in public GitHub or should be kept in private art storage.
 
 **No automatic new creature art was generated in this catalog. This is documentation of the user's original image.**
+
+
+## First-nine candidate roster addendum
+
+The proposal in `FIRST_NINE_CREATURES_v0.1.json` selects WS-004 Glintle, WS-008 Driftfin, WS-050 Brumlet, WS-005 Tumbletail, WS-021 Puddlefin, WS-012 Mossmelt, WS-001 Signalit, WS-024 Craglet, WS-067 Hushflame. This remains a 9-species **study**, not proof of final balance or production-ready art. Each species's habitat and invitation behavior is described in `BONDING_ENCOUNTERS_v0.1.md`. Existing artwork is available in the supplied image, but has not been split into transparent sprites or committed to the game repository.
