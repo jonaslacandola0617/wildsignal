@@ -7,7 +7,7 @@
 
 | Test profile | Owner-provided facts | Open details | Test role |
 |---|---|---|---|
-| `WIN_BASELINE_01` | Intel Core i3 **10th generation**, **4 GB system RAM** | exact CPU model, integrated or discrete GPU, Windows version/build, disk/SSD/free space, display resolution, driver | **Accessible low-memory development PC / Windows smoke & performance test** |
+| `WIN_BASELINE_01` | Intel Core i3 **10th generation**, **4 GB system RAM**, **Windows 11** | exact CPU model, integrated or discrete GPU, OS build, disk/SSD/free space, display resolution, driver | **Owner's actual Win11 development machine / Windows smoke & performance test** |
 | `ANDROID_FUNCTIONAL_01` | **Samsung Galaxy S10+** | exact model/SoC, RAM configuration, OS version, available storage, battery condition, screen resolution setting | **Real Android touch, lifecycle, screen-cutout and sustained-performance test** |
 | `ANDROID_2GB_TARGET` | **No 2 GB Android device confirmed available** | obtain/borrow an actual low-end ~2 GB RAM Android handset if deciding to claim this minimum | **UNTESTED aspirational target** |
 | `WIN_2GB_TARGET` | **No 2 GB Windows device confirmed available** | check whether modern supported Windows OS and Steam can work within this RAM; owner PC is 4 GB | **UNTESTED aspirational target; may prove unrealistic due to OS needs** |
@@ -19,7 +19,7 @@
 ### Quick non-invasive identification for a later benchmark
 - **Windows:** Settings → System → About for OS/RAM/CPU; Task Manager → Performance → CPU and GPU for full processor and graphics names, or Win+R → `dxdiag` for display details. We do not need screenshots of serial numbers or account identifiers.
 - **Galaxy S10+:** Settings → About phone → Model number; Settings → About phone → Software information → Android version. Device care/memory can show available RAM. Do **not** share IMEI, phone number or serial number.
-- Record available storage and whether the PC is running Windows 10 or 11. Do not declare minimum OS until current official store/toolchain requirements and these test builds are checked.
+- **OS confirmed Windows 11**. Record OS build, available storage and CPU/GPU details later. The **game compatibility target** is Windows 7 SP1 through Windows 11, **not just the developer's Windows 11**. See `docs/architecture/WINDOWS_7_11_COMPATIBILITY_v0.1.md`; no supported minimum OS may be advertised until compiled and tested.
 
 ## B. Low-resource development plan (proposed)
 
@@ -70,3 +70,13 @@ Potentially, **if the broken desktop's SSD/HDD still works**. If owner wants, a 
 ## References for model-family facts
 - Samsung original Galaxy S10 Interactive Specs: https://news.samsung.com/us/galaxy-s10-interactive/
 - Samsung S10 family device variants: https://www.samsung.com/sg/support/mobile-devices/key-differences-between-the-galaxy-s10-phones/
+
+
+## E. Owner platform compatibility update — 2026-10-20
+
+- Owner's development PC is **Windows 11**, Intel Core i3 10th gen, 4 GB system RAM.
+- Owner explicitly requests the **game** to work on **Windows 7, Windows 8, Windows 8.1, Windows 10 and Windows 11**. Windows 7 SP1 **x64** is our proposed first compatibility baseline; native 32-bit Windows support awaits clarification.
+- **Separate software support from distribution:** Steam stopped supporting Windows 7/8/8.1 in 2024. Therefore plan a standalone client for legacy Windows, not a guarantee that the Steam client works there. Windows 10/11 remain Steam distribution targets.
+- SDL3's Windows README documents support back to XP, but C++ runtime, SDL build/version, plugins, TLS, graphics presentation and the exact game must be verified on Windows 7.
+- Legacy Windows online features require security review. Offline story is fully targeted on old OS; co-op feature parity there is not yet proven.
+- See `docs/architecture/WINDOWS_7_11_COMPATIBILITY_v0.1.md` for OS matrix, legacy import checks, distribution and test cases. **No Win7/8 build or test has occurred.**
