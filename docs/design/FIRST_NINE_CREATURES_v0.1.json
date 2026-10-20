@@ -57,7 +57,7 @@
       "power": 0,
       "cost": 3,
       "accuracy": 10000,
-      "priority": 0,
+      "priority": 1,
       "effect": "GUARD this round + REGEN(3,2 end phases)"
     },
     {
