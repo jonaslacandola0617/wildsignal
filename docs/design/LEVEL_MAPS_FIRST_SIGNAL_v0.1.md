@@ -1,3 +1,5 @@
+**SUPERSEDED COORDINATES:** This early 15×11 test layout is kept for historical reference. For any new graybox use FIRST_SIGNAL_BLOCKOUT_v0.2.json and FIRST_SIGNAL_ZONE_BLUEPRINT_v0.2.md instead. Do not mix v0.1 trigger placement with v0.2.
+
 # WILDSIGNAL — The First Signal: Level Maps v0.1
 
 **Status:** FIRST DRAFT for creative approval, NOT final collision or artwork. **Mode:** fully playable offline; optional online instances use the same static maps. Coordinates use a simple normalized blockout grid; *do not treat as engine units or finalized scale*.
