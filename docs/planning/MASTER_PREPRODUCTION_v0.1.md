@@ -275,3 +275,16 @@ The owner explicitly approved for **planning purposes**: `D-020` F2P with cosmet
 ## 21. Windows architecture closed: x64 only (owner, 2026-10-20)
 
 User confirmed **“64 bit is enough.”** All Windows release/CI tests and offline game builds target **64-bit Windows 7, 8, 8.1, 10 and 11 only**. Do not build native x86 executables or promise 32-bit OS compatibility. Win7 SP1 x64 is a proposed oldest operational test floor, not yet proven. Maintain separate legacy standalone game distribution and Windows 10/11 Steam support planning. Record as D-012 in the synchronized registers and refer to `docs/architecture/WINDOWS_7_11_COMPATIBILITY_v0.1.md`. No game development authorized.
+
+
+## 22. Asset/engine preparation documents complete as drafts (2026-10-20)
+
+The planning-only milestone now contains real source-image measurements and checkable specifications, with *zero* creature-art manipulation or program implementation:
+- Source manifest: `docs/design/assets/ORIGINAL_SPRITE_SHEET_MANIFEST_v0.1.json` — original owned sprite sheet 850×832 RGB, measured white separators, SHA256, 100 WS IDs and four proposed crop rectangles.
+- Pilot art specification: `docs/design/assets/PILOT_SPRITE_RECOVERY_SPEC_v0.1.md` — transparent edge QA and new editable-masters roadmap despite lost Aseprite source.
+- First-person visual targets: `docs/design/HERO_SCENE_TARGETS_v0.1.md` — three environment compositions with reference entity/camera anchors and honesty about sector-vs-raycast limitations.
+- Device test matrix: `docs/architecture/DEVICE_VALIDATION_MATRIX_v0.1.md` — Win11 i3 10th gen/4GB and S10+, 64-bit Windows 7–11 tests, currently unavailable Win7/8/8.1/10 + 2GB Android test devices, all cases NOT RUN.
+- Co-op/cosmetics: `docs/planning/COOP_COSMETIC_HANDOFF_v0.1.md` — independent offline/server inventories, visual-only local companion projection, 2-player crossplay and F2P cosmetics rules without server, SKU or billing code.
+- Cross-system gate: `docs/planning/FIRST_SLICE_CONSISTENCY_GATE_v0.1.md` — reconciles several stale quest/battle summary references; flags physical battle gate collider and save/portal tests before Codex gameplay work.
+
+**Status:** specification/pre-production drafts created; hero art not approved; actual lossless sprites absent; no running renderer, battle simulator, compatibility benchmarks, co-op network or platform binaries. Keep original source image private until user says otherwise. Next owner decisions: whether derivative art exports can be stored publicly, exact starter labels, and separately whether to authorize a limited rendering code experiment after these checks.
