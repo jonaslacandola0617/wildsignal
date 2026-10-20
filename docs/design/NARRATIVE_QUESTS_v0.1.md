@@ -26,7 +26,7 @@ Voice acting is NOT assumed. Text/localizable dialogue, emotes, portrait and sou
 - Fail-safe: compass can be reclaimed at Workshop if inventory is empty; quest never depends on purchased items.
 
 ### Q002: A Friend at the Gate
-- Trigger: `FLAG_HAS_COMPASS` and interaction with `STARTER_ALTAR`.
+- Trigger: `FLAG_HAS_COMPASS` and interaction with `INTERACT_STARTER_ALTAR` (the exact world entity ID in the 48×32 blockout).
 - Objective: choose one of starter entries S01/S02/S03; companion obtained and enters `FOLLOW` state.
 - Sample: Mara: "You don't choose a tool. You invite a friend."
 - Reward: one local story starter; `FLAG_STARTER_SELECTED`. Selection is persistent, one-time per local slot; UI explicitly warns before confirm.
@@ -34,13 +34,13 @@ Voice acting is NOT assumed. Text/localizable dialogue, emotes, portrait and sou
 
 ### Q003: The Missing Waystone
 - Trigger: exit Quay north through `PORTAL_Z01_Z02` with starter.
-- Objective: follow Mosswake route, inspect `PROP_SIGNAL_MARKER`, witness companion ALERT, talk to Iri, find `LANDMARK_SINGING_ROOT`.
+- Objective: follow Mosswake route, inspect `PROP_SIGNAL_MARKER`, witness companion ALERT, optionally talk to Iri for ecological clues, then find `LANDMARK_SINGING_ROOT`. Iri dialogue is not a mandatory softlock prerequisite.
 - World beat: wildlife becomes still as compass hum rises near the missing stone.
 - Checkpoint: `Z03_SPAWN_LANTERN_STUMP`.
 - Reward: local quest progress + companion bond event (once per quest per save).
 
 ### Q004: Beyond the Veil
-- Trigger: interact with `PROP_VEILED_WALL` while starter follows and `FLAG_MARKER_INSPECTED`.
+- Trigger: interact with `PROP_VEILED_WALL` while starter follows and both `FLAG_MARKER_INSPECTED` and `FLAG_WAYSTONE_FOUND` are true.
 - Three visually different **equivalent** solutions:
   - Glintle: luminous markings brighten, revealing sequence.
   - Driftfin: damp channel reveals the same sequence.
@@ -66,7 +66,7 @@ Voice acting is NOT assumed. Text/localizable dialogue, emotes, portrait and sou
 | FLAG_WAYSTONE_FOUND | false | Singing Root interaction | Q004 |
 | FLAG_RUIN_GATE_OPEN | false | Q004 puzzle success | Echo Hollow portal |
 | FLAG_INTRO_BATTLE_WON | false | deterministic combat result | pedestal |
-| FLAG_SIGIL_PUZZLE_COMPLETE | false | Z04 post-battle A→B→C puzzle success | pedestal activation |
+| FLAG_SIGIL_PUZZLE_COMPLETE | false | Z04 post-battle three-switch pattern matching ON/OFF/ON (distinct from forest A→B→C sequence) | pedestal activation |
 | FLAG_FIRST_SIGNAL_COMPLETE | false | pedestal activation (requires sigil puzzle complete) | chapter completion |
 
 If `FLAG_WAYSTONE_FOUND` is needed by Q004, require it explicitly in the gate checker. All flags must be persisted; interactions after completion return idempotent responses.
@@ -81,3 +81,8 @@ If `FLAG_WAYSTONE_FOUND` is needed by Q004, require it explicitly in the gate ch
 
 ## Pending decisions
 Main-character naming/avatar choice, official NPC designs, actual quest text, introductory antagonist vs environmental mystery, starter trust vs capture acquisition mechanics, first enemy sprite from owner's sheet, healer/checkpoint system, lore reveal strength.
+
+
+## Cross-system source alignment (2026-10-20)
+
+For world interactions use exact identifiers from `maps/FIRST_SIGNAL_BLOCKOUT_v0.2.json` (including `INTERACT_STARTER_ALTAR`), and for typed battle data use `FIRST_NINE_CREATURES_v0.1.json`. Q003 Iri conversation is optional; the main objective requires examining marker and Singing Root. Forest Veiled Wall uses A→B→C **sequence**, Echo Hollow sigil chamber uses **toggle switches to match ON/OFF/ON**, both still proposed. This closes stale prose contradictions but does not constitute creative signoff. Refer to `docs/planning/FIRST_SLICE_CONSISTENCY_GATE_v0.1.md` for outstanding geometry and quest-state testing.
