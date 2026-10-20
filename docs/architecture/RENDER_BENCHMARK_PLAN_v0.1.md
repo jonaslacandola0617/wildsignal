@@ -158,3 +158,15 @@ Each benchmark run emits a machine-readable JSON report and CSV frame stream *wi
 - Avoid claiming memory headroom from empty levels or framebuffer bytes alone.
 
 **Outcome desired:** evidence-based renderer decision for a genuine lightweight native game, not an untested promise that any 2 GB device will run the finished game.
+
+
+## 9. Available real devices (owner-supplied 2026-10-20)
+
+- **WIN_BASELINE_01:** Intel Core i3 **10th-generation** processor, **4 GB installed RAM**. Exact model, GPU, Windows build, drive and screen properties are unknown. This is an actual available Windows development/performance device; do **not** label it a measured 2 GB minimum system.
+- **ANDROID_FUNCTIONAL_01:** **Samsung Galaxy S10+**. Exact RAM, Exynos/Snapdragon variant and Android OS version have not been verified by owner. Samsung's device family typically offered 8 GB / 12 GB RAM configurations. Test real mobile layout, responsive/touch input, background/resume, 20-minute thermal sustainability and local save. **A pass here is insufficient to claim low-end/2 GB Android compatibility.**
+- **ANDROID_2GB_TARGET:** no physically available 2 GB RAM handset identified yet. Arrange a borrowed/secondhand/beta tester low-RAM Android later, or explicitly mark minimum spec unverified. Artificial RAM throttling/VM may screen cache bugs but is not equivalent to real phone GPU/thermals/OS.
+- **WIN_2GB_TARGET:** not identified. The 4 GB owner's PC is the available baseline; modern Windows+Steam overhead may invalidate 2 GB total-system target. Publish system minimums only after OS/device practicality checks.
+
+**Toolchain strategy:** on the 4 GB i3 machine, keep local Windows compile lean; prefer GitHub Actions for Android SDK/NDK/Gradle packaging. Windows and S10+ benchmarking must run on real local executable/APK once code is separately authorized. No such benchmarks have run yet.
+
+**Detailed intake and actual art constraints:** `docs/planning/HARDWARE_AND_SPRITE_RECOVERY_INTAKE_v0.1.md`. Owner no longer has Aseprite editable source; a surviving flattened 10×10 sheet requires separate sprite extraction and transparent edge QA **before** benchmarking original owner sprites. Dummy billboard can be used for the earliest generic framebuffer proof if explicitly marked a placeholder.
