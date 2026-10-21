@@ -288,3 +288,8 @@ The planning-only milestone now contains real source-image measurements and chec
 - Cross-system gate: `docs/planning/FIRST_SLICE_CONSISTENCY_GATE_v0.1.md` — reconciles several stale quest/battle summary references; flags physical battle gate collider and save/portal tests before Codex gameplay work.
 
 **Status:** specification/pre-production drafts created; hero art not approved; actual lossless sprites absent; no running renderer, battle simulator, compatibility benchmarks, co-op network or platform binaries. Keep original source image private until user says otherwise. Next owner decisions: whether derivative art exports can be stored publicly, exact starter labels, and separately whether to authorize a limited rendering code experiment after these checks.
+
+
+## 23. Future Codex ENGINE-001 handoff ready for review (2026-10-21)
+
+`docs/architecture/CODEX_HANDOFF_ENGINE001_v1.0.md` defines the proposed first *small* Windows x86_64 technical renderer experiment on the owner's Windows 11/i3/4GB machine. `docs/architecture/ENGINE001_SCENE_FIXTURE_v0.1.json` contains a compact 24×24 Echo Hollow-inspired test fixture, independent from the full 48×32 gameplay blockout. It tests basic walls, floor/ceiling, a 2D billboard, separate crisp HUD and FPS/memory instrumentation, with 320×180/400×225/480×270 world buffers. It intentionally excludes actual creature source art, multiplayer, combat, quests, Android packaging and stores. **No C++ source or benchmark run has been produced under this pre-production step.** Owner explicitly must authorize this exact coding task separately and approve branch baseline before any execution.
