@@ -125,3 +125,11 @@ The owner chose **64-bit only**. Do not request further Windows x86 compatibilit
 ## 12. RENDER-001 owner concept approval versus GRAPHICAL rejection (2026-10-21)
 
 **D-013 CONFIRMED:** Lantern Quay and Liltwood setting concepts are accepted, but owner unequivocally rejected the actual RENDER-001 prototype *appearance* as final or production visual quality. The authoritative reset and next visual acceptance gate are `docs/design/VISUAL_QUALITY_RESET_v0.1.md` and GitHub `VIS-001` Issue #8; draft PR #6 is only a functional/technical proof. Keep environment rendering architecture PROVISIONAL and visual art UNSIGNED until better representative environment views and movement-angle review pass. Owner uncapped Win11 screenshots are instantaneous evidence, not p95 hardware certification.
+
+
+## 13. ART-ENV-001 owner APPROVED reference style and next asset gate (2026-10-21)
+
+- **D-014:** owner APPROVED the appearance/atmosphere of the **generated Lantern Quay and Liltwood Forest reference illustrations**, but not the 27 extracted texture patches/27 prop cutouts as final game assets; not Echo Hollow production look. This does not rescind D-013: older RENDER-001 programmatic scene graphics are STILL REJECTED.
+- `docs/design/assets/ART_ENV001_APPROVAL_AND_HANDOFF_v0.1.md`: exact accepted refs, SHA256 of private `WILDSIGNAL_Environment_Art_Pack_v0.2_Approved_References.zip`, asset review restrictions, ART-ENV-002 exit gate. The ZIP and actual image pixels are **not in the public repository**.
+- Root `AGENTS.md`: enduring Codex rules against quietly inventing replacement assets, lying about art approval, or rewriting the renderer; only applies to branches that include this new file. Future Codex task must fetch it from planning branch.
+- GitHub Issue **#9** (`ART-ENV-002`): craft a tiny reviewed Quay+Liltwood game-ready PNG tile/prop/geometry set, then later integrate only after access and owner signoff. This milestone is **ART PRODUCTION**, not another Visual Bible redesign nor automatic coding authorization.
