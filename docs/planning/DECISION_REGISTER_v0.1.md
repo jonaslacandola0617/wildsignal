@@ -29,6 +29,8 @@
 | D-011 | ChatGPT leads planning/spec; Codex implements after decisions approved | CONFIRMED workflow | PRs, task packets |
 | D-012 | Owner's development PC runs **Windows 11** (i3 10th gen, 4 GB). WILDSIGNAL targets **64-bit Windows 7, 8, 8.1, 10 and 11** only; **32-bit OS and 32-bit game binaries are out of scope**. Windows 7 SP1 is the proposed oldest test baseline; actual compatibility unverified. | **CONFIRMED x64-only compatibility target, 2026-10-20; verification GATED** | build architecture, legacy Win7–11 binary, Steam distribution separation and OS/security tests |
 
+| D-013 | **Lantern Quay and Liltwood Forest are APPROVED as setting concepts; the actual RENDER-001 prototype environmental graphics are REJECTED as a visual/art baseline.** Do not claim final visual approval based on technical screenshot/CI success. | **CONFIRMED concept approval + visual rejection, 2026-10-21; VIS-001 visual fidelity proof required** | visual quality gate, art targets, renderer geometry comparison, production art signoff |
+
 ## 2. Recommended but awaiting owner approval
 
 | Decision ID | Current recommendation | Status | Downstream blocker |
@@ -132,3 +134,8 @@ Next review trigger: <measured evidence or milestone>
 ## 9. 64-bit scope explicitly confirmed — 2026-10-20
 
 User responded **“64 bit is enough.”** This closes the architecture-scope question: the Windows game supports **x86_64 (64-bit Windows OS and 64-bit game binary)** as its sole planned Windows architecture. Do **not** include Win32/x86 builds, 32-bit compatibility test cases or store claims in initial release scope. The requested Windows version range remains **7, 8, 8.1, 10, 11**, with Windows 7 SP1 x64 proposed as oldest operational baseline and still requiring real tests. Windows 7/8/8.1 Steam-client support is not available; plan separate legacy standalone delivery. This is a confirmed planning constraint **not permission to start implementation**.
+
+
+## 10. Explicit post-RENDER-001 visual feedback — 2026-10-21
+
+Owner confirmed **Lantern Quay and Liltwood CONCEPTS are approved**, while the **actual current graphic look is NOT APPROVED**. This overrides any earlier imprecise statement that RENDER-001 is an art-direction success. First-person functionality/CI and visual quality are separate gates; the pixel-art environment kit/production renderer is not locked. See `docs/design/VISUAL_QUALITY_RESET_v0.1.md`. The user's uncapped Windows screenshots show instantaneous ~308.6 FPS (320×180, one placeholder) and ~137.2 FPS (480×270, 24 placeholders); these indicate headroom but not certified sustained FPS.
