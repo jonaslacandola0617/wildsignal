@@ -40,6 +40,10 @@ No global SDL installation or engine editor is needed.
 
 GitHub Actions also builds/tests Windows x64 Release and uploads a portable
 artifact plus import/toolchain records. CI execution is not owner hardware testing.
+To use that ZIP without installing build tools, extract it, open
+`out/engine001-windows-x64` and launch `wildsignal_engine001.exe`, retaining its
+data/license folders. The [draft PR](https://github.com/jonaslacandola0617/wildsignal/pull/4)
+links the latest artifact and measured evidence. Artifacts expire after 14 days.
 The core-only Linux/direct commands and actual results are in
 [the implementation report](docs/bench/ENGINE001_IMPLEMENTATION_REPORT.md).
 
@@ -61,7 +65,8 @@ uses nearest-neighbor and integer scaling when possible, centered in a black
 letterbox. Small windows use nearest-neighbor fractional downscaling; pixel
 widths can be uneven. Resize does not stretch the world aspect ratio. HUD uses
 SDL's pixel debug font independently of the world buffer (1× or 2× physical
-pixels). No mouse capture/pitch is implemented.
+pixels). Use at least a 640-pixel-wide window for the full debug legend; smaller
+windows can clip text. No mouse capture/pitch is implemented.
 
 ```powershell
 # Standard manual capture: 60s warmup, then 300s walkthrough on the real PC.
@@ -73,6 +78,8 @@ pixels). No mouse capture/pitch is implemented.
 
 `--help` lists all options. `--frames N` bounds a smoke test. `--camera X Y YAW`
 starts at a validated fixture position, yaw clockwise from north.
+The optional scripted sequence is a collision stress path and can stop against
+walls; use manual input for a representative five-minute scene walkthrough.
 `--screenshot world.ppm` captures the last raw world buffer, without UI; F12
 captures the composited display. Warmup defaults to 60 seconds in SDL, zero in
 the headless tool. Duration means **capture time after warmup**. Exit with Esc
