@@ -1,0 +1,100 @@
+{
+  "schema": "wildsignal-engine001-echo-micro-v0.1",
+  "status": "PROPOSED FIXTURE; GENERATED AS DOCUMENTATION; NOT GAME ASSET NOR VERIFIED RENDERED",
+  "purpose": "24×24 self-contained raster/geometry test; NOT original Z04 48×32 quest map",
+  "symbolLegend": {
+    "#": "solid_wall",
+    ".": "walkable_floor"
+  },
+  "width": 24,
+  "height": 24,
+  "rows": [
+    "########################",
+    "########################",
+    "########################",
+    "###..................###",
+    "###.####........####.###",
+    "###.####........####.###",
+    "###.####........####.###",
+    "###.####........####.###",
+    "###.####........####.###",
+    "###.####........####.###",
+    "###..................###",
+    "#######..........#######",
+    "#######..#....#..#######",
+    "###..................###",
+    "###..................###",
+    "###..................###",
+    "###..................###",
+    "###......#....#......###",
+    "###..................###",
+    "###..................###",
+    "###..................###",
+    "########################",
+    "########################",
+    "########################"
+  ],
+  "coordinateConvention": "0-based integer (x east, y south), cell center at x+0.5,y+0.5; north yaw points toward decreasing y; angles degrees clockwise from north in screen coords",
+  "playerSpawn": {
+    "x": 11.5,
+    "y": 19.5,
+    "yawDegrees": 0,
+    "eyeHeightNormalized": 0.5
+  },
+  "actorMarkers": [
+    {
+      "id": "BENCH_CRAGLET_PROXY",
+      "x": 11.5,
+      "y": 10.5,
+      "kind": "placeholder_billboard",
+      "visualSource": "programmer_art_only",
+      "footprintRadius": 0.2
+    },
+    {
+      "id": "BENCH_SIGNAL_PEDESTAL",
+      "x": 11.5,
+      "y": 7.5,
+      "kind": "decorative_billboard",
+      "visualSource": "programmer_art_only"
+    }
+  ],
+  "materials": {
+    "wall": "russet_brick_checker",
+    "floor": "muted_stone_tile",
+    "ceiling": "dark_plum_ramp",
+    "sprite": "generic_non_owner_marker"
+  },
+  "camera": {
+    "horizontalFovDegrees": 75,
+    "lookPitchDegrees": 0,
+    "moveSpeedTilesPerSecond": 2,
+    "rotationDegreesPerSecond": 90,
+    "collisionRadiusTiles": 0.2
+  },
+  "resolutionOptions": [
+    [
+      320,
+      180
+    ],
+    [
+      400,
+      225
+    ],
+    [
+      480,
+      270
+    ]
+  ],
+  "testSpriteCounts": [
+    1,
+    8
+  ],
+  "featureHonesty": {
+    "fullTransparentArches": false,
+    "multilevelFloors": false,
+    "verticalPitch": false,
+    "advancedLighting": false
+  },
+  "licenseRule": "Programmer placeholder art only, original owner sheet private and not embedded",
+  "acceptance": "Future tests must run on actual renderer; no present PASS assertions."
+}
