@@ -120,3 +120,8 @@ The owner chose **64-bit only**. Do not request further Windows x86 compatibilit
 - `docs/architecture/ENGINE001_SCENE_FIXTURE_v0.1.json` — initial authored 24×24 Echo Hollow **micro-scene for rendering experiment**, not the final 48×32 Z04 quest map. Includes map rows, camera, collision radius, candidate 75° FOV, non-owner placeholder actors and 3 resolution modes.
 
 **Status:** documents created, fixture structurally checked in planning, **no engine executable or hardware benchmark**. Owner's prior approval explicitly restricted us to planning. A separate unambiguous user instruction is required before invoking Codex for this packet.
+
+
+## 12. RENDER-001 owner concept approval versus GRAPHICAL rejection (2026-10-21)
+
+**D-013 CONFIRMED:** Lantern Quay and Liltwood setting concepts are accepted, but owner unequivocally rejected the actual RENDER-001 prototype *appearance* as final or production visual quality. The authoritative reset and next visual acceptance gate are `docs/design/VISUAL_QUALITY_RESET_v0.1.md` and GitHub `VIS-001` Issue #8; draft PR #6 is only a functional/technical proof. Keep environment rendering architecture PROVISIONAL and visual art UNSIGNED until better representative environment views and movement-angle review pass. Owner uncapped Win11 screenshots are instantaneous evidence, not p95 hardware certification.
