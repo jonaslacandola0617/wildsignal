@@ -123,6 +123,15 @@
       "approvalScope": "64-bit Windows 7–11 target confirmed for planning, excludes x86 builds; runtime and distribution are untested"
     },
     {
+      "id": "D-013",
+      "status": "CONFIRMED",
+      "statusText": "CONFIRMED concept approval + visual rejection, 2026-10-21; VIS-001 visual fidelity proof required",
+      "decision": "Lantern Quay and Liltwood Forest are APPROVED as setting concepts; the actual RENDER-001 prototype environmental graphics are REJECTED as a visual/art baseline. Do not claim final visual approval based on technical screenshot/CI success.",
+      "downstream": "visual quality gate, art targets, renderer geometry comparison, production art signoff",
+      "approvedAt": "2026-10-21",
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
       "id": "D-020",
       "status": "CONFIRMED",
       "statusText": "CONFIRMED for planning, 2026-10-20",
