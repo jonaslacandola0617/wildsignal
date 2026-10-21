@@ -1,0 +1,18 @@
+{
+  "version": 5,
+  "cmakeMinimumRequired": {"major": 3, "minor": 24, "patch": 0},
+  "configurePresets": [
+    {"name": "windows-local-release", "generator": "Ninja", "binaryDir": "${sourceDir}/build/windows-release", "cacheVariables": {"CMAKE_BUILD_TYPE": "Release"}},
+    {"name": "windows-local-debug", "inherits": "windows-local-release", "binaryDir": "${sourceDir}/build/windows-debug", "cacheVariables": {"CMAKE_BUILD_TYPE": "Debug"}},
+    {"name": "headless-release", "generator": "Ninja", "binaryDir": "${sourceDir}/build/headless", "cacheVariables": {"CMAKE_BUILD_TYPE": "Release", "ENGINE001_BUILD_SDL": "OFF"}}
+  ],
+  "buildPresets": [
+    {"name": "windows-local-release", "configurePreset": "windows-local-release", "jobs": 2},
+    {"name": "windows-local-debug", "configurePreset": "windows-local-debug", "jobs": 2},
+    {"name": "headless-release", "configurePreset": "headless-release"}
+  ],
+  "testPresets": [
+    {"name": "windows-local-release", "configurePreset": "windows-local-release", "output": {"outputOnFailure": true}},
+    {"name": "headless-release", "configurePreset": "headless-release", "output": {"outputOnFailure": true}}
+  ]
+}
