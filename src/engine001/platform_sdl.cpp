@@ -41,7 +41,7 @@ void focusEvent(Uint32 type,SDL_WindowID window) {
 }
 void overlay(SDL_Renderer* display,Resolution screen,const Buffer& b,const Sample& s,double average,Memory memory,bool focused) {
     if(screen.w<32||screen.h<32) return;
-    const float scale=screen.w>=1000&&screen.h>=600?2.0f:1.0f;
+    const float scale=screen.w>=1200&&screen.h>=600?2.0f:1.0f;
     check(SDL_SetRenderScale(display,scale,scale),"UI scale");
     check(SDL_SetRenderDrawColor(display,18,28,36,255),"UI panel color");
     const SDL_FRect top{6,6,std::min(594.0f,screen.w/scale-12),72};

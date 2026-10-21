@@ -16,6 +16,20 @@ jobs:
         run: cmake -S . -B build/win -G "Visual Studio 17 2022" -A x64 -T v143
       - run: cmake --build build/win --config Release --parallel 2
       - run: ctest --test-dir build/win -C Release --output-on-failure
+      - name: Record actual SDL smoke report and display image
+        shell: pwsh
+        run: |
+          Get-ChildItem build/win/bench/local/*.json | ForEach-Object {
+            $text = Get-Content $_.FullName -Raw
+            if (($text | ConvertFrom-Json).pipeline -eq 'SDL_WINDOW') { Write-Output "ENGINE001_SDL_REPORT=$text" }
+          }
+          Add-Type -AssemblyName System.Drawing
+          $capture = Get-ChildItem build/win/bench/local/*_display.bmp | Select-Object -First 1
+          if (-not $capture) { throw 'Missing SDL display screenshot' }
+          $image = [System.Drawing.Image]::FromFile($capture.FullName)
+          try { $image.Save($capture.FullName + '.png', [System.Drawing.Imaging.ImageFormat]::Png) }
+          finally { $image.Dispose() }
+          Write-Output ('ENGINE001_PNG_BASE64=' + [Convert]::ToBase64String([IO.File]::ReadAllBytes($capture.FullName + '.png')))
       - name: Record toolchain and imports (legacy compatibility remains unverified)
         shell: pwsh
         run: |
