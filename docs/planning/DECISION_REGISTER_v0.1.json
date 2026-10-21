@@ -132,6 +132,15 @@
       "source": "docs/planning/DECISION_REGISTER_v0.1.md"
     },
     {
+      "id": "D-014",
+      "status": "CONFIRMED",
+      "statusText": "CONFIRMED reference-style approval, 2026-10-21; production asset QA GATED",
+      "decision": "Owner APPROVES the visual style and atmosphere of generated ART-ENV-001 Lantern Quay + Liltwood Forest reference illustrations; does NOT approve crop candidates as finished seamless/alpha-clean/geometry-correct game art or public publication. Keep owner-drawn creatures separate from generated environmental concepts.",
+      "downstream": "ART-ENV-002 reusable tiles and prop cleanup, game art manifests, AGENTS.md, controlled renderer integration and owner in-game visual signoff",
+      "approvedAt": "2026-10-21",
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
       "id": "D-020",
       "status": "CONFIRMED",
       "statusText": "CONFIRMED for planning, 2026-10-20",
