@@ -31,6 +31,8 @@
 
 | D-013 | **Lantern Quay and Liltwood Forest are APPROVED as setting concepts; the actual RENDER-001 prototype environmental graphics are REJECTED as a visual/art baseline.** Do not claim final visual approval based on technical screenshot/CI success. | **CONFIRMED concept approval + visual rejection, 2026-10-21; VIS-001 visual fidelity proof required** | visual quality gate, art targets, renderer geometry comparison, production art signoff |
 
+| D-014 | **Owner APPROVES the visual style and atmosphere of generated ART-ENV-001 Lantern Quay + Liltwood Forest reference illustrations; does NOT approve crop candidates as finished seamless/alpha-clean/geometry-correct game art or public publication.** Keep owner-drawn creatures separate from generated environmental concepts. | **CONFIRMED reference-style approval, 2026-10-21; production asset QA GATED** | ART-ENV-002 reusable tiles and prop cleanup, game art manifests, AGENTS.md, controlled renderer integration and owner in-game visual signoff |
+
 ## 2. Recommended but awaiting owner approval
 
 | Decision ID | Current recommendation | Status | Downstream blocker |
@@ -139,3 +141,8 @@ User responded **“64 bit is enough.”** This closes the architecture-scope qu
 ## 10. Explicit post-RENDER-001 visual feedback — 2026-10-21
 
 Owner confirmed **Lantern Quay and Liltwood CONCEPTS are approved**, while the **actual current graphic look is NOT APPROVED**. This overrides any earlier imprecise statement that RENDER-001 is an art-direction success. First-person functionality/CI and visual quality are separate gates; the pixel-art environment kit/production renderer is not locked. See `docs/design/VISUAL_QUALITY_RESET_v0.1.md`. The user's uncapped Windows screenshots show instantaneous ~308.6 FPS (320×180, one placeholder) and ~137.2 FPS (480×270, 24 placeholders); these indicate headroom but not certified sustained FPS.
+
+
+## 11. Approved ART-ENV-001 visual references — 2026-10-21
+
+Owner reviewed the generated Quay/Liltwood environmental reference images and responded **“yes these are good.”** This confirms target *style and atmosphere* only. The 27 texture and 27 prop crops remain candidates and NOT game-ready; seamlessness, edge alpha, world scale, roof/trunk geometry and in-engine appearance still require ART-ENV-002. Artwork stays private, publication requires explicit authorization, and original hand-drawn creature source is unchanged. See `docs/design/assets/ART_ENV001_APPROVAL_AND_HANDOFF_v0.1.md`; persistent Codex guardrails added to root `AGENTS.md` on the planning branch.
