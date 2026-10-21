@@ -73,7 +73,7 @@ Combine files if simple code is clearer. The requirement is **clean modular owne
 
 ## 5. Scene micro-fixture definition (proposed until screenshot approval)
 
-**Fixture ID:** `BENCH_ECHO_Z04_MICRO_001`. **Source inspiration:** Echo Hollow Z04, **not** a verbatim conversion of the full 48×32 map. Use a **24×24** grid with border walls and walkable chamber. Exact tile grid values supplied in the companion `ENGINE001_SCENE_FIXTURE_v0.1.json` to be authored before authorization. All camera/entity world coordinates reference this fixture, not Z04 final positions.
+**Fixture ID:** `BENCH_ECHO_Z04_MICRO_001`. **Source inspiration:** Echo Hollow Z04, **not** a verbatim conversion of the full 48×32 map. Use a **24×24** grid with border walls and walkable chamber. Exact 24×24 tile grid, spawn, camera, placeholder actors and documented features are supplied in `docs/architecture/ENGINE001_SCENE_FIXTURE_v0.1.json` (**present on this planning branch; test validations still NOT RUN in C++**). All camera/entity world coordinates reference this fixture, not Z04 final positions.
 
 Aesthetic requirements:
 - background/ceiling tinted deep stone/plum; warm russet brick walls/floor;
