@@ -86,3 +86,8 @@ Actual pilot assets/frames may be stored in owner-approved private art storage a
 **Needed before editing original creature pixels in a subsequent authorized step:** confirm whether cleaned/derived art can be committed to public GitHub, or should remain private; sign off starter mappings/working names; decide if original contact shadows are kept as ground FX. No new source master required to proceed.
 
 **No art files modified as part of this document.**
+
+
+## 7. Owner approved four candidate recovery previews (2026-10-21)
+
+The owner explicitly approved the four pilot recovery **candidates** after reviewing the recovery presentation: WS-004, WS-008, WS-050 and WS-024. See `FOUR_PILOT_APPROVAL_v0.1.md`. This permits continuation of private sprite edge cleanup and reconstructed editable masters, while preserving original designs. Alpha/ground-shadow manual QA remains pending; final production ready and public sharing have NOT been approved. ENGINE-001 implementation remains separately gated.
