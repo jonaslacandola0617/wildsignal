@@ -56,7 +56,15 @@ void overlay(SDL_Renderer* display,Resolution screen,const Buffer& b,const Sampl
         "X %.2f  Y %.2f  YAW %.1f   CREATURES %d (PLACEHOLDERS)",
         b.size.w,b.size.h,average>0?1000/average:0,average,rss,
         s.worldMs,s.spriteMs,s.uploadMs,focused?"ACTIVE":"FOCUS PAUSED",s.position.x,s.position.y,s.yaw*180/pi,s.creatures);
-    check(SDL_RenderDebugText(display,12,12,text),"UI text");
+    // SDL_RenderDebugText 3.2.10 ignores newline controls. Lay out rows explicitly.
+    char* line=text;float row=12;
+    for(char* cursor=text;;++cursor) {
+        const bool last=*cursor=='\0';
+        if(*cursor=='\n'||last) {
+            *cursor='\0';check(SDL_RenderDebugText(display,12,row,line),"UI text");
+            row+=12;line=cursor+1;if(last) break;
+        }
+    }
     const float bottom=std::max(88.0f,screen.h/scale-30);
     const SDL_FRect footer{6,bottom-6,std::min(594.0f,screen.w/scale-12),26};
     check(SDL_SetRenderDrawColor(display,18,28,36,255),"Footer color");check(SDL_RenderFillRect(display,&footer),"Footer");

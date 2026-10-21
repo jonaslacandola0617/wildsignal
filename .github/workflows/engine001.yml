@@ -21,7 +21,11 @@ jobs:
         run: |
           Get-ChildItem build/win/bench/local/*.json | ForEach-Object {
             $text = Get-Content $_.FullName -Raw
-            if (($text | ConvertFrom-Json).pipeline -eq 'SDL_WINDOW') { Write-Output "ENGINE001_SDL_REPORT=$text" }
+            if (($text | ConvertFrom-Json).pipeline -eq 'SDL_WINDOW') {
+              Write-Output "ENGINE001_SDL_REPORT=$text"
+              $csvPath = [IO.Path]::ChangeExtension($_.FullName, $null) + '_frames.csv'
+              Write-Output ('ENGINE001_CSV_BASE64=' + [Convert]::ToBase64String([IO.File]::ReadAllBytes($csvPath)))
+            }
           }
           Add-Type -AssemblyName System.Drawing
           $capture = Get-ChildItem build/win/bench/local/*_display.bmp | Select-Object -First 1
