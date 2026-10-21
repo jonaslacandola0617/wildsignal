@@ -24,7 +24,7 @@ DrawStats Renderer::renderOutdoor(Buffer& b,const World& w,const Camera& c,int a
     if(b.size.w<=0||b.pixels.size()!=static_cast<std::size_t>(b.size.w*b.size.h)||b.pixelDepth.size()!=b.pixels.size()||b.owner.size()!=b.pixels.size())
         throw std::runtime_error("Invalid outdoor buffer");
     DrawStats stats;stats.creatureCount=actors;const auto start=Clock::now();
-    std::fill(b.owner.begin(),b.owner.end(),0);
+    std::fill(b.owner.begin(),b.owner.end(),std::uint8_t{0});
     const bool forest=w.kind==SceneKind::Forest;
     const double plane=std::tan(w.fov*pi/360),focal=b.size.w/(2*plane),eye=w.eye*wallHeight;
     const Vec2 forward{std::sin(c.yaw),-std::cos(c.yaw)},right{std::cos(c.yaw),std::sin(c.yaw)};

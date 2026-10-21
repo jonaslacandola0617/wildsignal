@@ -53,9 +53,9 @@ void overlay(SDL_Renderer* display,Resolution screen,const Buffer& b,const Sampl
     std::snprintf(text,sizeof(text),"WILDSIGNAL / %s    RENDER-001 PROTOTYPE\n"
         "%dx%d  %.1f FPS  %.2f MS  RSS %s\n"
         "WORLD %.2f  SPRITE %.2f  UPLOAD %.2f MS  [%s]\n"
-        "X %.2f  Y %.2f  YAW %.1f   CREATURES %d (PLACEHOLDERS)",
+        "X %.2f  Y %.2f  YAW %.1f   ACTORS %d  VISIBLE %d (PLACEHOLDERS)",
         scene.c_str(),b.size.w,b.size.h,average>0?1000/average:0,average,rss,
-        s.worldMs,s.spriteMs,s.uploadMs,focused?"ACTIVE":"FOCUS PAUSED",s.position.x,s.position.y,s.yaw*180/pi,s.creatures);
+        s.worldMs,s.spriteMs,s.uploadMs,focused?"ACTIVE":"FOCUS PAUSED",s.position.x,s.position.y,s.yaw*180/pi,s.creatures,s.visibleActors);
     // SDL_RenderDebugText 3.2.10 ignores newline controls. Lay out rows explicitly.
     char* line=text;float row=12;
     for(char* cursor=text;;++cursor) {

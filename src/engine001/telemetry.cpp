@@ -53,7 +53,7 @@ void number(std::ostream& out,std::optional<double> n) { if(n&&std::isfinite(*n)
 template<typename F> void metric(std::ostream& out,const std::vector<Sample>& samples,F field,double q) {
     if(samples.empty()) { out<<"null"; return; }
     std::vector<double> values; values.reserve(samples.size());
-    for(const auto& s:samples) values.push_back(field(s));
+    for(const auto& s:samples) values.push_back(static_cast<double>(field(s)));
     out<<percentile(std::move(values),q);
 }
 const char* os() {

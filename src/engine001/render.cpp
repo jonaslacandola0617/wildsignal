@@ -155,7 +155,7 @@ DrawStats Renderer::render(Buffer& b,const World& w,const Camera& c,int actors,d
     if(b.pixels.size()!=static_cast<std::size_t>(b.size.w*b.size.h)||b.depth.size()!=static_cast<std::size_t>(b.size.w)||b.size.w<=0)
         throw std::runtime_error("Invalid render buffer");
     const auto start=Clock::now();DrawStats stats;stats.creatureCount=actors;
-    std::fill(b.owner.begin(),b.owner.end(),0);
+    std::fill(b.owner.begin(),b.owner.end(),std::uint8_t{0});
     const Vec2 forward{std::sin(c.yaw),-std::cos(c.yaw)},right{std::cos(c.yaw),std::sin(c.yaw)};
     const double plane=std::tan(w.fov*pi/360),focal=b.size.w/(2*plane),eye=w.eye*wallHeight;
     // Affine row stepping gives perspective-correct floor/ceiling samples on horizontal planes.
