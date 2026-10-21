@@ -55,7 +55,7 @@ if(ENGINE001_BUILD_SDL)
   set(SDL_EXAMPLES OFF CACHE BOOL "" FORCE)
   set(SDL_INSTALL OFF CACHE BOOL "" FORCE)
   # This renderer uses video/events/timers only; keep unused device/API modules out.
-  foreach(subsystem AUDIO CAMERA GPU HAPTIC HIDAPI JOYSTICK POWER SENSOR DIALOG)
+  foreach(subsystem AUDIO CAMERA GPU HAPTIC POWER SENSOR DIALOG)
     set(SDL_${subsystem} OFF CACHE BOOL "" FORCE)
   endforeach()
   set(SDL_RENDER_D3D12 OFF CACHE BOOL "" FORCE)
