@@ -82,7 +82,7 @@ Telemetry::Telemetry(const std::filesystem::path& prefix,RunInfo runInfo):info(s
         throw std::runtime_error("Telemetry prefix already exists; use a new --output prefix");
     csv_.open(prefix.string()+"_frames.csv"); if(!csv_) throw std::runtime_error("Cannot create frame CSV");
     csv_<<std::fixed<<std::setprecision(6);
-    csv_<<"sample,elapsed_s,frame_ms,simulation_ms,world_ms,sprite_ms,ui_ms,upload_ms,present_ms,width,height,creatures,visible,x,y,yaw_deg,rss_mib\n";
+    csv_<<"sample,elapsed_s,frame_ms,simulation_ms,world_ms,sprite_ms,ui_ms,upload_ms,present_ms,width,height,creatures,visible,x,y,yaw_deg,rss_mib,actors_visible,submitted,sprite_tests,sprite_writes,sprite_pixels_final\n";
     samples_.reserve(capacity); events_.reserve(64);
 }
 void Telemetry::record(const Sample& s) {
@@ -95,7 +95,7 @@ void Telemetry::record(const Sample& s) {
     csv_<<s.world.w<<','<<s.world.h<<','<<s.creatures<<','<<s.visible
         <<','<<s.position.x<<','<<s.position.y<<','<<s.yaw*180/pi<<',';
     if(s.rssMiB) csv_<<*s.rssMiB;
-    csv_<<'\n'; if(!csv_) throw std::runtime_error("Frame CSV write failed");
+    csv_<<','<<s.visibleActors<<','<<s.submitted<<','<<s.spriteTests<<','<<s.spriteWrites<<','<<s.spritePixels<<'\n'; if(!csv_) throw std::runtime_error("Frame CSV write failed");
     samples_.push_back(s);
 }
 void Telemetry::event(double seconds,const std::string& label) {
@@ -110,8 +110,8 @@ void Telemetry::finish(double duration) {
         f<<",\n  "<<quoteJson(name)<<": "; metric(f,samples_,field,fraction);
     };
     f<<"{\n  \"schema\": \"wildsignal-render-bench-v0.1\",\n  \"buildSha\": "<<quoteJson(ENGINE001_BUILD_ID)
-     <<",\n  \"renderer\": \"grid_raycast\",\n  \"zone\": "<<quoteJson(sceneId)
-     <<",\n  \"fixtureVersion\": \"wildsignal-engine001-echo-micro-v0.1\",\n  \"pipeline\": "<<quoteJson(info.pipeline)
+     <<",\n  \"renderer\": \"grid_raycast\",\n  \"zone\": "<<quoteJson(info.zone)
+     <<",\n  \"fixtureVersion\": "<<quoteJson(info.fixture)<<",\n  \"pipeline\": "<<quoteJson(info.pipeline)
      <<",\n  \"deviceLabel\": \"anonymous-execution-host\",\n  \"osVersion\": "<<quoteJson(os())
      <<",\n  \"cpuDescription\": null,\n  \"gpuDescription\": null,\n  \"installedRamMiB\": null,\n  \"compiler\": "<<quoteJson(compiler())
 #if defined(NDEBUG)
@@ -140,6 +140,10 @@ void Telemetry::finish(double duration) {
         q("uploadMsP95",[](const Sample& s){return s.uploadMs;},0.95);
         q("presentMsP95",[](const Sample& s){return s.presentMs;},0.95);
     }
+    q("actorsVisibleP50",[](const Sample& s){return s.visibleActors;},0.5);
+    q("spritePixelTestsP95",[](const Sample& s){return s.spriteTests;},0.95);
+    q("spriteOpaqueWritesP95",[](const Sample& s){return s.spriteWrites;},0.95);
+    q("spriteFinalPixelsP95",[](const Sample& s){return s.spritePixels;},0.95);
     double totalMs=0; int visible=0;
     for(const auto& s:samples_) { totalMs+=s.frameMs;visible=std::max(visible,s.visible); }
     f<<",\n  \"fps\": "; number(f,totalMs>0?std::optional<double>(1000*static_cast<double>(samples_.size())/totalMs):std::nullopt);
@@ -152,7 +156,7 @@ void Telemetry::finish(double duration) {
      <<",\n  \"result\": "<<quoteJson(samples_.empty()?"NOT_MEASURED":"MEASURED_NOT_DEVICE_VALIDATED")
      <<",\n  \"unsupported\": [\"true arch geometry\",\"pitch\",\"stacked floors\",\"dynamic lighting\",\"Android package\"],\n  \"configurations\": [";
     bool comma=false;
-    for(const auto r:resolutions) for(int actors:{1,8}) {
+    for(const auto r:resolutions) for(int actors:{1,8,24}) {
         std::vector<Sample> group;
         for(const auto& s:samples_) if(s.world.w==r.w&&s.creatures==actors) group.push_back(s);
         if(group.empty()) continue;

@@ -21,10 +21,11 @@ int texcoord(double n) { return std::clamp(static_cast<int>((n-std::floor(n))*64
 void Buffer::resize(Resolution r) {
     if(std::none_of(resolutions.begin(),resolutions.end(),[&](Resolution v){ return r.w==v.w&&r.h==v.h; }))
         throw std::runtime_error("Unsupported framebuffer dimensions");
-    // Allocate both before changing ownership; failures leave the old buffer valid.
+    // Allocate all buffers before changing ownership; failures leave the old buffer valid.
     std::vector<Pixel> next(static_cast<std::size_t>(r.w)*static_cast<std::size_t>(r.h));
     std::vector<double> z(static_cast<std::size_t>(r.w));
-    pixels.swap(next); depth.swap(z); size=r;
+    std::vector<float> pixelZ(next.size());std::vector<std::uint8_t> owners(next.size());
+    pixels.swap(next);depth.swap(z);pixelDepth.swap(pixelZ);owner.swap(owners);size=r;
 }
 Viewport letterbox(int ow,int oh,Resolution world) {
     if(ow<=0||oh<=0||world.w<=0||world.h<=0) return {0,0,0,0};
@@ -57,16 +58,19 @@ RayHit castRay(const World& w,Vec2 p,Vec2 d) {
 bool project(const Camera& c,const World& w,Resolution size,const Sprite& s,Projection& out) {
     const Vec2 d{s.position.x-c.position.x,s.position.y-c.position.y};
     const double depth=d.x*std::sin(c.yaw)-d.y*std::cos(c.yaw);
-    if(!std::isfinite(depth)||depth<0.08||depth>40||s.width<=0||s.height<=0||s.width>8||s.height>wallHeight) return false;
+    const double maxHeight=w.kind==SceneKind::Echo?wallHeight:8;
+    if(!std::isfinite(depth)||depth<0.08||depth>40||s.width<=0||s.height<=0||s.width>8||s.height>maxHeight||
+       !std::isfinite(s.base)||s.base<0||s.base>7) return false;
     const double focal=size.w/(2*std::tan(w.fov*pi/360));
     const double right=d.x*std::cos(c.yaw)+d.y*std::sin(c.yaw);
     const double width=s.width*focal/depth,height=s.height*focal/depth;
     const double left=size.w*0.5+right*focal/depth-width*0.5;
-    const double top=size.h*0.5+(w.eye*wallHeight-s.height)*focal/depth;
+    const double top=size.h*0.5+(w.eye*wallHeight-s.height-s.base)*focal/depth;
     if(!std::isfinite(left)||!std::isfinite(top)||left>=size.w||left+width<=0||top>=size.h||top+height<=0) return false;
     out={depth,left,top,width,height}; return true;
 }
 Renderer::Renderer() {
+    makeEnvironmentArt();
     for(int y=0;y<64;++y) for(int x=0;x<64;++x) {
         const auto i=static_cast<std::size_t>(y*64+x);
         const int brickx=(x+((y/16)%2)*16)%32;
@@ -107,30 +111,51 @@ Renderer::Renderer() {
     }
 }
 std::size_t Renderer::drawSprite(Buffer& b,const World& w,const Camera& c,const Sprite& s,double seconds) const {
+    return paintSprite(b,w,c,s,seconds,0,nullptr);
+}
+std::size_t Renderer::paintSprite(Buffer& b,const World& w,const Camera& c,const Sprite& s,double seconds,std::uint8_t owner,std::size_t* tests) const {
     Projection p{}; if(!project(c,w,b.size,s,p)) return 0;
-    const auto& tex=s.art==Art::Creature?creature_:s.art==Art::Signal?signal_:arch_;
+    const auto& tex=s.art==Art::Creature?creature_:s.art==Art::Signal?signal_:s.art==Art::Arch?arch_:props_[static_cast<std::size_t>(s.art)-3];
     const int x0=static_cast<int>(std::max(0.0,std::ceil(p.left-0.5)));
     const int x1=static_cast<int>(std::min(static_cast<double>(b.size.w),std::ceil(p.left+p.width-0.5)));
     const int y0=static_cast<int>(std::max(0.0,std::ceil(p.top-0.5)));
     const int y1=static_cast<int>(std::min(static_cast<double>(b.size.h),std::ceil(p.top+p.height-0.5)));
     std::size_t drawn=0;
     for(int x=x0;x<x1;++x) {
-        if(p.depth>=b.depth[static_cast<std::size_t>(x)]) continue;
+        if(w.kind==SceneKind::Echo&&p.depth>=b.depth[static_cast<std::size_t>(x)]) continue;
         const int tx=std::clamp(static_cast<int>((x+0.5-p.left)*64/p.width),0,63);
         for(int y=y0;y<y1;++y) {
+            if(tests) ++*tests;
+            const auto index=static_cast<std::size_t>(y*b.size.w+x);
+            if(w.kind!=SceneKind::Echo&&p.depth>=b.pixelDepth[index]) continue;
             const int ty=std::clamp(static_cast<int>((y+0.5-p.top)*64/p.height),0,63);
             Pixel color=tex[static_cast<std::size_t>(ty*64+tx)]; if(color==0) continue;
             if(s.art==Art::Signal) color=shade(color,0,0.88+0.12*std::sin(seconds*1.6));
-            else color=shade(color,p.depth,s.art==Art::Arch?0.88:1.2);
-            b.pixels[static_cast<std::size_t>(y*b.size.w+x)]=color; ++drawn;
+            else if(w.kind==SceneKind::Echo) color=shade(color,p.depth,s.art==Art::Arch?0.88:1.2);
+            else {
+                const unsigned light=static_cast<unsigned>(std::clamp(static_cast<int>(256/(1+p.depth*.035))/16*16,64,256));
+                const Pixel fog=w.kind==SceneKind::Forest?rgb(81,125,97):rgb(140,172,158);
+                const auto channel=[&](int shift){return (((color>>shift)&255)*light+((fog>>shift)&255)*(256-light))/256;};
+                color=rgb(channel(16),channel(8),channel(0));
+            }
+            b.pixels[index]=color;
+            if(w.kind!=SceneKind::Echo) b.pixelDepth[index]=static_cast<float>(p.depth);
+            b.owner[index]=owner; ++drawn;
         }
     }
     return drawn;
 }
 DrawStats Renderer::render(Buffer& b,const World& w,const Camera& c,bool stress,double seconds) {
+    return render(b,w,c,stress?8:1,seconds);
+}
+DrawStats Renderer::render(Buffer& b,const World& w,const Camera& c,int actors,double seconds) {
+    if(actors!=1&&actors!=8&&actors!=24) throw std::runtime_error("Expected 1, 8 or 24 actors");
+    if(w.kind!=SceneKind::Echo) return renderOutdoor(b,w,c,actors,seconds);
+    const bool stress=actors>1;
     if(b.pixels.size()!=static_cast<std::size_t>(b.size.w*b.size.h)||b.depth.size()!=static_cast<std::size_t>(b.size.w)||b.size.w<=0)
         throw std::runtime_error("Invalid render buffer");
-    const auto start=Clock::now(); DrawStats stats; stats.creatureCount=stress?8:1;
+    const auto start=Clock::now();DrawStats stats;stats.creatureCount=actors;
+    std::fill(b.owner.begin(),b.owner.end(),0);
     const Vec2 forward{std::sin(c.yaw),-std::cos(c.yaw)},right{std::cos(c.yaw),std::sin(c.yaw)};
     const double plane=std::tan(w.fov*pi/360),focal=b.size.w/(2*plane),eye=w.eye*wallHeight;
     // Affine row stepping gives perspective-correct floor/ceiling samples on horizontal planes.
@@ -168,26 +193,44 @@ DrawStats Renderer::render(Buffer& b,const World& w,const Camera& c,bool stress,
         }
     }
     stats.worldMs=ms(start); const auto spriteStart=Clock::now();
-    std::array<Sprite,10> sprites{};
+    std::array<Sprite,maxSprites> sprites{};
     sprites[0]={w.signal,0.85,1.45,Art::Signal};
     // Camera-facing alpha trim, explicitly a decorative silhouette, not an arch portal.
     sprites[1]={{12,12.5},6,wallHeight,Art::Arch};
     sprites[2]={w.creature,0.85,0.95,Art::Creature};
+    sprites[2].actor=true;
     int count=3;
     if(stress) {
         constexpr std::array<Vec2,7> offsets{{{-2,0},{2,0},{-1.3,2},{1.3,2},{-3,4},{0,4},{3,4}}};
         for(const auto d:offsets) {
             const Vec2 p{w.creature.x+d.x,w.creature.y+d.y};
             sprites[static_cast<std::size_t>(count++)]={w.canStand(p,0.2)?p:w.creature,0.85,0.95,Art::Creature};
+            sprites[static_cast<std::size_t>(count-1)].actor=true;
+        }
+    }
+    if(actors==24) {
+        // Additional measured stress cards. Existing 1/8-actor composition is unchanged.
+        for(int i=0;i<16;++i) {
+            const Vec2 p{8.0+(i%4)*2.2,14.0+(i/4)*1.2};
+            sprites[static_cast<std::size_t>(count++)]={w.canStand(p,0.2)?p:w.creature,0.85,0.95,Art::Creature};
+            sprites[static_cast<std::size_t>(count-1)].actor=true;
         }
     }
     const auto depth=[&](const Sprite& s) { return (s.position.x-c.position.x)*forward.x+(s.position.y-c.position.y)*forward.y; };
     std::sort(sprites.begin(),sprites.begin()+count,[&](const Sprite& a,const Sprite& z){ return depth(a)>depth(z); });
     for(int i=0;i<count;++i) {
-        const auto pixels=drawSprite(b,w,c,sprites[static_cast<std::size_t>(i)],seconds);
+        const auto pixels=paintSprite(b,w,c,sprites[static_cast<std::size_t>(i)],seconds,static_cast<std::uint8_t>(i+1),&stats.spriteTests);
         stats.spritePixels+=pixels; stats.visibleSprites+=pixels>0?1:0;
     }
+    stats.submitted=count;stats.scenery=2;finalVisibility(b,std::span<const Sprite>(sprites.data(),static_cast<std::size_t>(count)),stats);
     stats.spriteMs=ms(spriteStart); return stats;
+}
+void Renderer::finalVisibility(const Buffer& b,std::span<const Sprite> sprites,DrawStats& stats) const {
+    std::array<bool,maxSprites+1> visible{};stats.visibleSprites=0;
+    for(const auto id:b.owner) if(id) {visible[id]=true;++stats.visibleSpritePixels;}
+    for(std::size_t i=0;i<sprites.size();++i) if(visible[i+1]) {
+        ++stats.visibleSprites;if(sprites[i].actor) ++stats.visibleActors;
+    }
 }
 void savePpm(const Buffer& b,const std::filesystem::path& path) {
     if(!path.parent_path().empty()) std::filesystem::create_directories(path.parent_path());

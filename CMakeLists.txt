@@ -23,7 +23,7 @@ if(ENGINE001_DIRTY)
 endif()
 add_library(engine001_core
   src/engine001/json.cpp src/engine001/world.cpp src/engine001/camera.cpp
-  src/engine001/render.cpp src/engine001/telemetry.cpp src/engine001/options.cpp)
+  src/engine001/render.cpp src/engine001/scenes.cpp src/engine001/environment_art.cpp src/engine001/outdoor.cpp src/engine001/telemetry.cpp src/engine001/options.cpp)
 target_include_directories(engine001_core PUBLIC src/engine001)
 target_compile_definitions(engine001_core PUBLIC ENGINE001_BUILD_ID="${ENGINE001_BUILD_ID}")
 if(MSVC)
@@ -80,13 +80,22 @@ foreach(executable wildsignal_engine001_headless wildsignal_engine001)
   if(TARGET ${executable})
     add_custom_command(TARGET ${executable} POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:${executable}>/data/bench
+      COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/data/bench $<TARGET_FILE_DIR:${executable}>/data/bench
       COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_SOURCE_DIR}/${FIXTURE}
         $<TARGET_FILE_DIR:${executable}>/data/bench/echo_hollow_micro_v0.1.json)
   endif()
 endforeach()
 
+file(COPY data/bench/ DESTINATION ${CMAKE_BINARY_DIR}/data/bench)
+if(ENGINE001_BUILD_SDL)
+  install(DIRECTORY data/bench/ DESTINATION data/bench)
+  install(FILES README.render001.md DESTINATION .)
+endif()
 include(CTest)
 if(BUILD_TESTING)
+  add_executable(render001_tests tests/engine001/render001_tests.cpp tests/engine001/render001_alloc.cpp)
+  target_link_libraries(render001_tests PRIVATE engine001_core)
+  add_test(NAME render001_core COMMAND render001_tests ${CMAKE_SOURCE_DIR})
   add_executable(engine001_tests tests/engine001/core_tests.cpp)
   target_link_libraries(engine001_tests PRIVATE engine001_core)
   add_test(NAME engine001_core COMMAND engine001_tests ${CMAKE_SOURCE_DIR}/${FIXTURE})
@@ -101,6 +110,10 @@ if(BUILD_TESTING)
   if(ENGINE001_BUILD_SDL)
     add_test(NAME engine001_sdl_lifecycle COMMAND wildsignal_engine001 --smoke-test --software
       --frames 36 --warmup 0 --fps 0)
+    foreach(scene quay forest)
+      add_test(NAME render001_sdl_${scene} COMMAND wildsignal_engine001 --scene ${scene} --smoke-test --software --frames 36 --warmup 0 --fps 0 --output bench/local/${scene})
+      set_tests_properties(render001_sdl_${scene} PROPERTIES ENVIRONMENT "SDL_VIDEODRIVER=dummy;SDL_AUDIODRIVER=dummy" TIMEOUT 60)
+    endforeach()
     set_tests_properties(engine001_sdl_lifecycle PROPERTIES
       ENVIRONMENT "SDL_VIDEODRIVER=dummy;SDL_AUDIODRIVER=dummy" TIMEOUT 60)
   endif()

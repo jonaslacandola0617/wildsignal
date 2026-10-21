@@ -12,11 +12,13 @@ const char* memoryMethod();
 struct Sample {
     double elapsed=0,frameMs=0,simulationMs=0,worldMs=0,spriteMs=0,uiMs=0,uploadMs=0,presentMs=0;
     Resolution world{320,180};
-    int creatures=1,visible=0;
+    int creatures=1,visible=0,visibleActors=0,submitted=0;
+    std::size_t spriteTests=0,spriteWrites=0,spritePixels=0;
     Vec2 position; double yaw=0;
     std::optional<double> rssMiB;
 };
 struct RunInfo {
+    std::string zone=sceneId,fixture="wildsignal-engine001-echo-micro-v0.1";
     std::string pipeline="HEADLESS_CPU_ONLY",sdlVersion="NOT_USED",backend="NOT_USED";
     Resolution screen{0,0};
     double warmup=0,cap=0;
