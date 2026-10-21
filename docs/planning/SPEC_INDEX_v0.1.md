@@ -112,3 +112,11 @@ The owner chose **64-bit only**. Do not request further Windows x86 compatibilit
 **Owner artwork policy:** The original source PNG bytes are in the user's file Library and are **not published to the public GitHub repo**. Git contains only text manifests/specs and a SHA-256 fingerprint so source provenance can later be checked. The original historical Aseprite editable master is unavailable. Reconstructed editable sprite sources may be created in a later, separately authorized asset-editing milestone.
 
 **Production gate:** No game code, Windows/Android build, transparency export, co-op server or purchase integration has been created by this package. Future ENGINE-001 and sprite cleanup tasks require their own explicit approval.
+
+
+## 11. Codex ENGINE-001 preauthorization packet (2026-10-21)
+
+- `docs/architecture/CODEX_HANDOFF_ENGINE001_v1.0.md` — detailed future Windows-only raycaster proof: precise inputs, module boundaries, out-of-scope work, reproducible tests, telemetry, deliverables and a copy-ready future Codex message.
+- `docs/architecture/ENGINE001_SCENE_FIXTURE_v0.1.json` — initial authored 24×24 Echo Hollow **micro-scene for rendering experiment**, not the final 48×32 Z04 quest map. Includes map rows, camera, collision radius, candidate 75° FOV, non-owner placeholder actors and 3 resolution modes.
+
+**Status:** documents created, fixture structurally checked in planning, **no engine executable or hardware benchmark**. Owner's prior approval explicitly restricted us to planning. A separate unambiguous user instruction is required before invoking Codex for this packet.
