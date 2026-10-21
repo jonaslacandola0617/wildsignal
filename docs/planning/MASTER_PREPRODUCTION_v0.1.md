@@ -293,3 +293,8 @@ The planning-only milestone now contains real source-image measurements and chec
 ## 23. Future Codex ENGINE-001 handoff ready for review (2026-10-21)
 
 `docs/architecture/CODEX_HANDOFF_ENGINE001_v1.0.md` defines the proposed first *small* Windows x86_64 technical renderer experiment on the owner's Windows 11/i3/4GB machine. `docs/architecture/ENGINE001_SCENE_FIXTURE_v0.1.json` contains a compact 24×24 Echo Hollow-inspired test fixture, independent from the full 48×32 gameplay blockout. It tests basic walls, floor/ceiling, a 2D billboard, separate crisp HUD and FPS/memory instrumentation, with 320×180/400×225/480×270 world buffers. It intentionally excludes actual creature source art, multiplayer, combat, quests, Android packaging and stores. **No C++ source or benchmark run has been produced under this pre-production step.** Owner explicitly must authorize this exact coding task separately and approve branch baseline before any execution.
+
+
+## 24. Four sprite recovery candidates approved (2026-10-21)
+
+Owner approved the previewed transparency recovery candidates for WS-004/008/050/024 as an art-production baseline. The approval is recorded in `docs/design/assets/FOUR_PILOT_APPROVAL_v0.1.md`. Remaining alpha/edge cleanup and editable reconstructed source files are not complete; source and derivative art remain private. This approval neither locks commercial names nor authorizes Codex/ENGINE-001 coding.
