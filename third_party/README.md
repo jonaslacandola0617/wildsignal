@@ -4,6 +4,10 @@ Only runtime dependency: **SDL 3.2.10**, zlib license, upstream
 https://github.com/libsdl-org/SDL at immutable commit
 `877399b2b2cf21e67554ed9046410f268ce1d1b2` (tag `release-3.2.10`).
 CMake builds SDL statically. Its `LICENSE.txt` is installed into `licenses/SDL3.txt`.
+Unused audio/camera/GPU/haptic/HIDAPI/joystick/power/sensor/dialog modules and
+D3D12/Vulkan render backends are disabled. Software, D3D9/D3D11 and OpenGL window
+presentation remain candidates chosen by SDL on the host. No SDL_GPU rendering
+is required for the CPU world buffer.
 The native HUD uses SDL_RenderDebugText and SDL's bundled debug font; it is not a
 separate downloaded font. Keep SDL's license with redistributed binaries.
 SDL is not vendored into this repository. Use the CMake source override described

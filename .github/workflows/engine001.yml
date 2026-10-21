@@ -29,7 +29,15 @@ jobs:
         run: cmake --install build/win --config Release --prefix out/engine001-windows-x64
       - name: Artifact checksums
         shell: pwsh
-        run: Get-ChildItem out/engine001-windows-x64 -Recurse -File | Get-FileHash -Algorithm SHA256 | Format-Table -AutoSize | Out-File out/engine001-windows-x64/SHA256SUMS.txt
+        run: |
+          $packageRoot = (Resolve-Path out/engine001-windows-x64).Path
+          $packageFiles = @(Get-ChildItem $packageRoot -Recurse -File | Where-Object Name -ne SHA256SUMS.txt)
+          $checksums = @($packageFiles | ForEach-Object {
+            $digest = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            $relative = [IO.Path]::GetRelativePath($packageRoot, $_.FullName)
+            "$digest  $relative"
+          })
+          [IO.File]::WriteAllLines((Join-Path $packageRoot SHA256SUMS.txt), $checksums)
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: engine001-windows-x64
