@@ -39,3 +39,11 @@ python3 tools/capture_render001.py build/core/wildsignal_engine001_headless benc
 ```
 
 The last command runs 27 short matrix cases, followed by a 60-second warmup and 180-second capture per scene at 480×270 / 24 submitted actors with scripted walking. CPU-only results exclude presentation and do not establish performance on the owner's PC. See `docs/bench/RENDER001_REPORT.md` for evidence and limitations.
+
+## Benchmark fixture authoring
+
+The outdoor fixtures are bounded 24×24 micro-scenes, independent of the full story maps. `#` is the invisible perimeter collider; `~` is non-walkable water. `.` is open ground, `=` a forest path, `D` dock planks. `H` and `h` are 3.0/3.4-tile building blocks, `B` a 6.2-tile beacon, `T` a 3.0-tile trunk and `R` a 0.8-tile rock. Every walkable cell must connect to the spawn. Camera and movement constants stay at the approved values in the supplied fixtures.
+
+Props are binary-alpha billboards with an explicit width, height and base elevation. Their graphics are generated once in `environment_art.cpp`; `visualSource` must be `programmer_art_only`. At most 64 scenery cards and exactly 24 valid generic actor anchors are accepted. Actor counts select a prefix of that pool. Props do not create collision. The existing strict Echo schema and canonical fixture remain unchanged.
+
+Screenshot/benchmark provenance and raw evidence are in `docs/bench/render001`. Compressed CSV files can be read with Python's standard `gzip` / `tarfile` modules; JSON summaries remain directly readable. Windows CI artifacts include the runnable package, toolchain/import information and uncompressed benchmark outputs.

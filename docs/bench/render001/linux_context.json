@@ -1,0 +1,27 @@
+{
+  "recordedUtc": "2026-10-21",
+  "hostClass": "managed Linux execution container; not owner device",
+  "architecture": "x86_64",
+  "cpuModelReportedByProc": "AMD EPYC 9V74 80-Core Processor",
+  "kernel": "6.18.55",
+  "osRelease": "PRETTY_NAME=\"Debian GNU/Linux 13 (trixie)\"\nNAME=\"Debian GNU/Linux\"\nVERSION_ID=\"13\"\nVERSION=\"13 (trixie)\"\nVERSION_CODENAME=trixie\nDEBIAN_VERSION_FULL=13.6\nID=debian\nHOME_URL=\"https://www.debian.org/\"\nSUPPORT_URL=\"https://www.debian.org/support\"\nBUG_REPORT_URL=\"https://bugs.debian.org/\"\n",
+  "cgroupCpuMax": "200000 100000",
+  "cgroupMemoryMax": "8589934592",
+  "compiler": "g++ (Debian 14.2.0-19) 14.2.0",
+  "buildCommand": "ASAN_OPTIONS=detect_leaks=0 bash tools/check_engine001.sh",
+  "benchmarkCommand": "python3 tools/capture_render001.py build/direct/wildsignal_engine001_headless bench/local/render001-b3444c5 --standard",
+  "sourceSha": "b3444c54442c7bd181b0ee4e68d026bd2c712fd5",
+  "fixtureSha256": {
+    "docs/architecture/ENGINE001_SCENE_FIXTURE_v0.1.json": "110ed38b8a7c9de013349e625ea76ddccb2b7ae931909db02a893a73ceac196c",
+    "data/bench/lantern_quay_micro_v0.1.json": "dd5d3071e43314e5bf4c40af0c421cc52781f8fbc0a687b712f2f0a55ea38f55",
+    "data/bench/liltwood_micro_v0.1.json": "6798c5af7bb58e1b75386dc2964541dda19cd3abe240e159edc52d53d9b38a5f"
+  },
+  "limitations": [
+    "Shared managed host; no exclusive CPU or thermal control",
+    "RSS is process resident memory, not device RAM requirement",
+    "60-frame uncapped matrix is a smoke measurement, not sustained acceptance",
+    "Sequential long captures include a 30 FPS software sleep cap and scripted walk/turn; visibility varies",
+    "No SDL/UI/upload/present in local measurements",
+    "Windows screenshots and smoke reports come from dummy SDL/software backend in hosted Windows CI"
+  ]
+}
