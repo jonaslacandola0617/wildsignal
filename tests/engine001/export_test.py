@@ -57,12 +57,16 @@ with tempfile.TemporaryDirectory(prefix="engine001-") as temp:
     assert report["fps"] is None and report["result"] == "NOT_MEASURED"
     for args in (("--frames", "-1"), ("--frames", "1.5"), ("--fps", "nan"),
                  ("--fps", "inf"), ("--resolution", "99999x99999"),
-                 ("--unknown",), ("--scene",), ("--camera", "0", "0", "0")):
+                 ("--sprites", "7"), ("--sprites", "24.1"), ("--unknown",), ("--scene",), ("--camera", "0", "0", "0")):
         run(*args, ok=False)
     damaged = root / "broken.json"
     damaged.write_text('{"rows": [')
     run("--scene", str(damaged), "--frames", "1", ok=False)
     run("--scene", str(root / "missing.json"), "--frames", "1", ok=False)
+    prefix = root / "duration"
+    run("--duration", ".4", "--warmup", "0", "--output", str(prefix))
+    report = json.loads(prefix.with_suffix(".json").read_text())
+    assert report["durationSeconds"] >= .4
     # Test a complete short paced walkthrough, so the collision/input path also runs.
     prefix = root / "paced"
     run("--frames", "12", "--fps", "60", "--walkthrough", "--warmup", "0", "--output", str(prefix))

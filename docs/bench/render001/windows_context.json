@@ -1,0 +1,15 @@
+{
+  "sourceSha": "b83b06b5872ada6d1851fdd67e9ef73a4333d0ab",
+  "workflowRun": 39555477747,
+  "runner": "GitHub Actions windows-2022 hosted VM; not owner Windows 11 device",
+  "sdl": "3.2.10, immutable 877399b2b2cf21e67554ed9046410f268ce1d1b2",
+  "backend": "SDL_VIDEODRIVER=dummy; SDL software renderer; real CPU rendering/readback, no physical display",
+  "tests": "7/7 CTests and 27 headless matrix cases passed",
+  "artifactId": 12324809821,
+  "artifactDigest": "sha256:2845829f9bce635dbc2538780be730a5af470ac1ae41979e72412ceec6cedbd0",
+  "limitations": [
+    "36-frame SDL smoke captures, mixed resolutions/actor counts, no warmup/cap",
+    "F12 screenshot at frame 18 before SDL_RenderPresent; focus reset checked",
+    "These timings do not represent target-device or accelerated display performance"
+  ]
+}

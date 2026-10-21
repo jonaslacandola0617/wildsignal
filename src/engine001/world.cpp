@@ -14,7 +14,19 @@ double bounded(const Json& o,const char* k,double lo,double hi) {
 Vec2 position(const Json& j) { return {bounded(j,"x",0,23.999),bounded(j,"y",0,23.999)}; }
 }
 bool World::solid(int x,int y) const {
-    return x<0 || y<0 || x>=24 || y>=24 || rows[static_cast<std::size_t>(y)][static_cast<std::size_t>(x)]=='#';
+    const char t=tile(x,y);
+    return t=='#'||t=='~'||t=='H'||t=='h'||t=='B'||t=='T'||t=='R';
+}
+char World::tile(int x,int y) const {
+    return x<0||y<0||x>=24||y>=24?'#':rows[static_cast<std::size_t>(y)][static_cast<std::size_t>(x)];
+}
+double World::heightAt(int x,int y) const {
+    if(kind==SceneKind::Echo) return solid(x,y)?3.2:0;
+    switch(tile(x,y)) {
+    case 'H': return 3.0; case 'h': return 3.4; case 'B': return 6.2;
+    case 'T': return 3.0; case 'R': return 0.8;
+    default: return 0; // Boundary/water collide without pretending to be opaque walls.
+    }
 }
 bool World::canStand(Vec2 p,double r) const {
     if(!std::isfinite(p.x)||!std::isfinite(p.y)||!std::isfinite(r)||r<=0||r>0.5||
@@ -29,6 +41,7 @@ bool World::canStand(Vec2 p,double r) const {
     return true;
 }
 World World::fromJson(const Json& j) {
+    if(j.at("schema").string()=="wildsignal-render001-scene-v0.1") return fromOutdoorJson(j);
     require(j.at("schema").string()=="wildsignal-engine001-echo-micro-v0.1","Unsupported fixture schema");
     require(j.at("width").number()==24&&j.at("height").number()==24,"Expected 24x24 micro-fixture");
     World w;

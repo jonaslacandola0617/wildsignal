@@ -1,0 +1,153 @@
+{
+  "schema": "wildsignal-render-bench-v0.1",
+  "buildSha": "b83b06b5872ada6d1851fdd67e9ef73a4333d0ab",
+  "renderer": "grid_raycast",
+  "zone": "BENCH_Z01_QUAY_001",
+  "fixtureVersion": "wildsignal-render001-scene-v0.1",
+  "pipeline": "SDL_WINDOW",
+  "deviceLabel": "anonymous-execution-host",
+  "osVersion": "Windows (runtime version NOT_MEASURED)",
+  "cpuDescription": null,
+  "gpuDescription": null,
+  "installedRamMiB": null,
+  "compiler": "MSVC 194435229",
+  "buildType": "Release/NDEBUG",
+  "sdlVersion": "3002010",
+  "presentBackend": "software",
+  "screenResolution": [
+    1001,
+    701
+  ],
+  "worldResolution": [
+    320,
+    180
+  ],
+  "worldResolutionMeaning": "last captured frame; use configurations and CSV for mixed runs",
+  "durationSeconds": 0.045438,
+  "warmupSeconds": 0,
+  "frameCapFps": 0,
+  "sampleCount": 36,
+  "samplesDroppedAtCapacity": 0,
+  "quantileMethod": "nearest rank, no interpolation",
+  "frameMethod": "monotonic completion-to-completion including cap wait and previous sample I/O; warmup excluded",
+  "simulationMethod": "variable dt capped 50ms, collision substeps <= radius/2; hitch excess discarded",
+  "medianFrameMs": 0.9509,
+  "p95FrameMs": 2.4414,
+  "p99FrameMs": 5.0555,
+  "simulationMsP95": 0.3589,
+  "drawWorldMsP95": 0.8758,
+  "drawSpritesMsP95": 0.1435,
+  "drawUiMsP95": 0.0332,
+  "uploadMsP95": 0.0094,
+  "presentMsP95": 0.981,
+  "actorsVisibleP50": 8,
+  "spritePixelTestsP95": 18449,
+  "spriteOpaqueWritesP95": 6231,
+  "spriteFinalPixelsP95": 6208,
+  "fps": 792.410469,
+  "capturedFrameSeconds": 0.045431,
+  "standardTimingProtocolMet": false,
+  "processPeakRssMiB": 15.34375,
+  "memoryMethod": "GetProcessMemoryInfo: WorkingSetSize / PeakWorkingSetSize",
+  "memorySampling": "RSS at most once per second; peak queried at export; includes telemetry reservation",
+  "androidPssMiB": null,
+  "thermalObserved": "not-measured",
+  "inputLatencyMsP95": null,
+  "spritesVisibleMax": 17,
+  "textureCacheBytesPeak": 655360,
+  "memoryLeakTrend": "unknown",
+  "renderErrors": [],
+  "walkthrough": false,
+  "result": "MEASURED_NOT_DEVICE_VALIDATED",
+  "unsupported": [
+    "true arch geometry",
+    "pitch",
+    "stacked floors",
+    "dynamic lighting",
+    "Android package"
+  ],
+  "configurations": [
+    {
+      "worldResolution": [
+        320,
+        180
+      ],
+      "creatures": 1,
+      "sampleCount": 9,
+      "p95FrameMs": 1.8025
+    },
+    {
+      "worldResolution": [
+        320,
+        180
+      ],
+      "creatures": 8,
+      "sampleCount": 23,
+      "p95FrameMs": 0.9916
+    },
+    {
+      "worldResolution": [
+        400,
+        225
+      ],
+      "creatures": 1,
+      "sampleCount": 2,
+      "p95FrameMs": 2.0413
+    },
+    {
+      "worldResolution": [
+        480,
+        270
+      ],
+      "creatures": 1,
+      "sampleCount": 2,
+      "p95FrameMs": 2.4414
+    }
+  ],
+  "events": [
+    {
+      "seconds": 0,
+      "label": "focus_gained"
+    },
+    {
+      "seconds": 0.00316,
+      "label": "resolution_400"
+    },
+    {
+      "seconds": 0.006885,
+      "label": "resolution_480"
+    },
+    {
+      "seconds": 0.011178,
+      "label": "resolution_320"
+    },
+    {
+      "seconds": 0.016761,
+      "label": "ui_off"
+    },
+    {
+      "seconds": 0.017579,
+      "label": "ui_on"
+    },
+    {
+      "seconds": 0.019434,
+      "label": "creatures_8"
+    },
+    {
+      "seconds": 0.02037,
+      "label": "focus_lost_input_reset"
+    },
+    {
+      "seconds": 0.022275,
+      "label": "focus_gained"
+    },
+    {
+      "seconds": 0.024176,
+      "label": "display_screenshot"
+    },
+    {
+      "seconds": 0.045438,
+      "label": "sdl_lifecycle_smoke_pass"
+    }
+  ]
+}

@@ -39,7 +39,7 @@ void keyEvent(Uint32 type,SDL_Scancode scan,SDL_WindowID window) {
 void focusEvent(Uint32 type,SDL_WindowID window) {
     SDL_Event event{};event.type=type;event.window.windowID=window;check(SDL_PushEvent(&event),"SDL_PushEvent");
 }
-void overlay(SDL_Renderer* display,Resolution screen,const Buffer& b,const Sample& s,double average,Memory memory,bool focused) {
+void overlay(SDL_Renderer* display,Resolution screen,const Buffer& b,const Sample& s,double average,Memory memory,bool focused,const std::string& scene) {
     if(screen.w<32||screen.h<32) return;
     const float scale=screen.w>=1200&&screen.h>=600?2.0f:1.0f;
     check(SDL_SetRenderScale(display,scale,scale),"UI scale");
@@ -50,12 +50,12 @@ void overlay(SDL_Renderer* display,Resolution screen,const Buffer& b,const Sampl
     char text[512],rss[48];
     if(memory.rssMiB) std::snprintf(rss,sizeof(rss),"%.1f MIB",*memory.rssMiB);
     else std::snprintf(rss,sizeof(rss),"UNKNOWN");
-    std::snprintf(text,sizeof(text),"WILDSIGNAL / ECHO HOLLOW    ENGINE-001 PROTOTYPE\n"
+    std::snprintf(text,sizeof(text),"WILDSIGNAL / %s    RENDER-001 PROTOTYPE\n"
         "%dx%d  %.1f FPS  %.2f MS  RSS %s\n"
         "WORLD %.2f  SPRITE %.2f  UPLOAD %.2f MS  [%s]\n"
-        "X %.2f  Y %.2f  YAW %.1f   CREATURES %d (PLACEHOLDERS)",
-        b.size.w,b.size.h,average>0?1000/average:0,average,rss,
-        s.worldMs,s.spriteMs,s.uploadMs,focused?"ACTIVE":"FOCUS PAUSED",s.position.x,s.position.y,s.yaw*180/pi,s.creatures);
+        "X %.2f  Y %.2f  YAW %.1f   ACTORS %d  VISIBLE %d (PLACEHOLDERS)",
+        scene.c_str(),b.size.w,b.size.h,average>0?1000/average:0,average,rss,
+        s.worldMs,s.spriteMs,s.uploadMs,focused?"ACTIVE":"FOCUS PAUSED",s.position.x,s.position.y,s.yaw*180/pi,s.creatures,s.visibleActors);
     // SDL_RenderDebugText 3.2.10 ignores newline controls. Lay out rows explicitly.
     char* line=text;float row=12;
     for(char* cursor=text;;++cursor) {
@@ -81,7 +81,7 @@ int runSdl(const Options& o) {
     const World world=World::load(o.scene);Camera camera=o.customCamera?o.camera:world.spawn;
     if(!world.canStand(camera.position,world.radius)) throw std::runtime_error("Requested camera intersects wall");
     SdlLifetime runtime;
-    Window window(SDL_CreateWindow("WILDSIGNAL - Echo Hollow / ENGINE-001",1280,720,SDL_WINDOW_RESIZABLE|SDL_WINDOW_HIGH_PIXEL_DENSITY),SDL_DestroyWindow);
+    Window window(SDL_CreateWindow("WILDSIGNAL / RENDER-001",1280,720,SDL_WINDOW_RESIZABLE|SDL_WINDOW_HIGH_PIXEL_DENSITY),SDL_DestroyWindow);
     check(window!=nullptr,"SDL_CreateWindow");
     Display display(SDL_CreateRenderer(window.get(),o.software?"software":nullptr),SDL_DestroyRenderer);
     check(display!=nullptr,"SDL_CreateRenderer");
@@ -90,12 +90,13 @@ int runSdl(const Options& o) {
     Texture texture(nullptr,SDL_DestroyTexture);Buffer buffer;int mode=o.mode;
     changeResolution(buffer,texture,display.get(),resolutions[static_cast<std::size_t>(mode)]);
     Renderer renderer;Input input;
-    RunInfo info;info.pipeline="SDL_WINDOW";info.warmup=o.warmup;info.cap=o.fps;info.walkthrough=o.walkthrough;
+    RunInfo info;info.zone=world.id;info.fixture=world.fixtureVersion;info.pipeline="SDL_WINDOW";info.warmup=o.warmup;info.cap=o.fps;info.walkthrough=o.walkthrough;
     info.sdlVersion=std::to_string(SDL_GetVersion());
     const char* backend=SDL_GetRendererName(display.get());info.backend=backend?backend:"UNKNOWN";
     Telemetry telemetry(o.output,info);
     const auto start=Clock::now();auto previousComplete=start,previousBegin=start;
-    bool quit=false,showUi=true,stress=o.stress,minimized=false;
+    int actorCount=o.actors;
+    bool quit=false,showUi=true,stress=o.actors!=1,minimized=false;
     std::array<double,60> frameHistory{};std::size_t historyIndex=0,historyCount=0;
     double memoryAt=-1;Memory memory;Sample last;
     Vec2 focusPosition{};int cycles=0;bool focusChecked=false;
@@ -137,7 +138,7 @@ int runSdl(const Options& o) {
                     if(down&&!e.key.repeat) { mode=(mode+1)%3;changeResolution(buffer,texture,display.get(),resolutions[static_cast<std::size_t>(mode)]);++cycles;telemetry.event(elapsed,"resolution_"+std::to_string(buffer.size.w)); }
                     break;
                 case SDL_SCANCODE_F2: if(down&&!e.key.repeat) { showUi=!showUi;telemetry.event(elapsed,showUi?"ui_on":"ui_off"); } break;
-                case SDL_SCANCODE_F3: if(down&&!e.key.repeat) { stress=!stress;telemetry.event(elapsed,stress?"creatures_8":"creatures_1"); } break;
+                case SDL_SCANCODE_F3: if(down&&!e.key.repeat) { stress=!stress;actorCount=stress?8:1;telemetry.event(elapsed,stress?"creatures_8":"creatures_1"); } break;
                 case SDL_SCANCODE_F12: if(down&&!e.key.repeat) shot=true; break;
                 default:break;
                 }
@@ -152,9 +153,9 @@ int runSdl(const Options& o) {
             check(std::hypot(camera.position.x-focusPosition.x,camera.position.y-focusPosition.y)<1e-9,"Smoke lost-focus movement");focusChecked=true;
         }
         Sample sample;sample.simulationMs=elapsedMs(begin);
-        const auto draw=renderer.render(buffer,world,camera,stress,elapsed);
+        const auto draw=renderer.render(buffer,world,camera,actorCount,elapsed);
         sample.worldMs=draw.worldMs;sample.spriteMs=draw.spriteMs;sample.world=buffer.size;
-        sample.creatures=draw.creatureCount;sample.visible=draw.visibleSprites;sample.position=camera.position;sample.yaw=camera.yaw;
+        sample.creatures=draw.creatureCount;sample.visible=draw.visibleSprites;sample.visibleActors=draw.visibleActors;sample.submitted=draw.submitted;sample.spriteTests=draw.spriteTests;sample.spriteWrites=draw.spritePixels;sample.spritePixels=draw.visibleSpritePixels;sample.position=camera.position;sample.yaw=camera.yaw;
         auto mark=Clock::now();
         check(SDL_UpdateTexture(texture.get(),nullptr,buffer.pixels.data(),buffer.size.w*static_cast<int>(sizeof(Pixel))),"SDL_UpdateTexture");
         sample.uploadMs=elapsedMs(mark);
@@ -165,7 +166,7 @@ int runSdl(const Options& o) {
         if(v.w>0&&v.h>0) check(SDL_RenderTexture(display.get(),texture.get(),nullptr,&dest),"SDL_RenderTexture");
         double average=0;for(std::size_t i=0;i<historyCount;++i) average+=frameHistory[i];if(historyCount) average/=static_cast<double>(historyCount);
         if(elapsed-memoryAt>=1) { memory=processMemory();memoryAt=elapsed; }
-        mark=Clock::now();if(showUi) overlay(display.get(),screen,buffer,sample,average,memory,input.focused);sample.uiMs=elapsedMs(mark);
+        mark=Clock::now();if(showUi) overlay(display.get(),screen,buffer,sample,average,memory,input.focused,world.name);sample.uiMs=elapsedMs(mark);
         if(shot) { displayScreenshot(display.get(),o.output.string()+"_display.bmp");telemetry.event(elapsed,"display_screenshot"); }
         mark=Clock::now();check(SDL_RenderPresent(display.get()),"SDL_RenderPresent");sample.presentMs=elapsedMs(mark);
         if(o.fps>0) std::this_thread::sleep_until(begin+std::chrono::duration_cast<Clock::duration>(std::chrono::duration<double>(1/o.fps)));

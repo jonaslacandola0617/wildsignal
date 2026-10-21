@@ -1,0 +1,3 @@
+# Keep measured evidence byte-exact on Windows checkouts and accept native CSV CRLF.
+docs/bench/render001/** -text
+docs/bench/render001/*.csv whitespace=cr-at-eol

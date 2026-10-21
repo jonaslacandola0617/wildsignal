@@ -1,0 +1,78 @@
+name: RENDER-001 three environments
+on:
+  push:
+    branches: [feat/render-001-three-scenes]
+  pull_request:
+    branches: [feat/engine-001-echo-renderer]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows-x64:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Configure Windows x64 Release (VS 2022 v143, static SDL3 and CRT)
+        run: cmake -S . -B build/win -G "Visual Studio 17 2022" -A x64 -T v143
+      - run: cmake --build build/win --config Release --parallel 2
+      - run: ctest --test-dir build/win -C Release --output-on-failure
+      - name: Record actual SDL smoke report and display image
+        shell: pwsh
+        run: |
+          Get-ChildItem build/win/bench/local/*.json | ForEach-Object {
+            $text = Get-Content $_.FullName -Raw
+            if (($text | ConvertFrom-Json).pipeline -eq 'SDL_WINDOW') {
+              Write-Output "ENGINE001_SDL_REPORT=$text"
+              $csvPath = Join-Path $_.DirectoryName ($_.BaseName + '_frames.csv')
+              Write-Output ('ENGINE001_CSV_BASE64=' + [Convert]::ToBase64String([IO.File]::ReadAllBytes($csvPath)))
+            }
+          }
+          Add-Type -AssemblyName System.Drawing
+          $captures = @(Get-ChildItem build/win/bench/local/*_display.bmp)
+          if ($captures.Count -ne 3) { throw 'Expected three SDL scene screenshots' }
+          foreach ($capture in $captures) {
+            $image = [System.Drawing.Image]::FromFile($capture.FullName)
+            try { $image.Save($capture.FullName + '.png', [System.Drawing.Imaging.ImageFormat]::Png) }
+            finally { $image.Dispose() }
+            Write-Output ('RENDER001_PNG_' + $capture.BaseName + '=' + [Convert]::ToBase64String([IO.File]::ReadAllBytes($capture.FullName + '.png')))
+          }
+      - name: CPU-only scene matrix
+        run: python tools/capture_render001.py build/win/Release/wildsignal_engine001_headless.exe build/win/bench/matrix
+      - name: Record toolchain and imports (legacy compatibility remains unverified)
+        shell: pwsh
+        run: |
+          cmake --version | Out-File build/win/toolchain.txt
+          Get-Content build/win/CMakeCache.txt | Select-String 'CMAKE_CXX_COMPILER|CMAKE_CXX_COMPILER_VERSION|SDL_' | Out-File build/win/toolchain.txt -Append
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $vs = & $vswhere -latest -products '*' -property installationPath
+          $dumpbin = Get-ChildItem "$vs\VC\Tools\MSVC\*\bin\Hostx64\x64\dumpbin.exe" | Sort-Object FullName | Select-Object -Last 1
+          & $dumpbin.FullName /headers /imports build/win/Release/wildsignal_engine001.exe | Out-File build/win/imports.txt
+      - name: Stage portable prototype
+        run: cmake --install build/win --config Release --prefix out/render001-windows-x64
+      - name: Artifact checksums
+        shell: pwsh
+        run: |
+          $packageRoot = (Resolve-Path out/render001-windows-x64).Path
+          $packageFiles = @(Get-ChildItem $packageRoot -Recurse -File | Where-Object Name -ne SHA256SUMS.txt)
+          $checksums = @($packageFiles | ForEach-Object {
+            $digest = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            $relative = [IO.Path]::GetRelativePath($packageRoot, $_.FullName)
+            "$digest  $relative"
+          })
+          [IO.File]::WriteAllLines((Join-Path $packageRoot SHA256SUMS.txt), $checksums)
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: render001-windows-x64
+          path: |
+            out/render001-windows-x64
+            build/win/toolchain.txt
+            build/win/imports.txt
+            build/win/bench
+          retention-days: 14
+  linux-sanitizers:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - run: cmake -S . -B build/asan -DCMAKE_BUILD_TYPE=Debug -DENGINE001_BUILD_SDL=OFF -DENGINE001_SANITIZE=ON
+      - run: cmake --build build/asan --parallel 2
+      - run: ctest --test-dir build/asan --output-on-failure
