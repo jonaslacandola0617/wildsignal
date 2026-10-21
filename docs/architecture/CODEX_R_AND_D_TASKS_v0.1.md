@@ -71,3 +71,8 @@
 
 
 **Task acceptance update:** future ENGINE-001, WINLEG and CI-001 packets must target Windows **x64 binaries and 64-bit Win7–11 OS versions exclusively**. Do not add a 32-bit compiler job. Owner has not yet authorized starting any of these tasks.
+
+
+## ENGINE-001 handoff package (2026-10-21; NOT AUTHORIZED)
+
+The more explicit task packet is `docs/architecture/CODEX_HANDOFF_ENGINE001_v1.0.md`, accompanied by `docs/architecture/ENGINE001_SCENE_FIXTURE_v0.1.json`. It narrows the first experiment to **Windows 11 x64 on owner's i3/4GB**, one 24×24 Echo Hollow-inspired micro-scene, SDL3/C++20/CMake, basic textured raycast/floor/ceiling, placeholder billboard, input, crisp UI and telemetry. It does NOT supersede later Android arm64/Win7 x64 acceptance, battle, co-op, store or any actual release target. **No implementation approved or begun.**
