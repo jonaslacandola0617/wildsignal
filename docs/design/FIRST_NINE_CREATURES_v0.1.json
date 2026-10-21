@@ -1,0 +1,638 @@
+{
+  "schema": "wildsignal-first-nine-roster-v0.1",
+  "status": "PROPOSED - names, roles, numerical stats and move rules are not approved",
+  "artwork": "User-owned 10x10 pixel art sprite sheet; each species mapped to immutable WS-nnn source ID",
+  "affinityCoverage": "Starter trio Flora/Tide/Ember; Wild/Stone/Lumen early encounters; Gale/Gloom deferred",
+  "statNames": [
+    "hp",
+    "might",
+    "guard",
+    "pulse",
+    "ward",
+    "swift"
+  ],
+  "statAtLevel": "hp=baseHP+4*(L-1); other stats = base+(L-1), levels 1..30, no hidden individual values in v0.1",
+  "partyMax": 3,
+  "activeAtOnce": 1,
+  "movesPerCreature": 4,
+  "availableMoves": [
+    {
+      "id": "TAP",
+      "name": "Tap",
+      "type": "Wild",
+      "damageKind": "physical",
+      "power": 16,
+      "cost": 0,
+      "accuracy": 10000,
+      "priority": 0,
+      "effect": "none",
+      "target": "enemy",
+      "effects": [],
+      "resolutionOrder": "spend_energy;accuracy_if_needed;deal_damage_if_attack;apply_effects_in_list_order_if_legal_target_and_alive"
+    },
+    {
+      "id": "BRACE",
+      "name": "Brace",
+      "type": "Wild",
+      "damageKind": "support",
+      "power": 0,
+      "cost": 1,
+      "accuracy": 10000,
+      "priority": 1,
+      "effect": "GUARD 1 incoming hit this round",
+      "target": "self",
+      "effects": [
+        {
+          "kind": "applyStatus",
+          "target": "self",
+          "status": "GUARD",
+          "duration": "current_round",
+          "damageMultiplierPercent": 50,
+          "charges": 1
+        }
+      ],
+      "resolutionOrder": "spend_energy;accuracy_if_needed;deal_damage_if_attack;apply_effects_in_list_order_if_legal_target_and_alive"
+    },
+    {
+      "id": "SPROUT_DART",
+      "name": "Sprout Dart",
+      "type": "Flora",
+      "damageKind": "signal",
+      "power": 18,
+      "cost": 2,
+      "accuracy": 10000,
+      "priority": 0,
+      "effect": "none",
+      "target": "enemy",
+      "effects": [],
+      "resolutionOrder": "spend_energy;accuracy_if_needed;deal_damage_if_attack;apply_effects_in_list_order_if_legal_target_and_alive"
+    },
+    {
+      "id": "LANTERN_GROVE",
+      "name": "Lantern Grove",
+      "type": "Flora",
+      "damageKind": "support",
+      "power": 0,
+      "cost": 3,
+      "accuracy": 10000,
+      "priority": 1,
+      "effect": "GUARD this round + REGEN(3,2 end phases)",
+      "target": "self",
+      "effects": [
+        {
+          "kind": "applyStatus",
+          "target": "self",
+          "status": "GUARD",
+          "duration": "current_round",
+          "damageMultiplierPercent": 50,
+          "charges": 1
+        },
+        {
+          "kind": "applyStatus",
+          "target": "self",
+          "status": "REGEN",
+          "ticks": 2,
+          "tickPhase": "end_of_round_including_application",
+          "hpPerTick": 3
+        }
+      ],
+      "resolutionOrder": "spend_energy;accuracy_if_needed;deal_damage_if_attack;apply_effects_in_list_order_if_legal_target_and_alive"
+    },
+    {
+      "id": "ROOT_THREAD",
+      "name": "Root Thread",
+      "type": "Flora",
+      "damageKind": "signal",
+      "power": 14,
+      "cost": 2,
+      "accuracy": 10000,
+      "priority": 0,
+      "effect": "SLOW 2 subsequent turn start phases",
+      "target": "enemy",
+      "effects": [
+        {
+          "kind": "applyStatus",
+          "target": "enemy",
+          "status": "SLOW",
+          "fullFutureTurns": 2,
+          "swiftMultiplierPercent": 75
+        }
+      ],
+      "resolutionOrder": "spend_energy;accuracy_if_needed;deal_damage_if_attack;apply_effects_in_list_order_if_legal_target_and_alive"
+    },
+    {
+      "id": "SLIPSTREAM",
+      "name": "Slipstream",
+      "type": "Tide",
+      "damageKind": "signal",
+      "power": 20,
+      "cost": 2,
+      "accuracy": 10000,
+      "priority": 0,
+      "effect": "none",
+      "target": "enemy",
+      "effects": [],
+      "resolutionOrder": "spend_energy;accuracy_if_needed;deal_damage_if_attack;apply_effects_in_list_order_if_legal_target_and_alive"
+    },
+    {
+      "id": "MIST_HUSH",
+      "name": "Mist Hush",
+      "type": "Tide",
+      "damageKind": "signal",
+      "power": 14,
+      "cost": 2,
+      "accuracy": 10000,
+      "priority": 0,
+      "effect": "SLOW 2 subsequent turns",
+      "target": "enemy",
+      "effects": [
+        {
+          "kind": "applyStatus",
+          "target": "enemy",
+          "status": "SLOW",
+          "fullFutureTurns": 2,
+          "swiftMultiplierPercent": 75
+        }
+      ],
+      "resolutionOrder": "spend_energy;accuracy_if_needed;deal_damage_if_attack;apply_effects_in_list_order_if_legal_target_and_alive"
+    },
+    {
+      "id": "QUICK_DART",
+      "name": "Quick Dart",
+      "type": "Wild",
+      "damageKind": "physical",
+      "power": 13,
+      "cost": 1,
+      "accuracy": 10000,
+      "priority": 1,
+      "effect": "none",
+      "target": "enemy",
+      "effects": [],
+      "resolutionOrder": "spend_energy;accuracy_if_needed;deal_damage_if_attack;apply_effects_in_list_order_if_legal_target_and_alive"
+    },
+    {
+      "id": "CURRENT_SHIELD",
+      "name": "Current Shield",
+      "type": "Tide",
+      "damageKind": "support",
+      "power": 0,
+      "cost": 2,
+      "accuracy": 10000,
+      "priority": 0,
+      "effect": "GUARD this round + HEAL 3 immediate",
+      "target": "self",
+      "effects": [
+        {
+          "kind": "applyStatus",
+          "target": "self",
+          "status": "GUARD",
+          "duration": "current_round",
+          "damageMultiplierPercent": 50,
+          "charges": 1
+        },
+        {
+          "kind": "heal",
+          "target": "self",
+          "hp": 3
+        }
+      ],
+      "resolutionOrder": "spend_energy;accuracy_if_needed;deal_damage_if_attack;apply_effects_in_list_order_if_legal_target_and_alive"
+    },
+    {
+      "id": "CINDER_BEAT",
+      "name": "Cinder Beat",
+      "type": "Ember",
+      "damageKind": "support",
+      "power": 0,
+      "cost": 2,
+      "accuracy": 10000,
+      "priority": 0,
+      "effect": "FOCUS +25% next damaging hit, duration 2 following turns",
+      "target": "self",
+      "effects": [
+        {
+          "kind": "applyStatus",
+          "target": "self",
+          "status": "FOCUS",
+          "fullFutureTurns": 2,
+          "nextLandedAttackBonusPercent": 25
+        }
+      ],
+      "resolutionOrder": "spend_energy;accuracy_if_needed;deal_damage_if_attack;apply_effects_in_list_order_if_legal_target_and_alive"
+    },
+    {
+      "id": "EMBER_KNOCK",
+      "name": "Ember Knock",
+      "type": "Ember",
+      "damageKind": "physical",
+      "power": 20,
+      "cost": 2,
+      "accuracy": 10000,
+      "priority": 0,
+      "effect": "none",
+      "target": "enemy",
+      "effects": [],
+      "resolutionOrder": "spend_energy;accuracy_if_needed;deal_damage_if_attack;apply_effects_in_list_order_if_legal_target_and_alive"
+    },
+    {
+      "id": "COAL_FLICK",
+      "name": "Coal Flick",
+      "type": "Ember",
+      "damageKind": "signal",
+      "power": 14,
+      "cost": 3,
+      "accuracy": 10000,
+      "priority": 0,
+      "effect": "BURN 2 end phases (3 HP per phase)",
+      "target": "enemy",
+      "effects": [
+        {
+          "kind": "applyStatus",
+          "target": "enemy",
+          "status": "BURN",
+          "ticks": 2,
+          "tickPhase": "end_of_round_including_application",
+          "hpPerTick": -3
+        }
+      ],
+      "resolutionOrder": "spend_energy;accuracy_if_needed;deal_damage_if_attack;apply_effects_in_list_order_if_legal_target_and_alive"
+    },
+    {
+      "id": "BURROW_BUMP",
+      "name": "Burrow Bump",
+      "type": "Stone",
+      "damageKind": "physical",
+      "power": 18,
+      "cost": 2,
+      "accuracy": 10000,
+      "priority": 0,
+      "effect": "none",
+      "target": "enemy",
+      "effects": [],
+      "resolutionOrder": "spend_energy;accuracy_if_needed;deal_damage_if_attack;apply_effects_in_list_order_if_legal_target_and_alive"
+    },
+    {
+      "id": "STONE_SHELL",
+      "name": "Stone Shell",
+      "type": "Stone",
+      "damageKind": "support",
+      "power": 0,
+      "cost": 2,
+      "accuracy": 10000,
+      "priority": 0,
+      "effect": "GUARD this round + HEAL 3 immediate",
+      "target": "self",
+      "effects": [
+        {
+          "kind": "applyStatus",
+          "target": "self",
+          "status": "GUARD",
+          "duration": "current_round",
+          "damageMultiplierPercent": 50,
+          "charges": 1
+        },
+        {
+          "kind": "heal",
+          "target": "self",
+          "hp": 3
+        }
+      ],
+      "resolutionOrder": "spend_energy;accuracy_if_needed;deal_damage_if_attack;apply_effects_in_list_order_if_legal_target_and_alive"
+    },
+    {
+      "id": "SOFT_GLOW",
+      "name": "Soft Glow",
+      "type": "Lumen",
+      "damageKind": "signal",
+      "power": 17,
+      "cost": 2,
+      "accuracy": 10000,
+      "priority": 0,
+      "effect": "none",
+      "target": "enemy",
+      "effects": [],
+      "resolutionOrder": "spend_energy;accuracy_if_needed;deal_damage_if_attack;apply_effects_in_list_order_if_legal_target_and_alive"
+    },
+    {
+      "id": "ECHO_WISP",
+      "name": "Echo Wisp",
+      "type": "Lumen",
+      "damageKind": "signal",
+      "power": 15,
+      "cost": 2,
+      "accuracy": 10000,
+      "priority": 0,
+      "effect": "SLOW 2 subsequent turns",
+      "target": "enemy",
+      "effects": [
+        {
+          "kind": "applyStatus",
+          "target": "enemy",
+          "status": "SLOW",
+          "fullFutureTurns": 2,
+          "swiftMultiplierPercent": 75
+        }
+      ],
+      "resolutionOrder": "spend_energy;accuracy_if_needed;deal_damage_if_attack;apply_effects_in_list_order_if_legal_target_and_alive"
+    },
+    {
+      "id": "MOSS_MEND",
+      "name": "Moss Mend",
+      "type": "Flora",
+      "damageKind": "support",
+      "power": 0,
+      "cost": 3,
+      "accuracy": 10000,
+      "priority": 0,
+      "effect": "HEAL 8 immediate",
+      "target": "self",
+      "effects": [
+        {
+          "kind": "heal",
+          "target": "self",
+          "hp": 8
+        }
+      ],
+      "resolutionOrder": "spend_energy;accuracy_if_needed;deal_damage_if_attack;apply_effects_in_list_order_if_legal_target_and_alive"
+    },
+    {
+      "id": "RESTORING_GLOW",
+      "name": "Restoring Glow",
+      "type": "Lumen",
+      "damageKind": "support",
+      "power": 0,
+      "cost": 3,
+      "accuracy": 10000,
+      "priority": 0,
+      "effect": "REGEN(3,2 end phases)",
+      "target": "self",
+      "effects": [
+        {
+          "kind": "applyStatus",
+          "target": "self",
+          "status": "REGEN",
+          "ticks": 2,
+          "tickPhase": "end_of_round_including_application",
+          "hpPerTick": 3
+        }
+      ],
+      "resolutionOrder": "spend_energy;accuracy_if_needed;deal_damage_if_attack;apply_effects_in_list_order_if_legal_target_and_alive"
+    }
+  ],
+  "species": [
+    {
+      "speciesId": "WS-004",
+      "sourceCell": "R01C04",
+      "workingName": "Glintle",
+      "affinity": "Flora",
+      "status": "starter",
+      "introZone": "Z01",
+      "role": "DEFENDER_SUPPORT",
+      "statsBase": {
+        "hp": 48,
+        "might": 11,
+        "guard": 15,
+        "pulse": 14,
+        "ward": 15,
+        "swift": 10
+      },
+      "explorationBehavior": "illuminates carved forest signals",
+      "moves": [
+        "TAP",
+        "SPROUT_DART",
+        "LANTERN_GROVE",
+        "ROOT_THREAD"
+      ],
+      "bondingPlan": "See BONDING_ENCOUNTERS_v0.1.md",
+      "evolutionFamily": null,
+      "proposed": true
+    },
+    {
+      "speciesId": "WS-008",
+      "sourceCell": "R01C08",
+      "workingName": "Driftfin",
+      "affinity": "Tide",
+      "status": "starter",
+      "introZone": "Z01",
+      "role": "SPEED_CONTROL",
+      "statsBase": {
+        "hp": 44,
+        "might": 11,
+        "guard": 10,
+        "pulse": 14,
+        "ward": 12,
+        "swift": 18
+      },
+      "explorationBehavior": "senses changes in water and concealed runoff",
+      "moves": [
+        "TAP",
+        "SLIPSTREAM",
+        "MIST_HUSH",
+        "QUICK_DART"
+      ],
+      "bondingPlan": "See BONDING_ENCOUNTERS_v0.1.md",
+      "evolutionFamily": null,
+      "proposed": true
+    },
+    {
+      "speciesId": "WS-050",
+      "sourceCell": "R05C10",
+      "workingName": "Brumlet",
+      "affinity": "Ember",
+      "status": "starter",
+      "introZone": "Z01",
+      "role": "BURST_STRIKER",
+      "statsBase": {
+        "hp": 46,
+        "might": 16,
+        "guard": 12,
+        "pulse": 14,
+        "ward": 10,
+        "swift": 12
+      },
+      "explorationBehavior": "warms mechanisms and hears rhythmic metal resonance",
+      "moves": [
+        "TAP",
+        "EMBER_KNOCK",
+        "CINDER_BEAT",
+        "COAL_FLICK"
+      ],
+      "bondingPlan": "See BONDING_ENCOUNTERS_v0.1.md",
+      "evolutionFamily": null,
+      "proposed": true
+    },
+    {
+      "speciesId": "WS-005",
+      "sourceCell": "R01C05",
+      "workingName": "Tumbletail",
+      "affinity": "Wild",
+      "status": "wild",
+      "introZone": "Z02",
+      "role": "QUICK_SCOUT",
+      "statsBase": {
+        "hp": 42,
+        "might": 14,
+        "guard": 10,
+        "pulse": 9,
+        "ward": 11,
+        "swift": 17
+      },
+      "explorationBehavior": "collects dropped seeds and darts into cover",
+      "moves": [
+        "TAP",
+        "QUICK_DART",
+        "BRACE",
+        "ROOT_THREAD"
+      ],
+      "bondingPlan": "See BONDING_ENCOUNTERS_v0.1.md",
+      "evolutionFamily": null,
+      "proposed": true
+    },
+    {
+      "speciesId": "WS-021",
+      "sourceCell": "R03C01",
+      "workingName": "Puddlefin",
+      "affinity": "Tide",
+      "status": "wild",
+      "introZone": "Z02",
+      "role": "DEFENSIVE_CONTROLLER",
+      "statsBase": {
+        "hp": 46,
+        "might": 11,
+        "guard": 13,
+        "pulse": 12,
+        "ward": 14,
+        "swift": 11
+      },
+      "explorationBehavior": "hides in roadside rain pools; reacts to ripple signals",
+      "moves": [
+        "TAP",
+        "MIST_HUSH",
+        "SLIPSTREAM",
+        "CURRENT_SHIELD"
+      ],
+      "bondingPlan": "See BONDING_ENCOUNTERS_v0.1.md",
+      "evolutionFamily": null,
+      "proposed": true
+    },
+    {
+      "speciesId": "WS-012",
+      "sourceCell": "R02C02",
+      "workingName": "Mossmelt",
+      "affinity": "Flora",
+      "status": "wild",
+      "introZone": "Z03",
+      "role": "REGEN_SUPPORT",
+      "statsBase": {
+        "hp": 51,
+        "might": 8,
+        "guard": 13,
+        "pulse": 13,
+        "ward": 14,
+        "swift": 7
+      },
+      "explorationBehavior": "cleans detritus and grows alongside moist stumps",
+      "moves": [
+        "TAP",
+        "SPROUT_DART",
+        "MOSS_MEND",
+        "ROOT_THREAD"
+      ],
+      "bondingPlan": "See BONDING_ENCOUNTERS_v0.1.md",
+      "evolutionFamily": null,
+      "proposed": true
+    },
+    {
+      "speciesId": "WS-001",
+      "sourceCell": "R01C01",
+      "workingName": "Signalit",
+      "affinity": "Lumen",
+      "status": "wild",
+      "introZone": "Z03/Z04",
+      "role": "SPEED_SCOUT",
+      "statsBase": {
+        "hp": 39,
+        "might": 9,
+        "guard": 9,
+        "pulse": 15,
+        "ward": 11,
+        "swift": 18
+      },
+      "explorationBehavior": "glows near resonance glyphs at dusk",
+      "moves": [
+        "TAP",
+        "SOFT_GLOW",
+        "QUICK_DART",
+        "ECHO_WISP"
+      ],
+      "bondingPlan": "See BONDING_ENCOUNTERS_v0.1.md",
+      "evolutionFamily": null,
+      "proposed": true
+    },
+    {
+      "speciesId": "WS-024",
+      "sourceCell": "R03C04",
+      "workingName": "Craglet",
+      "affinity": "Stone",
+      "status": "guardian",
+      "introZone": "Z04",
+      "role": "GUARDIAN_TANK",
+      "statsBase": {
+        "hp": 55,
+        "might": 14,
+        "guard": 18,
+        "pulse": 9,
+        "ward": 16,
+        "swift": 6
+      },
+      "explorationBehavior": "rests beside ruin seals and responds to disturbance",
+      "moves": [
+        "TAP",
+        "BURROW_BUMP",
+        "STONE_SHELL",
+        "BRACE"
+      ],
+      "bondingPlan": "See BONDING_ENCOUNTERS_v0.1.md",
+      "evolutionFamily": null,
+      "proposed": true
+    },
+    {
+      "speciesId": "WS-067",
+      "sourceCell": "R07C07",
+      "workingName": "Hushflame",
+      "affinity": "Lumen",
+      "status": "wild",
+      "introZone": "Z04",
+      "role": "PULSE_SUPPORT",
+      "statsBase": {
+        "hp": 40,
+        "might": 8,
+        "guard": 11,
+        "pulse": 17,
+        "ward": 13,
+        "swift": 16
+      },
+      "explorationBehavior": "hovers above inscription stones; attracted to bell tones",
+      "moves": [
+        "TAP",
+        "SOFT_GLOW",
+        "ECHO_WISP",
+        "RESTORING_GLOW"
+      ],
+      "bondingPlan": "See BONDING_ENCOUNTERS_v0.1.md",
+      "evolutionFamily": null,
+      "proposed": true
+    }
+  ],
+  "effectExecution": "For attack move, apply effects only after landed damage and if target still alive. For support moves, apply effects in order immediately. Apply_status refreshes same status rather than stacking. Guard is end-of-round or one-hit; burn/regen tick end of application round.",
+  "statCaps": {
+    "level": {
+      "min": 1,
+      "max": 30
+    },
+    "energy": {
+      "min": 0,
+      "max": 8
+    }
+  }
+}

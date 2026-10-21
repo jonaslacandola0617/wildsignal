@@ -1,0 +1,2107 @@
+{
+  "schema_version": "0.1-proposed",
+  "status": "DESIGN_DRAFT_NOT_IMPLEMENTED",
+  "referenceSafeCanvas": {
+    "width": 1000,
+    "height": 562,
+    "note": "Layouts are relative safe-content rects at 16:9; recompute responsive anchors for actual safe area and verify dp/sp targets; do not treat logical units as dp."
+  },
+  "platforms": [
+    "Windows keyboard/mouse 16:9",
+    "Android landscape 16:9 through 20:9 with notch/gesture insets"
+  ],
+  "renderLayers": [
+    "2d_perspective_world_lowres",
+    "game_object_sprites",
+    "screen_space_UI_crisp",
+    "modal_overlay",
+    "accessibility_feedback"
+  ],
+  "actionAuthority": "UI submits typed intents and reads model events; cannot mutate HP, quests, creatures or purchases directly",
+  "screens": [
+    {
+      "id": "SCR_BOOT",
+      "phase": "vertical_slice",
+      "parent": "app",
+      "state": "startup.local_only",
+      "layoutReference": "safe_canvas_1000x562",
+      "components": [
+        {
+          "id": "logo",
+          "role": "brand",
+          "rect": [
+            300,
+            150,
+            400,
+            150
+          ]
+        },
+        {
+          "id": "load_status",
+          "role": "text",
+          "rect": [
+            300,
+            340,
+            400,
+            45
+          ],
+          "binding": "app.bootState"
+        },
+        {
+          "id": "legal_notice",
+          "role": "text",
+          "rect": [
+            290,
+            484,
+            420,
+            40
+          ]
+        }
+      ]
+    },
+    {
+      "id": "SCR_MAIN_MENU",
+      "phase": "vertical_slice",
+      "parent": "root",
+      "state": "local.saveMetadata",
+      "layoutReference": "safe_canvas_1000x562",
+      "components": [
+        {
+          "id": "game_logo",
+          "role": "brand",
+          "rect": [
+            265,
+            34,
+            470,
+            140
+          ]
+        },
+        {
+          "id": "continue_local",
+          "role": "button",
+          "rect": [
+            345,
+            208,
+            310,
+            60
+          ],
+          "action": "CONTINUE_LOCAL",
+          "label": "Continue Local Adventure",
+          "enabledIf": "validLocalSave"
+        },
+        {
+          "id": "new_local",
+          "role": "button",
+          "rect": [
+            345,
+            278,
+            310,
+            60
+          ],
+          "action": "NEW_LOCAL",
+          "label": "New Local Adventure"
+        },
+        {
+          "id": "save_slots",
+          "role": "button",
+          "rect": [
+            345,
+            348,
+            310,
+            51
+          ],
+          "action": "OPEN_SAVES",
+          "label": "Save Slots"
+        },
+        {
+          "id": "online",
+          "role": "button",
+          "rect": [
+            345,
+            410,
+            310,
+            51
+          ],
+          "action": "OPEN_ONLINE",
+          "label": "Online Expedition",
+          "enabledIf": "networkOnline"
+        },
+        {
+          "id": "settings",
+          "role": "button",
+          "rect": [
+            230,
+            483,
+            260,
+            52
+          ],
+          "action": "OPEN_SETTINGS",
+          "label": "Options"
+        },
+        {
+          "id": "credits",
+          "role": "button",
+          "rect": [
+            510,
+            483,
+            260,
+            52
+          ],
+          "action": "OPEN_CREDITS",
+          "label": "Credits"
+        }
+      ]
+    },
+    {
+      "id": "SCR_SAVE_SLOTS",
+      "phase": "vertical_slice",
+      "parent": "SCR_MAIN_MENU",
+      "state": "local.saveSlots",
+      "layoutReference": "safe_canvas_1000x562",
+      "components": [
+        {
+          "id": "header",
+          "role": "heading",
+          "rect": [
+            45,
+            25,
+            910,
+            56
+          ],
+          "text": "Local Adventure Saves"
+        },
+        {
+          "id": "back",
+          "role": "button",
+          "rect": [
+            40,
+            24,
+            104,
+            56
+          ],
+          "action": "UI_BACK",
+          "label": "Back"
+        },
+        {
+          "id": "slot_list",
+          "role": "list",
+          "rect": [
+            155,
+            115,
+            690,
+            314
+          ],
+          "binding": "local.saveSlots",
+          "itemActions": [
+            "SELECT_SLOT",
+            "OPEN_SLOT_DETAILS"
+          ]
+        },
+        {
+          "id": "slot_create",
+          "role": "button",
+          "rect": [
+            175,
+            453,
+            290,
+            65
+          ],
+          "action": "CREATE_SLOT",
+          "label": "Create New"
+        },
+        {
+          "id": "slot_details",
+          "role": "button",
+          "rect": [
+            535,
+            453,
+            290,
+            65
+          ],
+          "action": "SLOT_OPTIONS",
+          "label": "Options / Restore"
+        }
+      ]
+    },
+    {
+      "id": "SCR_AVATAR_CREATE",
+      "phase": "vertical_slice",
+      "parent": "SCR_MAIN_MENU",
+      "state": "avatar.draft",
+      "layoutReference": "safe_canvas_1000x562",
+      "components": [
+        {
+          "id": "header",
+          "role": "heading",
+          "rect": [
+            45,
+            25,
+            910,
+            56
+          ],
+          "text": "Create Your Wayfinder"
+        },
+        {
+          "id": "back",
+          "role": "button",
+          "rect": [
+            40,
+            24,
+            104,
+            56
+          ],
+          "action": "UI_BACK",
+          "label": "Back"
+        },
+        {
+          "id": "character_preview",
+          "role": "sprite_preview",
+          "rect": [
+            70,
+            111,
+            300,
+            380
+          ],
+          "binding": "avatar.draftAppearance",
+          "nativePixelScaling": "nearest"
+        },
+        {
+          "id": "appearance_options",
+          "role": "form",
+          "rect": [
+            415,
+            113,
+            510,
+            318
+          ],
+          "fields": [
+            "display_name",
+            "frame",
+            "skin_palette",
+            "hair_shape",
+            "hair_color",
+            "jacket_color"
+          ]
+        },
+        {
+          "id": "continue",
+          "role": "button",
+          "rect": [
+            574,
+            454,
+            350,
+            69
+          ],
+          "action": "CONFIRM_AVATAR",
+          "label": "Begin Adventure",
+          "validation": "validNameAndAppearance"
+        }
+      ]
+    },
+    {
+      "id": "SCR_STARTER_PICK",
+      "phase": "vertical_slice",
+      "parent": "SCR_EXPLORE",
+      "state": "local.quest.Q002",
+      "layoutReference": "safe_canvas_1000x562",
+      "components": [
+        {
+          "id": "header",
+          "role": "heading",
+          "rect": [
+            45,
+            25,
+            910,
+            56
+          ],
+          "text": "Choose Your First Companion"
+        },
+        {
+          "id": "starter_cards",
+          "role": "card_collection",
+          "rect": [
+            52,
+            109,
+            895,
+            324
+          ],
+          "items": [
+            "WS-004",
+            "WS-008",
+            "WS-050"
+          ],
+          "selectAction": "SELECT_STARTER",
+          "readOnlyFields": [
+            "affinity",
+            "battleRole",
+            "explorationAbility"
+          ],
+          "ownerArtRequired": true
+        },
+        {
+          "id": "selected_details",
+          "role": "text",
+          "rect": [
+            70,
+            442,
+            520,
+            80
+          ],
+          "binding": "selection.details"
+        },
+        {
+          "id": "choose",
+          "role": "button",
+          "rect": [
+            639,
+            449,
+            300,
+            77
+          ],
+          "action": "PREVIEW_STARTER_CONFIRM",
+          "label": "Invite Companion",
+          "condition": "selectedStarterExists"
+        }
+      ]
+    },
+    {
+      "id": "SCR_EXPLORE",
+      "phase": "vertical_slice",
+      "parent": "world",
+      "state": "world.readOnly",
+      "layoutReference": "safe_canvas_1000x562",
+      "components": [
+        {
+          "id": "world_view",
+          "role": "render_backdrop",
+          "rect": [
+            0,
+            0,
+            1000,
+            562
+          ]
+        },
+        {
+          "id": "area_quest",
+          "role": "hud_text",
+          "rect": [
+            25,
+            22,
+            290,
+            59
+          ],
+          "binding": "world.zoneNameAndObjective",
+          "action": "OPEN_JOURNAL"
+        },
+        {
+          "id": "companion_hud",
+          "role": "hud",
+          "rect": [
+            747,
+            25,
+            225,
+            70
+          ],
+          "binding": "party.active"
+        },
+        {
+          "id": "reticle",
+          "role": "noninteractive",
+          "rect": [
+            485,
+            270,
+            30,
+            22
+          ]
+        },
+        {
+          "id": "context",
+          "role": "conditional_prompt",
+          "rect": [
+            357,
+            331,
+            286,
+            43
+          ],
+          "binding": "world.focusedTarget"
+        },
+        {
+          "id": "left_joystick",
+          "role": "touch_only",
+          "rect": [
+            33,
+            385,
+            160,
+            155
+          ],
+          "action": "MOVE",
+          "safeArea": "bottom_left"
+        },
+        {
+          "id": "right_look_area",
+          "role": "touch_zone",
+          "rect": [
+            495,
+            116,
+            480,
+            270
+          ],
+          "action": "LOOK",
+          "exclude": "interactive controls"
+        },
+        {
+          "id": "action_interact",
+          "role": "conditional_touch_button",
+          "rect": [
+            814,
+            407,
+            74,
+            72
+          ],
+          "action": "INTERACT",
+          "enabledIf": "world.validTarget"
+        },
+        {
+          "id": "action_compass",
+          "role": "touch_button",
+          "rect": [
+            894,
+            406,
+            74,
+            72
+          ],
+          "action": "COMPASS",
+          "enabledIf": "player.hasCompass"
+        },
+        {
+          "id": "action_companion",
+          "role": "touch_button",
+          "rect": [
+            734,
+            474,
+            73,
+            67
+          ],
+          "action": "COMPANION_CMD",
+          "enabledIf": "party.hasActive"
+        },
+        {
+          "id": "pause",
+          "role": "button",
+          "rect": [
+            927,
+            25,
+            49,
+            55
+          ],
+          "action": "OPEN_PAUSE",
+          "label": "Pause"
+        }
+      ]
+    },
+    {
+      "id": "SCR_COMPASS",
+      "phase": "vertical_slice",
+      "parent": "SCR_EXPLORE",
+      "state": "world.scan",
+      "layoutReference": "safe_canvas_1000x562",
+      "components": [
+        {
+          "id": "world_view",
+          "role": "render_backdrop",
+          "rect": [
+            0,
+            0,
+            1000,
+            562
+          ]
+        },
+        {
+          "id": "signal_meter",
+          "role": "hud",
+          "rect": [
+            365,
+            20,
+            270,
+            64
+          ],
+          "binding": "scan.signalStrength",
+          "label": "Signal"
+        },
+        {
+          "id": "glyph_display",
+          "role": "overlay",
+          "rect": [
+            280,
+            110,
+            440,
+            295
+          ],
+          "binding": "scan.visibleMarks"
+        },
+        {
+          "id": "hint",
+          "role": "text",
+          "rect": [
+            255,
+            430,
+            490,
+            65
+          ],
+          "binding": "scan.hint"
+        },
+        {
+          "id": "close_scan",
+          "role": "button",
+          "rect": [
+            800,
+            452,
+            157,
+            64
+          ],
+          "action": "CLOSE_COMPASS",
+          "label": "Return"
+        }
+      ]
+    },
+    {
+      "id": "SCR_DIALOGUE",
+      "phase": "vertical_slice",
+      "parent": "SCR_EXPLORE",
+      "state": "dialogue.current",
+      "layoutReference": "safe_canvas_1000x562",
+      "components": [
+        {
+          "id": "dim_world",
+          "role": "render_backdrop",
+          "rect": [
+            0,
+            0,
+            1000,
+            562
+          ]
+        },
+        {
+          "id": "portrait",
+          "role": "portrait",
+          "rect": [
+            85,
+            274,
+            186,
+            222
+          ],
+          "binding": "dialogue.speakerPortrait"
+        },
+        {
+          "id": "speaker_name",
+          "role": "text",
+          "rect": [
+            276,
+            320,
+            260,
+            52
+          ],
+          "binding": "dialogue.name"
+        },
+        {
+          "id": "dialogue_body",
+          "role": "textbox",
+          "rect": [
+            272,
+            370,
+            650,
+            116
+          ],
+          "binding": "dialogue.text",
+          "allowOverflowScroll": true
+        },
+        {
+          "id": "dialogue_next",
+          "role": "button",
+          "rect": [
+            756,
+            492,
+            164,
+            52
+          ],
+          "action": "DIALOGUE_NEXT",
+          "label": "Continue"
+        },
+        {
+          "id": "dialogue_close",
+          "role": "button",
+          "rect": [
+            820,
+            23,
+            142,
+            48
+          ],
+          "action": "DIALOGUE_CLOSE",
+          "label": "Close"
+        }
+      ]
+    },
+    {
+      "id": "SCR_PUZZLE",
+      "phase": "vertical_slice",
+      "parent": "SCR_EXPLORE",
+      "state": "world.puzzleState",
+      "layoutReference": "safe_canvas_1000x562",
+      "components": [
+        {
+          "id": "header",
+          "role": "heading",
+          "rect": [
+            45,
+            25,
+            910,
+            56
+          ],
+          "text": "Signal Puzzle"
+        },
+        {
+          "id": "puzzle_hint",
+          "role": "text",
+          "rect": [
+            167,
+            102,
+            665,
+            65
+          ],
+          "binding": "quest.currentPuzzleHint"
+        },
+        {
+          "id": "glyph_a",
+          "role": "button",
+          "rect": [
+            130,
+            201,
+            210,
+            152
+          ],
+          "action": "PUZZLE_ACTIVATE_A",
+          "label": "Sigil A"
+        },
+        {
+          "id": "glyph_b",
+          "role": "button",
+          "rect": [
+            395,
+            201,
+            210,
+            152
+          ],
+          "action": "PUZZLE_ACTIVATE_B",
+          "label": "Sigil B"
+        },
+        {
+          "id": "glyph_c",
+          "role": "button",
+          "rect": [
+            660,
+            201,
+            210,
+            152
+          ],
+          "action": "PUZZLE_ACTIVATE_C",
+          "label": "Sigil C"
+        },
+        {
+          "id": "feedback",
+          "role": "text",
+          "rect": [
+            200,
+            378,
+            600,
+            71
+          ],
+          "binding": "quest.puzzleFeedback"
+        },
+        {
+          "id": "leave",
+          "role": "button",
+          "rect": [
+            330,
+            475,
+            340,
+            61
+          ],
+          "action": "CLOSE_PUZZLE",
+          "label": "Return to world"
+        }
+      ]
+    },
+    {
+      "id": "SCR_OBSERVE",
+      "phase": "vertical_slice",
+      "parent": "SCR_EXPLORE",
+      "state": "wild.encounter",
+      "layoutReference": "safe_canvas_1000x562",
+      "components": [
+        {
+          "id": "header",
+          "role": "heading",
+          "rect": [
+            45,
+            25,
+            910,
+            56
+          ],
+          "text": "Wild Creature"
+        },
+        {
+          "id": "creature_sprite",
+          "role": "sprite_preview",
+          "rect": [
+            82,
+            112,
+            325,
+            287
+          ],
+          "binding": "wild.speciesSprite"
+        },
+        {
+          "id": "creature_clue",
+          "role": "textbox",
+          "rect": [
+            444,
+            115,
+            467,
+            170
+          ],
+          "binding": "wild.observationHint"
+        },
+        {
+          "id": "observe",
+          "role": "button",
+          "rect": [
+            448,
+            307,
+            215,
+            60
+          ],
+          "action": "WILD_OBSERVE",
+          "enabledIf": "wild.canObserve"
+        },
+        {
+          "id": "assist",
+          "role": "button",
+          "rect": [
+            680,
+            307,
+            215,
+            60
+          ],
+          "action": "WILD_HELP",
+          "enabledIf": "wild.canAssist"
+        },
+        {
+          "id": "spar",
+          "role": "button",
+          "rect": [
+            448,
+            378,
+            215,
+            60
+          ],
+          "action": "WILD_SPAR",
+          "enabledIf": "wild.canSpar"
+        },
+        {
+          "id": "invite",
+          "role": "button",
+          "rect": [
+            680,
+            378,
+            215,
+            60
+          ],
+          "action": "WILD_INVITE",
+          "enabledIf": "wild.trustMeetsThreshold"
+        },
+        {
+          "id": "leave",
+          "role": "button",
+          "rect": [
+            605,
+            463,
+            290,
+            64
+          ],
+          "action": "WILD_LEAVE"
+        }
+      ]
+    },
+    {
+      "id": "SCR_BOND",
+      "phase": "vertical_slice",
+      "parent": "SCR_OBSERVE",
+      "state": "wild.trustResult",
+      "layoutReference": "safe_canvas_1000x562",
+      "components": [
+        {
+          "id": "header",
+          "role": "heading",
+          "rect": [
+            45,
+            25,
+            910,
+            56
+          ],
+          "text": "New Companion"
+        },
+        {
+          "id": "species_preview",
+          "role": "sprite_preview",
+          "rect": [
+            240,
+            96,
+            290,
+            320
+          ],
+          "binding": "wild.befriendedSprite"
+        },
+        {
+          "id": "summary",
+          "role": "textbox",
+          "rect": [
+            544,
+            140,
+            330,
+            192
+          ],
+          "binding": "wild.trustAndPartySummary"
+        },
+        {
+          "id": "continue",
+          "role": "button",
+          "rect": [
+            606,
+            444,
+            278,
+            74
+          ],
+          "action": "CONFIRM_BOND_RESULT",
+          "label": "Continue",
+          "note": "server or local model already committed ownership"
+        }
+      ]
+    },
+    {
+      "id": "SCR_BATTLE_SELECT",
+      "phase": "vertical_slice",
+      "parent": "SCR_EXPLORE",
+      "state": "battle.phase.SELECT_ACTION",
+      "layoutReference": "safe_canvas_1000x562",
+      "components": [
+        {
+          "id": "battle_world",
+          "role": "render_backdrop",
+          "rect": [
+            0,
+            0,
+            1000,
+            562
+          ]
+        },
+        {
+          "id": "enemy_status",
+          "role": "hud",
+          "rect": [
+            40,
+            28,
+            310,
+            93
+          ],
+          "binding": "battle.enemy"
+        },
+        {
+          "id": "enemy_sprite",
+          "role": "sprite_preview",
+          "rect": [
+            584,
+            105,
+            250,
+            190
+          ],
+          "binding": "battle.enemySprite"
+        },
+        {
+          "id": "own_sprite",
+          "role": "sprite_preview",
+          "rect": [
+            88,
+            177,
+            191,
+            169
+          ],
+          "binding": "battle.ownSprite"
+        },
+        {
+          "id": "own_status",
+          "role": "hud",
+          "rect": [
+            40,
+            357,
+            343,
+            80
+          ],
+          "binding": "battle.ownHpAndEnergy"
+        },
+        {
+          "id": "move_1",
+          "role": "button",
+          "rect": [
+            409,
+            337,
+            250,
+            76
+          ],
+          "action": "BATTLE_MOVE_1",
+          "binding": "battle.ownMoves[0]",
+          "enabledIf": "battle.move1Legal"
+        },
+        {
+          "id": "move_2",
+          "role": "button",
+          "rect": [
+            669,
+            337,
+            250,
+            76
+          ],
+          "action": "BATTLE_MOVE_2",
+          "binding": "battle.ownMoves[1]",
+          "enabledIf": "battle.move2Legal"
+        },
+        {
+          "id": "move_3",
+          "role": "button",
+          "rect": [
+            409,
+            419,
+            250,
+            76
+          ],
+          "action": "BATTLE_MOVE_3",
+          "binding": "battle.ownMoves[2]",
+          "enabledIf": "battle.move3Legal"
+        },
+        {
+          "id": "move_4",
+          "role": "button",
+          "rect": [
+            669,
+            419,
+            250,
+            76
+          ],
+          "action": "BATTLE_MOVE_4",
+          "binding": "battle.ownMoves[3]",
+          "enabledIf": "battle.move4Legal"
+        },
+        {
+          "id": "battle_secondary",
+          "role": "tab_strip",
+          "rect": [
+            404,
+            510,
+            526,
+            44
+          ],
+          "actions": [
+            "BATTLE_PARTY",
+            "BATTLE_ITEM",
+            "BATTLE_RETREAT",
+            "BATTLE_HELP"
+          ],
+          "enabledByMode": true
+        }
+      ]
+    },
+    {
+      "id": "SCR_BATTLE_PLAYBACK",
+      "phase": "vertical_slice",
+      "parent": "SCR_BATTLE_SELECT",
+      "state": "battle.phase.PLAYBACK",
+      "layoutReference": "safe_canvas_1000x562",
+      "components": [
+        {
+          "id": "battle_world",
+          "role": "render_backdrop",
+          "rect": [
+            0,
+            0,
+            1000,
+            562
+          ]
+        },
+        {
+          "id": "combatants",
+          "role": "sprite_display",
+          "rect": [
+            125,
+            79,
+            750,
+            325
+          ],
+          "binding": "battle.eventFrames"
+        },
+        {
+          "id": "hp_animations",
+          "role": "hud",
+          "rect": [
+            175,
+            30,
+            650,
+            64
+          ],
+          "binding": "battle.authoritativeHp"
+        },
+        {
+          "id": "battle_log",
+          "role": "textbox",
+          "rect": [
+            185,
+            423,
+            632,
+            74
+          ],
+          "binding": "battle.eventLog"
+        },
+        {
+          "id": "skip",
+          "role": "button",
+          "rect": [
+            815,
+            486,
+            142,
+            54
+          ],
+          "action": "SKIP_PLAYBACK",
+          "label": "Skip FX",
+          "note": "does not modify simulation"
+        }
+      ]
+    },
+    {
+      "id": "SCR_BATTLE_RESULT",
+      "phase": "vertical_slice",
+      "parent": "SCR_BATTLE_SELECT",
+      "state": "battle.phase.RESULT",
+      "layoutReference": "safe_canvas_1000x562",
+      "components": [
+        {
+          "id": "header",
+          "role": "heading",
+          "rect": [
+            45,
+            25,
+            910,
+            56
+          ],
+          "text": "Battle Result"
+        },
+        {
+          "id": "result_header",
+          "role": "text",
+          "rect": [
+            195,
+            113,
+            610,
+            90
+          ],
+          "binding": "battle.result"
+        },
+        {
+          "id": "reward_log",
+          "role": "list",
+          "rect": [
+            200,
+            220,
+            600,
+            200
+          ],
+          "binding": "battle.oneTimeAwards"
+        },
+        {
+          "id": "continue",
+          "role": "button",
+          "rect": [
+            342,
+            452,
+            316,
+            78
+          ],
+          "action": "BATTLE_EXIT",
+          "label": "Return to world"
+        }
+      ]
+    },
+    {
+      "id": "SCR_JOURNAL",
+      "phase": "vertical_slice",
+      "parent": "SCR_PAUSE",
+      "state": "quests.readOnly",
+      "layoutReference": "safe_canvas_1000x562",
+      "components": [
+        {
+          "id": "header",
+          "role": "heading",
+          "rect": [
+            45,
+            25,
+            910,
+            56
+          ],
+          "text": "Wayfinder Journal"
+        },
+        {
+          "id": "back",
+          "role": "button",
+          "rect": [
+            40,
+            24,
+            104,
+            56
+          ],
+          "action": "UI_BACK",
+          "label": "Back"
+        },
+        {
+          "id": "quest_tabs",
+          "role": "tabs",
+          "rect": [
+            54,
+            104,
+            285,
+            77
+          ],
+          "items": [
+            "Active",
+            "Completed",
+            "Seen Clues"
+          ]
+        },
+        {
+          "id": "quest_list",
+          "role": "list",
+          "rect": [
+            54,
+            181,
+            316,
+            311
+          ],
+          "binding": "quests.list"
+        },
+        {
+          "id": "quest_detail",
+          "role": "textbox",
+          "rect": [
+            403,
+            115,
+            525,
+            369
+          ],
+          "binding": "quests.selectedDescription",
+          "allowOverflowScroll": true
+        },
+        {
+          "id": "return",
+          "role": "button",
+          "rect": [
+            734,
+            495,
+            194,
+            52
+          ],
+          "action": "UI_BACK",
+          "label": "Return"
+        }
+      ]
+    },
+    {
+      "id": "SCR_FIELD_BOOK",
+      "phase": "vertical_slice",
+      "parent": "SCR_PAUSE",
+      "state": "creatures.catalogReadOnly",
+      "layoutReference": "safe_canvas_1000x562",
+      "components": [
+        {
+          "id": "header",
+          "role": "heading",
+          "rect": [
+            45,
+            25,
+            910,
+            56
+          ],
+          "text": "Creature Fieldbook"
+        },
+        {
+          "id": "back",
+          "role": "button",
+          "rect": [
+            40,
+            24,
+            104,
+            56
+          ],
+          "action": "UI_BACK",
+          "label": "Back"
+        },
+        {
+          "id": "species_grid",
+          "role": "grid",
+          "rect": [
+            42,
+            109,
+            535,
+            390
+          ],
+          "binding": "creatureFieldbook.unlockedEntries",
+          "selection": "SELECT_FIELD_ENTRY"
+        },
+        {
+          "id": "entry_detail",
+          "role": "textbox",
+          "rect": [
+            599,
+            110,
+            361,
+            376
+          ],
+          "binding": "creatureFieldbook.selected"
+        },
+        {
+          "id": "return",
+          "role": "button",
+          "rect": [
+            710,
+            503,
+            250,
+            50
+          ],
+          "action": "UI_BACK",
+          "label": "Return"
+        }
+      ]
+    },
+    {
+      "id": "SCR_PARTY",
+      "phase": "vertical_slice",
+      "parent": "SCR_PAUSE",
+      "state": "party.ownedLocalOrOnline",
+      "layoutReference": "safe_canvas_1000x562",
+      "components": [
+        {
+          "id": "header",
+          "role": "heading",
+          "rect": [
+            45,
+            25,
+            910,
+            56
+          ],
+          "text": "Companions"
+        },
+        {
+          "id": "back",
+          "role": "button",
+          "rect": [
+            40,
+            24,
+            104,
+            56
+          ],
+          "action": "UI_BACK",
+          "label": "Back"
+        },
+        {
+          "id": "party_list",
+          "role": "list",
+          "rect": [
+            58,
+            112,
+            350,
+            380
+          ],
+          "binding": "party.slots"
+        },
+        {
+          "id": "creature_details",
+          "role": "textbox",
+          "rect": [
+            439,
+            112,
+            501,
+            328
+          ],
+          "binding": "party.selected"
+        },
+        {
+          "id": "set_active",
+          "role": "button",
+          "rect": [
+            447,
+            461,
+            213,
+            67
+          ],
+          "action": "PARTY_SET_ACTIVE",
+          "enabledIf": "party.selectedAvailable"
+        },
+        {
+          "id": "reserve",
+          "role": "button",
+          "rect": [
+            688,
+            461,
+            236,
+            67
+          ],
+          "action": "PARTY_OPEN_RESERVE",
+          "label": "Reserve"
+        }
+      ]
+    },
+    {
+      "id": "SCR_INVENTORY",
+      "phase": "vertical_slice",
+      "parent": "SCR_PAUSE",
+      "state": "inventory.readOnly",
+      "layoutReference": "safe_canvas_1000x562",
+      "components": [
+        {
+          "id": "header",
+          "role": "heading",
+          "rect": [
+            45,
+            25,
+            910,
+            56
+          ],
+          "text": "Backpack"
+        },
+        {
+          "id": "back",
+          "role": "button",
+          "rect": [
+            40,
+            24,
+            104,
+            56
+          ],
+          "action": "UI_BACK",
+          "label": "Back"
+        },
+        {
+          "id": "category_tabs",
+          "role": "tabs",
+          "rect": [
+            50,
+            115,
+            228,
+            71
+          ],
+          "items": [
+            "Field Tools",
+            "Supplies",
+            "Key Findings"
+          ]
+        },
+        {
+          "id": "item_grid",
+          "role": "grid",
+          "rect": [
+            300,
+            115,
+            326,
+            361
+          ],
+          "binding": "inventory.items"
+        },
+        {
+          "id": "item_details",
+          "role": "textbox",
+          "rect": [
+            647,
+            115,
+            308,
+            358
+          ],
+          "binding": "inventory.selected"
+        },
+        {
+          "id": "close",
+          "role": "button",
+          "rect": [
+            698,
+            496,
+            253,
+            50
+          ],
+          "action": "UI_BACK"
+        }
+      ]
+    },
+    {
+      "id": "SCR_WORLD_MAP",
+      "phase": "vertical_slice",
+      "parent": "SCR_PAUSE",
+      "state": "world.visitedMap",
+      "layoutReference": "safe_canvas_1000x562",
+      "components": [
+        {
+          "id": "header",
+          "role": "heading",
+          "rect": [
+            45,
+            25,
+            910,
+            56
+          ],
+          "text": "Explorer Map"
+        },
+        {
+          "id": "back",
+          "role": "button",
+          "rect": [
+            40,
+            24,
+            104,
+            56
+          ],
+          "action": "UI_BACK",
+          "label": "Back"
+        },
+        {
+          "id": "map_view",
+          "role": "map_panel",
+          "rect": [
+            68,
+            110,
+            672,
+            391
+          ],
+          "binding": "world.discoveredTopology"
+        },
+        {
+          "id": "legend",
+          "role": "legend",
+          "rect": [
+            770,
+            120,
+            204,
+            345
+          ],
+          "binding": "world.mapLegend"
+        },
+        {
+          "id": "close",
+          "role": "button",
+          "rect": [
+            773,
+            486,
+            201,
+            53
+          ],
+          "action": "UI_BACK"
+        }
+      ]
+    },
+    {
+      "id": "SCR_PAUSE",
+      "phase": "vertical_slice",
+      "parent": "SCR_EXPLORE",
+      "state": "world.localPausedOrModal",
+      "layoutReference": "safe_canvas_1000x562",
+      "components": [
+        {
+          "id": "header",
+          "role": "heading",
+          "rect": [
+            45,
+            25,
+            910,
+            56
+          ],
+          "text": "Pause"
+        },
+        {
+          "id": "resume",
+          "role": "button",
+          "rect": [
+            340,
+            103,
+            320,
+            64
+          ],
+          "action": "RESUME"
+        },
+        {
+          "id": "party",
+          "role": "button",
+          "rect": [
+            340,
+            174,
+            320,
+            57
+          ],
+          "action": "OPEN_PARTY"
+        },
+        {
+          "id": "journal",
+          "role": "button",
+          "rect": [
+            340,
+            237,
+            320,
+            57
+          ],
+          "action": "OPEN_JOURNAL"
+        },
+        {
+          "id": "inventory",
+          "role": "button",
+          "rect": [
+            340,
+            300,
+            320,
+            57
+          ],
+          "action": "OPEN_INVENTORY"
+        },
+        {
+          "id": "save",
+          "role": "button",
+          "rect": [
+            340,
+            363,
+            320,
+            57
+          ],
+          "action": "SAVE_LOCAL",
+          "enabledIf": "local.canSave"
+        },
+        {
+          "id": "options",
+          "role": "button",
+          "rect": [
+            340,
+            426,
+            150,
+            57
+          ],
+          "action": "OPEN_SETTINGS"
+        },
+        {
+          "id": "quit_local",
+          "role": "button",
+          "rect": [
+            510,
+            426,
+            150,
+            57
+          ],
+          "action": "EXIT_TO_MAIN"
+        },
+        {
+          "id": "save_feedback",
+          "role": "toast",
+          "rect": [
+            260,
+            502,
+            480,
+            40
+          ],
+          "binding": "save.status",
+          "note": "Saved locally, never fake cloud acknowledgment"
+        }
+      ]
+    },
+    {
+      "id": "SCR_SETTINGS",
+      "phase": "vertical_slice",
+      "parent": "SCR_PAUSE",
+      "state": "settings.localDevice",
+      "layoutReference": "safe_canvas_1000x562",
+      "components": [
+        {
+          "id": "header",
+          "role": "heading",
+          "rect": [
+            45,
+            25,
+            910,
+            56
+          ],
+          "text": "Options"
+        },
+        {
+          "id": "back",
+          "role": "button",
+          "rect": [
+            40,
+            24,
+            104,
+            56
+          ],
+          "action": "UI_BACK",
+          "label": "Back"
+        },
+        {
+          "id": "settings_tabs",
+          "role": "tabs",
+          "rect": [
+            50,
+            108,
+            235,
+            380
+          ],
+          "items": [
+            "Graphics",
+            "Controls",
+            "Audio",
+            "Accessibility"
+          ]
+        },
+        {
+          "id": "settings_fields",
+          "role": "scroll_form",
+          "rect": [
+            319,
+            111,
+            622,
+            374
+          ],
+          "binding": "settings.currentTab"
+        },
+        {
+          "id": "defaults",
+          "role": "button",
+          "rect": [
+            433,
+            500,
+            195,
+            48
+          ],
+          "action": "SETTINGS_DEFAULTS"
+        },
+        {
+          "id": "apply",
+          "role": "button",
+          "rect": [
+            669,
+            500,
+            272,
+            48
+          ],
+          "action": "SETTINGS_APPLY"
+        }
+      ]
+    },
+    {
+      "id": "SCR_ONLINE_HOME",
+      "phase": "online_proof",
+      "parent": "SCR_MAIN_MENU",
+      "state": "network.session",
+      "layoutReference": "safe_canvas_1000x562",
+      "components": [
+        {
+          "id": "header",
+          "role": "heading",
+          "rect": [
+            45,
+            25,
+            910,
+            56
+          ],
+          "text": "Online Expedition"
+        },
+        {
+          "id": "back",
+          "role": "button",
+          "rect": [
+            40,
+            24,
+            104,
+            56
+          ],
+          "action": "UI_BACK",
+          "label": "Back"
+        },
+        {
+          "id": "account_panel",
+          "role": "card",
+          "rect": [
+            100,
+            128,
+            800,
+            121
+          ],
+          "binding": "network.accountOrLogin"
+        },
+        {
+          "id": "friends",
+          "role": "button",
+          "rect": [
+            96,
+            280,
+            250,
+            71
+          ],
+          "action": "OPEN_FRIENDS",
+          "enabledIf": "network.authed"
+        },
+        {
+          "id": "join",
+          "role": "button",
+          "rect": [
+            375,
+            280,
+            250,
+            71
+          ],
+          "action": "ONLINE_JOIN_CODE",
+          "enabledIf": "network.authed"
+        },
+        {
+          "id": "create",
+          "role": "button",
+          "rect": [
+            654,
+            280,
+            250,
+            71
+          ],
+          "action": "ONLINE_CREATE_LOBBY",
+          "enabledIf": "network.authed"
+        },
+        {
+          "id": "warning",
+          "role": "textbox",
+          "rect": [
+            130,
+            400,
+            740,
+            98
+          ],
+          "text": "Online creatures and trading require server-verified progression; local save remains separate (model still under review)."
+        }
+      ]
+    },
+    {
+      "id": "SCR_ONLINE_LOBBY",
+      "phase": "online_proof",
+      "parent": "SCR_ONLINE_HOME",
+      "state": "network.lobbyState",
+      "layoutReference": "safe_canvas_1000x562",
+      "components": [
+        {
+          "id": "header",
+          "role": "heading",
+          "rect": [
+            45,
+            25,
+            910,
+            56
+          ],
+          "text": "Expedition Lobby"
+        },
+        {
+          "id": "back",
+          "role": "button",
+          "rect": [
+            40,
+            24,
+            104,
+            56
+          ],
+          "action": "UI_BACK",
+          "label": "Back"
+        },
+        {
+          "id": "party_members",
+          "role": "list",
+          "rect": [
+            85,
+            130,
+            530,
+            300
+          ],
+          "binding": "network.members"
+        },
+        {
+          "id": "invite_code",
+          "role": "textbox",
+          "rect": [
+            655,
+            132,
+            289,
+            85
+          ],
+          "binding": "network.joinCode"
+        },
+        {
+          "id": "invite",
+          "role": "button",
+          "rect": [
+            650,
+            258,
+            290,
+            60
+          ],
+          "action": "COPY_LOBBY_CODE"
+        },
+        {
+          "id": "ready",
+          "role": "button",
+          "rect": [
+            649,
+            347,
+            290,
+            63
+          ],
+          "action": "ONLINE_SET_READY"
+        },
+        {
+          "id": "leave",
+          "role": "button",
+          "rect": [
+            645,
+            446,
+            295,
+            63
+          ],
+          "action": "ONLINE_LEAVE"
+        }
+      ]
+    },
+    {
+      "id": "SCR_TRADE",
+      "phase": "later",
+      "parent": "SCR_ONLINE_HOME",
+      "state": "network.verifiedTradeOnly",
+      "layoutReference": "safe_canvas_1000x562",
+      "components": [
+        {
+          "id": "header",
+          "role": "heading",
+          "rect": [
+            45,
+            25,
+            910,
+            56
+          ],
+          "text": "Creature Trade — Later Release"
+        },
+        {
+          "id": "back",
+          "role": "button",
+          "rect": [
+            40,
+            24,
+            104,
+            56
+          ],
+          "action": "UI_BACK",
+          "label": "Back"
+        },
+        {
+          "id": "trade_offer",
+          "role": "card",
+          "rect": [
+            65,
+            143,
+            388,
+            269
+          ],
+          "binding": "trade.ownOffer"
+        },
+        {
+          "id": "trade_receipt",
+          "role": "card",
+          "rect": [
+            546,
+            143,
+            388,
+            269
+          ],
+          "binding": "trade.partnerOffer"
+        },
+        {
+          "id": "confirm",
+          "role": "button",
+          "rect": [
+            359,
+            448,
+            282,
+            66
+          ],
+          "action": "TRADE_CONFIRM",
+          "enabledIf": "trade.serverReadyAndConfirmed",
+          "note": "disabled until authoritative backend"
+        }
+      ]
+    },
+    {
+      "id": "SCR_COSMETIC_STORE",
+      "phase": "later",
+      "parent": "SCR_ONLINE_HOME",
+      "state": "commerce.verifiedEntitlements",
+      "layoutReference": "safe_canvas_1000x562",
+      "components": [
+        {
+          "id": "header",
+          "role": "heading",
+          "rect": [
+            45,
+            25,
+            910,
+            56
+          ],
+          "text": "Wayfinder Wardrobe — Later Release"
+        },
+        {
+          "id": "back",
+          "role": "button",
+          "rect": [
+            40,
+            24,
+            104,
+            56
+          ],
+          "action": "UI_BACK",
+          "label": "Back"
+        },
+        {
+          "id": "featured",
+          "role": "card_collection",
+          "rect": [
+            80,
+            123,
+            600,
+            350
+          ],
+          "binding": "commerce.productCatalog"
+        },
+        {
+          "id": "preview",
+          "role": "sprite_preview",
+          "rect": [
+            711,
+            127,
+            232,
+            292
+          ],
+          "binding": "commerce.preview"
+        },
+        {
+          "id": "purchase",
+          "role": "button",
+          "rect": [
+            709,
+            455,
+            236,
+            65
+          ],
+          "action": "BEGIN_STORE_CHECKOUT",
+          "enabledIf": "commerce.storeAllowed",
+          "note": "never route to placeholder charges"
+        }
+      ]
+    },
+    {
+      "id": "SCR_CREDITS",
+      "phase": "vertical_slice",
+      "parent": "SCR_MAIN_MENU",
+      "state": "app.credits",
+      "layoutReference": "safe_canvas_1000x562",
+      "components": [
+        {
+          "id": "header",
+          "role": "heading",
+          "rect": [
+            45,
+            25,
+            910,
+            56
+          ],
+          "text": "Credits & Legal"
+        },
+        {
+          "id": "back",
+          "role": "button",
+          "rect": [
+            40,
+            24,
+            104,
+            56
+          ],
+          "action": "UI_BACK",
+          "label": "Back"
+        },
+        {
+          "id": "credits_text",
+          "role": "textbox",
+          "rect": [
+            135,
+            130,
+            730,
+            347
+          ],
+          "binding": "app.credits",
+          "allowOverflowScroll": true
+        }
+      ]
+    }
+  ],
+  "overlays": [
+    {
+      "id": "MODAL_CONFIRM",
+      "actionIds": [
+        "CONFIRM",
+        "CANCEL"
+      ],
+      "description": "Two-step potentially irreversible starter/trade/delete choice"
+    },
+    {
+      "id": "MODAL_SAVE_WARNING",
+      "actionIds": [
+        "RESTORE_BACKUP",
+        "GO_BACK"
+      ],
+      "description": "Corrupt primary save, never silently overwrite"
+    },
+    {
+      "id": "MODAL_DISCONNECT",
+      "actionIds": [
+        "RETRY_ONLINE",
+        "LEAVE_TO_LOCAL"
+      ],
+      "description": "Network failure cannot damage local save"
+    },
+    {
+      "id": "TOAST_AUTOSAVE",
+      "actionIds": [],
+      "description": "Only show successful local write after acknowledgment"
+    },
+    {
+      "id": "MODAL_ERROR",
+      "actionIds": [
+        "DISMISS",
+        "RETRY_WHERE_SAFE"
+      ],
+      "description": "Focus returns to originating control; no progress falsely confirmed"
+    }
+  ],
+  "schemaChecks": [
+    "screen IDs unique",
+    "all rectangles within safe reference bounds",
+    "phase of store/trade later",
+    "no local root screen depends on internet",
+    "all UI screen routes reference one declared screen",
+    "battle move actions 1..4 exactly"
+  ]
+}

@@ -1,0 +1,423 @@
+{
+  "schema_version": "0.2-canonical-mirror",
+  "status": "MIXED_CONFIRMED_AND_OPEN",
+  "canonical_source": "docs/planning/DECISION_REGISTER_v0.1.md",
+  "generated_from_markdown_on": "2026-10-20",
+  "id_policy": "IDs are IDENTICAL to Markdown register. The original 0.1 JSON contained conflicting IDs and is deprecated; consult Git history if migrating old JSON references. Never use legacy JSON meanings for decision IDs.",
+  "update_rule": "Maintain both registers together; owner explicit approval required to switch status. Codex must not implement proposals by default.",
+  "status_vocabulary": [
+    "CONFIRMED",
+    "PROPOSED",
+    "OPEN",
+    "BLOCKED_BY_TEST",
+    "DEFERRED"
+  ],
+  "entries": [
+    {
+      "id": "D-001",
+      "status": "CONFIRMED",
+      "statusText": "CONFIRMED working title",
+      "decision": "WILDSIGNAL working title (name trademark clearance not performed)",
+      "downstream": "branding, Steam/Play naming",
+      "approvedAt": "2026-10-20",
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-002",
+      "status": "CONFIRMED",
+      "statusText": "CONFIRMED ownership per user",
+      "decision": "Original pixel-art monster companion RPG with user's OWN 100-cell hand-created art",
+      "downstream": "creature catalog, sprite asset rights",
+      "approvedAt": "2026-10-20",
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-003",
+      "status": "CONFIRMED",
+      "statusText": "CONFIRMED visual direction",
+      "decision": "First-person retro pseudo-3D/2.5D appearance inspired by user's dungeon screenshot",
+      "downstream": "renderer R&D, world geometry",
+      "approvedAt": "2026-10-20",
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-004",
+      "status": "CONFIRMED",
+      "statusText": "CONFIRMED",
+      "decision": "Mood \"Beautiful but mysterious\": cute companions, lush nature, ruins and discovery",
+      "downstream": "art and narrative",
+      "approvedAt": "2026-10-20",
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-005",
+      "status": "CONFIRMED",
+      "statusText": "CONFIRMED",
+      "decision": "Persistent creature companions follow, respond and help exploration",
+      "downstream": "sprite art, sim/navigation",
+      "approvedAt": "2026-10-20",
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-006",
+      "status": "CONFIRMED",
+      "statusText": "CONFIRMED",
+      "decision": "Creature battles are turn-based; world exploration real-time",
+      "downstream": "battle engine, UI",
+      "approvedAt": "2026-10-20",
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-007",
+      "status": "CONFIRMED",
+      "statusText": "CONFIRMED tech constraints",
+      "decision": "C++ with lightweight libraries; user lacks local heavy game engine/high-end GPU",
+      "downstream": "architecture",
+      "approvedAt": "2026-10-20",
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-008",
+      "status": "CONFIRMED",
+      "statusText": "CONFIRMED target",
+      "decision": "Android/Google Play and Windows/Steam publishing targets",
+      "downstream": "CI, platform adapters, compliance",
+      "approvedAt": "2026-10-20",
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-009",
+      "status": "CONFIRMED",
+      "statusText": "CONFIRMED",
+      "decision": "Full solo story progression playable offline; online multiplayer optional",
+      "downstream": "save trust, UX, account boundaries",
+      "approvedAt": "2026-10-20",
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-010",
+      "status": "CONFIRMED",
+      "statusText": "CONFIRMED intent; exact release scope OPEN",
+      "decision": "Multiplayer included in overall vision and optional purchases intended for revenue",
+      "downstream": "product roadmap",
+      "approvedAt": "2026-10-20",
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-011",
+      "status": "CONFIRMED",
+      "statusText": "CONFIRMED workflow",
+      "decision": "ChatGPT leads planning/spec; Codex implements after decisions approved",
+      "downstream": "PRs, task packets",
+      "approvedAt": "2026-10-20",
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-012",
+      "status": "CONFIRMED",
+      "statusText": "CONFIRMED x64-only compatibility target, 2026-10-20; verification GATED",
+      "decision": "Owner's development PC runs Windows 11 (i3 10th gen, 4 GB). WILDSIGNAL targets 64-bit Windows 7, 8, 8.1, 10 and 11 only; 32-bit OS and 32-bit game binaries are out of scope. Windows 7 SP1 is the proposed oldest test baseline; actual compatibility unverified.",
+      "downstream": "build architecture, legacy Win7–11 binary, Steam distribution separation and OS/security tests",
+      "approvedAt": "2026-10-20",
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md",
+      "approvalScope": "64-bit Windows 7–11 target confirmed for planning, excludes x86 builds; runtime and distribution are untested"
+    },
+    {
+      "id": "D-013",
+      "status": "CONFIRMED",
+      "statusText": "CONFIRMED concept approval + visual rejection, 2026-10-21; VIS-001 visual fidelity proof required",
+      "decision": "Lantern Quay and Liltwood Forest are APPROVED as setting concepts; the actual RENDER-001 prototype environmental graphics are REJECTED as a visual/art baseline. Do not claim final visual approval based on technical screenshot/CI success.",
+      "downstream": "visual quality gate, art targets, renderer geometry comparison, production art signoff",
+      "approvedAt": "2026-10-21",
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-014",
+      "status": "CONFIRMED",
+      "statusText": "CONFIRMED reference-style approval, 2026-10-21; production asset QA GATED",
+      "decision": "Owner APPROVES the visual style and atmosphere of generated ART-ENV-001 Lantern Quay + Liltwood Forest reference illustrations; does NOT approve crop candidates as finished seamless/alpha-clean/geometry-correct game art or public publication. Keep owner-drawn creatures separate from generated environmental concepts.",
+      "downstream": "ART-ENV-002 reusable tiles and prop cleanup, game art manifests, AGENTS.md, controlled renderer integration and owner in-game visual signoff",
+      "approvedAt": "2026-10-21",
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-020",
+      "status": "CONFIRMED",
+      "statusText": "CONFIRMED for planning, 2026-10-20",
+      "decision": "Free-to-play on Steam and Google Play with OPTIONAL cosmetic-only purchases, no competitive/stat/progression benefits. Exact pricing/SKUs and payment integration unapproved.",
+      "downstream": "monetization, economy, store/billing compliance",
+      "approvedAt": "2026-10-20",
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-021",
+      "status": "CONFIRMED",
+      "statusText": "CONFIRMED planning target, 2026-10-20; feasibility GATED",
+      "decision": "Aspirational commercial 1.0 scope: 6 zones (Z01–Z06), 18–24 completed species, 3–5h main story, expressly subject to feasibility and playtests, not a fixed promise or content freeze.",
+      "downstream": "narrative/art/QA scope, costs, real production evidence",
+      "approvedAt": "2026-10-20",
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-022",
+      "status": "OPEN",
+      "statusText": "OPEN contingency; not approved as new release scope",
+      "decision": "Four expanded zones / nine species remains a contingency option if D-021 is not feasible; changing the approved aspirational target requires an explicit scope review with owner, not automatic silent shrink.",
+      "downstream": "production capacity and scope review",
+      "approvedAt": null,
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-023",
+      "status": "CONFIRMED",
+      "statusText": "CONFIRMED for planning, 2026-10-20",
+      "decision": "Two-player cross-platform co-op at commercial 1.0 launch (Android↔Windows). Online trading and ranked PvP remain later optional phases; do not silently defer launch co-op.",
+      "downstream": "network authority, backend and operating costs",
+      "approvedAt": "2026-10-20",
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-024",
+      "status": "CONFIRMED",
+      "statusText": "CONFIRMED for planning, 2026-10-20; projection feasibility GATED",
+      "decision": "Local offline story inventory and server-verified online progression are separate; in casual co-op, show appearance of familiar offline companions where technically feasible without importing their unverified stats, trade rights or rank. Exact presentation/recovery remains to design.",
+      "downstream": "companion UX, accounts, server validation, trust boundaries",
+      "approvedAt": "2026-10-20",
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-025",
+      "status": "CONFIRMED",
+      "statusText": "RECOMMENDED; original sprite art is confirmed",
+      "decision": "Original starter art mappings WS-004 Glintle/Flora, WS-008 Driftfin/Tide, WS-050 Brumlet/Ember",
+      "downstream": "sprite animation, battle schema",
+      "approvedAt": "2026-10-20",
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-026",
+      "status": "PROPOSED",
+      "statusText": "RECOMMENDED",
+      "decision": "First-nine species proposal, including Tumbletail/Puddlefin/Mossmelt/Signalit/Craglet/Hushflame",
+      "downstream": "roster approval, habitats",
+      "approvedAt": null,
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-027",
+      "status": "PROPOSED",
+      "statusText": "RECOMMENDED",
+      "decision": "Trust-building Invite/Observe/Help/Friendly Spar instead of capture device",
+      "downstream": "core loop/progression",
+      "approvedAt": null,
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-028",
+      "status": "PROPOSED",
+      "statusText": "RECOMMENDED",
+      "decision": "3 carried creatures, 1 active 1v1, 4 moves, energy 0..8, integer formulas, basic statuses",
+      "downstream": "combat backend and battle UI",
+      "approvedAt": null,
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-029",
+      "status": "PROPOSED",
+      "statusText": "RECOMMENDED",
+      "decision": "3 local save slots; source sprite pivots and extra angles created conservatively",
+      "downstream": "save UX and art effort",
+      "approvedAt": null,
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-030",
+      "status": "PROPOSED",
+      "statusText": "RECOMMENDED",
+      "decision": "Landscape-first on Android; controller support by commercial 1.0",
+      "downstream": "controls/QA",
+      "approvedAt": null,
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-031",
+      "status": "PROPOSED",
+      "statusText": "RECOMMENDED",
+      "decision": "Original NPCs Mara/Fen/Iri and Sol inscription (not full NPC in opening)",
+      "downstream": "quests, character art",
+      "approvedAt": null,
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-032",
+      "status": "PROPOSED",
+      "statusText": "RECOMMENDED",
+      "decision": "No UI-based minimap by default, compass-based discovery",
+      "downstream": "wayfinding and accessibility",
+      "approvedAt": null,
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-033",
+      "status": "PROPOSED",
+      "statusText": "RECOMMENDED",
+      "decision": "Cosmetically useful but honest online avatar presentation despite first-person solo",
+      "downstream": "art, monetization",
+      "approvedAt": null,
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-040",
+      "status": "BLOCKED_BY_TEST",
+      "statusText": "BLOCKED_BY_TEST",
+      "decision": "CPU raycaster vs sector/portal wall renderer vs small CPU rasterizer",
+      "downstream": "renderer/low-end visual benchmark",
+      "approvedAt": null,
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-041",
+      "status": "BLOCKED_BY_TEST",
+      "statusText": "BLOCKED_BY_TEST",
+      "decision": "320×180 / 400×225 / 480×270 baseline, optional 60fps",
+      "downstream": "P95/P99 frame time and pixel readability on devices",
+      "approvedAt": null,
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-042",
+      "status": "BLOCKED_BY_TEST",
+      "statusText": "BLOCKED_BY_TEST",
+      "decision": "x64 is approved and 32-bit game/OS support is explicitly excluded; actual Windows 7 SP1 x64 minimum-runtime feasibility, legacy CRT/SDL imports, Windows RAM/performance and Android min OS remain unverified",
+      "downstream": "64-bit Win7/8/8.1/10/11 functional tests, standalone distribution, hardware/OS and security evidence",
+      "approvedAt": null,
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-043",
+      "status": "BLOCKED_BY_TEST",
+      "statusText": "BLOCKED_BY_TEST",
+      "decision": "FOV/pitch, vertical architecture, wall/floor height and outdoor vista illusion",
+      "downstream": "screenshot comparing original mood, measured fidelity",
+      "approvedAt": null,
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-044",
+      "status": "BLOCKED_BY_TEST",
+      "statusText": "BLOCKED_BY_TEST",
+      "decision": "Memory/cache budget and threading to maintain 30 FPS with animated sprite foliage",
+      "downstream": "20-minute soak, RSS/PSS, battery, memory trace",
+      "approvedAt": null,
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-045",
+      "status": "BLOCKED_BY_TEST",
+      "statusText": "BLOCKED_BY_TEST",
+      "decision": "SDL3 software-presentation vs framebuffer upload and UI crispness strategy",
+      "downstream": "actual Windows and Android behavior",
+      "approvedAt": null,
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-046",
+      "status": "PROPOSED",
+      "statusText": "RECOMMENDED, verify build",
+      "decision": "C++20 + SDL3/CMake as standard client tech",
+      "downstream": "pinned toolchain Win/Android smoke builds",
+      "approvedAt": null,
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-047",
+      "status": "PROPOSED",
+      "statusText": "RECOMMENDED; input comfort proof",
+      "decision": "30Hz fixed world tick with independent rendering",
+      "downstream": "cross-device movement test",
+      "approvedAt": null,
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-048",
+      "status": "OPEN",
+      "statusText": "OPEN",
+      "decision": "Transport library (ENet vs other) and headless server infrastructure",
+      "downstream": "online 2-client prototype",
+      "approvedAt": null,
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-049",
+      "status": "PROPOSED",
+      "statusText": "RECOMMENDED; design to verify",
+      "decision": "Versioned local saves + backup and migration; exact format",
+      "downstream": "corrupted/interrupted save tests",
+      "approvedAt": null,
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-060",
+      "status": "DEFERRED",
+      "statusText": "DEFERRED until production capacity",
+      "decision": "Remaining portions of 100-creature sprite collection",
+      "downstream": "",
+      "approvedAt": null,
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-061",
+      "status": "DEFERRED",
+      "statusText": "DEFERRED",
+      "decision": "Full 10-region world, Caldera/Marsh/Stormwatch/etc.",
+      "downstream": "",
+      "approvedAt": null,
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-062",
+      "status": "DEFERRED",
+      "statusText": "DEFERRED by candidate 1.0 plan, approval required",
+      "decision": "Trading, ranked PvP, MMO-scale hubs, seasonal battles, guilds",
+      "downstream": "",
+      "approvedAt": null,
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-063",
+      "status": "DEFERRED",
+      "statusText": "DEFERRED pending renderer proof",
+      "decision": "Rich vertical geometry, multi-floor buildings, 3rd-person avatar camera",
+      "downstream": "",
+      "approvedAt": null,
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-064",
+      "status": "CONFIRMED",
+      "statusText": "REJECTED as initial product recommendation; not user-confirmed",
+      "decision": "Breeding, random loot/gacha, paid power boosts",
+      "downstream": "",
+      "approvedAt": "2026-10-20",
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-065",
+      "status": "DEFERRED",
+      "statusText": "DEFERRED",
+      "decision": "Complete creature evolution families for 100 sprites",
+      "downstream": "",
+      "approvedAt": null,
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-066",
+      "status": "OPEN",
+      "statusText": "NOT PROMISED; requires policy/verification",
+      "decision": "Cross-store purchases/entitlements automatically syncing",
+      "downstream": "",
+      "approvedAt": null,
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    }
+  ]
+}

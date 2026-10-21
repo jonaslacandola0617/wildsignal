@@ -1,0 +1,441 @@
+{
+  "schema": "wildsignal-deterministic-combat-test-v0.1",
+  "status": "PROPOSED FIXTURES — math verified in design tooling, not in C++ engine",
+  "algorithm": "BATTLE_BALANCE_BIBLE_v0.1.md",
+  "creatureSource": "FIRST_NINE_CREATURES_v0.1.json",
+  "levelStatVectors": [
+    {
+      "species": "WS-004",
+      "level": 5,
+      "expected": {
+        "hp": 64,
+        "might": 15,
+        "guard": 19,
+        "pulse": 18,
+        "ward": 19,
+        "swift": 14
+      }
+    },
+    {
+      "species": "WS-008",
+      "level": 5,
+      "expected": {
+        "hp": 60,
+        "might": 15,
+        "guard": 14,
+        "pulse": 18,
+        "ward": 16,
+        "swift": 22
+      }
+    },
+    {
+      "species": "WS-050",
+      "level": 5,
+      "expected": {
+        "hp": 62,
+        "might": 20,
+        "guard": 16,
+        "pulse": 18,
+        "ward": 14,
+        "swift": 16
+      }
+    },
+    {
+      "species": "WS-024",
+      "level": 3,
+      "expected": {
+        "hp": 63,
+        "might": 16,
+        "guard": 20,
+        "pulse": 11,
+        "ward": 18,
+        "swift": 8
+      }
+    }
+  ],
+  "damageVectors": [
+    {
+      "attacker": "WS-004",
+      "attackerLevel": 5,
+      "defender": "WS-008",
+      "defenderLevel": 5,
+      "move": "SPROUT_DART",
+      "flags": {
+        "focus": false,
+        "guard": false
+      },
+      "expected": {
+        "attack": 18,
+        "defense": 16,
+        "affinityPct": 125,
+        "raw": 11,
+        "afterAffinity": 13,
+        "afterFocus": 13,
+        "finalDamage": 13
+      }
+    },
+    {
+      "attacker": "WS-008",
+      "attackerLevel": 5,
+      "defender": "WS-050",
+      "defenderLevel": 5,
+      "move": "SLIPSTREAM",
+      "flags": {
+        "focus": false,
+        "guard": false
+      },
+      "expected": {
+        "attack": 18,
+        "defense": 14,
+        "affinityPct": 125,
+        "raw": 13,
+        "afterAffinity": 16,
+        "afterFocus": 16,
+        "finalDamage": 16
+      }
+    },
+    {
+      "attacker": "WS-050",
+      "attackerLevel": 5,
+      "defender": "WS-004",
+      "defenderLevel": 5,
+      "move": "EMBER_KNOCK",
+      "flags": {
+        "focus": false,
+        "guard": false
+      },
+      "expected": {
+        "attack": 20,
+        "defense": 19,
+        "affinityPct": 125,
+        "raw": 11,
+        "afterAffinity": 13,
+        "afterFocus": 13,
+        "finalDamage": 13
+      }
+    },
+    {
+      "attacker": "WS-004",
+      "attackerLevel": 5,
+      "defender": "WS-024",
+      "defenderLevel": 3,
+      "move": "SPROUT_DART",
+      "flags": {
+        "focus": false,
+        "guard": false
+      },
+      "expected": {
+        "attack": 18,
+        "defense": 18,
+        "affinityPct": 100,
+        "raw": 10,
+        "afterAffinity": 10,
+        "afterFocus": 10,
+        "finalDamage": 10
+      }
+    },
+    {
+      "attacker": "WS-050",
+      "attackerLevel": 5,
+      "defender": "WS-004",
+      "defenderLevel": 5,
+      "move": "EMBER_KNOCK",
+      "flags": {
+        "focus": false,
+        "guard": true
+      },
+      "expected": {
+        "attack": 20,
+        "defense": 19,
+        "affinityPct": 125,
+        "raw": 11,
+        "afterAffinity": 13,
+        "afterFocus": 13,
+        "finalDamage": 6
+      }
+    },
+    {
+      "attacker": "WS-004",
+      "attackerLevel": 5,
+      "defender": "WS-008",
+      "defenderLevel": 5,
+      "move": "SPROUT_DART",
+      "flags": {
+        "focus": true,
+        "guard": false
+      },
+      "expected": {
+        "attack": 18,
+        "defense": 16,
+        "affinityPct": 125,
+        "raw": 11,
+        "afterAffinity": 13,
+        "afterFocus": 16,
+        "finalDamage": 16
+      }
+    },
+    {
+      "attacker": "WS-024",
+      "attackerLevel": 3,
+      "defender": "WS-004",
+      "defenderLevel": 5,
+      "move": "TAP",
+      "flags": {
+        "focus": false,
+        "guard": false
+      },
+      "expected": {
+        "attack": 16,
+        "defense": 19,
+        "affinityPct": 100,
+        "raw": 6,
+        "afterAffinity": 6,
+        "afterFocus": 6,
+        "finalDamage": 6
+      }
+    },
+    {
+      "attacker": "WS-024",
+      "attackerLevel": 3,
+      "defender": "WS-004",
+      "defenderLevel": 5,
+      "move": "BURROW_BUMP",
+      "flags": {
+        "focus": false,
+        "guard": true
+      },
+      "expected": {
+        "attack": 16,
+        "defense": 19,
+        "affinityPct": 100,
+        "raw": 7,
+        "afterAffinity": 7,
+        "afterFocus": 7,
+        "finalDamage": 3
+      }
+    }
+  ],
+  "prng": {
+    "algorithm": "xorshift32 unsigned, zero maps to one",
+    "seed": 1,
+    "steps": [
+      {
+        "outputUInt32": 270369,
+        "rollOutOf10000": 369
+      },
+      {
+        "outputUInt32": 67634689,
+        "rollOutOf10000": 4689
+      },
+      {
+        "outputUInt32": 2647435461,
+        "rollOutOf10000": 5461
+      },
+      {
+        "outputUInt32": 307599695,
+        "rollOutOf10000": 9695
+      }
+    ]
+  },
+  "energyVectors": [
+    {
+      "description": "First turn starts at 4",
+      "turn": 1,
+      "initialEnergy": 4,
+      "regen": 0,
+      "moveCost": 3,
+      "expectedAfter": 1
+    },
+    {
+      "description": "Second turn regen after initial spend",
+      "turn": 2,
+      "initialEnergy": 1,
+      "regen": 2,
+      "moveCost": 2,
+      "expectedAfter": 1
+    },
+    {
+      "description": "energy cap",
+      "turn": 3,
+      "initialEnergy": 7,
+      "regen": 2,
+      "moveCost": 0,
+      "expectedAfter": 8
+    },
+    {
+      "description": "too costly invalid",
+      "turn": 1,
+      "initialEnergy": 1,
+      "regen": 0,
+      "moveCost": 3,
+      "expectedValidity": "REJECT; do not deduct or advance combat"
+    }
+  ],
+  "orderingVectors": [
+    {
+      "description": "priority beats speed",
+      "turn": 1,
+      "seat0": {
+        "species": "WS-004",
+        "level": 5,
+        "move": "LANTERN_GROVE"
+      },
+      "seat1": {
+        "species": "WS-008",
+        "level": 5,
+        "move": "SLIPSTREAM"
+      },
+      "expectedOrder": [
+        0,
+        1
+      ]
+    },
+    {
+      "description": "high swift breaks same priority",
+      "turn": 1,
+      "seat0": {
+        "species": "WS-050",
+        "level": 5,
+        "move": "EMBER_KNOCK"
+      },
+      "seat1": {
+        "species": "WS-008",
+        "level": 5,
+        "move": "SLIPSTREAM"
+      },
+      "expectedOrder": [
+        1,
+        0
+      ]
+    },
+    {
+      "description": "exact ties odd turn favors seat 0",
+      "turn": 1,
+      "seat0": {
+        "effectiveSwift": 15,
+        "priority": 0
+      },
+      "seat1": {
+        "effectiveSwift": 15,
+        "priority": 0
+      },
+      "expectedOrder": [
+        0,
+        1
+      ]
+    },
+    {
+      "description": "exact ties even turn favors seat 1",
+      "turn": 2,
+      "seat0": {
+        "effectiveSwift": 15,
+        "priority": 0
+      },
+      "seat1": {
+        "effectiveSwift": 15,
+        "priority": 0
+      },
+      "expectedOrder": [
+        1,
+        0
+      ]
+    }
+  ],
+  "statusVectors": [
+    {
+      "name": "GUARD reduces a 13 hit to 6 once",
+      "rawDamageBeforeGuard": 13,
+      "expectedFirstHit": 6,
+      "expectedNextHit": 13
+    },
+    {
+      "name": "BURN then REGEN tick on same alive target",
+      "hp": 20,
+      "burn": 3,
+      "regen": 3,
+      "expectedHp": 20
+    },
+    {
+      "name": "BURN KO prevents REGEN",
+      "hp": 2,
+      "burn": 3,
+      "regen": 3,
+      "expectedHp": 0,
+      "expectedKo": true
+    },
+    {
+      "name": "SLOW only next 2 turns, does not reorder locked current turn",
+      "swift": 22,
+      "expectedEffectiveSwift": 16,
+      "begins": "turn after application",
+      "ends": "after two full subsequent rounds"
+    }
+  ],
+  "twoTurnExample": {
+    "initial": {
+      "turn": 1,
+      "seat0": {
+        "species": "WS-004",
+        "level": 5,
+        "hp": 64,
+        "energy": 4
+      },
+      "seat1": {
+        "species": "WS-024",
+        "level": 3,
+        "hp": 63,
+        "energy": 4
+      }
+    },
+    "turn1": {
+      "commands": {
+        "seat0": "SPROUT_DART",
+        "seat1": "TAP"
+      },
+      "order": [
+        0,
+        1
+      ],
+      "damageSeat0ToSeat1": 10,
+      "damageSeat1ToSeat0": 6,
+      "expectedEnd": {
+        "seat0": {
+          "hp": 58,
+          "energy": 2
+        },
+        "seat1": {
+          "hp": 53,
+          "energy": 4
+        }
+      }
+    },
+    "turn2": {
+      "preTurnEnergy": {
+        "seat0": 4,
+        "seat1": 6
+      },
+      "commands": {
+        "seat0": "LANTERN_GROVE",
+        "seat1": "BURROW_BUMP"
+      },
+      "order": [
+        0,
+        1
+      ],
+      "damageSeat1ToSeat0AfterGuard": 3,
+      "regenSeat0AtEnd": 3,
+      "expectedEnd": {
+        "seat0": {
+          "hp": 58,
+          "energy": 1,
+          "guard": false,
+          "regenRemainingTicks": 1
+        },
+        "seat1": {
+          "hp": 53,
+          "energy": 4
+        }
+      }
+    }
+  }
+}
