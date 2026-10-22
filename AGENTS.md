@@ -35,5 +35,3 @@ These instructions apply to Codex tasks that run in a branch CONTAINING this fil
 - ENGINE-001 and RENDER-001 are tested technical PROOFS; **RENDER-001 art appearance was explicitly rejected**.
 - Lantern Quay and Liltwood concepts and generated ART-ENV-001 reference appearance were subsequently **owner-approved on 2026-10-21**.
 - **ART-ENV-002** (production-quality seamless textures, manually cleaned props, direction/geometry contract and versioned manifest) is the next art gate, followed by a tiny in-engine fidelity integration proof. Do not expand to quests/co-op/battles during this art task.
-
-
