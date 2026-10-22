@@ -24,6 +24,7 @@ Options options(int argc,char** argv,bool headless) {
         };
         if(a=="--sample-pack") o.samplingPack=arg();
         else if(a=="--facade-layout") o.facadeLayout=arg();
+        else if(a=="--house-geometry") o.houseGeometry=arg();
         else if(a=="--facade-treatment") o.facadeTreatment=arg();
         else if(a=="--facade-look") {
             o.facadeLook=arg();
@@ -65,6 +66,8 @@ Options options(int argc,char** argv,bool headless) {
     if((!o.facadeScale.empty()||!o.facadeLayout.empty()||facadeProjectionSet)&&
        (o.samplingPack.empty()||o.facadeScale.empty()||o.facadeLayout.empty()))
         throw std::runtime_error("Facade comparison requires --sample-pack, --facade-layout and --facade-scale");
+    if(!o.houseGeometry.empty()&&(o.facadeLook!="c"||o.facadeScale!="human"))
+        throw std::runtime_error("House geometry requires --facade-look c --facade-scale human and private geometry input");
     const auto key=o.scene.string();
     if(key=="quay"||key=="forest"||key=="echo") o.scene=std::filesystem::absolute(argv[0]).parent_path()/"data/bench"/(key=="quay"?"lantern_quay_micro_v0.1.json":key=="forest"?"liltwood_micro_v0.1.json":"echo_hollow_micro_v0.1.json");
     return o;
@@ -73,6 +76,7 @@ void help() {
     std::cout<<"WILDSIGNAL ENGINE-001 (prototype)\nW/S move  A/D turn  Esc exit  F1 resolution  F2 HUD  F3 1/8 creatures  F12 screenshot\n"
      <<"--sample-pack PRIVATE.wst (isolated experimental calibration scene)\n--scene echo|quay|forest|FILE --resolution 320x180|400x225|480x270 --output UNIQUE_PREFIX\n"
      <<"--facade-layout PRIVATE.json --facade-scale current|a|b|c|human\n--facade-projection orthographic|perspective (comparison default: orthographic, width 8 units)\n"
+     <<"--house-geometry PRIVATE.json (RENDER-002 static house, VIS-003 C only)\n"
      <<"--facade-look a|b|c --facade-treatment PRIVATE.json (VIS-003, human scale only)\n"
      <<"--frames N --warmup SECONDS --duration CAPTURE_SECONDS --fps 0|30|60 --camera X Y YAW_DEG\n"
      <<"--sprites 1|8|24 --stress --software --walkthrough --screenshot WORLD.ppm --smoke-test\n"

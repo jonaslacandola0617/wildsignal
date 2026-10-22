@@ -1,4 +1,5 @@
 #include "sampling.hpp"
+#include "house_geometry.hpp"
 #include <algorithm>
 #include <cmath>
 #include <chrono>
@@ -140,6 +141,7 @@ DrawStats Renderer::renderSampling(Buffer& b,const World& w,const Camera& c) {
                 // Fixed square panels: two 2.5 x 2.5 samples, never stretched to the 3.2-high wall.
                 // Only the actual south-facing surface carries facade art; side views reveal a solid block.
                 if(front){
+                    if(house_&&house_->opening(worldX,z,*facade_))continue;
                     if(!treatment&&z>=0&&z<2.5){const auto px=pack.materials[static_cast<std::size_t>(facade_->frameMaterial)].at((worldX-9)/2.5,1-z/2.5);if(px>>24)color=px;}
                     const auto overlay=[&](int material,FacadePanel panel){
                         const double u=(worldX-panel.left)/panel.size,v=(panel.top-z)/panel.size;
@@ -168,6 +170,9 @@ DrawStats Renderer::renderSampling(Buffer& b,const World& w,const Camera& c) {
             b.pixels[i]=pixel;b.pixelDepth[i]=static_cast<float>(p.depth);b.owner[i]=1;++stats.spritePixels;}
     }
     stats.visibleSpritePixels=stats.spritePixels;stats.visibleSprites=stats.spritePixels?1:0;stats.scenery=1;stats.submitted=1;
-    stats.spriteMs=std::chrono::duration<double,std::milli>(Clock::now()-spriteStart).count();return stats;
+    stats.spriteMs=std::chrono::duration<double,std::milli>(Clock::now()-spriteStart).count();
+    if(house_){const auto geometry=house_->draw(b,w,c,pack,*facade_);stats.geometryMs=geometry.ms;stats.geometryTriangles=geometry.triangles;stats.geometryTests=geometry.tests;stats.geometryWrites=geometry.writes;
+        stats.visibleSpritePixels=static_cast<std::size_t>(std::count(b.owner.begin(),b.owner.end(),std::uint8_t{1}));stats.visibleSprites=stats.visibleSpritePixels?1:0;}
+    return stats;
 }
 }

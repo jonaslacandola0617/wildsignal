@@ -27,20 +27,24 @@ bool project(const Camera& camera,const World& world,Resolution size,const Sprit
 struct DrawStats {
     int creatureCount=1,visibleSprites=0,visibleActors=0,submitted=0,scenery=0;
     std::size_t spritePixels=0,spriteTests=0,visibleSpritePixels=0;
-    double worldMs=0,spriteMs=0;
+    double worldMs=0,spriteMs=0,geometryMs=0;
+    std::size_t geometryTriangles=0,geometryTests=0,geometryWrites=0;
 };
 struct SamplingPack;
+class HouseGeometry;
 struct FacadeCalibration;
 class Renderer {
 public:
     Renderer();
     void sampling(const SamplingPack* pack) { sampling_=pack; }
+    void house(const HouseGeometry* geometry) { house_=geometry; }
     void facade(const FacadeCalibration* layout) { facade_=layout; }
     DrawStats render(Buffer& buffer,const World& world,const Camera& camera,bool stress,double seconds);
     DrawStats render(Buffer& buffer,const World& world,const Camera& camera,int actors,double seconds);
     std::size_t drawSprite(Buffer& buffer,const World& world,const Camera& camera,const Sprite& sprite,double seconds) const;
     static constexpr std::size_t textureBytes=(6+10+8)*64*64*sizeof(Pixel)+2*256*128*sizeof(Pixel);
 private:
+    const HouseGeometry* house_=nullptr;
     const SamplingPack* sampling_=nullptr;
     const FacadeCalibration* facade_=nullptr;
     DrawStats renderSampling(Buffer&,const World&,const Camera&);

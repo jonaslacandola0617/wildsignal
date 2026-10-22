@@ -1,0 +1,64 @@
+name: RENDER-002 private-free facade validation
+on:
+  push:
+    branches: [feat/render-002-house-geometry]
+  pull_request:
+    branches: [feat/vis-003-facade-readability]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows-x64:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - run: python -m pip install Pillow
+      - name: Configure Windows x64 Release (VS 2022 v143, static SDL3 and CRT)
+        run: cmake -S . -B build/win -G "Visual Studio 17 2022" -A x64 -T v143
+      - run: cmake --build build/win --config Release --parallel 2
+      - run: ctest --test-dir build/win -C Release --output-on-failure
+      - name: Synthetic sampling SDL boot (no private art)
+        run: python tests/engine001/sampling_import_test.py build/win/Release/wildsignal_engine001_headless.exe . --native build/win/Release/wildsignal_engine001.exe
+      - name: Synthetic RENDER-002 import and SDL comparison (no private art)
+        run: python tests/engine001/vis003_test.py build/win/Release/wildsignal_engine001_headless.exe . --native build/win/Release/wildsignal_engine001.exe
+      - name: Synthetic house geometry SDL A/B (no private art)
+        run: python tests/engine001/geometry_test.py build/win/Release/wildsignal_engine001_headless.exe . --native build/win/Release/wildsignal_engine001.exe
+      - name: Record toolchain and imports (legacy compatibility remains unverified)
+        shell: pwsh
+        run: |
+          cmake --version | Out-File build/win/toolchain.txt
+          Get-Content build/win/CMakeCache.txt | Select-String 'CMAKE_CXX_COMPILER|CMAKE_CXX_COMPILER_VERSION|SDL_' | Out-File build/win/toolchain.txt -Append
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $vs = & $vswhere -latest -products '*' -property installationPath
+          $dumpbin = Get-ChildItem "$vs\VC\Tools\MSVC\*\bin\Hostx64\x64\dumpbin.exe" | Sort-Object FullName | Select-Object -Last 1
+          & $dumpbin.FullName /headers /imports build/win/Release/wildsignal_engine001.exe | Out-File build/win/imports.txt
+      - name: Stage portable prototype
+        run: cmake --install build/win --config Release --prefix out/render002-windows-x64
+      - name: Artifact checksums
+        shell: pwsh
+        run: |
+          $packageRoot = (Resolve-Path out/render002-windows-x64).Path
+          $packageFiles = @(Get-ChildItem $packageRoot -Recurse -File | Where-Object Name -ne SHA256SUMS.txt)
+          $checksums = @($packageFiles | ForEach-Object {
+            $digest = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            $relative = [IO.Path]::GetRelativePath($packageRoot, $_.FullName)
+            "$digest  $relative"
+          })
+          [IO.File]::WriteAllLines((Join-Path $packageRoot SHA256SUMS.txt), $checksums)
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: render002-windows-x64
+          path: |
+            out/render002-windows-x64
+            build/win/toolchain.txt
+            build/win/imports.txt
+            build/win/bench
+          retention-days: 14
+  linux-sanitizers:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - run: python3 -m pip install Pillow
+      - run: cmake -S . -B build/asan -DCMAKE_BUILD_TYPE=Debug -DENGINE001_BUILD_SDL=OFF -DENGINE001_SANITIZE=ON
+      - run: cmake --build build/asan --parallel 2
+      - run: ctest --test-dir build/asan --output-on-failure

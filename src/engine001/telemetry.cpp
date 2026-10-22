@@ -85,7 +85,7 @@ Telemetry::Telemetry(const std::filesystem::path& prefix,RunInfo runInfo):info(s
         throw std::runtime_error("Telemetry prefix already exists; use a new --output prefix");
     csv_.open(prefix.string()+"_frames.csv"); if(!csv_) throw std::runtime_error("Cannot create frame CSV");
     csv_<<std::fixed<<std::setprecision(6);
-    csv_<<"sample,elapsed_s,frame_ms,simulation_ms,world_ms,sprite_ms,ui_ms,upload_ms,present_ms,width,height,creatures,visible,x,y,yaw_deg,rss_mib,actors_visible,submitted,sprite_tests,sprite_writes,sprite_pixels_final\n";
+    csv_<<"sample,elapsed_s,frame_ms,simulation_ms,world_ms,sprite_ms,ui_ms,upload_ms,present_ms,width,height,creatures,visible,x,y,yaw_deg,rss_mib,actors_visible,submitted,sprite_tests,sprite_writes,sprite_pixels_final,geometry_ms,geometry_triangles,geometry_tests,geometry_writes\n";
     samples_.reserve(capacity); events_.reserve(64);
 }
 void Telemetry::record(const Sample& s) {
@@ -98,7 +98,7 @@ void Telemetry::record(const Sample& s) {
     csv_<<s.world.w<<','<<s.world.h<<','<<s.creatures<<','<<s.visible
         <<','<<s.position.x<<','<<s.position.y<<','<<s.yaw*180/pi<<',';
     if(s.rssMiB) csv_<<*s.rssMiB;
-    csv_<<','<<s.visibleActors<<','<<s.submitted<<','<<s.spriteTests<<','<<s.spriteWrites<<','<<s.spritePixels<<'\n'; if(!csv_) throw std::runtime_error("Frame CSV write failed");
+    csv_<<','<<s.visibleActors<<','<<s.submitted<<','<<s.spriteTests<<','<<s.spriteWrites<<','<<s.spritePixels<<','<<s.geometryMs<<','<<s.geometryTriangles<<','<<s.geometryTests<<','<<s.geometryWrites<<'\n'; if(!csv_) throw std::runtime_error("Frame CSV write failed");
     samples_.push_back(s);
 }
 void Telemetry::event(double seconds,const std::string& label) {
@@ -113,7 +113,7 @@ void Telemetry::finish(double duration) {
         f<<",\n  "<<quoteJson(name)<<": "; metric(f,samples_,field,fraction);
     };
     f<<"{\n  \"schema\": \"wildsignal-render-bench-v0.1\",\n  \"buildSha\": "<<quoteJson(ENGINE001_BUILD_ID)
-     <<",\n  \"renderer\": \"grid_raycast\",\n  \"zone\": "<<quoteJson(info.zone)
+     <<",\n  \"renderer\": "<<quoteJson(info.geometryTriangles?"grid_raycast_static_triangles":"grid_raycast")<<",\n  \"zone\": "<<quoteJson(info.zone)
      <<",\n  \"fixtureVersion\": "<<quoteJson(info.fixture)<<",\n  \"pipeline\": "<<quoteJson(info.pipeline)
      <<",\n  \"deviceLabel\": \"anonymous-execution-host\",\n  \"osVersion\": "<<quoteJson(os())
      <<",\n  \"cpuDescription\": null,\n  \"gpuDescription\": null,\n  \"installedRamMiB\": null,\n  \"compiler\": "<<quoteJson(compiler())
@@ -135,6 +135,10 @@ void Telemetry::finish(double duration) {
     f<<",\n  \"projection\": "<<quoteJson(info.projection)<<",\n  \"facadeScaleVariant\": "<<quoteJson(info.facadeScale)
      <<",\n  \"facadeDoorScale\": "<<info.doorScale<<",\n  \"facadeWindowScale\": "<<info.windowScale;
     f<<",\n  \"facadeLook\": "<<quoteJson(info.facadeLook)<<",\n  \"plasterMaterialSlot\": "<<info.plasterSlot<<",\n  \"groundMaterialSlot\": "<<info.groundSlot;
+    f<<",\n  \"staticGeometryTriangles\": "<<info.geometryTriangles<<",\n  \"staticGeometryBytes\": "<<info.geometryBytes<<",\n  \"roofSourceStatus\": "<<quoteJson(info.roofStatus);
+    q("geometryMsP95",[](const Sample& s){return s.geometryMs;},0.95);
+    q("geometryPixelTestsP95",[](const Sample& s){return s.geometryTests;},0.95);
+    q("geometryPixelWritesP95",[](const Sample& s){return s.geometryWrites;},0.95);
     q("medianFrameMs",[](const Sample& s){return s.frameMs;},0.5);
     q("p95FrameMs",[](const Sample& s){return s.frameMs;},0.95);
     q("p99FrameMs",[](const Sample& s){return s.frameMs;},0.99);
@@ -161,7 +165,7 @@ void Telemetry::finish(double duration) {
     if(samples_.empty()) f<<"null"; else f<<visible;
     f<<",\n  \"textureCacheBytesPeak\": "<<(Renderer::textureBytes+info.assetCacheBytes)<<",\n  \"memoryLeakTrend\": \"unknown\",\n  \"renderErrors\": [],\n  \"walkthrough\": "<<(info.walkthrough?"true":"false")
      <<",\n  \"result\": "<<quoteJson(samples_.empty()?"NOT_MEASURED":"MEASURED_NOT_DEVICE_VALIDATED")
-     <<",\n  \"unsupported\": [\"true arch geometry\",\"pitch\",\"stacked floors\",\"dynamic lighting\",\"Android package\"],\n  \"configurations\": [";
+     <<",\n  \"unsupported\": [\"curved arch geometry\",\"pitch\",\"stacked floors\",\"dynamic lighting\",\"Android package\"],\n  \"configurations\": [";
     bool comma=false;
     for(const auto r:resolutions) for(int actors:{0,1,8,24}) {
         std::vector<Sample> group;

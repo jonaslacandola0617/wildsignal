@@ -10,6 +10,7 @@ struct Memory { std::optional<double> rssMiB,peakRssMiB; };
 Memory processMemory();
 const char* memoryMethod();
 struct Sample {
+    double geometryMs=0;std::size_t geometryTriangles=0,geometryTests=0,geometryWrites=0;
     double elapsed=0,frameMs=0,simulationMs=0,worldMs=0,spriteMs=0,uiMs=0,uploadMs=0,presentMs=0;
     Resolution world{320,180};
     int creatures=1,visible=0,visibleActors=0,submitted=0;
@@ -18,6 +19,7 @@ struct Sample {
     std::optional<double> rssMiB;
 };
 struct RunInfo {
+    std::size_t geometryTriangles=0,geometryBytes=0;std::string roofStatus;
     int samplingMode=0;std::size_t assetCacheBytes=0;
     std::string facadeScale,projection="perspective";
     double doorScale=1,windowScale=1;

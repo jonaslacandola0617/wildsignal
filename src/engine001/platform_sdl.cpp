@@ -1,5 +1,6 @@
 #include "platform_sdl.hpp"
 #include "sampling.hpp"
+#include "house_geometry.hpp"
 #include <optional>
 #include "render.hpp"
 #include "telemetry.hpp"
@@ -52,12 +53,12 @@ void overlay(SDL_Renderer* display,Resolution screen,const Buffer& b,const Sampl
     char text[512],rss[48];
     if(memory.rssMiB) std::snprintf(rss,sizeof(rss),"%.1f MIB",*memory.rssMiB);
     else std::snprintf(rss,sizeof(rss),"UNKNOWN");
-    std::snprintf(text,sizeof(text),"WILDSIGNAL / %s    RENDER-001 PROTOTYPE\n"
+    std::snprintf(text,sizeof(text),"WILDSIGNAL / %s    EXPERIMENTAL PROTOTYPE\n"
         "%dx%d  %.1f FPS  %.2f MS  RSS %s\n"
-        "WORLD %.2f  SPRITE %.2f  UPLOAD %.2f MS  [%s]\n"
+        "WORLD %.2f  SPRITE %.2f  GEO %.2f  UPLOAD %.2f MS  [%s]\n"
         "X %.2f  Y %.2f  YAW %.1f   ACTORS %d  VISIBLE %d (PLACEHOLDERS)",
         scene.c_str(),b.size.w,b.size.h,average>0?1000/average:0,average,rss,
-        s.worldMs,s.spriteMs,s.uploadMs,focused?"ACTIVE":"FOCUS PAUSED",s.position.x,s.position.y,s.yaw*180/pi,s.creatures,s.visibleActors);
+        s.worldMs,s.spriteMs,s.geometryMs,s.uploadMs,focused?"ACTIVE":"FOCUS PAUSED",s.position.x,s.position.y,s.yaw*180/pi,s.creatures,s.visibleActors);
     // SDL_RenderDebugText 3.2.10 ignores newline controls. Lay out rows explicitly.
     char* line=text;float row=12;
     for(char* cursor=text;;++cursor) {
@@ -84,10 +85,11 @@ int runSdl(const Options& o) {
     std::optional<FacadeCalibration> facade;
     if(!o.facadeScale.empty())facade=FacadeCalibration::load(o.facadeLayout,o.facadeScale,o.facadeOrthographic,*pack);
     if(!o.facadeLook.empty())facade->treatment=FacadeTreatment::load(o.facadeTreatment,o.facadeLook,*pack);
+    std::optional<HouseGeometry> house;if(!o.houseGeometry.empty())house=HouseGeometry::load(o.houseGeometry,*pack,*facade);
     const World world=pack?samplingWorld(facade.has_value(),!o.facadeLook.empty()):World::load(o.scene);Camera camera=o.customCamera?o.camera:world.spawn;
     if(!world.canStand(camera.position,world.radius)) throw std::runtime_error("Requested camera intersects wall");
     SdlLifetime runtime;
-    Window window(SDL_CreateWindow(!o.facadeLook.empty()?"WILDSIGNAL / VIS-003 / EXPERIMENTAL FACADE":pack?"VIS-002 / CALIBRATION / NO APPROVED WORLD SCALE":"WILDSIGNAL / RENDER-001",1280,720,SDL_WINDOW_RESIZABLE|SDL_WINDOW_HIGH_PIXEL_DENSITY),SDL_DestroyWindow);
+    Window window(SDL_CreateWindow(house?"WILDSIGNAL / RENDER-002 / EXPERIMENTAL GEOMETRY":!o.facadeLook.empty()?"WILDSIGNAL / VIS-003 / EXPERIMENTAL FACADE":pack?"VIS-002 / CALIBRATION / NO APPROVED WORLD SCALE":"WILDSIGNAL / RENDER-001",1280,720,SDL_WINDOW_RESIZABLE|SDL_WINDOW_HIGH_PIXEL_DENSITY),SDL_DestroyWindow);
     check(window!=nullptr,"SDL_CreateWindow");
     Display display(SDL_CreateRenderer(window.get(),o.software?"software":nullptr),SDL_DestroyRenderer);
     check(display!=nullptr,"SDL_CreateRenderer");
@@ -97,12 +99,13 @@ int runSdl(const Options& o) {
     changeResolution(buffer,texture,display.get(),resolutions[static_cast<std::size_t>(mode)]);
     const std::string sceneLabel=facade?((facade->treatment?"LOOK "+facade->treatment->look:"SCALE "+facade->scale)+" / "+(facade->orthographic?"ORTHO":"PERSPECTIVE")+" / TEX "+std::to_string(pack->mode)):world.name+(pack?(" TEX "+std::to_string(pack->mode)):"");
     Renderer renderer;renderer.sampling(pack?&*pack:nullptr);Input input;
-    renderer.facade(facade?&*facade:nullptr);
+    renderer.facade(facade?&*facade:nullptr);renderer.house(house?&*house:nullptr);
     RunInfo info;info.samplingMode=pack?pack->mode:0;info.assetCacheBytes=pack?pack->bytes():0;info.zone=world.id;info.fixture=world.fixtureVersion;info.pipeline="SDL_WINDOW";info.warmup=o.warmup;info.cap=o.fps;info.walkthrough=o.walkthrough;
     if(facade){info.facadeScale=facade->scale;info.doorScale=facade->doorScale;info.windowScale=facade->windowScale;info.projection=facade->orthographic?"orthographic":"perspective";}
     if(facade&&facade->treatment){info.facadeLook=facade->treatment->look;info.plasterSlot=facade->treatment->plaster;info.groundSlot=facade->treatment->ground.material;}
     info.sdlVersion=std::to_string(SDL_GetVersion());
     const char* backend=SDL_GetRendererName(display.get());info.backend=backend?backend:"UNKNOWN";
+    if(house){info.geometryTriangles=house->count;info.geometryBytes=sizeof(HouseGeometry);info.roofStatus=house->roofStatus;}
     Telemetry telemetry(o.output,info);
     const auto start=Clock::now();auto previousComplete=start,previousBegin=start;
     int actorCount=o.actors;
@@ -164,6 +167,7 @@ int runSdl(const Options& o) {
         }
         Sample sample;sample.simulationMs=elapsedMs(begin);
         const auto draw=renderer.render(buffer,world,camera,actorCount,elapsed);
+        sample.geometryMs=draw.geometryMs;sample.geometryTriangles=draw.geometryTriangles;sample.geometryTests=draw.geometryTests;sample.geometryWrites=draw.geometryWrites;
         sample.worldMs=draw.worldMs;sample.spriteMs=draw.spriteMs;sample.world=buffer.size;
         sample.creatures=draw.creatureCount;sample.visible=draw.visibleSprites;sample.visibleActors=draw.visibleActors;sample.submitted=draw.submitted;sample.spriteTests=draw.spriteTests;sample.spriteWrites=draw.spritePixels;sample.spritePixels=draw.visibleSpritePixels;sample.position=camera.position;sample.yaw=camera.yaw;
         auto mark=Clock::now();
