@@ -1,5 +1,6 @@
 #include "options.hpp"
 #include "sampling.hpp"
+#include "house_geometry.hpp"
 #include <optional>
 #include "render.hpp"
 #include "telemetry.hpp"
@@ -15,15 +16,17 @@ int main(int argc,char** argv) {
         std::optional<ws::FacadeCalibration> facade;
         if(!o.facadeScale.empty())facade=ws::FacadeCalibration::load(o.facadeLayout,o.facadeScale,o.facadeOrthographic,*pack);
         if(!o.facadeLook.empty())facade->treatment=ws::FacadeTreatment::load(o.facadeTreatment,o.facadeLook,*pack);
+        std::optional<ws::HouseGeometry> house;if(!o.houseGeometry.empty())house=ws::HouseGeometry::load(o.houseGeometry,*pack,*facade);
         const auto world=pack?ws::samplingWorld(facade.has_value(),!o.facadeLook.empty()):ws::World::load(o.scene);
         ws::Camera camera=o.customCamera?o.camera:world.spawn;
         if(!world.canStand(camera.position,world.radius)) throw std::runtime_error("Requested camera intersects wall");
         ws::Buffer buffer;buffer.resize(ws::resolutions[static_cast<std::size_t>(o.mode)]);
         ws::Renderer renderer;renderer.sampling(pack?&*pack:nullptr);
-        renderer.facade(facade?&*facade:nullptr);
+        renderer.facade(facade?&*facade:nullptr);renderer.house(house?&*house:nullptr);
         ws::RunInfo info;info.samplingMode=pack?pack->mode:0;info.assetCacheBytes=pack?pack->bytes():0;info.zone=world.id;info.fixture=world.fixtureVersion;info.warmup=o.warmup;info.cap=o.fps;info.walkthrough=o.walkthrough;
         if(facade){info.facadeScale=facade->scale;info.doorScale=facade->doorScale;info.windowScale=facade->windowScale;info.projection=facade->orthographic?"orthographic":"perspective";}
         if(facade&&facade->treatment){info.facadeLook=facade->treatment->look;info.plasterSlot=facade->treatment->plaster;info.groundSlot=facade->treatment->ground.material;}
+        if(house){info.geometryTriangles=house->count;info.geometryBytes=sizeof(ws::HouseGeometry);info.roofStatus=house->roofStatus;}
         ws::Telemetry telemetry(o.output,info);
         using Clock=std::chrono::steady_clock;
         const auto start=Clock::now();auto previous=start;auto previousBegin=start;
@@ -43,6 +46,7 @@ int main(int argc,char** argv) {
             s.elapsed=std::chrono::duration<double>(end-start).count();
             s.frameMs=std::chrono::duration<double,std::milli>(end-previous).count();
             s.simulationMs=std::chrono::duration<double,std::milli>(simEnd-begin).count();
+            s.geometryMs=draw.geometryMs;s.geometryTriangles=draw.geometryTriangles;s.geometryTests=draw.geometryTests;s.geometryWrites=draw.geometryWrites;
             s.worldMs=draw.worldMs;s.spriteMs=draw.spriteMs;s.world=buffer.size;
             s.creatures=draw.creatureCount;s.visible=draw.visibleSprites;s.visibleActors=draw.visibleActors;s.submitted=draw.submitted;s.spriteTests=draw.spriteTests;s.spriteWrites=draw.spritePixels;s.spritePixels=draw.visibleSpritePixels;
             s.position=camera.position;s.yaw=camera.yaw;s.rssMiB=memory.rssMiB;

@@ -5,7 +5,7 @@
 
 namespace ws {
 struct Options {
-    std::filesystem::path scene,output,screenshot,samplingPack,facadeLayout,facadeTreatment;
+    std::filesystem::path scene,output,screenshot,samplingPack,facadeLayout,facadeTreatment,houseGeometry;
     std::string facadeScale,facadeLook;
     bool facadeOrthographic=true;
     int mode=0,frames=0,actors=1;
