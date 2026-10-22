@@ -60,6 +60,20 @@ int main(){try{
    f.orthographic=true;audit::allocations=0;audit::watching=true;
    for(int i=0;i<12;++i){auto c=facadeWorld.spawn;c.yaw=i*ws::pi/6;r->render(b,facadeWorld,c,1,0);}
    audit::watching=false;expect(audit::allocations==0);
+   ws::FacadeTreatment treatment;treatment.look="b";treatment.plaster=0;
+   treatment.ground={0,0,mode-1,0,mode-1,0,0,1,1};
+   treatment.vertical={1,0,mode/8-1,0,mode-1,0,0,.125,1};
+   treatment.horizontal={1,0,mode-1,0,mode/8-1,0,0,1,.125};
+   f.treatment=treatment;r->render(b,facadeWorld,facadeWorld.spawn,1,0);
+   expect(b.pixelDepth==depth&&b.owner==owners);
+   const auto row=static_cast<std::size_t>(171*b.size.w);
+   const auto doubled=std::count(b.pixels.begin()+static_cast<std::ptrdiff_t>(row),b.pixels.begin()+static_cast<std::ptrdiff_t>(row+b.size.w),ws::rgb(80,40,20));
+   f.treatment->look="c";r->render(b,facadeWorld,facadeWorld.spawn,1,0);
+   expect(b.pixelDepth==depth&&b.owner==owners);
+   expect(std::count(b.pixels.begin()+static_cast<std::ptrdiff_t>(row),b.pixels.begin()+static_cast<std::ptrdiff_t>(row+b.size.w),ws::rgb(80,40,20))<doubled);
+   audit::allocations=0;audit::watching=true;
+   for(int i=0;i<12;++i){auto c=facadeWorld.spawn;c.yaw=i*ws::pi/6;r->render(b,facadeWorld,c,1,0);}
+   audit::watching=false;expect(audit::allocations==0);f.treatment.reset();
   }
  }
  r->facade(nullptr);r->sampling(nullptr);bool rejected=false;try{r->render(b,world,world.spawn,1,0);}catch(const std::exception&){rejected=true;}expect(rejected);

@@ -14,7 +14,8 @@ int main(int argc,char** argv) {
         std::optional<ws::SamplingPack> pack;if(!o.samplingPack.empty())pack=ws::SamplingPack::load(o.samplingPack);
         std::optional<ws::FacadeCalibration> facade;
         if(!o.facadeScale.empty())facade=ws::FacadeCalibration::load(o.facadeLayout,o.facadeScale,o.facadeOrthographic,*pack);
-        const auto world=pack?ws::samplingWorld(facade.has_value()):ws::World::load(o.scene);
+        if(!o.facadeLook.empty())facade->treatment=ws::FacadeTreatment::load(o.facadeTreatment,o.facadeLook,*pack);
+        const auto world=pack?ws::samplingWorld(facade.has_value(),!o.facadeLook.empty()):ws::World::load(o.scene);
         ws::Camera camera=o.customCamera?o.camera:world.spawn;
         if(!world.canStand(camera.position,world.radius)) throw std::runtime_error("Requested camera intersects wall");
         ws::Buffer buffer;buffer.resize(ws::resolutions[static_cast<std::size_t>(o.mode)]);
@@ -22,6 +23,7 @@ int main(int argc,char** argv) {
         renderer.facade(facade?&*facade:nullptr);
         ws::RunInfo info;info.samplingMode=pack?pack->mode:0;info.assetCacheBytes=pack?pack->bytes():0;info.zone=world.id;info.fixture=world.fixtureVersion;info.warmup=o.warmup;info.cap=o.fps;info.walkthrough=o.walkthrough;
         if(facade){info.facadeScale=facade->scale;info.doorScale=facade->doorScale;info.windowScale=facade->windowScale;info.projection=facade->orthographic?"orthographic":"perspective";}
+        if(facade&&facade->treatment){info.facadeLook=facade->treatment->look;info.plasterSlot=facade->treatment->plaster;info.groundSlot=facade->treatment->ground.material;}
         ws::Telemetry telemetry(o.output,info);
         using Clock=std::chrono::steady_clock;
         const auto start=Clock::now();auto previous=start;auto previousBegin=start;
