@@ -4,12 +4,12 @@
 #include <cmath>
 #include <iomanip>
 #include <numeric>
+#include <cstdio>
 #include <stdexcept>
 #if defined(_WIN32)
 #include <windows.h>
 #include <psapi.h>
 #elif defined(__linux__)
-#include <sys/resource.h>
 #include <unistd.h>
 #endif
 
@@ -26,8 +26,11 @@ Memory processMemory() {
         m.peakRssMiB=static_cast<double>(counters.PeakWorkingSetSize)/1048576;
     }
 #elif defined(__linux__)
-    rusage usage{};
-    if(getrusage(RUSAGE_SELF,&usage)==0) m.peakRssMiB=static_cast<double>(usage.ru_maxrss)/1024;
+    // ru_maxrss may retain pre-exec launcher high water. VmHWM belongs to this process image.
+    std::ifstream status("/proc/self/status");char line[256];unsigned long highWaterKiB=0;
+    while(status.getline(line,sizeof(line))) if(std::sscanf(line,"VmHWM: %lu kB",&highWaterKiB)==1) {
+        m.peakRssMiB=static_cast<double>(highWaterKiB)/1024;break;
+    }
     std::ifstream f("/proc/self/statm"); long total=0,resident=0;
     const long page=sysconf(_SC_PAGESIZE);
     if(page>0&&f>>total>>resident) m.rssMiB=static_cast<double>(resident)*static_cast<double>(page)/1048576;
@@ -38,7 +41,7 @@ const char* memoryMethod() {
 #if defined(_WIN32)
     return "GetProcessMemoryInfo: WorkingSetSize / PeakWorkingSetSize";
 #elif defined(__linux__)
-    return "/proc/self/statm RSS, getrusage ru_maxrss peak (KiB); not Windows memory";
+    return "/proc/self/statm RSS; /proc/self/status VmHWM peak for current executable image (KiB); not Windows memory";
 #else
     return "NOT_AVAILABLE";
 #endif
@@ -128,6 +131,9 @@ void Telemetry::finish(double duration) {
      <<",\n  \"quantileMethod\": \"nearest rank, no interpolation\""
      <<",\n  \"frameMethod\": \"monotonic completion-to-completion including cap wait and previous sample I/O; warmup excluded\""
      <<",\n  \"simulationMethod\": \"variable dt capped 50ms, collision substeps <= radius/2; hitch excess discarded\"";
+    f<<",\n  \"textureSamplingResolution\": "<<info.samplingMode<<",\n  \"externalTextureCacheBytes\": "<<info.assetCacheBytes;
+    f<<",\n  \"projection\": "<<quoteJson(info.projection)<<",\n  \"facadeScaleVariant\": "<<quoteJson(info.facadeScale)
+     <<",\n  \"facadeDoorScale\": "<<info.doorScale<<",\n  \"facadeWindowScale\": "<<info.windowScale;
     q("medianFrameMs",[](const Sample& s){return s.frameMs;},0.5);
     q("p95FrameMs",[](const Sample& s){return s.frameMs;},0.95);
     q("p99FrameMs",[](const Sample& s){return s.frameMs;},0.99);
@@ -152,11 +158,11 @@ void Telemetry::finish(double duration) {
     f<<",\n  \"memoryMethod\": "<<quoteJson(memoryMethod())<<",\n  \"memorySampling\": \"RSS at most once per second; peak queried at export; includes telemetry reservation\""
      <<",\n  \"androidPssMiB\": null,\n  \"thermalObserved\": \"not-measured\",\n  \"inputLatencyMsP95\": null,\n  \"spritesVisibleMax\": ";
     if(samples_.empty()) f<<"null"; else f<<visible;
-    f<<",\n  \"textureCacheBytesPeak\": "<<Renderer::textureBytes<<",\n  \"memoryLeakTrend\": \"unknown\",\n  \"renderErrors\": [],\n  \"walkthrough\": "<<(info.walkthrough?"true":"false")
+    f<<",\n  \"textureCacheBytesPeak\": "<<(Renderer::textureBytes+info.assetCacheBytes)<<",\n  \"memoryLeakTrend\": \"unknown\",\n  \"renderErrors\": [],\n  \"walkthrough\": "<<(info.walkthrough?"true":"false")
      <<",\n  \"result\": "<<quoteJson(samples_.empty()?"NOT_MEASURED":"MEASURED_NOT_DEVICE_VALIDATED")
      <<",\n  \"unsupported\": [\"true arch geometry\",\"pitch\",\"stacked floors\",\"dynamic lighting\",\"Android package\"],\n  \"configurations\": [";
     bool comma=false;
-    for(const auto r:resolutions) for(int actors:{1,8,24}) {
+    for(const auto r:resolutions) for(int actors:{0,1,8,24}) {
         std::vector<Sample> group;
         for(const auto& s:samples_) if(s.world.w==r.w&&s.creatures==actors) group.push_back(s);
         if(group.empty()) continue;

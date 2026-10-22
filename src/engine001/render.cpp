@@ -150,6 +150,7 @@ DrawStats Renderer::render(Buffer& b,const World& w,const Camera& c,bool stress,
 }
 DrawStats Renderer::render(Buffer& b,const World& w,const Camera& c,int actors,double seconds) {
     if(actors!=1&&actors!=8&&actors!=24) throw std::runtime_error("Expected 1, 8 or 24 actors");
+    if(w.kind==SceneKind::Sampling) {if(!sampling_) throw std::runtime_error("Sampling scene requires a private pack");return renderSampling(b,w,c);}
     if(w.kind!=SceneKind::Echo) return renderOutdoor(b,w,c,actors,seconds);
     const bool stress=actors>1;
     if(b.pixels.size()!=static_cast<std::size_t>(b.size.w*b.size.h)||b.depth.size()!=static_cast<std::size_t>(b.size.w)||b.size.w<=0)

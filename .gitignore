@@ -4,3 +4,6 @@
 *.ppm
 *.bmp
 __pycache__/
+
+# Runtime sampling caches contain private derivative pixels.
+*.wst

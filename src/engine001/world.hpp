@@ -10,7 +10,7 @@ constexpr double pi=3.14159265358979323846;
 constexpr const char* sceneId="BENCH_ECHO_Z04_MICRO_001";
 struct Vec2 { double x=0, y=0; };
 struct Camera { Vec2 position; double yaw=0; };
-enum class SceneKind { Echo, Quay, Forest };
+enum class SceneKind { Echo, Quay, Forest, Sampling };
 enum class Art { Creature, Signal, Arch, Npc, Roof, Lantern, Canopy, Fern, Root, Mushroom, Pennant, Count };
 struct Sprite {
     Vec2 position;
