@@ -22,7 +22,8 @@ Options options(int argc,char** argv,bool headless) {
             if(r.ec!=std::errc{}||r.ptr!=s.data()+s.size()||!std::isfinite(n)||n<lo||n>hi) throw std::runtime_error("Invalid numeric option");
             return n;
         };
-        if(a=="--scene") o.scene=arg();
+        if(a=="--sample-pack") o.samplingPack=arg();
+        else if(a=="--scene") o.scene=arg();
         else if(a=="--output") o.output=arg();
         else if(a=="--screenshot") o.screenshot=arg();
         else if(a=="--resolution") {
@@ -47,7 +48,7 @@ Options options(int argc,char** argv,bool headless) {
 }
 void help() {
     std::cout<<"WILDSIGNAL ENGINE-001 (prototype)\nW/S move  A/D turn  Esc exit  F1 resolution  F2 HUD  F3 1/8 creatures  F12 screenshot\n"
-     <<"--scene echo|quay|forest|FILE --resolution 320x180|400x225|480x270 --output UNIQUE_PREFIX\n"
+     <<"--sample-pack PRIVATE.wst (isolated experimental calibration scene)\n--scene echo|quay|forest|FILE --resolution 320x180|400x225|480x270 --output UNIQUE_PREFIX\n"
      <<"--frames N --warmup SECONDS --duration CAPTURE_SECONDS --fps 0|30|60 --camera X Y YAW_DEG\n"
      <<"--sprites 1|8|24 --stress --software --walkthrough --screenshot WORLD.ppm --smoke-test\n"
      <<"Native default: 60s warmup, capture until exit, 30fps cap. Headless: 300 frames, no warmup/cap.\n";

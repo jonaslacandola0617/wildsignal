@@ -18,6 +18,7 @@ struct Sample {
     std::optional<double> rssMiB;
 };
 struct RunInfo {
+    int samplingMode=0;std::size_t assetCacheBytes=0;
     std::string zone=sceneId,fixture="wildsignal-engine001-echo-micro-v0.1";
     std::string pipeline="HEADLESS_CPU_ONLY",sdlVersion="NOT_USED",backend="NOT_USED";
     Resolution screen{0,0};

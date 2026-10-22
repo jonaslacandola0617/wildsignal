@@ -128,6 +128,7 @@ void Telemetry::finish(double duration) {
      <<",\n  \"quantileMethod\": \"nearest rank, no interpolation\""
      <<",\n  \"frameMethod\": \"monotonic completion-to-completion including cap wait and previous sample I/O; warmup excluded\""
      <<",\n  \"simulationMethod\": \"variable dt capped 50ms, collision substeps <= radius/2; hitch excess discarded\"";
+    f<<",\n  \"textureSamplingResolution\": "<<info.samplingMode<<",\n  \"externalTextureCacheBytes\": "<<info.assetCacheBytes;
     q("medianFrameMs",[](const Sample& s){return s.frameMs;},0.5);
     q("p95FrameMs",[](const Sample& s){return s.frameMs;},0.95);
     q("p99FrameMs",[](const Sample& s){return s.frameMs;},0.99);
@@ -152,11 +153,11 @@ void Telemetry::finish(double duration) {
     f<<",\n  \"memoryMethod\": "<<quoteJson(memoryMethod())<<",\n  \"memorySampling\": \"RSS at most once per second; peak queried at export; includes telemetry reservation\""
      <<",\n  \"androidPssMiB\": null,\n  \"thermalObserved\": \"not-measured\",\n  \"inputLatencyMsP95\": null,\n  \"spritesVisibleMax\": ";
     if(samples_.empty()) f<<"null"; else f<<visible;
-    f<<",\n  \"textureCacheBytesPeak\": "<<Renderer::textureBytes<<",\n  \"memoryLeakTrend\": \"unknown\",\n  \"renderErrors\": [],\n  \"walkthrough\": "<<(info.walkthrough?"true":"false")
+    f<<",\n  \"textureCacheBytesPeak\": "<<(Renderer::textureBytes+info.assetCacheBytes)<<",\n  \"memoryLeakTrend\": \"unknown\",\n  \"renderErrors\": [],\n  \"walkthrough\": "<<(info.walkthrough?"true":"false")
      <<",\n  \"result\": "<<quoteJson(samples_.empty()?"NOT_MEASURED":"MEASURED_NOT_DEVICE_VALIDATED")
      <<",\n  \"unsupported\": [\"true arch geometry\",\"pitch\",\"stacked floors\",\"dynamic lighting\",\"Android package\"],\n  \"configurations\": [";
     bool comma=false;
-    for(const auto r:resolutions) for(int actors:{1,8,24}) {
+    for(const auto r:resolutions) for(int actors:{0,1,8,24}) {
         std::vector<Sample> group;
         for(const auto& s:samples_) if(s.world.w==r.w&&s.creatures==actors) group.push_back(s);
         if(group.empty()) continue;

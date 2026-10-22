@@ -29,14 +29,18 @@ struct DrawStats {
     std::size_t spritePixels=0,spriteTests=0,visibleSpritePixels=0;
     double worldMs=0,spriteMs=0;
 };
+struct SamplingPack;
 class Renderer {
 public:
     Renderer();
+    void sampling(const SamplingPack* pack) { sampling_=pack; }
     DrawStats render(Buffer& buffer,const World& world,const Camera& camera,bool stress,double seconds);
     DrawStats render(Buffer& buffer,const World& world,const Camera& camera,int actors,double seconds);
     std::size_t drawSprite(Buffer& buffer,const World& world,const Camera& camera,const Sprite& sprite,double seconds) const;
     static constexpr std::size_t textureBytes=(6+10+8)*64*64*sizeof(Pixel)+2*256*128*sizeof(Pixel);
 private:
+    const SamplingPack* sampling_=nullptr;
+    DrawStats renderSampling(Buffer&,const World&,const Camera&);
     using Texture=std::array<Pixel,64*64>;
     Texture wall_,floor_,ceiling_,creature_,signal_,arch_;
     std::array<Texture,10> materials_;
