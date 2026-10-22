@@ -4,12 +4,12 @@
 #include <cmath>
 #include <iomanip>
 #include <numeric>
+#include <cstdio>
 #include <stdexcept>
 #if defined(_WIN32)
 #include <windows.h>
 #include <psapi.h>
 #elif defined(__linux__)
-#include <sys/resource.h>
 #include <unistd.h>
 #endif
 
@@ -26,8 +26,11 @@ Memory processMemory() {
         m.peakRssMiB=static_cast<double>(counters.PeakWorkingSetSize)/1048576;
     }
 #elif defined(__linux__)
-    rusage usage{};
-    if(getrusage(RUSAGE_SELF,&usage)==0) m.peakRssMiB=static_cast<double>(usage.ru_maxrss)/1024;
+    // ru_maxrss may retain pre-exec launcher high water. VmHWM belongs to this process image.
+    std::ifstream status("/proc/self/status");char line[256];unsigned long highWaterKiB=0;
+    while(status.getline(line,sizeof(line))) if(std::sscanf(line,"VmHWM: %lu kB",&highWaterKiB)==1) {
+        m.peakRssMiB=static_cast<double>(highWaterKiB)/1024;break;
+    }
     std::ifstream f("/proc/self/statm"); long total=0,resident=0;
     const long page=sysconf(_SC_PAGESIZE);
     if(page>0&&f>>total>>resident) m.rssMiB=static_cast<double>(resident)*static_cast<double>(page)/1048576;
@@ -38,7 +41,7 @@ const char* memoryMethod() {
 #if defined(_WIN32)
     return "GetProcessMemoryInfo: WorkingSetSize / PeakWorkingSetSize";
 #elif defined(__linux__)
-    return "/proc/self/statm RSS, getrusage ru_maxrss peak (KiB); not Windows memory";
+    return "/proc/self/statm RSS; /proc/self/status VmHWM peak for current executable image (KiB); not Windows memory";
 #else
     return "NOT_AVAILABLE";
 #endif

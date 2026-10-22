@@ -26,7 +26,17 @@ with tempfile.TemporaryDirectory() as temp:
         return dict(id=name, path=name + '.png', size=size, sha256=hashlib.sha256((temp / (name + '.png')).read_bytes()).hexdigest())
     manifest = dict(schema='wildsignal-private-sampling-input-v1', materials=[entry('source', [256, 256])], fixedProp=entry('fixed', [16, 64]))
     config = temp / 'sources.json';config.write_text(json.dumps(manifest))
+    # Managed workspaces may mount an empty .git directory; it is not a checkout.
+    (temp / '.git').mkdir()
     module.prepare(config, temp / 'caches')
+    (temp / 'checkout/.git').mkdir(parents=True)
+    (temp / 'checkout/.git/HEAD').write_text('ref: refs/heads/test\n')
+    try:
+        module.prepare(config, temp / 'checkout/private')
+    except ValueError:
+        pass
+    else:
+        raise AssertionError('Output inside Git checkout accepted')
     for mode in [64, 128, 256]:
         cache = temp / f'caches/sampling_{mode}.wst';data = cache.read_bytes()
         assert data[:8] == b'WSTEX001'

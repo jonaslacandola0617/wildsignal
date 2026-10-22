@@ -19,7 +19,8 @@ def fnv(data):
 def prepare(config, output):
     config = Path(config).resolve()
     output = Path(output).resolve()
-    if any((parent / ".git").exists() for parent in [output, *output.parents]):
+    if any((parent / ".git").is_file() or (parent / ".git/HEAD").is_file()
+           for parent in [output, *output.parents]):
         raise ValueError("Private caches must be outside any Git checkout")
     spec = json.loads(config.read_text())
     if spec.get('schema') != 'wildsignal-private-sampling-input-v1':
