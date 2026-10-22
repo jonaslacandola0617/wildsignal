@@ -24,5 +24,6 @@ ASAN_OPTIONS="${ASAN_OPTIONS:-detect_leaks=1}" build/direct/render001_tests_asan
 g++ "${flags[@]}" -O2 -DNDEBUG "${sources[@]}" tests/engine001/sampling_tests.cpp tests/engine001/render001_alloc.cpp -o build/direct/sampling_tests
 build/direct/sampling_tests
 python3 tests/engine001/sampling_import_test.py build/direct/wildsignal_engine001_headless .
+python3 tests/engine001/facade_test.py build/direct/wildsignal_engine001_headless
 g++ "${flags[@]}" -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer "${sources[@]}" tests/engine001/sampling_tests.cpp tests/engine001/render001_alloc.cpp -o build/direct/sampling_tests_asan
 ASAN_OPTIONS="${ASAN_OPTIONS:-detect_leaks=1}" build/direct/sampling_tests_asan

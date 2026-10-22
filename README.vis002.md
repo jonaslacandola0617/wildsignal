@@ -53,3 +53,50 @@ Headless executable accepts the same options; its results omit SDL upload/UI/pre
 Before a faithful house exterior, decide the numerical facade-module-to-world width/height and its relationship to door baseline, eye height and lamp scale, and supply the actual intended house assembly/roof geometry/material. A bounded future geometry proposal is fixed facade quads plus the referenced pitched roof/gable/eave surfaces with perspective-correct UVs and shared depth. Do not substitute roof cards or automatically implement another renderer. Private measured screenshots/results and artistic comparison remain outside this public repository.
 
 Implementation/measurement summary: `docs/bench/VIS002_REPORT.md`. Private art comparisons and original sources are deliberately excluded.
+
+## Scale-correction calibration (experimental variant)
+
+The old sampling band remains available with `--sample-pack` alone. Add the following flags to select a separate, controlled facade proof. The full square source canvases stay intact; the renderer scales both axes equally and uses source-relative anchors from a PRIVATE layout. No new texture derivatives or art are required if the previous three caches are present.
+
+```powershell
+.\build\win\Release\wildsignal_engine001.exe --sample-pack C:/private/caches/sampling_256.wst --facade-layout C:/private/facade_layout.json --facade-scale c --resolution 480x270 --output C:/private/results/scale_c
+```
+
+Restart with `--facade-scale current|a|b|c|human` to select a candidate. F1 still cycles the three world resolutions. Change only the cache filename to retain the 64/128/256 sampling test. `current` means the former **one-unit canvas size**, placed in the cleaned-up facade, not a pixel-identical replay of the old sampling band. All five variants share the same corrected placement, environment, anchors, lighting and cameras; compare them with each other to isolate scale. The original scene is separately available for historical context.
+
+| Variant | Door canvas multiplier | Window canvas multiplier |
+|---|---:|---:|
+| current | 1.0 | 1.0 |
+| a | 1.5 | 1.4 |
+| b | 1.8 | 1.7 |
+| c | 2.1 | 2.0 |
+| human (additional height reference) | 3.2 | 2.4 |
+
+The new default is a **true orthographic in-world elevation**, eight experimental units wide, with parallel horizontal rays and constant pixels per world unit. It uses the same solid grid block and depth-tested native prop, not a screen-painted facade. Orthographic forward movement does not enlarge the scene. For normal first-person checks use `--facade-projection perspective`, the original 75-degree FOV and the same 1.6-unit eye height. Fixed poses: front `--camera 12 16.5 0`; corner `--camera 17 14.5 -45`. Keep projection/pose/resolution identical within each comparison. This adds a projection option to the calibration path, not a general geometry renderer or camera pitch.
+
+The unchanged 5-by-4-unit block is 3.2 units high. Two **2.5-by-2.5 square** framing samples cover its front below z=2.5; the remaining band stays plaster. Square modules are not stretched vertically to the block height. A material-repeat unit outside the panels remains one unit. Door silhouette baseline is z=.05, centered at x=10.25; window silhouette center is x=12.75, z=1.35; facade plane y=11. The lantern keeps its previous position `(14.65,12)`, native aspect, pixels and two-unit canvas height. These are reversible calibration transforms, **not metres, final facade/story dimensions or a house assembly contract**.
+
+Create a PRIVATE layout using the verified native sources' alpha bounds (right/bottom exclusive). Material numbers are zero-based cache slots. A synthetic example, not a mapping for the supplied artwork:
+
+```json
+{
+  "schema": "wildsignal-facade-calibration-v1",
+  "frameMaterial": 1, "doorMaterial": 3, "windowMaterial": 4,
+  "doorAnchorU": 0.5, "doorAnchorV": 1.0,
+  "windowAnchorU": 0.5, "windowAnchorV": 0.5
+}
+```
+
+For a native `W x H` canvas with alpha bounds `(left,top,right,bottom)`, set door U to `(left+right)/(2*W)` and V to `bottom/H`; set window U the same way and V to `(top+bottom)/(2*H)`. Compute these **once from the native master**, and use the same private layout for every sample mode. Do not infer anchors from each reduced cache, crop the masters or fill transparent padding. The owner receives the exact verified layout privately. Runtime validates its schema, size, indices, distinct material slots and normalized finite anchors.
+
+Reproduce actual private CPU-engine screenshots, lower-resolution gameplay checks, a turn preview and short timing/memory samples:
+
+```powershell
+python tools/capture_facade_scale.py --exe build/win/Release/wildsignal_engine001_headless.exe --packs C:/private/caches --layout C:/private/facade_layout.json --output C:/private/new-scale-captures
+```
+
+The script refuses output inside Git checkouts or an existing output directory. It captures original-band context and all five scale variants at fixed orthographic/front/corner poses for all three sample modes, plus lower-resolution perspective checks and an actual-frame turn. PNGs are lossless conversions of executable PPMs; labelled comparison sheets use nearest scaling. The script records input hashes and verifies no input changed. Use the headless executable: measurements omit SDL/UI/presentation, retain raw telemetry, and exclude the first 60 of 360 frames in the summary. This is short shared-host screening, **not** the standard device benchmark. For an actual SDL display screenshot use F12 in the windowed executable.
+
+The requested A/B/C sizes may still undershoot a human-height door because of source padding. The additional `human` candidate tests a door silhouette around 1.25 times eye height; it is an engineering recommendation for owner review, not final scale approval. Windows/Android/legacy-device private-art visual acceptance and the final relationship between source pixel density, module size, door clear opening, eye height and prop scale remain open.
+
+Surfaces remain flat, unlit texture overlays on a solid wall: no door/window opening, inset trim depth, roof, gable, eaves, interior or new gameplay. Off-angle footage must be assessed separately from front-facing readability. Existing artwork quality/tiling/baked shading limitations are not repaired by scaling. This one fixture can show that scale mattered; it cannot settle final artistic direction or production readiness.

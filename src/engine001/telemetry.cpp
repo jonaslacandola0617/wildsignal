@@ -132,6 +132,8 @@ void Telemetry::finish(double duration) {
      <<",\n  \"frameMethod\": \"monotonic completion-to-completion including cap wait and previous sample I/O; warmup excluded\""
      <<",\n  \"simulationMethod\": \"variable dt capped 50ms, collision substeps <= radius/2; hitch excess discarded\"";
     f<<",\n  \"textureSamplingResolution\": "<<info.samplingMode<<",\n  \"externalTextureCacheBytes\": "<<info.assetCacheBytes;
+    f<<",\n  \"projection\": "<<quoteJson(info.projection)<<",\n  \"facadeScaleVariant\": "<<quoteJson(info.facadeScale)
+     <<",\n  \"facadeDoorScale\": "<<info.doorScale<<",\n  \"facadeWindowScale\": "<<info.windowScale;
     q("medianFrameMs",[](const Sample& s){return s.frameMs;},0.5);
     q("p95FrameMs",[](const Sample& s){return s.frameMs;},0.95);
     q("p99FrameMs",[](const Sample& s){return s.frameMs;},0.99);

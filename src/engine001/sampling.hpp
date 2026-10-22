@@ -16,5 +16,17 @@ struct SamplingPack {
     std::size_t bytes() const;
     static SamplingPack load(const std::filesystem::path& file);
 };
-World samplingWorld();
+// Source-relative anchors come from a private layout, not hardcoded artwork bounds.
+struct FacadeCalibration {
+    std::string scale="current";
+    double doorScale=1,windowScale=1;
+    int frameMaterial=1,doorMaterial=3,windowMaterial=4;
+    double doorAnchorU=.5,doorAnchorV=1,windowAnchorU=.5,windowAnchorV=.5;
+    bool orthographic=true;
+    static FacadeCalibration load(const std::filesystem::path&,std::string_view scale,bool orthographic,const SamplingPack&);
+};
+struct FacadePanel { double left,top,size; };
+FacadePanel facadeDoor(const FacadeCalibration&);
+FacadePanel facadeWindow(const FacadeCalibration&);
+World samplingWorld(bool facade=false);
 }

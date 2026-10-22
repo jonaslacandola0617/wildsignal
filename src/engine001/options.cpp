@@ -13,7 +13,7 @@ Options options(int argc,char** argv,bool headless) {
     const auto stamp=std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     o.output=std::filesystem::path("bench/local")/("ENGINE001_"+std::to_string(stamp));
     if(headless) { o.frames=300;o.warmup=0;o.fps=0; }
-    bool explicitFrames=false;
+    bool explicitFrames=false,facadeProjectionSet=false;
     for(int i=1;i<argc;++i) {
         const std::string_view a=argv[i];
         const auto arg=[&]() -> std::string_view { if(++i==argc) throw std::runtime_error("Option requires value"); return argv[i]; };
@@ -23,6 +23,18 @@ Options options(int argc,char** argv,bool headless) {
             return n;
         };
         if(a=="--sample-pack") o.samplingPack=arg();
+        else if(a=="--facade-layout") o.facadeLayout=arg();
+        else if(a=="--facade-scale") {
+            o.facadeScale=arg();
+            if(o.facadeScale!="current"&&o.facadeScale!="a"&&o.facadeScale!="b"&&o.facadeScale!="c"&&o.facadeScale!="human")
+                throw std::runtime_error("Facade scale must be current|a|b|c|human");
+        }
+        else if(a=="--facade-projection") {
+            facadeProjectionSet=true;
+            const auto p=arg();
+            if(p!="orthographic"&&p!="perspective")throw std::runtime_error("Facade projection must be orthographic|perspective");
+            o.facadeOrthographic=p=="orthographic";
+        }
         else if(a=="--scene") o.scene=arg();
         else if(a=="--output") o.output=arg();
         else if(a=="--screenshot") o.screenshot=arg();
@@ -42,6 +54,9 @@ Options options(int argc,char** argv,bool headless) {
         else throw std::runtime_error("Unknown command line option");
     }
     if(o.duration>0&&!explicitFrames) o.frames=0;
+    if((!o.facadeScale.empty()||!o.facadeLayout.empty()||facadeProjectionSet)&&
+       (o.samplingPack.empty()||o.facadeScale.empty()||o.facadeLayout.empty()))
+        throw std::runtime_error("Facade comparison requires --sample-pack, --facade-layout and --facade-scale");
     const auto key=o.scene.string();
     if(key=="quay"||key=="forest"||key=="echo") o.scene=std::filesystem::absolute(argv[0]).parent_path()/"data/bench"/(key=="quay"?"lantern_quay_micro_v0.1.json":key=="forest"?"liltwood_micro_v0.1.json":"echo_hollow_micro_v0.1.json");
     return o;
@@ -49,6 +64,7 @@ Options options(int argc,char** argv,bool headless) {
 void help() {
     std::cout<<"WILDSIGNAL ENGINE-001 (prototype)\nW/S move  A/D turn  Esc exit  F1 resolution  F2 HUD  F3 1/8 creatures  F12 screenshot\n"
      <<"--sample-pack PRIVATE.wst (isolated experimental calibration scene)\n--scene echo|quay|forest|FILE --resolution 320x180|400x225|480x270 --output UNIQUE_PREFIX\n"
+     <<"--facade-layout PRIVATE.json --facade-scale current|a|b|c|human\n--facade-projection orthographic|perspective (comparison default: orthographic, width 8 units)\n"
      <<"--frames N --warmup SECONDS --duration CAPTURE_SECONDS --fps 0|30|60 --camera X Y YAW_DEG\n"
      <<"--sprites 1|8|24 --stress --software --walkthrough --screenshot WORLD.ppm --smoke-test\n"
      <<"Native default: 60s warmup, capture until exit, 30fps cap. Headless: 300 frames, no warmup/cap.\n";
