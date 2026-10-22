@@ -73,16 +73,19 @@ FacadeCalibration FacadeCalibration::load(const std::filesystem::path& path,std:
 }
 FacadePanel facadeDoor(const FacadeCalibration& f) {
     // Anchor the original silhouette's bottom at z=.05; preserve its full square canvas.
-    return {10.25-f.doorAnchorU*f.doorScale,.05+f.doorAnchorV*f.doorScale,f.doorScale};
+    const double x=f.treatment&&f.treatment->look=="c"?f.treatment->doorX:10.25;
+    return {x-f.doorAnchorU*f.doorScale,.05+f.doorAnchorV*f.doorScale,f.doorScale};
 }
 FacadePanel facadeWindow(const FacadeCalibration& f) {
-    return {12.75-f.windowAnchorU*f.windowScale,1.35+f.windowAnchorV*f.windowScale,f.windowScale};
+    const bool c=f.treatment&&f.treatment->look=="c";
+    return {(c?f.treatment->windowX:12.75)-f.windowAnchorU*f.windowScale,(c?f.treatment->windowZ:1.35)+f.windowAnchorV*f.windowScale,f.windowScale};
 }
-World samplingWorld(bool facade) {
+World samplingWorld(bool facade,bool readability) {
     World w;w.kind=SceneKind::Sampling;w.id="VIS002_CALIBRATION_001";w.name="SAMPLING / EXPERIMENTAL UNITS";w.fixtureVersion="vis002-calibration-v1";
     for(int y=0;y<24;++y)w.rows[static_cast<std::size_t>(y)]=y==0||y==23?std::string(24,'#'):"#"+std::string(22,'.')+"#";
     for(int y=7;y<=10;++y)for(int x=9;x<=13;++x)w.rows[static_cast<std::size_t>(y)][static_cast<std::size_t>(x)]='#';
     if(facade){w.id="VIS002_SCALE_CALIBRATION_001";w.name="FACADE / PROVISIONAL UNITS";w.fixtureVersion="vis002-facade-v1";}
+    if(readability){w.id="VIS003_READABILITY_001";w.name="FACADE / READABILITY EXPERIMENT";w.fixtureVersion="vis003-readability-v1";}
     w.spawn={{12,16.5},0};return w;
 }
 DrawStats Renderer::renderSampling(Buffer& b,const World& w,const Camera& c) {
@@ -93,6 +96,7 @@ DrawStats Renderer::renderSampling(Buffer& b,const World& w,const Camera& c) {
     const double orthoScale=b.size.w/8.0;
     const auto doorPanel=facade_?facadeDoor(*facade_):FacadePanel{};
     const auto windowPanel=facade_?facadeWindow(*facade_):FacadePanel{};
+    const auto* treatment=facade_&&facade_->treatment&&facade_->treatment->look!="a"?&*facade_->treatment:nullptr;
     const Vec2 forward{std::sin(c.yaw),-std::cos(c.yaw)},right{std::cos(c.yaw),std::sin(c.yaw)};
     std::fill(b.owner.begin(),b.owner.end(),std::uint8_t{0});
     for(int y=0;y<b.size.h;++y){
@@ -101,7 +105,8 @@ DrawStats Renderer::renderSampling(Buffer& b,const World& w,const Camera& c) {
             if(ortho){b.pixels[i]=vertical<=eye*orthoScale?rgb(50,65,70):rgb(66,75,73);b.pixelDepth[i]=std::numeric_limits<float>::infinity();continue;}
             if(vertical<=0||depth>40){b.pixels[i]=rgb(50,65,70);continue;}
             const double offset=(2*(x+.5)/b.size.w-1)*plane;
-            b.pixels[i]=pack.materials[0].at(c.position.x+depth*(forward.x+right.x*offset),c.position.y+depth*(forward.y+right.y*offset));}
+            const double worldX=c.position.x+depth*(forward.x+right.x*offset),worldY=c.position.y+depth*(forward.y+right.y*offset);
+            b.pixels[i]=treatment?treatment->floor(pack,worldX,worldY):pack.materials[0].at(worldX,worldY);}
     }
     for(int x=0;x<b.size.w;++x){
         const double offset=(2*(x+.5)/b.size.w-1)*plane;
@@ -123,16 +128,19 @@ DrawStats Renderer::renderSampling(Buffer& b,const World& w,const Camera& c) {
         // One unit square band at z=[1,2]. This is a calibration transform, not a house/module contract.
         const int cell=hit.side?hit.x-9:hit.y-7;const auto index=static_cast<std::size_t>((cell%static_cast<int>(pack.materials.size())+static_cast<int>(pack.materials.size()))%static_cast<int>(pack.materials.size()));
         const double worldX=origin.x+direction.x*hit.depth;
+        const double worldY=origin.y+direction.y*hit.depth;
         for(int y=lo;y<hi;++y){const auto i=static_cast<std::size_t>(y*b.size.w+x);
             // Preserve perspective operation order, including texel-boundary rounding in old captures.
             const double z=ortho?eye+(b.size.h*.5-y-.5)/pixelsPerUnit:eye+(b.size.h*.5-y-.5)*hit.depth/focal;
             const bool perimeter=hit.x==0||hit.y==0||hit.x==23||hit.y==23;
             Pixel color=perimeter?rgb(50,65,70):pack.materials[0].at(hit.u,-z);
             if(facade_){
+                const bool front=hit.side==1&&hit.y==10&&direction.y<0&&worldX>=9&&worldX<14;
+                if(treatment&&!perimeter)color=treatment->surface(pack,facade_->frameMaterial,color,hit.side?worldX:worldY,z,front);
                 // Fixed square panels: two 2.5 x 2.5 samples, never stretched to the 3.2-high wall.
                 // Only the actual south-facing surface carries facade art; side views reveal a solid block.
-                if(hit.side==1&&hit.y==10&&direction.y<0&&worldX>=9&&worldX<14){
-                    if(z>=0&&z<2.5){const auto px=pack.materials[static_cast<std::size_t>(facade_->frameMaterial)].at((worldX-9)/2.5,1-z/2.5);if(px>>24)color=px;}
+                if(front){
+                    if(!treatment&&z>=0&&z<2.5){const auto px=pack.materials[static_cast<std::size_t>(facade_->frameMaterial)].at((worldX-9)/2.5,1-z/2.5);if(px>>24)color=px;}
                     const auto overlay=[&](int material,FacadePanel panel){
                         const double u=(worldX-panel.left)/panel.size,v=(panel.top-z)/panel.size;
                         if(u>=0&&u<1&&v>=0&&v<1){const auto px=pack.materials[static_cast<std::size_t>(material)].at(u,v);if(px>>24)color=px;}

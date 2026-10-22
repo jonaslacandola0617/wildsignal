@@ -1,6 +1,8 @@
 #pragma once
 #include "render.hpp"
 #include <filesystem>
+#include "facade_treatment.hpp"
+#include <optional>
 
 namespace ws {
 // Offline-decoded RGBA, never embedded in the executable or repository.
@@ -23,10 +25,11 @@ struct FacadeCalibration {
     int frameMaterial=1,doorMaterial=3,windowMaterial=4;
     double doorAnchorU=.5,doorAnchorV=1,windowAnchorU=.5,windowAnchorV=.5;
     bool orthographic=true;
+    std::optional<FacadeTreatment> treatment;
     static FacadeCalibration load(const std::filesystem::path&,std::string_view scale,bool orthographic,const SamplingPack&);
 };
 struct FacadePanel { double left,top,size; };
 FacadePanel facadeDoor(const FacadeCalibration&);
 FacadePanel facadeWindow(const FacadeCalibration&);
-World samplingWorld(bool facade=false);
+World samplingWorld(bool facade=false,bool readability=false);
 }

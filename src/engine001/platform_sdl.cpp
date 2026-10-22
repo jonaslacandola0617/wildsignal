@@ -83,10 +83,11 @@ int runSdl(const Options& o) {
     std::optional<SamplingPack> pack;if(!o.samplingPack.empty())pack=SamplingPack::load(o.samplingPack);
     std::optional<FacadeCalibration> facade;
     if(!o.facadeScale.empty())facade=FacadeCalibration::load(o.facadeLayout,o.facadeScale,o.facadeOrthographic,*pack);
-    const World world=pack?samplingWorld(facade.has_value()):World::load(o.scene);Camera camera=o.customCamera?o.camera:world.spawn;
+    if(!o.facadeLook.empty())facade->treatment=FacadeTreatment::load(o.facadeTreatment,o.facadeLook,*pack);
+    const World world=pack?samplingWorld(facade.has_value(),!o.facadeLook.empty()):World::load(o.scene);Camera camera=o.customCamera?o.camera:world.spawn;
     if(!world.canStand(camera.position,world.radius)) throw std::runtime_error("Requested camera intersects wall");
     SdlLifetime runtime;
-    Window window(SDL_CreateWindow(pack?"VIS-002 / CALIBRATION / NO APPROVED WORLD SCALE":"WILDSIGNAL / RENDER-001",1280,720,SDL_WINDOW_RESIZABLE|SDL_WINDOW_HIGH_PIXEL_DENSITY),SDL_DestroyWindow);
+    Window window(SDL_CreateWindow(!o.facadeLook.empty()?"WILDSIGNAL / VIS-003 / EXPERIMENTAL FACADE":pack?"VIS-002 / CALIBRATION / NO APPROVED WORLD SCALE":"WILDSIGNAL / RENDER-001",1280,720,SDL_WINDOW_RESIZABLE|SDL_WINDOW_HIGH_PIXEL_DENSITY),SDL_DestroyWindow);
     check(window!=nullptr,"SDL_CreateWindow");
     Display display(SDL_CreateRenderer(window.get(),o.software?"software":nullptr),SDL_DestroyRenderer);
     check(display!=nullptr,"SDL_CreateRenderer");
@@ -94,11 +95,12 @@ int runSdl(const Options& o) {
     if(!SDL_SetRenderVSync(display.get(),0)) SDL_ClearError();
     Texture texture(nullptr,SDL_DestroyTexture);Buffer buffer;int mode=o.mode;
     changeResolution(buffer,texture,display.get(),resolutions[static_cast<std::size_t>(mode)]);
-    const std::string sceneLabel=facade?("SCALE "+facade->scale+" / "+(facade->orthographic?"ORTHO":"PERSPECTIVE")+" / TEX "+std::to_string(pack->mode)):world.name+(pack?(" TEX "+std::to_string(pack->mode)):"");
+    const std::string sceneLabel=facade?((facade->treatment?"LOOK "+facade->treatment->look:"SCALE "+facade->scale)+" / "+(facade->orthographic?"ORTHO":"PERSPECTIVE")+" / TEX "+std::to_string(pack->mode)):world.name+(pack?(" TEX "+std::to_string(pack->mode)):"");
     Renderer renderer;renderer.sampling(pack?&*pack:nullptr);Input input;
     renderer.facade(facade?&*facade:nullptr);
     RunInfo info;info.samplingMode=pack?pack->mode:0;info.assetCacheBytes=pack?pack->bytes():0;info.zone=world.id;info.fixture=world.fixtureVersion;info.pipeline="SDL_WINDOW";info.warmup=o.warmup;info.cap=o.fps;info.walkthrough=o.walkthrough;
     if(facade){info.facadeScale=facade->scale;info.doorScale=facade->doorScale;info.windowScale=facade->windowScale;info.projection=facade->orthographic?"orthographic":"perspective";}
+    if(facade&&facade->treatment){info.facadeLook=facade->treatment->look;info.plasterSlot=facade->treatment->plaster;info.groundSlot=facade->treatment->ground.material;}
     info.sdlVersion=std::to_string(SDL_GetVersion());
     const char* backend=SDL_GetRendererName(display.get());info.backend=backend?backend:"UNKNOWN";
     Telemetry telemetry(o.output,info);

@@ -134,6 +134,7 @@ void Telemetry::finish(double duration) {
     f<<",\n  \"textureSamplingResolution\": "<<info.samplingMode<<",\n  \"externalTextureCacheBytes\": "<<info.assetCacheBytes;
     f<<",\n  \"projection\": "<<quoteJson(info.projection)<<",\n  \"facadeScaleVariant\": "<<quoteJson(info.facadeScale)
      <<",\n  \"facadeDoorScale\": "<<info.doorScale<<",\n  \"facadeWindowScale\": "<<info.windowScale;
+    f<<",\n  \"facadeLook\": "<<quoteJson(info.facadeLook)<<",\n  \"plasterMaterialSlot\": "<<info.plasterSlot<<",\n  \"groundMaterialSlot\": "<<info.groundSlot;
     q("medianFrameMs",[](const Sample& s){return s.frameMs;},0.5);
     q("p95FrameMs",[](const Sample& s){return s.frameMs;},0.95);
     q("p99FrameMs",[](const Sample& s){return s.frameMs;},0.99);
