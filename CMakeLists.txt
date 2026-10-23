@@ -1,0 +1,107 @@
+cmake_minimum_required(VERSION 3.24)
+project(WILDSIGNAL_ENGINE001 VERSION 0.1.0 LANGUAGES CXX)
+
+if(WIN32 AND NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
+  message(FATAL_ERROR "ENGINE-001 supports Windows x64 only")
+endif()
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+option(ENGINE001_BUILD_SDL "Build the SDL3 windowed prototype" ON)
+option(ENGINE001_SANITIZE "Enable address and undefined behavior sanitizers" OFF)
+
+execute_process(COMMAND git rev-parse HEAD WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+                OUTPUT_VARIABLE ENGINE001_BUILD_ID OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+if(NOT ENGINE001_BUILD_ID)
+  set(ENGINE001_BUILD_ID "UNKNOWN_SOURCE")
+endif()
+execute_process(COMMAND git status --porcelain WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+                OUTPUT_VARIABLE ENGINE001_DIRTY OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+if(ENGINE001_DIRTY)
+  string(APPEND ENGINE001_BUILD_ID "-dirty")
+endif()
+add_library(engine001_core
+  src/engine001/json.cpp src/engine001/world.cpp src/engine001/camera.cpp
+  src/engine001/render.cpp src/engine001/telemetry.cpp src/engine001/options.cpp)
+target_include_directories(engine001_core PUBLIC src/engine001)
+target_compile_definitions(engine001_core PUBLIC ENGINE001_BUILD_ID="${ENGINE001_BUILD_ID}")
+if(MSVC)
+  target_compile_options(engine001_core PUBLIC /W4 /permissive- /utf-8)
+else()
+  target_compile_options(engine001_core PUBLIC -Wall -Wextra -Wpedantic -Werror)
+  if(ENGINE001_SANITIZE)
+    target_compile_options(engine001_core PUBLIC -fsanitize=address,undefined -fno-omit-frame-pointer)
+    target_link_options(engine001_core PUBLIC -fsanitize=address,undefined)
+  endif()
+endif()
+if(WIN32)
+  target_compile_definitions(engine001_core PUBLIC _WIN32_WINNT=0x0601 WIN32_LEAN_AND_MEAN NOMINMAX)
+  target_link_libraries(engine001_core PRIVATE psapi)
+endif()
+
+add_executable(wildsignal_engine001_headless src/engine001/headless.cpp)
+target_link_libraries(wildsignal_engine001_headless PRIVATE engine001_core)
+set(FIXTURE docs/architecture/ENGINE001_SCENE_FIXTURE_v0.1.json)
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/data/bench)
+configure_file(${FIXTURE} ${CMAKE_BINARY_DIR}/data/bench/echo_hollow_micro_v0.1.json COPYONLY)
+
+if(ENGINE001_BUILD_SDL)
+  include(FetchContent)
+  set(SDL_SHARED OFF CACHE BOOL "" FORCE)
+  set(SDL_STATIC ON CACHE BOOL "" FORCE)
+  set(SDL_TEST_LIBRARY OFF CACHE BOOL "" FORCE)
+  set(SDL_TESTS OFF CACHE BOOL "" FORCE)
+  set(SDL_EXAMPLES OFF CACHE BOOL "" FORCE)
+  set(SDL_INSTALL OFF CACHE BOOL "" FORCE)
+  # This renderer uses video/events/timers only; keep unused device/API modules out.
+  foreach(subsystem AUDIO CAMERA GPU HAPTIC POWER SENSOR DIALOG)
+    set(SDL_${subsystem} OFF CACHE BOOL "" FORCE)
+  endforeach()
+  set(SDL_RENDER_D3D12 OFF CACHE BOOL "" FORCE)
+  set(SDL_RENDER_GPU OFF CACHE BOOL "" FORCE)
+  set(SDL_VULKAN OFF CACHE BOOL "" FORCE)
+  set(SDL_RENDER_VULKAN OFF CACHE BOOL "" FORCE)
+  # SDL 3.2.10, immutable release commit; may be supplied offline with
+  # -DFETCHCONTENT_SOURCE_DIR_SDL3=<verified-source-directory>.
+  FetchContent_Declare(SDL3 GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
+    GIT_TAG 877399b2b2cf21e67554ed9046410f268ce1d1b2 GIT_SHALLOW FALSE)
+  FetchContent_MakeAvailable(SDL3)
+  add_executable(wildsignal_engine001 src/engine001/main.cpp src/engine001/platform_sdl.cpp)
+  target_link_libraries(wildsignal_engine001 PRIVATE engine001_core SDL3::SDL3-static)
+  install(TARGETS wildsignal_engine001 RUNTIME DESTINATION .)
+  install(FILES ${FIXTURE} DESTINATION data/bench RENAME echo_hollow_micro_v0.1.json)
+  install(FILES ${sdl3_SOURCE_DIR}/LICENSE.txt DESTINATION licenses RENAME SDL3.txt)
+  install(FILES README.engine001.md DESTINATION .)
+  install(FILES third_party/README.md DESTINATION third_party)
+  install(DIRECTORY docs/bench/ DESTINATION docs/bench)
+endif()
+foreach(executable wildsignal_engine001_headless wildsignal_engine001)
+  if(TARGET ${executable})
+    add_custom_command(TARGET ${executable} POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:${executable}>/data/bench
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_SOURCE_DIR}/${FIXTURE}
+        $<TARGET_FILE_DIR:${executable}>/data/bench/echo_hollow_micro_v0.1.json)
+  endif()
+endforeach()
+
+include(CTest)
+if(BUILD_TESTING)
+  add_executable(engine001_tests tests/engine001/core_tests.cpp)
+  target_link_libraries(engine001_tests PRIVATE engine001_core)
+  add_test(NAME engine001_core COMMAND engine001_tests ${CMAKE_SOURCE_DIR}/${FIXTURE})
+  add_test(NAME engine001_offline_boot COMMAND wildsignal_engine001_headless
+    --scene ${CMAKE_SOURCE_DIR}/${FIXTURE} --frames 12 --warmup 0)
+  find_package(Python3 COMPONENTS Interpreter)
+  if(Python3_Interpreter_FOUND)
+    add_test(NAME engine001_export COMMAND ${Python3_EXECUTABLE}
+      ${CMAKE_SOURCE_DIR}/tests/engine001/export_test.py $<TARGET_FILE:wildsignal_engine001_headless>
+      ${CMAKE_SOURCE_DIR}/${FIXTURE})
+  endif()
+  if(ENGINE001_BUILD_SDL)
+    add_test(NAME engine001_sdl_lifecycle COMMAND wildsignal_engine001 --smoke-test --software
+      --frames 36 --warmup 0 --fps 0)
+    set_tests_properties(engine001_sdl_lifecycle PROPERTIES
+      ENVIRONMENT "SDL_VIDEODRIVER=dummy;SDL_AUDIODRIVER=dummy" TIMEOUT 60)
+  endif()
+endif()

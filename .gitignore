@@ -1,0 +1,6 @@
+/build*/
+/out/
+/bench/local/
+*.ppm
+*.bmp
+__pycache__/

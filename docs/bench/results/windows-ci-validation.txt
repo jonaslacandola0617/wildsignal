@@ -1,0 +1,15 @@
+Source: f31b587e954aef6fcfafc3762e902a0540fc6563
+Run: https://github.com/jonaslacandola0617/wildsignal/actions/runs/39548472778
+2026-10-21T05:15:18.6138568Z -- The CXX compiler identification is MSVC 19.44.35229.0
+2026-10-21T05:15:36.2522362Z -- The C compiler identification is MSVC 19.44.35229.0
+2026-10-21T05:16:49.6249610Z     Start 1: engine001_core
+2026-10-21T05:16:49.9187536Z 1/4 Test #1: engine001_core ...................   Passed    0.29 sec
+2026-10-21T05:16:49.9200486Z     Start 2: engine001_offline_boot
+2026-10-21T05:16:49.9368466Z 2/4 Test #2: engine001_offline_boot ...........   Passed    0.02 sec
+2026-10-21T05:16:49.9371331Z     Start 3: engine001_export
+2026-10-21T05:16:50.7186084Z 3/4 Test #3: engine001_export .................   Passed    0.78 sec
+2026-10-21T05:16:50.7189239Z     Start 4: engine001_sdl_lifecycle
+2026-10-21T05:16:50.8029235Z 4/4 Test #4: engine001_sdl_lifecycle ..........   Passed    0.08 sec
+2026-10-21T05:16:50.8035852Z 100% tests passed, 0 tests failed out of 4
+2026-10-21T05:16:50.8036377Z Total Test time (real) =   1.21 sec
+2026-10-21T05:16:55.5521260Z Artifact engine001-windows-x64.zip successfully finalized. Artifact ID 12322682190
