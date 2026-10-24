@@ -1,3 +1,9 @@
+> **2026-10-24 DIRECTION SUPERSESSION NOTICE — CURRENT DESIGN**
+> New owner-approved art direction: cute, bright, approachable fantasy inspired by classic handheld readability; 16×16 world tiles, scaled nearest-neighbor; Pixel Crawler 2.11 is the primary environmental art style and source. Old dark coastal/first-person style prescriptions below are superseded; keep 'Beautiful but mysterious' mood and approved original creatures. Do not mechanically impose old 32-swatch palette on Pixel Crawler.
+> See [Top-down + Pixel Crawler decision](../planning/TOPDOWN_PIXELCRAWLER_DECISION_v0.1.md) for the governing details. Historical material below is preserved unchanged.
+
+---
+
 # WILDSIGNAL — Visual & Environmental Art Bible v0.1
 
 **Status:** Proposed art-direction specification; visual mood is approved, numerical budgets and individual asset decisions are *pending validation*.  
