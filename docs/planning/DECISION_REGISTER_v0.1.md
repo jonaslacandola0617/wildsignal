@@ -1,3 +1,9 @@
+> **2026-10-24 DIRECTION SUPERSESSION NOTICE — CURRENT DESIGN**
+> Owner decision 2026-10-24: replace first-person 2.5D presentation with top-down/three-quarter 2D cute fantasy; select Anokolisa Pixel Crawler Free Pack 2.11 as environment art baseline. Keep original creature art, C++/SDL3, Windows/Android and gameplay plans. Details in TOPDOWN_PIXELCRAWLER_DECISION_v0.1.md. Historical renderer decisions below retained for audit only.
+> See [Top-down + Pixel Crawler decision](../planning/TOPDOWN_PIXELCRAWLER_DECISION_v0.1.md) for the governing details. Historical material below is preserved unchanged.
+
+---
+
 # WILDSIGNAL — Canonical Design Decisions & Open Questions v0.1
 
 **Date:** 2026-10-20. **Status:** Four commercial/trust planning decisions approved, plus Windows 7–11 game compatibility explicitly requested by owner, 2026-10-20. Technical feasibility, content lock, prices, detailed online implementation and Codex build authorization remain open.
