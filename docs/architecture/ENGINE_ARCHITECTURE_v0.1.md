@@ -1,3 +1,9 @@
+> **2026-10-24 DIRECTION SUPERSESSION NOTICE — CURRENT DESIGN**
+> New architecture target: C++20 + SDL3 **2D top-down tilemap, sprite layering, collision, camera, movement and companions**. Existing raycast/roof geometry is a preserved technical R&D branch, not the intended production world renderer. TOPDOWN-001 headless libpng experimental prototype exists separately; SDL integration needs implementation and testing.
+> See [Top-down + Pixel Crawler decision](../planning/TOPDOWN_PIXELCRAWLER_DECISION_v0.1.md) for the governing details. Historical material below is preserved unchanged.
+
+---
+
 # WILDSIGNAL — C++ Engine Architecture & ADR-001 v0.1
 
 **Status:** Proposed technical architecture, **NOT** implementation approval. Date 2026-10-20.
