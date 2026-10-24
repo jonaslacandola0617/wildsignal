@@ -12,8 +12,8 @@
 
 ## Still required
 
-- **Private art repository upload:** complete ZIP is **NOT VERIFIED UPLOADED** to `jonaslacandola0617/wildsignal-art` in this task. Do not claim upload. Preserve ZIP/private source in the user's connected file storage if needed until successfully imported.
-- **Public game repo source import:** locally tested source exists in the attached source-only ZIP, but not yet verifiably landed as GitHub source files. Codex should import/reconcile on a fresh feature branch and run actual build/tests.
+- **Private art repository upload:** complete ZIP is **VERIFIED UPLOADED** to `jonaslacandola0617/wildsignal-art` in this task: `third-party/pixel-crawler/free-pack-2.11/Pixel Crawler - Free Pack 2.11.zip` on `art/pixelcrawler-freepack-2.11-intake-v0.1`, 2,447,514 bytes, Git blob `a5fb408858c8fdaffd2820160ef178597b5ebe6f`; local original SHA-256 matches.
+- **Public game repo source import:** original headless proof source and CMake are now committed on `feat/topdown-001-pixelcrawler-sdl-proof`, verified **byte-for-byte by Git blob SHA** against the locally built and executed code. `experiments/topdown001/src/main.cpp` blob `ef6b3991f29052bcd4503b83a922a25791c4a977`. Local headless Linux run PASS; a fresh GitHub/Windows build after import is **NOT RUN**. Next: SDL3 playable implementation and testing from this branch.
 - SDL3 interactive controls/window, polished layer organization, real map design, animation, companion follow behavior, collisions for trees/objects, real Pixel Crawler atlas selection and owner approval are still pending.
 - Windows 11 Intel i3/4 GB, Android, Windows 7 tests: NOT RUN.
 
