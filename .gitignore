@@ -7,3 +7,6 @@ __pycache__/
 
 # Runtime sampling caches contain private derivative pixels.
 *.wst
+
+# Private top-down native RGBA sprite caches
+*.rgba
