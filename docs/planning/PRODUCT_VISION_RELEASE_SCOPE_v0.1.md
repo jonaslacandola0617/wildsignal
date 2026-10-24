@@ -1,3 +1,9 @@
+> **2026-10-24 DIRECTION SUPERSESSION NOTICE — CURRENT DESIGN**
+> Presentation updated to cute top-down fantasy 16px tile art, not first-person. Creature companionship, turn-based battles, offline full adventure, planned optional 2-player coop, free-to-play cosmetic-only monetization and Windows/Android goals unchanged unless separately reconsidered.
+> See [Top-down + Pixel Crawler decision](../planning/TOPDOWN_PIXELCRAWLER_DECISION_v0.1.md) for the governing details. Historical material below is preserved unchanged.
+
+---
+
 # WILDSIGNAL — Product Vision & Release Scope v0.1
 
 **Status: PRODUCT PLANNING BASELINE APPROVED IN PART, NOT PRODUCTION LOCK.** Date: 2026-10-20.  
