@@ -1,5 +1,7 @@
 # TOPDOWN-001 — Private Pixel Crawler source mapping (public metadata only)
 
+**Historical proof-input metadata:** the PNG hashes below do not match the encoded files inside the verified original ZIP, and its named tree sheet is actually 256×128. The playable importer validates the immutable ZIP and the actual source entries using the reviewed PRIVATE catalog; see `README.playable.md`. Original proof source is preserved unchanged.
+
 **Source ZIP:** `Pixel Crawler - Free Pack 2.11.zip`  
 **Immutable ZIP SHA-256:** `b7b228ca232da9958f191b01db87764dddb67610116151e06e8dd8ade6de94b8`  
 **Private GitHub source:** `jonaslacandola0617/wildsignal-art`, branch `art/pixelcrawler-freepack-2.11-intake-v0.1`, at `third-party/pixel-crawler/free-pack-2.11/Pixel Crawler - Free Pack 2.11.zip`.  
