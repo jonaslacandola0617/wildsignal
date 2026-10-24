@@ -1,3 +1,9 @@
+> **2026-10-24 DIRECTION SUPERSESSION NOTICE — CURRENT DESIGN**
+> Documentation precedence: docs/planning/TOPDOWN_PIXELCRAWLER_DECISION_v0.1.md supersedes first-person visuals/engine directions in older docs. Preserve historical spec text but avoid assigning future implementation based on obsolete first-person assumptions.
+> See [Top-down + Pixel Crawler decision](../planning/TOPDOWN_PIXELCRAWLER_DECISION_v0.1.md) for the governing details. Historical material below is preserved unchanged.
+
+---
+
 # WILDSIGNAL — Pre-production Specification Index v0.1
 
 **Status:** Authoritative document index; four owner decisions APPROVED FOR PLANNING 2026-10-20, detailed assets and code NOT yet production-locked.
