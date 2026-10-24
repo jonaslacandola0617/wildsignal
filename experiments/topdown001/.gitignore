@@ -1,0 +1,6 @@
+private_input/
+build/
+*.png
+*.ppm
+capture*/
+*.wst
