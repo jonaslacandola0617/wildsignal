@@ -1,3 +1,9 @@
+> **2026-10-24 DIRECTION SUPERSESSION NOTICE — CURRENT DESIGN**
+> Previous first-person hero camera targets are archived reference. New milestone TOPDOWN-001: small playable top-down Lantern Quay world using actual Pixel Crawler Free Pack tiles, with capture and owner review. Forest/Liltwood and underground/Echo Hollow targets to follow after first scene validation.
+> See [Top-down + Pixel Crawler decision](../planning/TOPDOWN_PIXELCRAWLER_DECISION_v0.1.md) for the governing details. Historical material below is preserved unchanged.
+
+---
+
 # WILDSIGNAL — Three First-Person Hero Scene Targets v0.1
 
 **Status:** CREATIVE PLANNING SPEC, not generated images, not production art and not tested in a renderer.
