@@ -1,0 +1,325 @@
+{
+  "revision": 1,
+  "ground_extent": 96,
+  "instances": [
+    {
+      "id": "ground",
+      "model": "ground",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "yaw": 0,
+      "scale": 1
+    },
+    {
+      "id": "canopy-tree-0",
+      "model": "CommonTree_1",
+      "position": [
+        -4,
+        0.15,
+        -1
+      ],
+      "yaw": 0,
+      "scale": 1.0
+    },
+    {
+      "id": "canopy-tree-2",
+      "model": "CommonTree_3",
+      "position": [
+        4,
+        0.15,
+        -1
+      ],
+      "yaw": 74,
+      "scale": 1.1
+    },
+    {
+      "id": "canopy-tree-3",
+      "model": "CommonTree_1",
+      "position": [
+        8,
+        0.15,
+        -1
+      ],
+      "yaw": 111,
+      "scale": 1.0
+    },
+    {
+      "id": "canopy-tree-4",
+      "model": "CommonTree_2",
+      "position": [
+        -6,
+        0.15,
+        3
+      ],
+      "yaw": 148,
+      "scale": 1.1
+    },
+    {
+      "id": "canopy-tree-5",
+      "model": "CommonTree_3",
+      "position": [
+        -2,
+        0.15,
+        3
+      ],
+      "yaw": 185,
+      "scale": 1.05
+    },
+    {
+      "id": "canopy-tree-6",
+      "model": "CommonTree_1",
+      "position": [
+        2,
+        0.15,
+        3
+      ],
+      "yaw": 222,
+      "scale": 1.0
+    },
+    {
+      "id": "canopy-tree-7",
+      "model": "CommonTree_2",
+      "position": [
+        6,
+        0.15,
+        3
+      ],
+      "yaw": 259,
+      "scale": 1.1
+    },
+    {
+      "id": "canopy-tree-8",
+      "model": "CommonTree_3",
+      "position": [
+        -4,
+        0.15,
+        7
+      ],
+      "yaw": 296,
+      "scale": 1.0
+    },
+    {
+      "id": "canopy-tree-9",
+      "model": "CommonTree_1",
+      "position": [
+        0,
+        0.15,
+        7
+      ],
+      "yaw": 333,
+      "scale": 1.05
+    },
+    {
+      "id": "canopy-tree-10",
+      "model": "CommonTree_2",
+      "position": [
+        4,
+        0.15,
+        7
+      ],
+      "yaw": 370,
+      "scale": 1.1
+    },
+    {
+      "id": "canopy-fern-0",
+      "model": "Fern_1",
+      "position": [
+        -3,
+        0,
+        0
+      ],
+      "yaw": 0,
+      "scale": 0.6
+    },
+    {
+      "id": "canopy-grass-0",
+      "model": "Grass_Common_Short",
+      "position": [
+        -2.5,
+        0,
+        -0.2
+      ],
+      "yaw": 0,
+      "scale": 0.45
+    },
+    {
+      "id": "canopy-fern-1",
+      "model": "Fern_1",
+      "position": [
+        2,
+        0,
+        0
+      ],
+      "yaw": 43,
+      "scale": 0.6
+    },
+    {
+      "id": "canopy-grass-1",
+      "model": "Grass_Common_Short",
+      "position": [
+        2.5,
+        0,
+        -0.2
+      ],
+      "yaw": 13,
+      "scale": 0.45
+    },
+    {
+      "id": "canopy-fern-2",
+      "model": "Fern_1",
+      "position": [
+        -5,
+        0,
+        2
+      ],
+      "yaw": 86,
+      "scale": 0.6
+    },
+    {
+      "id": "canopy-grass-2",
+      "model": "Grass_Common_Short",
+      "position": [
+        -4.5,
+        0,
+        1.8
+      ],
+      "yaw": 26,
+      "scale": 0.45
+    },
+    {
+      "id": "canopy-fern-3",
+      "model": "Fern_1",
+      "position": [
+        4,
+        0,
+        2
+      ],
+      "yaw": 129,
+      "scale": 0.6
+    },
+    {
+      "id": "canopy-grass-3",
+      "model": "Grass_Common_Short",
+      "position": [
+        4.5,
+        0,
+        1.8
+      ],
+      "yaw": 39,
+      "scale": 0.45
+    },
+    {
+      "id": "canopy-fern-4",
+      "model": "Fern_1",
+      "position": [
+        -6,
+        0,
+        6
+      ],
+      "yaw": 172,
+      "scale": 0.6
+    },
+    {
+      "id": "canopy-grass-4",
+      "model": "Grass_Common_Short",
+      "position": [
+        -5.5,
+        0,
+        5.8
+      ],
+      "yaw": 52,
+      "scale": 0.45
+    },
+    {
+      "id": "canopy-fern-5",
+      "model": "Fern_1",
+      "position": [
+        3,
+        0,
+        7
+      ],
+      "yaw": 215,
+      "scale": 0.6
+    },
+    {
+      "id": "canopy-grass-5",
+      "model": "Grass_Common_Short",
+      "position": [
+        3.5,
+        0,
+        6.8
+      ],
+      "yaw": 65,
+      "scale": 0.45
+    },
+    {
+      "id": "canopy-fern-6",
+      "model": "Fern_1",
+      "position": [
+        -2,
+        0,
+        7
+      ],
+      "yaw": 258,
+      "scale": 0.6
+    },
+    {
+      "id": "canopy-grass-6",
+      "model": "Grass_Common_Short",
+      "position": [
+        -1.5,
+        0,
+        6.8
+      ],
+      "yaw": 78,
+      "scale": 0.45
+    },
+    {
+      "id": "canopy-fern-7",
+      "model": "Fern_1",
+      "position": [
+        5,
+        0,
+        -2
+      ],
+      "yaw": 301,
+      "scale": 0.6
+    },
+    {
+      "id": "canopy-grass-7",
+      "model": "Grass_Common_Short",
+      "position": [
+        5.5,
+        0,
+        -2.2
+      ],
+      "yaw": 91,
+      "scale": 0.45
+    },
+    {
+      "id": "canopy-fern-8",
+      "model": "Fern_1",
+      "position": [
+        1,
+        0,
+        -3
+      ],
+      "yaw": 344,
+      "scale": 0.6
+    },
+    {
+      "id": "canopy-grass-8",
+      "model": "Grass_Common_Short",
+      "position": [
+        1.5,
+        0,
+        -3.2
+      ],
+      "yaw": 104,
+      "scale": 0.45
+    }
+  ]
+}

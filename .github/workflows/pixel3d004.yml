@@ -1,0 +1,47 @@
+name: PIXEL3D-004 code-only SDL3 OpenGL experiment
+on:
+  push:
+    branches: [feat/pixel3d-004-material-style]
+  pull_request:
+    branches: [feat/pixel3d-003-atmospheric-sunlight]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows-x64:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - run: cmake -S experiments/pixel3d004 -B build/pixel3d -G "Visual Studio 17 2022" -A x64 -T v143
+      - run: cmake --build build/pixel3d --config Release --parallel 2
+      - run: ctest --test-dir build/pixel3d -C Release --output-on-failure
+      - run: ./build/pixel3d/Release/wildsignal_pixel3d004.exe --help
+      - run: cmake --install build/pixel3d --config Release --prefix out/pixel3d004-windows-x64
+      - name: Artifact checksums (code/scenes/licenses only)
+        shell: pwsh
+        run: |
+          $root = (Resolve-Path out/pixel3d004-windows-x64).Path
+          $sums = @(Get-ChildItem $root -Recurse -File | ForEach-Object {
+            "$((Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant())  $([IO.Path]::GetRelativePath($root, $_.FullName))"
+          })
+          [IO.File]::WriteAllLines((Join-Path $root SHA256SUMS.txt), $sums)
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pixel3d004-windows-x64-code-only
+          path: out/pixel3d004-windows-x64
+          retention-days: 14
+  linux-sanitizers:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - run: cmake -S experiments/pixel3d004 -B build/asan -DCMAKE_BUILD_TYPE=Debug -DPIXEL3D_BUILD_GL=OFF -DPIXEL3D_SANITIZE=ON
+      - run: cmake --build build/asan --parallel 2
+      - run: ctest --test-dir build/asan --output-on-failure
+      - name: Preserve hybrid and first-person regressions
+        run: |
+          cmake -S experiments/2p5d001 -B build/hybrid -DCMAKE_BUILD_TYPE=Release -DHYBRID_BUILD_SDL=OFF
+          cmake --build build/hybrid --parallel 2
+          ctest --test-dir build/hybrid --output-on-failure
+          cmake -S . -B build/original -DCMAKE_BUILD_TYPE=Release -DENGINE001_BUILD_SDL=OFF
+          cmake --build build/original --parallel 2
+          ctest --test-dir build/original --output-on-failure
