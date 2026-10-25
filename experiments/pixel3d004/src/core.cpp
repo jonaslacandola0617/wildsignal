@@ -331,6 +331,11 @@ World World::load(const std::filesystem::path &pack,
           mat.texture = it->second;
     w.models.push_back(std::move(model));
   }
+  w.styleMaterialsReady = !variants.empty();
+  for (auto &model : w.models)
+    for (auto &material : model.materials)
+      if (material.kind > 0 && material.styleTexture.empty())
+        w.styleMaterialsReady = false;
   // Basic study ground samples the verified Quaternius grass palette. This
   // explicitly permitted quad is not a substitute cottage/foliage asset.
   if (ids.contains("Grass_Common_Short")) {

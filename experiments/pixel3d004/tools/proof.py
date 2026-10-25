@@ -27,11 +27,11 @@ DIAG={
  'visibility_all_A':['--diagnostic','shadow'],
  'visibility_building_A':['--diagnostic','shadow','--casters','building'],
  'visibility_all_C':['--style','C','--no-art-materials','--diagnostic','shadow'],
- 'visibility_uncorrected_C':['--style','C','--no-art-materials','--no-smooth-lighting','--diagnostic','shadow'],
+ 'visibility_uncorrected_C':['--style','C','--no-art-materials','--no-receiver-correction','--diagnostic','shadow'],
  'roof512_C':['--style','C','--no-art-materials','--diagnostic','shadow','--casters','roof','--pose','5'],
  'roof1024_C':['--style','C','--no-art-materials','--diagnostic','shadow','--casters','roof','--shadow-size','1024','--pose','5'],
  'wire':['--diagnostic','wire','--shafts','off'],
- 'C_old_surface':['--style','C','--no-smooth-lighting'],
+ 'C_banded_light':['--style','C','--no-smooth-lighting'],
  'C_old_air':['--style','C','--no-smooth-air'],
  'B_no_ink':['--style','B','--no-refined-outlines'],
  'B_no_highlight':['--style','B','--no-edge-highlights']}

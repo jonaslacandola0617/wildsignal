@@ -96,7 +96,7 @@ uniform int cozy,ground,foliage,contactCount;
 uniform vec3 sunDirection,sunColor,ambientSky,ambientGround,eye,hazeColor;
 uniform float exposure,bandSoftness,contactStrength,hazeStart,hazeEnd,hazeStrength;
 uniform vec4 contacts[12];
-uniform int artStyle,diagnostic,sampling,vertexTint,kind,architecture,leafy,smoothLighting;uniform float biasScale;
+uniform int artStyle,diagnostic,sampling,vertexTint,kind,architecture,leafy,smoothLighting,receiverCorrection;uniform float biasScale;
 uniform int shadowMode;uniform sampler2D groundShadow;
 // VISIBILITY
 float hash2(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
@@ -130,7 +130,7 @@ if(mode!=0&&bands!=0&&smoothLighting==0){float soft=max(.001,bandSoftness);sun=.
 if(smoothLighting!=0&&leafy!=0)sun=max(0.,(dot(shadeNormal,normalize(sunDirection))+.2)/1.2);
 vec3 ambient=mix(ambientGround,ambientSky,clamp(shadeNormal.y*.5+.5,0.,1.));
 float visibility=1.;
-if(shadowMode==1||shadowMode==2)visibility=smoothLighting!=0?receiverShadow(worldPosition,biasScale*.00006):sunlight(worldPosition,biasScale*max(.00055,.0010*(1.-max(0.,dot(n,sunDirection)))));
+if(shadowMode==1||shadowMode==2)visibility=receiverCorrection!=0?receiverShadow(worldPosition,biasScale*.00006):sunlight(worldPosition,biasScale*max(.00055,.0010*(1.-max(0.,dot(n,sunDirection)))));
 else if(shadowMode==3&&ground!=0&&all(lessThan(abs(worldPosition.xz),vec2(24))))visibility=texture(groundShadow,worldPosition.xz/48.+.5).r;
 if(diagnostic==4){color=vec4(vec3(visibility),1);normals=vec4(n*.5+.5,1);return;}
 vec3 light=ambient+sunColor*sun*visibility;
@@ -298,6 +298,7 @@ struct Gpu::Impl {
   }
 };
 Gpu::Gpu(World &world, bool allowSoftware) {
+  styleMaterialsReady = world.styleMaterialsReady;
   gl::load();
   auto string = [](GLenum x) {
     const auto *s = gl::GetString(x);
@@ -536,7 +537,7 @@ void Gpu::setLook(const Look &l) {
 }
 void Gpu::setStyle(const Style &s) {
   s.validate();
-  if (s.mode > 0 && s.materials && styledTextureBytes == 0)
+  if (s.mode > 0 && s.materials && !styleMaterialsReady)
     throw std::runtime_error(
         "STYLE_ASSETS_MISSING: provide the private material pack or explicitly "
         "use --no-art-materials for diagnostics");
@@ -736,6 +737,8 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
   bool smoothLight = p->style.mode == 2 && p->style.smoothLight;
   uniformInt(p->mesh, "artStyle", p->style.mode);
   uniformInt(p->mesh, "smoothLighting", smoothLight);
+  uniformInt(p->mesh, "receiverCorrection",
+             p->style.mode == 2 && p->style.shadowCorrection);
   uniformInt(p->mesh, "diagnostic", p->style.diagnostic);
   uniformInt(p->mesh, "sampling", p->style.sampling);
   uniformInt(p->mesh, "vertexTint", p->style.vertexTint);

@@ -20,7 +20,7 @@ struct Gpu {
   struct Impl;
   std::unique_ptr<Impl> p;
   std::string vendor, renderer, version, driver;
-  bool software = false, timer = false;
+  bool software = false, timer = false, styleMaterialsReady = false;
   std::size_t textureBytes = 0, textureMipBytes = 0, bufferBytes = 0,
               texturesLoaded = 0, styledTextureBytes = 0, materialsUnique = 0,
               materialsOriginal = 0, cpuGeometryReleased = 0;

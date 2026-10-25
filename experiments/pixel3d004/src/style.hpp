@@ -10,7 +10,7 @@ struct Style {
       casters =
           0; // sampling0mip/1base/2linear; casters0all/1building/2vegetation
   bool materials = true, outlines = true, highlights = true, smoothLight = true,
-       smoothAir = true, vertexTint = true;
+       shadowCorrection = true, smoothAir = true, vertexTint = true;
   float biasScale = 1;
   int atmosphereWidth = 320;
   void validate() const;

@@ -140,7 +140,7 @@ air to240/8 steps, then shaftsOFF; it remains a timing heuristic, not proven30FP
 - --casters all|building|vegetation|roof; --bias-scale0..4
 - --sampling mip|base|linear; --no-vertex-tint; --debug-effects
 - --no-art-materials; --no-refined-outlines; --no-edge-highlights;
-  --no-smooth-lighting; --no-smooth-air
+  --no-smooth-lighting; --no-receiver-correction; --no-smooth-air
 
 --debug-effects exports the actual float raw_shadow_depth.pfm and projection.
 PNG depth displays use a labelled fixed range, not fabricated scene art. The

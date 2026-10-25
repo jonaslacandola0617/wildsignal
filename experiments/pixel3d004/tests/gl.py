@@ -120,6 +120,13 @@ def main(exe):
         _,clearC=run('C_clear',['--look',str(look),'--style','C'])
         _,zeroC=run('C_zero_air',['--look',str(look),'--style','C','--shafts','volume','--shaft-strength','0'])
         assert clearC.tobytes()==zeroC.tobytes(),'air reconstruction changes material detail at zero radiance'
+        # A complete style pack may legitimately load no building maps in a
+        # foliage-only subset. Do not force unused textures resident for a flag.
+        subset=json.loads(json.dumps(pack));subset['texture_styles'][0]['source']='unused.png'
+        (root/'pack.json').write_text(json.dumps(subset))
+        out,_=run('no_eligible_maps',['--look',str(look),'--style','B'])
+        assert json.loads((out/'summary.json').read_text())['styled_texture_cached_bytes']==0
+        (root/'pack.json').write_text(json.dumps(pack))
         # Unoccluded planar receiver remains lit under corrected depth comparison.
         positions=[(-100.,-100.,12.8),(100.,-100.,12.8),(0.,100.,12.8)]
         (root/'mesh.bin').write_bytes(b''.join(struct.pack('<3f',*p)for p in positions)+b[36:]);d['nodes'][0]={'mesh':0};(root/'mesh.gltf').write_text(json.dumps(d))

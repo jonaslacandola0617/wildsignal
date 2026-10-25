@@ -93,6 +93,7 @@ struct Visibility {
   std::uint64_t triangles = 0;
 };
 struct World {
+  bool styleMaterialsReady = false;
   std::vector<Model> models;
   std::vector<Instance> instances;
   std::vector<Chunk> chunks;

@@ -126,6 +126,8 @@ Opt options(int argc, char **argv) {
       o.style.outlines = false;
     else if (k == "--no-edge-highlights")
       o.style.highlights = false;
+    else if (k == "--no-receiver-correction")
+      o.style.shadowCorrection = false;
     else if (k == "--no-smooth-lighting")
       o.style.smoothLight = false;
     else if (k == "--no-smooth-air")
@@ -238,7 +240,8 @@ Opt options(int argc, char **argv) {
              "mip|base|linear] [--casters all|building|vegetation|roof] "
              "[--bias-scale 0..4] [--debug-effects] [--no-vertex-tint] "
              "[--no-art-materials] [--no-refined-outlines] "
-             "[--no-edge-highlights] [--no-smooth-lighting] [--no-smooth-air] "
+             "[--no-edge-highlights] [--no-receiver-correction] "
+             "[--no-smooth-lighting] [--no-smooth-air] "
              "[--atmosphere-width 240|320|480|640] [--vsync] [--shadow "
              "off|live|cached|ground] [--shadow-size "
              "512|1024] [--hard-shadow] [--shafts off|screen|volume|auto] "
@@ -685,6 +688,8 @@ int main(int argc, char **argv) {
          << ",\n\"edge_highlights\":" << (o.style.highlights ? "true" : "false")
          << ",\n\"smooth_lighting\":"
          << (o.style.smoothLight ? "true" : "false")
+         << ",\n\"receiver_correction\":"
+         << (o.style.shadowCorrection ? "true" : "false")
          << ",\n\"smooth_air\":" << (o.style.smoothAir ? "true" : "false")
          << ",\n\"diagnostic\":" << o.style.diagnostic
          << ",\n\"sampling\":" << o.style.sampling
