@@ -1,0 +1,404 @@
+{
+  "schema": "wildsignal-hybrid001-v1",
+  "materials": {
+    "plaster": "plaster",
+    "roof": "shingle",
+    "wood": "timber",
+    "door": "door",
+    "window": "window"
+  },
+  "spawnYaw": 0,
+  "door": {
+    "x": 13,
+    "y": 12.6
+  },
+  "exit": {
+    "x": 16.5,
+    "y": 17.5
+  },
+  "insideSpawn": {
+    "x": 16.5,
+    "y": 15.0
+  },
+  "houses": [
+    {
+      "x": 10,
+      "y": 7,
+      "w": 6,
+      "d": 5,
+      "height": 3,
+      "rise": 1.5,
+      "eave": 0.32,
+      "thickness": 0.12
+    },
+    {
+      "x": 16,
+      "y": 9,
+      "w": 2,
+      "d": 3,
+      "height": 2.3,
+      "rise": 0.9,
+      "eave": 0.24,
+      "thickness": 0.1
+    }
+  ],
+  "props": [
+    {
+      "sprite": "tree",
+      "x": 6.5,
+      "y": 9.5,
+      "z": 0,
+      "w": 3.2,
+      "h": 6.4,
+      "anchor": 1,
+      "type": "billboard",
+      "yaw": 0
+    },
+    {
+      "sprite": "tree",
+      "x": 7.5,
+      "y": 13.5,
+      "z": 0,
+      "w": 3.2,
+      "h": 6.4,
+      "anchor": 1,
+      "type": "billboard",
+      "yaw": 0
+    },
+    {
+      "sprite": "tree",
+      "x": 22.5,
+      "y": 10.5,
+      "z": 0,
+      "w": 3.2,
+      "h": 6.4,
+      "anchor": 1,
+      "type": "billboard",
+      "yaw": 0
+    },
+    {
+      "sprite": "tree",
+      "x": 24.5,
+      "y": 14.5,
+      "z": 0,
+      "w": 3.2,
+      "h": 6.4,
+      "anchor": 1,
+      "type": "billboard",
+      "yaw": 0
+    },
+    {
+      "sprite": "tree",
+      "x": 5.5,
+      "y": 19.5,
+      "z": 0,
+      "w": 3.2,
+      "h": 6.4,
+      "anchor": 1,
+      "type": "billboard",
+      "yaw": 0
+    },
+    {
+      "sprite": "tree",
+      "x": 25.5,
+      "y": 20.5,
+      "z": 0,
+      "w": 3.2,
+      "h": 6.4,
+      "anchor": 1,
+      "type": "billboard",
+      "yaw": 0
+    },
+    {
+      "sprite": "tree",
+      "x": 20.5,
+      "y": 6.5,
+      "z": 0,
+      "w": 3.2,
+      "h": 6.4,
+      "anchor": 1,
+      "type": "billboard",
+      "yaw": 0
+    },
+    {
+      "sprite": "tree",
+      "x": 9.5,
+      "y": 5.5,
+      "z": 0,
+      "w": 3.2,
+      "h": 6.4,
+      "anchor": 1,
+      "type": "billboard",
+      "yaw": 0
+    },
+    {
+      "sprite": "bush",
+      "x": 9,
+      "y": 14,
+      "z": 0,
+      "w": 1.25,
+      "h": 1.25,
+      "anchor": 1,
+      "type": "billboard",
+      "yaw": 0
+    },
+    {
+      "sprite": "bush",
+      "x": 16.3,
+      "y": 13.3,
+      "z": 0,
+      "w": 1.25,
+      "h": 1.25,
+      "anchor": 1,
+      "type": "billboard",
+      "yaw": 0
+    },
+    {
+      "sprite": "bush",
+      "x": 20.5,
+      "y": 11,
+      "z": 0,
+      "w": 1.25,
+      "h": 1.25,
+      "anchor": 1,
+      "type": "billboard",
+      "yaw": 0
+    },
+    {
+      "sprite": "bush",
+      "x": 7.5,
+      "y": 17,
+      "z": 0,
+      "w": 1.25,
+      "h": 1.25,
+      "anchor": 1,
+      "type": "billboard",
+      "yaw": 0
+    },
+    {
+      "sprite": "bush",
+      "x": 22,
+      "y": 21,
+      "z": 0,
+      "w": 1.25,
+      "h": 1.25,
+      "anchor": 1,
+      "type": "billboard",
+      "yaw": 0
+    },
+    {
+      "sprite": "flower_orange",
+      "x": 10,
+      "y": 14.3,
+      "z": 0,
+      "w": 0.55,
+      "h": 0.55,
+      "anchor": 1,
+      "type": "billboard",
+      "yaw": 0
+    },
+    {
+      "sprite": "flower_white",
+      "x": 15.8,
+      "y": 14,
+      "z": 0,
+      "w": 0.55,
+      "h": 0.55,
+      "anchor": 1,
+      "type": "billboard",
+      "yaw": 0
+    },
+    {
+      "sprite": "flower_blue",
+      "x": 18.7,
+      "y": 13,
+      "z": 0,
+      "w": 0.55,
+      "h": 0.55,
+      "anchor": 1,
+      "type": "billboard",
+      "yaw": 0
+    },
+    {
+      "sprite": "flower_white",
+      "x": 8,
+      "y": 16,
+      "z": 0,
+      "w": 0.55,
+      "h": 0.55,
+      "anchor": 1,
+      "type": "billboard",
+      "yaw": 0
+    },
+    {
+      "sprite": "flower_orange",
+      "x": 22,
+      "y": 16,
+      "z": 0,
+      "w": 0.55,
+      "h": 0.55,
+      "anchor": 1,
+      "type": "billboard",
+      "yaw": 0
+    },
+    {
+      "sprite": "flower_blue",
+      "x": 19,
+      "y": 20.7,
+      "z": 0,
+      "w": 0.55,
+      "h": 0.55,
+      "anchor": 1,
+      "type": "billboard",
+      "yaw": 0
+    },
+    {
+      "sprite": "flower_orange",
+      "x": 11,
+      "y": 21.5,
+      "z": 0,
+      "w": 0.55,
+      "h": 0.55,
+      "anchor": 1,
+      "type": "billboard",
+      "yaw": 0
+    },
+    {
+      "sprite": "fence",
+      "x": 4,
+      "y": 22.1,
+      "z": 0,
+      "w": 2,
+      "h": 1,
+      "anchor": 1,
+      "type": "plane",
+      "yaw": 0
+    },
+    {
+      "sprite": "fence",
+      "x": 6,
+      "y": 22.1,
+      "z": 0,
+      "w": 2,
+      "h": 1,
+      "anchor": 1,
+      "type": "plane",
+      "yaw": 0
+    },
+    {
+      "sprite": "fence",
+      "x": 8,
+      "y": 22.1,
+      "z": 0,
+      "w": 2,
+      "h": 1,
+      "anchor": 1,
+      "type": "plane",
+      "yaw": 0
+    },
+    {
+      "sprite": "fence",
+      "x": 18,
+      "y": 22.1,
+      "z": 0,
+      "w": 2,
+      "h": 1,
+      "anchor": 1,
+      "type": "plane",
+      "yaw": 0
+    },
+    {
+      "sprite": "fence",
+      "x": 20,
+      "y": 22.1,
+      "z": 0,
+      "w": 2,
+      "h": 1,
+      "anchor": 1,
+      "type": "plane",
+      "yaw": 0
+    },
+    {
+      "sprite": "fence",
+      "x": 22,
+      "y": 22.1,
+      "z": 0,
+      "w": 2,
+      "h": 1,
+      "anchor": 1,
+      "type": "plane",
+      "yaw": 0
+    },
+    {
+      "sprite": "fence",
+      "x": 24,
+      "y": 22.1,
+      "z": 0,
+      "w": 2,
+      "h": 1,
+      "anchor": 1,
+      "type": "plane",
+      "yaw": 0
+    },
+    {
+      "sprite": "fence",
+      "x": 26,
+      "y": 22.1,
+      "z": 0,
+      "w": 2,
+      "h": 1,
+      "anchor": 1,
+      "type": "plane",
+      "yaw": 0
+    }
+  ],
+  "outdoorRoute": [
+    {
+      "x": 17.5,
+      "y": 20
+    },
+    {
+      "x": 19.5,
+      "y": 15
+    },
+    {
+      "x": 18.5,
+      "y": 14.5
+    },
+    {
+      "x": 13,
+      "y": 14.5
+    },
+    {
+      "x": 13,
+      "y": 12.9
+    }
+  ],
+  "indoorRoute": [
+    {
+      "x": 12,
+      "y": 16.5
+    },
+    {
+      "x": 12,
+      "y": 14
+    },
+    {
+      "x": 18.5,
+      "y": 14
+    },
+    {
+      "x": 18.5,
+      "y": 16.5
+    },
+    {
+      "x": 16.5,
+      "y": 17.5
+    }
+  ],
+  "interiorViewCenter": {
+    "x": 17,
+    "y": 12.5
+  },
+  "companionDistance": 3.75
+}
