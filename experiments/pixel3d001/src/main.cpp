@@ -11,8 +11,11 @@
 #include <iostream>
 #include <thread>
 #ifdef _WIN32
-#include <psapi.h>
+// Windows types must precede the dependent process-memory API.
+// clang-format off
 #include <windows.h>
+#include <psapi.h>
+// clang-format on
 #else
 #include <sys/resource.h>
 #include <unistd.h>
