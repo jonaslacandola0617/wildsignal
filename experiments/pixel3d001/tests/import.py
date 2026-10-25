@@ -32,6 +32,16 @@ def main(exe):
         root=Path(tmp);d,b=fixture(root)
         got=run(exe,root,d)
         assert got['triangles']==1 and got['bounds']==[[-1,2,3],[3,4,3]]
+        # Normalized unsigned COLOR_0 is a base-color multiplier, not a
+        # disposable editor channel. Preserve three/four components correctly.
+        x=copy.deepcopy(d);col=struct.pack('<12H',*([32768,16384,65535,65535]*3))
+        (root/'mesh.bin').write_bytes(b+col);x['buffers'][0]['byteLength']=len(b+col)
+        x['bufferViews'].append({'buffer':0,'byteOffset':len(b),'byteLength':len(col)})
+        x['accessors'].append({'bufferView':4,'componentType':5123,'normalized':True,'count':3,'type':'VEC4'})
+        x['meshes'][0]['primitives'][0]['attributes']['COLOR_0']=4
+        got=run(exe,root,x);assert abs(got['vertex_color_min_r']-.500008)<.00001 and abs(got['vertex_color_max_g']-.250004)<.00001
+        bad_color=copy.deepcopy(x);bad_color['accessors'][4]['count']=2;run(exe,root,bad_color,False)
+        (root/'mesh.bin').write_bytes(b)
         # A child inherits its parent's transform; reflected transforms remain valid.
         x=copy.deepcopy(d);x['nodes'].append({'translation':[2,0,0],'children':[0]});x['scenes'][0]['nodes']=[1]
         assert run(exe,root,x)['bounds']==[[1,2,3],[5,4,3]]

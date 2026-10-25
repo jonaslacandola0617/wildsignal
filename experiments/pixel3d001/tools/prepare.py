@@ -88,6 +88,7 @@ def prepare(archives, output):
                         if len(ix)%3 or not ix or max(ix)>=len(v):
                             raise ValueError('triangle indices')
                         primitives.append({'vertices':len(v),'triangles':len(ix)//3,'material':p['material'],
+                            'attributes':{k:{f:d['accessors'][ai].get(f) for f in ('type','componentType','count','normalized')} for k,ai in p['attributes'].items()},
                             'bounds':[list(map(min,zip(*v))),list(map(max,zip(*v)))]})
                 image_records=[]
                 for im in d.get('images',[]):

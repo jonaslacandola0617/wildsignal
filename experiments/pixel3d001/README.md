@@ -43,7 +43,10 @@ Original meshes, PNGs, ZIPs, provenance inventories and captures stay private.
 The runtime additionally validates indices/material references, scene hierarchy,
 finite transforms/normals/UVs and bounded external URIs. It rejects skins, morphs,
 compressed geometry, unsupported required extensions and non-triangle topology.
-Base-color textures/factors and alpha mask/blend are supported. Normal/roughness/
+Base-color textures/factors, authored `COLOR_0` (RGB/RGBA, including normalized
+integer channels) and alpha mask/blend are supported. Small <=0.001 float export
+overshoot is clamped for rendering; source files remain unchanged. Secondary UV
+sets used only by ignored non-base-color maps do not affect this shader. Normal/roughness/
 metallic maps, source-tier shaders and PBR lighting are deliberately unused.
 
 One 4×4-unit cottage uses authentic 2-unit wall/door/window modules, separate
@@ -101,7 +104,9 @@ ffmpeg makes a convenience MP4; native PNG/APNG are authoritative.
 
 Every run writes GL vendor/renderer/version/video driver, CSV camera poses,
 visible/culled object/chunk counts, submitted triangles and draw calls; CPU
-update/culling/submission/swap and loop times, asynchronous GL timer-query time,
+update/culling/submission/swap and loop times, complete successive SDL-swap
+completion intervals and an application-FPS estimate (including between-frame
+telemetry/pacing), asynchronous GL timer-query time,
 sampled process RSS, texture/mipmap estimates and import/upload CPU times.
 First 120 frames are excluded from aggregates, retained in CSV. Capture/file
 encoding is outside loop time but perturbs subsequent scheduling: use separate

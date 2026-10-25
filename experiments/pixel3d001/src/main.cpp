@@ -9,6 +9,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <numeric>
 #include <thread>
 #ifdef _WIN32
 // Windows types must precede the dependent process-memory API.
@@ -153,11 +154,13 @@ struct SDLState {
 struct Row {
   int frame = 0, w = 0, h = 0, mode = 0;
   bool cull = true;
-  double update = 0, culling = 0, submit = 0, swap = 0, wall = 0, gpu = -1;
+  double update = 0, culling = 0, submit = 0, swap = 0, wall = 0, gpu = -1,
+         presentInterval = 0;
   std::uint64_t memory = 0;
   p3::Visibility visibility;
   std::size_t draws = 0;
-  p3::Camera camera;
+  p3::Camera camera, effective;
+  bool outline = true, bands = true, snap = false;
 };
 double percentile(std::vector<double> v, double q) {
   if (v.empty())
@@ -215,6 +218,7 @@ int main(int argc, char **argv) {
     bool running = true, relative = false, capture = false;
     int frame = 0;
     auto previous = Clock::now();
+    auto previousPresent = previous;
     auto poll = [&]() {
       int index;
       double value;
@@ -355,6 +359,12 @@ int main(int argc, char **argv) {
       row.submit = stats.cpuSubmitMs;
       row.swap = elapsed(beforeSwap, afterSwap);
       row.wall = elapsed(begin, end);
+      row.presentInterval = frame ? elapsed(previousPresent, afterSwap) : 0;
+      previousPresent = afterSwap;
+      row.outline = o.outline;
+      row.bands = o.bands;
+      row.snap = o.snap;
+      row.effective = p3::sampledCamera(camera, height, o.snap);
       row.visibility = counts;
       row.draws = stats.draws;
       row.camera = camera;
@@ -393,9 +403,11 @@ int main(int argc, char **argv) {
     csv << "frame,width,height,mode,cull,camera_x,camera_y,camera_z,yaw,pitch,"
            "update_ms,cull_ms,submit_ms,swap_ms,loop_ms,gpu_query_ms,rss_bytes,"
            "visible_chunks,culled_chunks,visible_objects,culled_objects,"
-           "triangles_submitted,draw_calls\n";
+           "triangles_submitted,draw_calls,swap_completion_interval_ms,outline,"
+           "bands,snap,effective_camera_x,effective_camera_y,effective_camera_"
+           "z\n";
     csv << std::setprecision(9);
-    std::vector<double> wall, culling, submit, gpuTimes;
+    std::vector<double> wall, culling, submit, gpuTimes, present;
     std::uint64_t peak = 0;
     std::size_t gpuMissing = 0;
     for (auto &r : rows) {
@@ -407,10 +419,15 @@ int main(int argc, char **argv) {
           << r.memory << ',' << r.visibility.chunksVisible << ','
           << r.visibility.chunksCulled << ',' << r.visibility.objectsVisible
           << ',' << r.visibility.objectsCulled << ',' << r.visibility.triangles
-          << ',' << r.draws << '\n';
+          << ',' << r.draws << ',' << r.presentInterval << ',' << r.outline
+          << ',' << r.bands << ',' << r.snap << ',' << r.effective.position.x
+          << ',' << r.effective.position.y << ',' << r.effective.position.z
+          << '\n';
       peak = std::max(peak, r.memory);
       if (r.frame >= o.warmup) {
         wall.push_back(r.wall);
+        if (r.frame > 0)
+          present.push_back(r.presentInterval);
         culling.push_back(r.culling);
         submit.push_back(r.submit);
         if (r.gpu >= 0)
@@ -456,6 +473,15 @@ int main(int argc, char **argv) {
          << ",\n\"peak_sampled_rss_bytes\":" << peak
          << ",\n\"import_cpu_ms\":" << elapsed(start, loaded)
          << ",\n\"sdl_gl_upload_cpu_ms\":" << elapsed(loaded, ready)
+         << ",\n\"swap_completion_interval_median_ms\":"
+         << percentile(present, .5) << ",\n\"swap_completion_interval_p95_ms\":"
+         << percentile(present, .95)
+         << ",\n\"swap_completion_interval_max_ms\":" << percentile(present, 1)
+         << ",\n\"application_fps_estimate\":"
+         << (present.empty()
+                 ? -1
+                 : 1000 * present.size() /
+                       std::accumulate(present.begin(), present.end(), 0.))
          << ",\n\"loop_median_ms\":" << percentile(wall, .5)
          << ",\n\"loop_p95_ms\":" << percentile(wall, .95)
          << ",\n\"loop_max_ms\":" << percentile(wall, 1)

@@ -81,15 +81,16 @@ static constexpr const char *meshVS = R"GLSL(#version 330 core
 layout(location=0) in vec3 position;
 layout(location=1) in vec3 normal;
 layout(location=2) in vec2 texcoord;
+layout(location=3) in vec4 vertexColor;
 uniform mat4 model,viewProjection;
-out vec3 worldPosition;out vec3 worldNormal;out vec2 uv;
-void main(){vec4 p=model*vec4(position,1);worldPosition=p.xyz;worldNormal=mat3(model)*normal;uv=texcoord;gl_Position=viewProjection*p;}
+out vec3 worldPosition;out vec3 worldNormal;out vec2 uv;out vec4 tint;
+void main(){vec4 p=model*vec4(position,1);worldPosition=p.xyz;worldNormal=mat3(model)*normal;uv=texcoord;tint=vertexColor;gl_Position=viewProjection*p;}
 )GLSL";
 static constexpr const char *meshFS = R"GLSL(#version 330 core
-in vec3 worldPosition;in vec3 worldNormal;in vec2 uv;
+in vec3 worldPosition;in vec3 worldNormal;in vec2 uv;in vec4 tint;
 uniform sampler2D albedo;uniform vec4 factor;uniform int textured,mode,bands,alphaMode;uniform float cutoff;
 layout(location=0) out vec4 color;layout(location=1) out vec4 normals;
-void main(){vec4 a=factor;if(textured!=0)a*=texture(albedo,uv);if(alphaMode==1&&a.a<cutoff)discard;
+void main(){vec4 a=factor*tint;if(textured!=0)a*=texture(albedo,uv);if(alphaMode==1&&a.a<cutoff)discard;
 vec3 n=normalize(worldNormal);if(!gl_FrontFacing)n=-n;
 // Derivatives give actual planar triangle lighting in BASE without rewriting
 // the original mesh normals. TOON/normal outlines retain authored normals.
@@ -318,6 +319,10 @@ Gpu::Gpu(const World &world, bool allowSoftware) {
       gl::EnableVertexAttribArray(2);
       gl::VertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),
                               reinterpret_cast<void *>(offsetof(Vertex, u)));
+      gl::EnableVertexAttribArray(3);
+      gl::VertexAttribPointer(
+          3, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+          reinterpret_cast<void *>(offsetof(Vertex, color)));
     }
   }
   GLint counterBits = 0;

@@ -46,6 +46,7 @@ struct Frustum {
 struct Vertex {
   Vec p, n;
   float u = 0, v = 0;
+  std::array<float, 4> color{1, 1, 1, 1};
 };
 enum class Alpha { Opaque, Mask, Blend };
 struct Material {

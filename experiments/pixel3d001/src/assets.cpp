@@ -128,6 +128,11 @@ Model Model::load(const std::filesystem::path &path) {
           pos->count > 2000000 || pos->is_sparse || norm->is_sparse ||
           uv->is_sparse)
         throw std::runtime_error("POSITION/NORMAL/TEXCOORD_0 required");
+      auto *color = cgltf_find_accessor(&p, cgltf_attribute_type_color, 0);
+      if (color &&
+          (color->count != pos->count || color->is_sparse ||
+           (color->type != cgltf_type_vec3 && color->type != cgltf_type_vec4)))
+        throw std::runtime_error("invalid COLOR_0");
       Primitive primitive;
       primitive.material = static_cast<std::size_t>(p.material - d.materials);
       if (primitive.material >= out.materials.size())
@@ -142,6 +147,17 @@ Model Model::load(const std::filesystem::path &path) {
           throw std::runtime_error("attribute read");
         Vertex v{point(world, {a[0], a[1], a[2]}),
                  normalized(direction(normal, {b[0], b[1], b[2]})), c[0], c[1]};
+        if (color) {
+          float rgba[4] = {1, 1, 1, 1};
+          auto components = color->type == cgltf_type_vec3 ? 3u : 4u;
+          if (!cgltf_accessor_read_float(color, k, rgba, components))
+            throw std::runtime_error("COLOR_0 read");
+          for (unsigned c = 0; c < components; c++) {
+            if (!std::isfinite(rgba[c]) || rgba[c] < -.001f || rgba[c] > 1.001f)
+              throw std::runtime_error("COLOR_0 range");
+            v.color[c] = std::clamp(rgba[c], 0.f, 1.f);
+          }
+        }
         primitive.bounds.add(v.p);
         primitive.vertices.push_back(v);
       }

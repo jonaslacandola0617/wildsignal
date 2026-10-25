@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import struct
 import sys
 import tempfile
 from PIL import Image
@@ -45,6 +46,17 @@ def main(exe):
                         assert any(toon.getpixel((x+dx,y+dy))==bg for dx,dy in [(-1,0),(1,0),(0,-1),(0,1)]),'outline exceeds 1-pixel silhouette'
                         changed+=1
             assert changed>20,'no actual outline'
+        # A real shader readback must respect an authored normalized COLOR_0.
+        d,b=fixtures.fixture(root)
+        colors=struct.pack('<12H',*([3276,65535,3276,65535]*3))
+        (root/'mesh.bin').write_bytes(b+colors);d['buffers'][0]['byteLength']=len(b+colors)
+        d['bufferViews'].append({'buffer':0,'byteOffset':len(b),'byteLength':len(colors)})
+        d['accessors'].append({'bufferView':4,'componentType':5123,'normalized':True,'count':3,'type':'VEC4'})
+        d['meshes'][0]['primitives'][0]['attributes']['COLOR_0']=4
+        d['materials'][0]['pbrMetallicRoughness']['baseColorFactor']=[1,1,1,1]
+        (root/'mesh.gltf').write_text(json.dumps(d))
+        _,colored=run('authored_color',['--mode','TOON'])
+        assert sum(g>2*r and g>2*b for r,g,b in colored.getdata())>1000,'shader ignores or corrupts COLOR_0'
         print('PASS: three real GL modes, both resolutions, exact culling equality, frame query association, 1px outline and exact 3x nearest default-framebuffer readback')
 
 if __name__=='__main__':main(sys.argv[1])
