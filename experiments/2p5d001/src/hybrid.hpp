@@ -24,12 +24,13 @@ struct Prop {
   int image = 0;
   double x = 0, y = 0, z = 0, w = 1, h = 1, anchor = 1;
   // billboards for plants only; fences are fixed planes.
-  bool billboard = true;
+  bool billboard = true, crossed = false, ground = false;
   double yaw = 0;
 };
 struct House {
   double x = 0, y = 0, w = 0, d = 0, height = 0, rise = 0, eave = 0,
          thickness = 0;
+  bool ridgeAlongX = false;
 };
 struct Scene {
   std::vector<House> houses;
@@ -38,6 +39,7 @@ struct Scene {
   td::Vec door, exit, insideSpawn, interiorViewCenter{16, 12.5};
   double spawnYaw = 0, companionDistance = 3.75;
   int plaster = 0, roof = 0, wood = 0, doorArt = 0, window = 0;
+  int facade = -1, groundUnderlay = -1;
   static Scene load(const std::filesystem::path &, const td::Art &,
                     const td::Map &, const td::Map &);
 };

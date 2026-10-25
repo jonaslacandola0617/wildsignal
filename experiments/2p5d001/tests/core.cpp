@@ -8,6 +8,11 @@
 #include <stdexcept>
 std::atomic<bool> audit{false};
 std::atomic<int> allocations{0};
+#ifdef _MSC_VER
+__declspec(noinline)
+#else
+__attribute__((noinline))
+#endif
 void *operator new(std::size_t n) {
   if (audit)
     ++allocations;
@@ -244,6 +249,83 @@ int main() {
     }
     audit = false;
     require(allocations == 0, "Hot simulation/render allocated memory");
+    // 002: independent ray-plane oracle for native facade density, a real
+    //  alternate roof axis, alpha ground underlay and both new plant modes.
+    auto facade = image(96, 48, 0, 0, 90);
+    for (int y = 0; y < 48; ++y)
+      for (int x = 0; x < 96; ++x) {
+        auto k = static_cast<std::size_t>((y * 96 + x) * 4);
+        facade.rgba[k] = static_cast<std::uint8_t>(x);
+        facade.rgba[k + 1] = static_cast<std::uint8_t>(y);
+      }
+    art.images.push_back(facade);
+    art.images.push_back(image(16, 16, 255, 0, 255, 0));
+    auto visual = scene;
+    visual.facade = 5;
+    visual.groundUnderlay = 0;
+    visual.houses.front().ridgeAlongX = true;
+    hybrid::Prop tree;
+    tree.image = 2;
+    tree.x = 6;
+    tree.y = 8;
+    tree.w = 2;
+    tree.h = 4;
+    tree.billboard = false;
+    tree.crossed = true;
+    visual.props.push_back(tree);
+    auto decal = tree;
+    decal.image = 3;
+    decal.x = 8;
+    decal.y = 16;
+    decal.w = .5;
+    decal.h = .5;
+    decal.z = .018;
+    decal.crossed = false;
+    decal.ground = true;
+    visual.props.push_back(decal);
+    auto groundMap = outside;
+    std::fill(groundMap.ground.begin(), groundMap.ground.end(), 6);
+    hybrid::Session vg(art, groundMap, inside, visual);
+    hybrid::Renderer vr(art, visual, inside);
+    vg.setPose(13, 20, 0);
+    vr.draw(f, vg);
+    for (int x : {128, 130, 132})
+      for (int y : {62, 68, 74}) {
+        const double wx = 13 + (x + .5 - 160) / focal * 8;
+        const double wz = 1.45 - (y + .5 - 90) / focal * 8;
+        const auto k = static_cast<std::size_t>((y * 320 + x) * 4);
+        require(f.rgba[k] == static_cast<int>((wx - 10) * 16) &&
+                    f.rgba[k + 1] == static_cast<int>((3 - wz) * 16),
+                "Facade native16px/unit density/orientation changed");
+      }
+    int ridgePoints = 0;
+    for (const auto &t : vr.mesh)
+      for (const auto &v : t.v)
+        if (v.z == 4.5) {
+          require(v.y == 9.5, "Alternate roof ridge axis incorrect");
+          ++ridgePoints;
+        }
+    require(ridgePoints > 1, "Spatial ridge missing");
+    auto k = static_cast<std::size_t>((175 * 320 + 160) * 4);
+    require(f.rgba[k] == 100 && f.rgba[k + 1] == 130 && f.rgba[k + 2] == 150,
+            "Transparent ground fringe leaked sky instead of underlay");
+    hybrid::Frame large(480, 270);
+    allocations = 0;
+    audit = true;
+    for (int n = 0; n < 30; ++n) {
+      vg.step(1.0 / 60, {});
+      vr.draw(f, vg);
+      vr.draw(large, vg);
+    }
+    vg.mode = hybrid::Mode::Indoor;
+    vg.player.p = inside.spawn;
+    for (int n = 0; n < 30; ++n) {
+      vg.step(1.0 / 60, {});
+      vr.draw(f, vg);
+      vr.draw(large, vg);
+    }
+    audit = false;
+    require(allocations == 0, "Visual refinement added hot allocations");
     std::cout << "PASS: strafe/mouse, collision, playable transition/return, "
                  "perspective UV/depth, shared edges, alpha, roof order, "
                  "clipping, zero hot allocations\n";

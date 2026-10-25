@@ -177,49 +177,82 @@ void Renderer::buildHouse(const House &h) {
   const auto wall = [&](double x0, double y0, double x1, double y1,
                         double light) {
     double len = std::hypot(x1 - x0, y1 - y0);
-    quad({x0, y0, 0, 0, z}, {x1, y1, 0, len, z}, {x1, y1, z, len, 0},
-         {x0, y0, z, 0, 0}, scene.plaster, light);
+    if (scene.facade >= 0) {
+      // Native96x48 facade at16 source pixels/unit. Smaller faces crop it;
+      // they never stretch a full module over a different aspect ratio.
+      quad({x0, y0, 0, 0, 1}, {x1, y1, 0, len / 6, 1},
+           {x1, y1, z, len / 6, 1 - z / 3}, {x0, y0, z, 0, 1 - z / 3},
+           scene.facade, light, false);
+    } else {
+      quad({x0, y0, 0, 0, z}, {x1, y1, 0, len, z}, {x1, y1, z, len, 0},
+           {x0, y0, z, 0, 0}, scene.plaster, light);
+    }
   };
   wall(l, f, r, f, 1);
   wall(r, b, r, f, .91);
   wall(l, b, l, f, .96);
   wall(l, b, r, b, .92);
-  for (double y : {b, f})
-    mesh.push_back({{{{l, y, z, 0, 0},
-                      {r, y, z, h.w, 0},
-                      {mid, y, peak, h.w / 2, -h.rise}}},
+  // Same tested roof shell, optionally oriented across the frontage for002.
+  const double localW = h.ridgeAlongX ? h.d : h.w,
+               localD = h.ridgeAlongX ? h.w : h.d;
+  const double rl = l, rr = l + localW, rb = b, rf = b + localD,
+               rm = (rl + rr) / 2;
+  const auto orient = [&](Vertex v) {
+    if (h.ridgeAlongX) {
+      const double x = v.x;
+      v.x = l + (v.y - b);
+      v.y = b + (x - l);
+    }
+    return v;
+  };
+  const auto roofQuad = [&](Vertex a, Vertex bb, Vertex c, Vertex d, int id,
+                            double light = 1.0) {
+    quad(orient(a), orient(bb), orient(c), orient(d), id, light);
+  };
+  for (double y : {rb, rf}) {
+    mesh.push_back({{{orient({rl, y, z, 0, 0}), orient({rr, y, z, localW, 0}),
+                      orient({rm, y, peak, localW / 2, -h.rise})}},
                     scene.plaster,
-                    y == f ? 1 : .92,
+                    y == rf ? 1 : .92,
                     true});
-  // Spatial pitched roof: slopes, underside and all three exposed thickness
-  // strips.
-  const double back = b - h.eave, front = f + h.eave,
-               low = z - h.rise * h.eave / (h.w / 2);
-  for (double x : {l - h.eave, r + h.eave}) {
-    const double length = std::hypot(x - mid, peak - low);
-    Vertex a{mid, back, peak, 0, 0}, bb{mid, front, peak, front - back, 0},
+  }
+  const double back = rb - h.eave, front = rf + h.eave,
+               low = z - h.rise * h.eave / (localW / 2);
+  for (double x : {rl - h.eave, rr + h.eave}) {
+    const double length = std::hypot(x - rm, peak - low);
+    Vertex a{rm, back, peak, 0, 0}, bb{rm, front, peak, front - back, 0},
         c{x, front, low, front - back, length}, d{x, back, low, 0, length};
-    quad(a, bb, c, d, scene.roof, x < mid ? 1 : .88);
+    roofQuad(a, bb, c, d, scene.roof, x < rm ? 1 : .88);
     auto aa = a, bbb = bb, cc = c, dd = d;
     for (auto *v : {&aa, &bbb, &cc, &dd})
       v->z -= h.thickness;
-    quad(aa, bbb, cc, dd, scene.wood, .82);
-    const auto strip = [&](Vertex p, Vertex q, Vertex rr, Vertex ss) {
-      const double len =
+    roofQuad(aa, bbb, cc, dd, scene.wood, .82);
+    const auto strip = [&](Vertex p, Vertex q, Vertex r0, Vertex s0) {
+      const double length =
           std::hypot(std::hypot(p.x - q.x, p.y - q.y), p.z - q.z);
       p.u = 0;
       p.v = 0;
-      q.u = len;
+      q.u = length;
       q.v = 0;
-      rr.u = len;
-      rr.v = h.thickness;
-      ss.u = 0;
-      ss.v = h.thickness;
-      quad(p, q, rr, ss, scene.wood, .95);
+      r0.u = length;
+      r0.v = h.thickness;
+      s0.u = 0;
+      s0.v = h.thickness;
+      roofQuad(p, q, r0, s0, scene.wood, .95);
     };
     strip(bb, c, cc, bbb);
     strip(d, a, aa, dd);
     strip(c, d, dd, cc);
+  }
+  // Spatial gable trim follows the chosen ridge; native facade carries wall
+  // framing.
+  if (scene.facade >= 0) {
+    for (double y : {rb - .008, rf + .008})
+      for (double x : {rl, rr})
+        roofQuad({x, y, z - .02, 0, 0}, {rm, y, peak - .02, localW / 2, h.rise},
+                 {rm, y, peak - .12, localW / 2, h.rise + .1},
+                 {x, y, z - .12, 0, .1}, scene.wood);
+    return;
   }
   // Native material on small beam geometry; walls do not stretch a facade
   // sprite.
@@ -424,23 +457,43 @@ void Renderer::outdoor(Frame &b, const Session &g) {
       int u = std::clamp(static_cast<int>((wx - ix) * 16), 0, 15),
           v = std::clamp(static_cast<int>((wy - iy) * 16), 0, 15);
       const auto p = static_cast<std::size_t>(y * b.w + x);
-      ink(b, p * 4, im, static_cast<std::size_t>((v * 16 + u) * 4));
+      const auto source = static_cast<std::size_t>((v * 16 + u) * 4);
+      if (g.scene.groundUnderlay >= 0 && im.rgba[source + 3] < 255) {
+        const auto &under =
+            art.images[static_cast<std::size_t>(g.scene.groundUnderlay)];
+        ink(b, p * 4, under, source);
+      }
+      ink(b, p * 4, im, source);
       b.depth[p] = static_cast<float>(depth);
     }
   }
   for (const auto &t : mesh)
     triangle(b, t, camera, g.yaw);
   const auto prop = [&](const Prop &p) {
-    double angle = p.billboard ? g.yaw : p.yaw;
-    const double dx = std::cos(angle) * p.w * .5,
-                 dy = std::sin(angle) * p.w * .5,
-                 bottom = p.z - (1 - p.anchor) * p.h;
-    const Vertex a{p.x - dx, p.y - dy, bottom, 0, 1},
-        bb{p.x + dx, p.y + dy, bottom, 1, 1},
-        c{p.x + dx, p.y + dy, bottom + p.h, 1, 0},
-        d{p.x - dx, p.y - dy, bottom + p.h, 0, 0};
-    triangle(b, {{a, bb, c}, p.image, 1, false}, camera, g.yaw);
-    triangle(b, {{a, c, d}, p.image, 1, false}, camera, g.yaw);
+    const auto plane = [&](double angle) {
+      const double dx = std::cos(angle) * p.w * .5,
+                   dy = std::sin(angle) * p.w * .5,
+                   bottom = p.z - (1 - p.anchor) * p.h;
+      const Vertex a{p.x - dx, p.y - dy, bottom, 0, 1},
+          bb{p.x + dx, p.y + dy, bottom, 1, 1},
+          c{p.x + dx, p.y + dy, bottom + p.h, 1, 0},
+          d{p.x - dx, p.y - dy, bottom + p.h, 0, 0};
+      triangle(b, {{a, bb, c}, p.image, 1, false}, camera, g.yaw);
+      triangle(b, {{a, c, d}, p.image, 1, false}, camera, g.yaw);
+    };
+    if (p.ground) {
+      const Vertex a{p.x - p.w / 2, p.y + p.h / 2, p.z, 0, 1},
+          bb{p.x + p.w / 2, p.y + p.h / 2, p.z, 1, 1},
+          c{p.x + p.w / 2, p.y - p.h / 2, p.z, 1, 0},
+          d{p.x - p.w / 2, p.y - p.h / 2, p.z, 0, 0};
+      triangle(b, {{a, bb, c}, p.image, 1, false}, camera, g.yaw);
+      triangle(b, {{a, c, d}, p.image, 1, false}, camera, g.yaw);
+    } else {
+      plane(p.billboard ? g.yaw : p.yaw);
+      if (p.crossed)
+        plane(p.yaw +
+              pi / 2); // Static crossed cards; no camera-driven rotation.
+    }
   };
   // Existing native sheets have binary alpha. Loader rejects fractional-alpha
   // outdoor cards so depth-write compositing cannot silently mis-sort them.
