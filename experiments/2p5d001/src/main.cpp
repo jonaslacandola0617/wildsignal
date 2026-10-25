@@ -15,8 +15,10 @@
 #include <SDL3/SDL_main.h>
 #endif
 #ifdef _WIN32
-#include <psapi.h>
+// clang-format off: PSAPI requires the Windows base declarations first.
 #include <windows.h>
+#include <psapi.h>
+// clang-format on
 #endif
 #ifndef HYBRID_BUILD_ID
 #define HYBRID_BUILD_ID "UNKNOWN"
