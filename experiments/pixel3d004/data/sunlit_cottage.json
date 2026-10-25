@@ -1,0 +1,1987 @@
+{
+  "revision": 1,
+  "name": "Lantern Quay cozy sunshine study - same cottage architecture",
+  "instances": [
+    {
+      "id": "ground",
+      "model": "ground",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "yaw": 0,
+      "scale": 1
+    },
+    {
+      "id": "front-door-wall",
+      "model": "Wall_Plaster_Door_Round",
+      "position": [
+        -1,
+        0,
+        2
+      ],
+      "yaw": 0,
+      "scale": 1
+    },
+    {
+      "id": "front-window-wall",
+      "model": "Wall_Plaster_Window_Wide_Flat",
+      "position": [
+        1,
+        0,
+        2
+      ],
+      "yaw": 0,
+      "scale": 1
+    },
+    {
+      "id": "door-frame",
+      "model": "DoorFrame_Round_WoodDark",
+      "position": [
+        -1,
+        0,
+        2
+      ],
+      "yaw": 0,
+      "scale": 1
+    },
+    {
+      "id": "door",
+      "model": "Door_1_Round",
+      "position": [
+        -1.55,
+        0,
+        2
+      ],
+      "yaw": 0,
+      "scale": 1
+    },
+    {
+      "id": "front-window",
+      "model": "Window_Wide_Flat1",
+      "position": [
+        1,
+        0,
+        2
+      ],
+      "yaw": 0,
+      "scale": 1
+    },
+    {
+      "id": "back--1",
+      "model": "Wall_Plaster_Straight",
+      "position": [
+        -1,
+        0,
+        -2
+      ],
+      "yaw": 180,
+      "scale": 1
+    },
+    {
+      "id": "back-1",
+      "model": "Wall_Plaster_Straight",
+      "position": [
+        1,
+        0,
+        -2
+      ],
+      "yaw": 180,
+      "scale": 1
+    },
+    {
+      "id": "side--2--1",
+      "model": "Wall_Plaster_Straight",
+      "position": [
+        -2,
+        0,
+        -1
+      ],
+      "yaw": -90,
+      "scale": 1
+    },
+    {
+      "id": "side--2-1",
+      "model": "Wall_Plaster_Straight",
+      "position": [
+        -2,
+        0,
+        1
+      ],
+      "yaw": -90,
+      "scale": 1
+    },
+    {
+      "id": "side-2--1",
+      "model": "Wall_Plaster_Straight",
+      "position": [
+        2,
+        0,
+        -1
+      ],
+      "yaw": 90,
+      "scale": 1
+    },
+    {
+      "id": "side-2-1",
+      "model": "Wall_Plaster_Window_Wide_Flat",
+      "position": [
+        2,
+        0,
+        1
+      ],
+      "yaw": 90,
+      "scale": 1
+    },
+    {
+      "id": "side-window",
+      "model": "Window_Wide_Flat1",
+      "position": [
+        2,
+        0,
+        1
+      ],
+      "yaw": 90,
+      "scale": 1
+    },
+    {
+      "id": "corner--2--2",
+      "model": "Corner_Exterior_Wood",
+      "position": [
+        -2,
+        0,
+        -2
+      ],
+      "yaw": 0,
+      "scale": 1
+    },
+    {
+      "id": "corner--2-2",
+      "model": "Corner_Exterior_Wood",
+      "position": [
+        -2,
+        0,
+        2
+      ],
+      "yaw": 0,
+      "scale": 1
+    },
+    {
+      "id": "corner-2--2",
+      "model": "Corner_Exterior_Wood",
+      "position": [
+        2,
+        0,
+        -2
+      ],
+      "yaw": 0,
+      "scale": 1
+    },
+    {
+      "id": "corner-2-2",
+      "model": "Corner_Exterior_Wood",
+      "position": [
+        2,
+        0,
+        2
+      ],
+      "yaw": 0,
+      "scale": 1
+    },
+    {
+      "id": "solid-roof",
+      "model": "Roof_RoundTiles_4x4",
+      "position": [
+        0,
+        3,
+        0
+      ],
+      "yaw": 0,
+      "scale": 1
+    },
+    {
+      "id": "front-gable",
+      "model": "Roof_Front_Brick4",
+      "position": [
+        0,
+        3,
+        2
+      ],
+      "yaw": 0,
+      "scale": 1
+    },
+    {
+      "id": "back-gable",
+      "model": "Roof_Front_Brick4",
+      "position": [
+        0,
+        3,
+        -2
+      ],
+      "yaw": 180,
+      "scale": 1
+    },
+    {
+      "id": "chimney",
+      "model": "Prop_Chimney",
+      "position": [
+        -1.3,
+        3.7,
+        -0.6
+      ],
+      "yaw": 0,
+      "scale": 1
+    },
+    {
+      "id": "lantern",
+      "model": "Lantern_Wall",
+      "position": [
+        -1.9,
+        2.35,
+        2.15
+      ],
+      "yaw": 0,
+      "scale": 0.4
+    },
+    {
+      "id": "barrel",
+      "model": "Barrel",
+      "position": [
+        2.9,
+        0,
+        2
+      ],
+      "yaw": 15,
+      "scale": 0.8
+    },
+    {
+      "id": "bench",
+      "model": "Bench",
+      "position": [
+        -3.6,
+        0,
+        1
+      ],
+      "yaw": 90,
+      "scale": 0.8
+    },
+    {
+      "id": "tree-left",
+      "model": "CommonTree_1",
+      "position": [
+        -6,
+        0.18,
+        -1
+      ],
+      "yaw": 12,
+      "scale": 0.8
+    },
+    {
+      "id": "tree-back",
+      "model": "CommonTree_2",
+      "position": [
+        -0.4,
+        0.2,
+        -7
+      ],
+      "yaw": 73,
+      "scale": 0.9
+    },
+    {
+      "id": "tree-right",
+      "model": "CommonTree_3",
+      "position": [
+        6,
+        0.16,
+        -3
+      ],
+      "yaw": 155,
+      "scale": 0.65
+    },
+    {
+      "id": "fence-0",
+      "model": "Prop_WoodenFence_Single",
+      "position": [
+        -4,
+        0,
+        -4
+      ],
+      "yaw": 8,
+      "scale": 1
+    },
+    {
+      "id": "fence-1",
+      "model": "Prop_WoodenFence_Single",
+      "position": [
+        -6,
+        0,
+        -4
+      ],
+      "yaw": 0,
+      "scale": 1
+    },
+    {
+      "id": "fence-2",
+      "model": "Prop_WoodenFence_Single",
+      "position": [
+        5,
+        0,
+        -6
+      ],
+      "yaw": 15,
+      "scale": 1
+    },
+    {
+      "id": "bush-0",
+      "model": "Bush_Common_Flowers",
+      "position": [
+        -4,
+        0.08,
+        3
+      ],
+      "yaw": 0,
+      "scale": 0.5
+    },
+    {
+      "id": "bush-1",
+      "model": "Bush_Common_Flowers",
+      "position": [
+        4,
+        0.08,
+        0
+      ],
+      "yaw": 71,
+      "scale": 0.55
+    },
+    {
+      "id": "bush-2",
+      "model": "Bush_Common_Flowers",
+      "position": [
+        -5,
+        0.08,
+        -1
+      ],
+      "yaw": 142,
+      "scale": 0.5
+    },
+    {
+      "id": "bush-3",
+      "model": "Bush_Common_Flowers",
+      "position": [
+        4.2,
+        0.08,
+        -5
+      ],
+      "yaw": 213,
+      "scale": 0.6
+    },
+    {
+      "id": "flowers-0",
+      "model": "Flower_3_Group",
+      "position": [
+        -2.8,
+        0,
+        3
+      ],
+      "yaw": 0,
+      "scale": 0.42
+    },
+    {
+      "id": "flowers-1",
+      "model": "Flower_3_Group",
+      "position": [
+        -3.7,
+        0,
+        4
+      ],
+      "yaw": 33,
+      "scale": 0.42
+    },
+    {
+      "id": "flowers-2",
+      "model": "Flower_3_Group",
+      "position": [
+        2.7,
+        0,
+        4.8
+      ],
+      "yaw": 66,
+      "scale": 0.42
+    },
+    {
+      "id": "flowers-3",
+      "model": "Flower_3_Group",
+      "position": [
+        3.4,
+        0,
+        4.2
+      ],
+      "yaw": 99,
+      "scale": 0.42
+    },
+    {
+      "id": "flowers-4",
+      "model": "Flower_3_Group",
+      "position": [
+        -5.5,
+        0,
+        -0.2
+      ],
+      "yaw": 132,
+      "scale": 0.42
+    },
+    {
+      "id": "fern-0",
+      "model": "Fern_1",
+      "position": [
+        -5,
+        0.05,
+        1
+      ],
+      "yaw": 0,
+      "scale": 0.17
+    },
+    {
+      "id": "fern-1",
+      "model": "Fern_1",
+      "position": [
+        5,
+        0.05,
+        -2
+      ],
+      "yaw": 44,
+      "scale": 0.17
+    },
+    {
+      "id": "fern-2",
+      "model": "Fern_1",
+      "position": [
+        4.1,
+        0.05,
+        -4
+      ],
+      "yaw": 88,
+      "scale": 0.17
+    },
+    {
+      "id": "rock-0",
+      "model": "Rock_Medium_1",
+      "position": [
+        -4.5,
+        0.1,
+        -0.5
+      ],
+      "yaw": 0,
+      "scale": 0.45
+    },
+    {
+      "id": "rock-1",
+      "model": "Rock_Medium_1",
+      "position": [
+        4,
+        0.1,
+        1.3
+      ],
+      "yaw": 60,
+      "scale": 0.45
+    },
+    {
+      "id": "grass-0",
+      "model": "Grass_Common_Short",
+      "position": [
+        -3,
+        0.01,
+        4.5
+      ],
+      "yaw": 0,
+      "scale": 0.45
+    },
+    {
+      "id": "grass-1",
+      "model": "Grass_Common_Short",
+      "position": [
+        -2.6,
+        0.01,
+        4
+      ],
+      "yaw": 23,
+      "scale": 0.45
+    },
+    {
+      "id": "grass-2",
+      "model": "Grass_Common_Short",
+      "position": [
+        2,
+        0.01,
+        5.7
+      ],
+      "yaw": 46,
+      "scale": 0.45
+    },
+    {
+      "id": "grass-3",
+      "model": "Grass_Common_Short",
+      "position": [
+        2.7,
+        0.01,
+        5.6
+      ],
+      "yaw": 69,
+      "scale": 0.45
+    },
+    {
+      "id": "grass-4",
+      "model": "Grass_Common_Short",
+      "position": [
+        -4.5,
+        0.01,
+        2.5
+      ],
+      "yaw": 92,
+      "scale": 0.45
+    },
+    {
+      "id": "grass-5",
+      "model": "Grass_Common_Short",
+      "position": [
+        -6.5,
+        0.01,
+        0
+      ],
+      "yaw": 115,
+      "scale": 0.45
+    },
+    {
+      "id": "grass-6",
+      "model": "Grass_Common_Short",
+      "position": [
+        5,
+        0.01,
+        2
+      ],
+      "yaw": 138,
+      "scale": 0.45
+    },
+    {
+      "id": "grass-7",
+      "model": "Grass_Common_Short",
+      "position": [
+        5.3,
+        0.01,
+        -1
+      ],
+      "yaw": 161,
+      "scale": 0.45
+    },
+    {
+      "id": "grass-8",
+      "model": "Grass_Common_Short",
+      "position": [
+        4,
+        0.01,
+        -6
+      ],
+      "yaw": 184,
+      "scale": 0.45
+    },
+    {
+      "id": "grass-9",
+      "model": "Grass_Common_Short",
+      "position": [
+        -3,
+        0.01,
+        -6
+      ],
+      "yaw": 207,
+      "scale": 0.45
+    },
+    {
+      "id": "path-0-0",
+      "model": "Floor_UnevenBrick",
+      "position": [
+        -0.95,
+        0.015,
+        2.55
+      ],
+      "yaw": 0,
+      "scale": 0.46
+    },
+    {
+      "id": "path-0-1",
+      "model": "Floor_UnevenBrick",
+      "position": [
+        0.0,
+        0.015,
+        2.55
+      ],
+      "yaw": 0,
+      "scale": 0.46
+    },
+    {
+      "id": "path-1-0",
+      "model": "Floor_UnevenBrick",
+      "position": [
+        -0.95,
+        0.015,
+        3.4
+      ],
+      "yaw": 0,
+      "scale": 0.46
+    },
+    {
+      "id": "path-1-1",
+      "model": "Floor_UnevenBrick",
+      "position": [
+        0.0,
+        0.015,
+        3.4
+      ],
+      "yaw": 0,
+      "scale": 0.46
+    },
+    {
+      "id": "path-2-0",
+      "model": "Floor_UnevenBrick",
+      "position": [
+        -0.95,
+        0.015,
+        4.25
+      ],
+      "yaw": 0,
+      "scale": 0.46
+    },
+    {
+      "id": "path-2-1",
+      "model": "Floor_UnevenBrick",
+      "position": [
+        0.0,
+        0.015,
+        4.25
+      ],
+      "yaw": 0,
+      "scale": 0.46
+    },
+    {
+      "id": "path-3-0",
+      "model": "Floor_UnevenBrick",
+      "position": [
+        -0.95,
+        0.015,
+        5.1
+      ],
+      "yaw": 0,
+      "scale": 0.46
+    },
+    {
+      "id": "path-3-1",
+      "model": "Floor_UnevenBrick",
+      "position": [
+        0.0,
+        0.015,
+        5.1
+      ],
+      "yaw": 0,
+      "scale": 0.46
+    },
+    {
+      "id": "path-4-0",
+      "model": "Floor_UnevenBrick",
+      "position": [
+        -0.75,
+        0.015,
+        5.949999999999999
+      ],
+      "yaw": 0,
+      "scale": 0.46
+    },
+    {
+      "id": "path-4-1",
+      "model": "Floor_UnevenBrick",
+      "position": [
+        0.2,
+        0.015,
+        5.949999999999999
+      ],
+      "yaw": 0,
+      "scale": 0.46
+    },
+    {
+      "id": "path-5-0",
+      "model": "Floor_UnevenBrick",
+      "position": [
+        -0.75,
+        0.015,
+        6.8
+      ],
+      "yaw": 0,
+      "scale": 0.46
+    },
+    {
+      "id": "path-5-1",
+      "model": "Floor_UnevenBrick",
+      "position": [
+        0.2,
+        0.015,
+        6.8
+      ],
+      "yaw": 0,
+      "scale": 0.46
+    },
+    {
+      "id": "path-6-0",
+      "model": "Floor_UnevenBrick",
+      "position": [
+        -0.75,
+        0.015,
+        7.6499999999999995
+      ],
+      "yaw": 0,
+      "scale": 0.46
+    },
+    {
+      "id": "path-6-1",
+      "model": "Floor_UnevenBrick",
+      "position": [
+        0.2,
+        0.015,
+        7.6499999999999995
+      ],
+      "yaw": 0,
+      "scale": 0.46
+    },
+    {
+      "id": "floor--1--1",
+      "model": "Floor_UnevenBrick",
+      "position": [
+        -1,
+        -0.02,
+        -1
+      ],
+      "yaw": 0,
+      "scale": 1
+    },
+    {
+      "id": "floor--1-1",
+      "model": "Floor_UnevenBrick",
+      "position": [
+        -1,
+        -0.02,
+        1
+      ],
+      "yaw": 0,
+      "scale": 1
+    },
+    {
+      "id": "floor-1--1",
+      "model": "Floor_UnevenBrick",
+      "position": [
+        1,
+        -0.02,
+        -1
+      ],
+      "yaw": 0,
+      "scale": 1
+    },
+    {
+      "id": "floor-1-1",
+      "model": "Floor_UnevenBrick",
+      "position": [
+        1,
+        -0.02,
+        1
+      ],
+      "yaw": 0,
+      "scale": 1
+    },
+    {
+      "id": "cozy-grass-0-0",
+      "model": "Grass_Common_Short",
+      "position": [
+        -3.48,
+        0.01,
+        3.75
+      ],
+      "yaw": 0,
+      "scale": 0.25
+    },
+    {
+      "id": "cozy-grass-0-1",
+      "model": "Grass_Common_Short",
+      "position": [
+        -3.05,
+        0.01,
+        3.48
+      ],
+      "yaw": 63,
+      "scale": 0.32
+    },
+    {
+      "id": "cozy-grass-0-2",
+      "model": "Grass_Common_Short",
+      "position": [
+        -2.7,
+        0.01,
+        3.9
+      ],
+      "yaw": 126,
+      "scale": 0.27
+    },
+    {
+      "id": "cozy-grass-0-3",
+      "model": "Grass_Common_Short",
+      "position": [
+        -2.97,
+        0.01,
+        4.18
+      ],
+      "yaw": 189,
+      "scale": 0.24
+    },
+    {
+      "id": "cozy-grass-1-0",
+      "model": "Grass_Common_Short",
+      "position": [
+        1.32,
+        0.01,
+        4.45
+      ],
+      "yaw": 37,
+      "scale": 0.25
+    },
+    {
+      "id": "cozy-grass-1-1",
+      "model": "Grass_Common_Short",
+      "position": [
+        1.75,
+        0.01,
+        4.18
+      ],
+      "yaw": 100,
+      "scale": 0.32
+    },
+    {
+      "id": "cozy-grass-1-2",
+      "model": "Grass_Common_Short",
+      "position": [
+        2.1,
+        0.01,
+        4.6
+      ],
+      "yaw": 163,
+      "scale": 0.27
+    },
+    {
+      "id": "cozy-grass-1-3",
+      "model": "Grass_Common_Short",
+      "position": [
+        1.83,
+        0.01,
+        4.88
+      ],
+      "yaw": 226,
+      "scale": 0.24
+    },
+    {
+      "id": "cozy-grass-2-0",
+      "model": "Grass_Common_Short",
+      "position": [
+        -3.18,
+        0.01,
+        6.35
+      ],
+      "yaw": 74,
+      "scale": 0.25
+    },
+    {
+      "id": "cozy-grass-2-1",
+      "model": "Grass_Common_Short",
+      "position": [
+        -2.75,
+        0.01,
+        6.08
+      ],
+      "yaw": 137,
+      "scale": 0.32
+    },
+    {
+      "id": "cozy-grass-2-2",
+      "model": "Grass_Common_Short",
+      "position": [
+        -2.4,
+        0.01,
+        6.5
+      ],
+      "yaw": 200,
+      "scale": 0.27
+    },
+    {
+      "id": "cozy-grass-2-3",
+      "model": "Grass_Common_Short",
+      "position": [
+        -2.67,
+        0.01,
+        6.78
+      ],
+      "yaw": 263,
+      "scale": 0.24
+    },
+    {
+      "id": "cozy-grass-3-0",
+      "model": "Grass_Common_Short",
+      "position": [
+        1.12,
+        0.01,
+        7.15
+      ],
+      "yaw": 111,
+      "scale": 0.25
+    },
+    {
+      "id": "cozy-grass-3-1",
+      "model": "Grass_Common_Short",
+      "position": [
+        1.55,
+        0.01,
+        6.88
+      ],
+      "yaw": 174,
+      "scale": 0.32
+    },
+    {
+      "id": "cozy-grass-3-2",
+      "model": "Grass_Common_Short",
+      "position": [
+        1.9,
+        0.01,
+        7.3
+      ],
+      "yaw": 237,
+      "scale": 0.27
+    },
+    {
+      "id": "cozy-grass-3-3",
+      "model": "Grass_Common_Short",
+      "position": [
+        1.63,
+        0.01,
+        7.58
+      ],
+      "yaw": 300,
+      "scale": 0.24
+    },
+    {
+      "id": "cozy-grass-4-0",
+      "model": "Grass_Common_Short",
+      "position": [
+        -4.48,
+        0.01,
+        1.35
+      ],
+      "yaw": 148,
+      "scale": 0.25
+    },
+    {
+      "id": "cozy-grass-4-1",
+      "model": "Grass_Common_Short",
+      "position": [
+        -4.05,
+        0.01,
+        1.08
+      ],
+      "yaw": 211,
+      "scale": 0.32
+    },
+    {
+      "id": "cozy-grass-4-2",
+      "model": "Grass_Common_Short",
+      "position": [
+        -3.7,
+        0.01,
+        1.5
+      ],
+      "yaw": 274,
+      "scale": 0.27
+    },
+    {
+      "id": "cozy-grass-4-3",
+      "model": "Grass_Common_Short",
+      "position": [
+        -3.97,
+        0.01,
+        1.78
+      ],
+      "yaw": 337,
+      "scale": 0.24
+    },
+    {
+      "id": "cozy-grass-5-0",
+      "model": "Grass_Common_Short",
+      "position": [
+        3.12,
+        0.01,
+        2.85
+      ],
+      "yaw": 185,
+      "scale": 0.25
+    },
+    {
+      "id": "cozy-grass-5-1",
+      "model": "Grass_Common_Short",
+      "position": [
+        3.55,
+        0.01,
+        2.58
+      ],
+      "yaw": 248,
+      "scale": 0.32
+    },
+    {
+      "id": "cozy-grass-5-2",
+      "model": "Grass_Common_Short",
+      "position": [
+        3.9,
+        0.01,
+        3.0
+      ],
+      "yaw": 311,
+      "scale": 0.27
+    },
+    {
+      "id": "cozy-grass-5-3",
+      "model": "Grass_Common_Short",
+      "position": [
+        3.63,
+        0.01,
+        3.28
+      ],
+      "yaw": 14,
+      "scale": 0.24
+    },
+    {
+      "id": "cozy-grass-6-0",
+      "model": "Grass_Common_Short",
+      "position": [
+        -6.88,
+        0.01,
+        0.75
+      ],
+      "yaw": 222,
+      "scale": 0.25
+    },
+    {
+      "id": "cozy-grass-6-1",
+      "model": "Grass_Common_Short",
+      "position": [
+        -6.45,
+        0.01,
+        0.48
+      ],
+      "yaw": 285,
+      "scale": 0.32
+    },
+    {
+      "id": "cozy-grass-6-2",
+      "model": "Grass_Common_Short",
+      "position": [
+        -6.1,
+        0.01,
+        0.9
+      ],
+      "yaw": 348,
+      "scale": 0.27
+    },
+    {
+      "id": "cozy-grass-6-3",
+      "model": "Grass_Common_Short",
+      "position": [
+        -6.37,
+        0.01,
+        1.18
+      ],
+      "yaw": 51,
+      "scale": 0.24
+    },
+    {
+      "id": "cozy-grass-7-0",
+      "model": "Grass_Common_Short",
+      "position": [
+        5.22,
+        0.01,
+        -1.75
+      ],
+      "yaw": 259,
+      "scale": 0.25
+    },
+    {
+      "id": "cozy-grass-7-1",
+      "model": "Grass_Common_Short",
+      "position": [
+        5.65,
+        0.01,
+        -2.02
+      ],
+      "yaw": 322,
+      "scale": 0.32
+    },
+    {
+      "id": "cozy-grass-7-2",
+      "model": "Grass_Common_Short",
+      "position": [
+        6.0,
+        0.01,
+        -1.6
+      ],
+      "yaw": 25,
+      "scale": 0.27
+    },
+    {
+      "id": "cozy-grass-7-3",
+      "model": "Grass_Common_Short",
+      "position": [
+        5.73,
+        0.01,
+        -1.32
+      ],
+      "yaw": 88,
+      "scale": 0.24
+    },
+    {
+      "id": "cozy-grass-8-0",
+      "model": "Grass_Common_Short",
+      "position": [
+        -4.88,
+        0.01,
+        -2.85
+      ],
+      "yaw": 296,
+      "scale": 0.25
+    },
+    {
+      "id": "cozy-grass-8-1",
+      "model": "Grass_Common_Short",
+      "position": [
+        -4.45,
+        0.01,
+        -3.12
+      ],
+      "yaw": 359,
+      "scale": 0.32
+    },
+    {
+      "id": "cozy-grass-8-2",
+      "model": "Grass_Common_Short",
+      "position": [
+        -4.1,
+        0.01,
+        -2.7
+      ],
+      "yaw": 62,
+      "scale": 0.27
+    },
+    {
+      "id": "cozy-grass-8-3",
+      "model": "Grass_Common_Short",
+      "position": [
+        -4.37,
+        0.01,
+        -2.42
+      ],
+      "yaw": 125,
+      "scale": 0.24
+    },
+    {
+      "id": "cozy-grass-9-0",
+      "model": "Grass_Common_Short",
+      "position": [
+        3.62,
+        0.01,
+        -4.25
+      ],
+      "yaw": 333,
+      "scale": 0.25
+    },
+    {
+      "id": "cozy-grass-9-1",
+      "model": "Grass_Common_Short",
+      "position": [
+        4.05,
+        0.01,
+        -4.52
+      ],
+      "yaw": 36,
+      "scale": 0.32
+    },
+    {
+      "id": "cozy-grass-9-2",
+      "model": "Grass_Common_Short",
+      "position": [
+        4.4,
+        0.01,
+        -4.1
+      ],
+      "yaw": 99,
+      "scale": 0.27
+    },
+    {
+      "id": "cozy-grass-9-3",
+      "model": "Grass_Common_Short",
+      "position": [
+        4.13,
+        0.01,
+        -3.82
+      ],
+      "yaw": 162,
+      "scale": 0.24
+    },
+    {
+      "id": "cozy-flowers-0",
+      "model": "Flower_3_Group",
+      "position": [
+        -2.8,
+        0,
+        3.3
+      ],
+      "yaw": 0,
+      "scale": 0.31
+    },
+    {
+      "id": "cozy-flowers-1",
+      "model": "Flower_3_Group",
+      "position": [
+        1.9,
+        0,
+        4.7
+      ],
+      "yaw": 47,
+      "scale": 0.27
+    },
+    {
+      "id": "cozy-flowers-2",
+      "model": "Flower_3_Group",
+      "position": [
+        -3.2,
+        0,
+        6.6
+      ],
+      "yaw": 94,
+      "scale": 0.32
+    },
+    {
+      "id": "cozy-flowers-3",
+      "model": "Flower_3_Group",
+      "position": [
+        2.1,
+        0,
+        7.6
+      ],
+      "yaw": 141,
+      "scale": 0.31
+    },
+    {
+      "id": "cozy-flowers-4",
+      "model": "Flower_3_Group",
+      "position": [
+        -4.4,
+        0,
+        0.7
+      ],
+      "yaw": 188,
+      "scale": 0.3
+    },
+    {
+      "id": "cozy-flowers-5",
+      "model": "Flower_3_Group",
+      "position": [
+        4.4,
+        0,
+        2.0
+      ],
+      "yaw": 235,
+      "scale": 0.27
+    },
+    {
+      "id": "cozy-flowers-6",
+      "model": "Flower_3_Group",
+      "position": [
+        -6.5,
+        0,
+        -0.4
+      ],
+      "yaw": 282,
+      "scale": 0.28
+    },
+    {
+      "id": "cozy-flowers-7",
+      "model": "Flower_3_Group",
+      "position": [
+        5.8,
+        0,
+        -2.3
+      ],
+      "yaw": 329,
+      "scale": 0.3
+    },
+    {
+      "id": "cozy-flowers-8",
+      "model": "Flower_3_Group",
+      "position": [
+        -3.8,
+        0,
+        -3.4
+      ],
+      "yaw": 16,
+      "scale": 0.25
+    },
+    {
+      "id": "cozy-flowers-9",
+      "model": "Flower_3_Group",
+      "position": [
+        4.7,
+        0,
+        -4.6
+      ],
+      "yaw": 63,
+      "scale": 0.28
+    },
+    {
+      "id": "cozy-bush-0",
+      "model": "Bush_Common_Flowers",
+      "position": [
+        -3.6,
+        0.08,
+        2.7
+      ],
+      "yaw": 0,
+      "scale": 0.37
+    },
+    {
+      "id": "cozy-bush-1",
+      "model": "Bush_Common_Flowers",
+      "position": [
+        3.6,
+        0.08,
+        1.4
+      ],
+      "yaw": 73,
+      "scale": 0.36
+    },
+    {
+      "id": "cozy-bush-2",
+      "model": "Bush_Common_Flowers",
+      "position": [
+        -5.8,
+        0.08,
+        -0.5
+      ],
+      "yaw": 146,
+      "scale": 0.34
+    },
+    {
+      "id": "cozy-bush-3",
+      "model": "Bush_Common_Flowers",
+      "position": [
+        5.7,
+        0.08,
+        -3.7
+      ],
+      "yaw": 219,
+      "scale": 0.38
+    },
+    {
+      "id": "sun-groundcover-0-0",
+      "model": "Grass_Common_Short",
+      "position": [
+        -2.3800000000000003,
+        0.015,
+        3
+      ],
+      "yaw": 0,
+      "scale": 0.3
+    },
+    {
+      "id": "sun-groundcover-0-1",
+      "model": "Grass_Common_Short",
+      "position": [
+        -2.02,
+        0.015,
+        3.14
+      ],
+      "yaw": 73,
+      "scale": 0.24
+    },
+    {
+      "id": "sun-groundcover-0-2",
+      "model": "Grass_Common_Short",
+      "position": [
+        -2.2,
+        0.015,
+        2.8
+      ],
+      "yaw": 146,
+      "scale": 0.2
+    },
+    {
+      "id": "sun-groundcover-1-0",
+      "model": "Grass_Common_Short",
+      "position": [
+        -2.2800000000000002,
+        0.015,
+        4
+      ],
+      "yaw": 47,
+      "scale": 0.3
+    },
+    {
+      "id": "sun-groundcover-1-1",
+      "model": "Grass_Common_Short",
+      "position": [
+        -1.9200000000000002,
+        0.015,
+        4.14
+      ],
+      "yaw": 120,
+      "scale": 0.24
+    },
+    {
+      "id": "sun-groundcover-1-2",
+      "model": "Grass_Common_Short",
+      "position": [
+        -2.1,
+        0.015,
+        3.8
+      ],
+      "yaw": 193,
+      "scale": 0.2
+    },
+    {
+      "id": "sun-groundcover-2-0",
+      "model": "Grass_Common_Short",
+      "position": [
+        -2.33,
+        0.015,
+        5
+      ],
+      "yaw": 94,
+      "scale": 0.3
+    },
+    {
+      "id": "sun-groundcover-2-1",
+      "model": "Grass_Common_Short",
+      "position": [
+        -1.97,
+        0.015,
+        5.14
+      ],
+      "yaw": 167,
+      "scale": 0.24
+    },
+    {
+      "id": "sun-groundcover-2-2",
+      "model": "Grass_Common_Short",
+      "position": [
+        -2.15,
+        0.015,
+        4.8
+      ],
+      "yaw": 240,
+      "scale": 0.2
+    },
+    {
+      "id": "sun-groundcover-3-0",
+      "model": "Grass_Common_Short",
+      "position": [
+        -2.48,
+        0.015,
+        6
+      ],
+      "yaw": 141,
+      "scale": 0.3
+    },
+    {
+      "id": "sun-groundcover-3-1",
+      "model": "Grass_Common_Short",
+      "position": [
+        -2.1199999999999997,
+        0.015,
+        6.14
+      ],
+      "yaw": 214,
+      "scale": 0.24
+    },
+    {
+      "id": "sun-groundcover-3-2",
+      "model": "Grass_Common_Short",
+      "position": [
+        -2.3,
+        0.015,
+        5.8
+      ],
+      "yaw": 287,
+      "scale": 0.2
+    },
+    {
+      "id": "sun-groundcover-4-0",
+      "model": "Grass_Common_Short",
+      "position": [
+        0.27,
+        0.015,
+        3.2
+      ],
+      "yaw": 188,
+      "scale": 0.3
+    },
+    {
+      "id": "sun-groundcover-4-1",
+      "model": "Grass_Common_Short",
+      "position": [
+        0.63,
+        0.015,
+        3.3400000000000003
+      ],
+      "yaw": 261,
+      "scale": 0.24
+    },
+    {
+      "id": "sun-groundcover-4-2",
+      "model": "Grass_Common_Short",
+      "position": [
+        0.45,
+        0.015,
+        3.0
+      ],
+      "yaw": 334,
+      "scale": 0.2
+    },
+    {
+      "id": "sun-groundcover-5-0",
+      "model": "Grass_Common_Short",
+      "position": [
+        0.27,
+        0.015,
+        4.5
+      ],
+      "yaw": 235,
+      "scale": 0.3
+    },
+    {
+      "id": "sun-groundcover-5-1",
+      "model": "Grass_Common_Short",
+      "position": [
+        0.63,
+        0.015,
+        4.64
+      ],
+      "yaw": 308,
+      "scale": 0.24
+    },
+    {
+      "id": "sun-groundcover-5-2",
+      "model": "Grass_Common_Short",
+      "position": [
+        0.45,
+        0.015,
+        4.3
+      ],
+      "yaw": 21,
+      "scale": 0.2
+    },
+    {
+      "id": "sun-groundcover-6-0",
+      "model": "Grass_Common_Short",
+      "position": [
+        0.32,
+        0.015,
+        5.6
+      ],
+      "yaw": 282,
+      "scale": 0.3
+    },
+    {
+      "id": "sun-groundcover-6-1",
+      "model": "Grass_Common_Short",
+      "position": [
+        0.6799999999999999,
+        0.015,
+        5.739999999999999
+      ],
+      "yaw": 355,
+      "scale": 0.24
+    },
+    {
+      "id": "sun-groundcover-6-2",
+      "model": "Grass_Common_Short",
+      "position": [
+        0.5,
+        0.015,
+        5.3999999999999995
+      ],
+      "yaw": 68,
+      "scale": 0.2
+    },
+    {
+      "id": "sun-groundcover-7-0",
+      "model": "Grass_Common_Short",
+      "position": [
+        0.22000000000000003,
+        0.015,
+        7
+      ],
+      "yaw": 329,
+      "scale": 0.3
+    },
+    {
+      "id": "sun-groundcover-7-1",
+      "model": "Grass_Common_Short",
+      "position": [
+        0.5800000000000001,
+        0.015,
+        7.14
+      ],
+      "yaw": 42,
+      "scale": 0.24
+    },
+    {
+      "id": "sun-groundcover-7-2",
+      "model": "Grass_Common_Short",
+      "position": [
+        0.4,
+        0.015,
+        6.8
+      ],
+      "yaw": 115,
+      "scale": 0.2
+    },
+    {
+      "id": "sun-groundcover-8-0",
+      "model": "Grass_Common_Short",
+      "position": [
+        -4.18,
+        0.015,
+        2
+      ],
+      "yaw": 16,
+      "scale": 0.3
+    },
+    {
+      "id": "sun-groundcover-8-1",
+      "model": "Grass_Common_Short",
+      "position": [
+        -3.82,
+        0.015,
+        2.14
+      ],
+      "yaw": 89,
+      "scale": 0.24
+    },
+    {
+      "id": "sun-groundcover-8-2",
+      "model": "Grass_Common_Short",
+      "position": [
+        -4,
+        0.015,
+        1.8
+      ],
+      "yaw": 162,
+      "scale": 0.2
+    },
+    {
+      "id": "sun-groundcover-9-0",
+      "model": "Grass_Common_Short",
+      "position": [
+        -4.779999999999999,
+        0.015,
+        1.2
+      ],
+      "yaw": 63,
+      "scale": 0.3
+    },
+    {
+      "id": "sun-groundcover-9-1",
+      "model": "Grass_Common_Short",
+      "position": [
+        -4.42,
+        0.015,
+        1.3399999999999999
+      ],
+      "yaw": 136,
+      "scale": 0.24
+    },
+    {
+      "id": "sun-groundcover-9-2",
+      "model": "Grass_Common_Short",
+      "position": [
+        -4.6,
+        0.015,
+        1.0
+      ],
+      "yaw": 209,
+      "scale": 0.2
+    },
+    {
+      "id": "sun-groundcover-10-0",
+      "model": "Grass_Common_Short",
+      "position": [
+        4.0200000000000005,
+        0.015,
+        2
+      ],
+      "yaw": 110,
+      "scale": 0.3
+    },
+    {
+      "id": "sun-groundcover-10-1",
+      "model": "Grass_Common_Short",
+      "position": [
+        4.38,
+        0.015,
+        2.14
+      ],
+      "yaw": 183,
+      "scale": 0.24
+    },
+    {
+      "id": "sun-groundcover-10-2",
+      "model": "Grass_Common_Short",
+      "position": [
+        4.2,
+        0.015,
+        1.8
+      ],
+      "yaw": 256,
+      "scale": 0.2
+    },
+    {
+      "id": "sun-groundcover-11-0",
+      "model": "Grass_Common_Short",
+      "position": [
+        4.62,
+        0.015,
+        2.8
+      ],
+      "yaw": 157,
+      "scale": 0.3
+    },
+    {
+      "id": "sun-groundcover-11-1",
+      "model": "Grass_Common_Short",
+      "position": [
+        4.9799999999999995,
+        0.015,
+        2.94
+      ],
+      "yaw": 230,
+      "scale": 0.24
+    },
+    {
+      "id": "sun-groundcover-11-2",
+      "model": "Grass_Common_Short",
+      "position": [
+        4.8,
+        0.015,
+        2.5999999999999996
+      ],
+      "yaw": 303,
+      "scale": 0.2
+    },
+    {
+      "id": "sun-groundcover-12-0",
+      "model": "Grass_Common_Short",
+      "position": [
+        -6.779999999999999,
+        0.015,
+        -1.8
+      ],
+      "yaw": 204,
+      "scale": 0.3
+    },
+    {
+      "id": "sun-groundcover-12-1",
+      "model": "Grass_Common_Short",
+      "position": [
+        -6.42,
+        0.015,
+        -1.6600000000000001
+      ],
+      "yaw": 277,
+      "scale": 0.24
+    },
+    {
+      "id": "sun-groundcover-12-2",
+      "model": "Grass_Common_Short",
+      "position": [
+        -6.6,
+        0.015,
+        -2.0
+      ],
+      "yaw": 350,
+      "scale": 0.2
+    },
+    {
+      "id": "sun-groundcover-13-0",
+      "model": "Grass_Common_Short",
+      "position": [
+        -6.9799999999999995,
+        0.015,
+        -0.4
+      ],
+      "yaw": 251,
+      "scale": 0.3
+    },
+    {
+      "id": "sun-groundcover-13-1",
+      "model": "Grass_Common_Short",
+      "position": [
+        -6.62,
+        0.015,
+        -0.26
+      ],
+      "yaw": 324,
+      "scale": 0.24
+    },
+    {
+      "id": "sun-groundcover-13-2",
+      "model": "Grass_Common_Short",
+      "position": [
+        -6.8,
+        0.015,
+        -0.6000000000000001
+      ],
+      "yaw": 37,
+      "scale": 0.2
+    },
+    {
+      "id": "sun-groundcover-14-0",
+      "model": "Grass_Common_Short",
+      "position": [
+        5.32,
+        0.015,
+        -3.5
+      ],
+      "yaw": 298,
+      "scale": 0.3
+    },
+    {
+      "id": "sun-groundcover-14-1",
+      "model": "Grass_Common_Short",
+      "position": [
+        5.68,
+        0.015,
+        -3.36
+      ],
+      "yaw": 11,
+      "scale": 0.24
+    },
+    {
+      "id": "sun-groundcover-14-2",
+      "model": "Grass_Common_Short",
+      "position": [
+        5.5,
+        0.015,
+        -3.7
+      ],
+      "yaw": 84,
+      "scale": 0.2
+    },
+    {
+      "id": "sun-groundcover-15-0",
+      "model": "Grass_Common_Short",
+      "position": [
+        6.32,
+        0.015,
+        -2.8
+      ],
+      "yaw": 345,
+      "scale": 0.3
+    },
+    {
+      "id": "sun-groundcover-15-1",
+      "model": "Grass_Common_Short",
+      "position": [
+        6.68,
+        0.015,
+        -2.6599999999999997
+      ],
+      "yaw": 58,
+      "scale": 0.24
+    },
+    {
+      "id": "sun-groundcover-15-2",
+      "model": "Grass_Common_Short",
+      "position": [
+        6.5,
+        0.015,
+        -3.0
+      ],
+      "yaw": 131,
+      "scale": 0.2
+    },
+    {
+      "id": "sun-groundcover-16-0",
+      "model": "Grass_Common_Short",
+      "position": [
+        -2.18,
+        0.015,
+        -7
+      ],
+      "yaw": 32,
+      "scale": 0.3
+    },
+    {
+      "id": "sun-groundcover-16-1",
+      "model": "Grass_Common_Short",
+      "position": [
+        -1.82,
+        0.015,
+        -6.86
+      ],
+      "yaw": 105,
+      "scale": 0.24
+    },
+    {
+      "id": "sun-groundcover-16-2",
+      "model": "Grass_Common_Short",
+      "position": [
+        -2,
+        0.015,
+        -7.2
+      ],
+      "yaw": 178,
+      "scale": 0.2
+    },
+    {
+      "id": "sun-groundcover-17-0",
+      "model": "Grass_Common_Short",
+      "position": [
+        -1.18,
+        0.015,
+        -8
+      ],
+      "yaw": 79,
+      "scale": 0.3
+    },
+    {
+      "id": "sun-groundcover-17-1",
+      "model": "Grass_Common_Short",
+      "position": [
+        -0.8200000000000001,
+        0.015,
+        -7.86
+      ],
+      "yaw": 152,
+      "scale": 0.24
+    },
+    {
+      "id": "sun-groundcover-17-2",
+      "model": "Grass_Common_Short",
+      "position": [
+        -1,
+        0.015,
+        -8.2
+      ],
+      "yaw": 225,
+      "scale": 0.2
+    }
+  ],
+  "ground_extent": 96
+}
