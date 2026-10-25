@@ -1,0 +1,829 @@
+{
+  "schema": "wildsignal-hybrid001-v1",
+  "materials": {
+    "plaster": "plaster",
+    "roof": "shingle",
+    "wood": "timber",
+    "door": "door",
+    "window": "window"
+  },
+  "spawnYaw": 0,
+  "door": {
+    "x": 13,
+    "y": 12.6
+  },
+  "exit": {
+    "x": 16.5,
+    "y": 17.5
+  },
+  "insideSpawn": {
+    "x": 16.5,
+    "y": 15.0
+  },
+  "houses": [
+    {
+      "x": 10,
+      "y": 7,
+      "w": 6,
+      "d": 5,
+      "height": 3,
+      "rise": 1.5,
+      "eave": 0.32,
+      "thickness": 0.12,
+      "ridgeAxis": "x"
+    },
+    {
+      "x": 16,
+      "y": 9,
+      "w": 2,
+      "d": 3,
+      "height": 2.3,
+      "rise": 0.9,
+      "eave": 0.24,
+      "thickness": 0.1,
+      "ridgeAxis": "y"
+    }
+  ],
+  "props": [
+    {
+      "sprite": "tree",
+      "x": 5.5,
+      "y": 8.5,
+      "w": 2.8,
+      "h": 5.6,
+      "type": "crossed",
+      "z": 0,
+      "yaw": 0,
+      "anchor": 1
+    },
+    {
+      "sprite": "tree",
+      "x": 7.5,
+      "y": 11.5,
+      "w": 2.8,
+      "h": 5.6,
+      "type": "crossed",
+      "z": 0,
+      "yaw": 25,
+      "anchor": 1
+    },
+    {
+      "sprite": "tree",
+      "x": 4.5,
+      "y": 13.5,
+      "w": 2.8,
+      "h": 5.6,
+      "type": "crossed",
+      "z": 0,
+      "yaw": 0,
+      "anchor": 1
+    },
+    {
+      "sprite": "tree",
+      "x": 5.5,
+      "y": 16.5,
+      "w": 2.8,
+      "h": 5.6,
+      "type": "crossed",
+      "z": 0,
+      "yaw": 0,
+      "anchor": 1
+    },
+    {
+      "sprite": "tree",
+      "x": 7.5,
+      "y": 18.5,
+      "w": 2.8,
+      "h": 5.6,
+      "type": "crossed",
+      "z": 0,
+      "yaw": 0,
+      "anchor": 1
+    },
+    {
+      "sprite": "tree",
+      "x": 3.5,
+      "y": 20.5,
+      "w": 2.8,
+      "h": 5.6,
+      "type": "crossed",
+      "z": 0,
+      "yaw": 25,
+      "anchor": 1
+    },
+    {
+      "sprite": "tree",
+      "x": 24.5,
+      "y": 8.5,
+      "w": 2.8,
+      "h": 5.6,
+      "type": "crossed",
+      "z": 0,
+      "yaw": 0,
+      "anchor": 1
+    },
+    {
+      "sprite": "tree",
+      "x": 26.5,
+      "y": 11.5,
+      "w": 2.8,
+      "h": 5.6,
+      "type": "crossed",
+      "z": 0,
+      "yaw": 0,
+      "anchor": 1
+    },
+    {
+      "sprite": "tree",
+      "x": 24.5,
+      "y": 14.5,
+      "w": 2.8,
+      "h": 5.6,
+      "type": "crossed",
+      "z": 0,
+      "yaw": 25,
+      "anchor": 1
+    },
+    {
+      "sprite": "tree",
+      "x": 27.5,
+      "y": 17.5,
+      "w": 2.8,
+      "h": 5.6,
+      "type": "crossed",
+      "z": 0,
+      "yaw": 0,
+      "anchor": 1
+    },
+    {
+      "sprite": "tree",
+      "x": 25.5,
+      "y": 20.5,
+      "w": 2.8,
+      "h": 5.6,
+      "type": "crossed",
+      "z": 0,
+      "yaw": 0,
+      "anchor": 1
+    },
+    {
+      "sprite": "tree",
+      "x": 20.5,
+      "y": 5.5,
+      "w": 2.8,
+      "h": 5.6,
+      "type": "crossed",
+      "z": 0,
+      "yaw": 0,
+      "anchor": 1
+    },
+    {
+      "sprite": "tree",
+      "x": 9.5,
+      "y": 4.5,
+      "w": 2.8,
+      "h": 5.6,
+      "type": "crossed",
+      "z": 0,
+      "yaw": 0,
+      "anchor": 1
+    },
+    {
+      "sprite": "bush",
+      "x": 8.8,
+      "y": 12.8,
+      "w": 1.15,
+      "h": 1.15,
+      "type": "crossed",
+      "z": 0,
+      "yaw": 35,
+      "anchor": 1
+    },
+    {
+      "sprite": "bush",
+      "x": 7.5,
+      "y": 14.7,
+      "w": 1.15,
+      "h": 1.15,
+      "type": "crossed",
+      "z": 0,
+      "yaw": 35,
+      "anchor": 1
+    },
+    {
+      "sprite": "bush",
+      "x": 5.2,
+      "y": 15,
+      "w": 1.15,
+      "h": 1.15,
+      "type": "crossed",
+      "z": 0,
+      "yaw": 35,
+      "anchor": 1
+    },
+    {
+      "sprite": "bush",
+      "x": 7.8,
+      "y": 17.5,
+      "w": 1.15,
+      "h": 1.15,
+      "type": "crossed",
+      "z": 0,
+      "yaw": 35,
+      "anchor": 1
+    },
+    {
+      "sprite": "bush",
+      "x": 4.5,
+      "y": 20,
+      "w": 1.15,
+      "h": 1.15,
+      "type": "crossed",
+      "z": 0,
+      "yaw": 35,
+      "anchor": 1
+    },
+    {
+      "sprite": "bush",
+      "x": 24,
+      "y": 12.2,
+      "w": 1.15,
+      "h": 1.15,
+      "type": "crossed",
+      "z": 0,
+      "yaw": 35,
+      "anchor": 1
+    },
+    {
+      "sprite": "bush",
+      "x": 25.8,
+      "y": 15.4,
+      "w": 1.15,
+      "h": 1.15,
+      "type": "crossed",
+      "z": 0,
+      "yaw": 35,
+      "anchor": 1
+    },
+    {
+      "sprite": "bush",
+      "x": 25,
+      "y": 18.6,
+      "w": 1.15,
+      "h": 1.15,
+      "type": "crossed",
+      "z": 0,
+      "yaw": 35,
+      "anchor": 1
+    },
+    {
+      "sprite": "bush",
+      "x": 23.5,
+      "y": 20.7,
+      "w": 1.15,
+      "h": 1.15,
+      "type": "crossed",
+      "z": 0,
+      "yaw": 35,
+      "anchor": 1
+    },
+    {
+      "sprite": "bush",
+      "x": 18.7,
+      "y": 8,
+      "w": 1.15,
+      "h": 1.15,
+      "type": "crossed",
+      "z": 0,
+      "yaw": 35,
+      "anchor": 1
+    },
+    {
+      "sprite": "bush",
+      "x": 10.2,
+      "y": 5.8,
+      "w": 1.15,
+      "h": 1.15,
+      "type": "crossed",
+      "z": 0,
+      "yaw": 35,
+      "anchor": 1
+    },
+    {
+      "sprite": "windowbox",
+      "x": 11.1,
+      "y": 12.045,
+      "w": 1.3,
+      "h": 0.65,
+      "type": "plane",
+      "z": 0.4,
+      "yaw": 0,
+      "anchor": 1
+    },
+    {
+      "sprite": "windowbox",
+      "x": 14.9,
+      "y": 12.045,
+      "w": 1.3,
+      "h": 0.65,
+      "type": "plane",
+      "z": 0.4,
+      "yaw": 0,
+      "anchor": 1
+    },
+    {
+      "sprite": "windowbox",
+      "x": 17,
+      "y": 12.045,
+      "w": 0.95,
+      "h": 0.475,
+      "type": "plane",
+      "z": 0.3,
+      "yaw": 0,
+      "anchor": 1
+    },
+    {
+      "sprite": "lupine",
+      "x": 9.25,
+      "y": 13.7,
+      "w": 0.48,
+      "h": 0.96,
+      "type": "crossed",
+      "z": 0,
+      "yaw": 20,
+      "anchor": 0.96875
+    },
+    {
+      "sprite": "lupine",
+      "x": 9.55,
+      "y": 14.25,
+      "w": 0.48,
+      "h": 0.96,
+      "type": "crossed",
+      "z": 0,
+      "yaw": 20,
+      "anchor": 0.96875
+    },
+    {
+      "sprite": "lupine",
+      "x": 16.5,
+      "y": 14.15,
+      "w": 0.48,
+      "h": 0.96,
+      "type": "crossed",
+      "z": 0,
+      "yaw": 20,
+      "anchor": 0.96875
+    },
+    {
+      "sprite": "lupine",
+      "x": 17.1,
+      "y": 13.7,
+      "w": 0.48,
+      "h": 0.96,
+      "type": "crossed",
+      "z": 0,
+      "yaw": 20,
+      "anchor": 0.96875
+    },
+    {
+      "sprite": "lupine",
+      "x": 22.5,
+      "y": 14.8,
+      "w": 0.48,
+      "h": 0.96,
+      "type": "crossed",
+      "z": 0,
+      "yaw": 20,
+      "anchor": 0.96875
+    },
+    {
+      "sprite": "lupine",
+      "x": 7.3,
+      "y": 16.2,
+      "w": 0.48,
+      "h": 0.96,
+      "type": "crossed",
+      "z": 0,
+      "yaw": 20,
+      "anchor": 0.96875
+    },
+    {
+      "sprite": "fern",
+      "x": 9.4,
+      "y": 14.6,
+      "w": 0.55,
+      "h": 0.55,
+      "type": "ground",
+      "z": 0.018,
+      "yaw": 0,
+      "anchor": 1
+    },
+    {
+      "sprite": "fern",
+      "x": 10.1,
+      "y": 13.8,
+      "w": 0.55,
+      "h": 0.55,
+      "type": "ground",
+      "z": 0.018,
+      "yaw": 0,
+      "anchor": 1
+    },
+    {
+      "sprite": "fern",
+      "x": 16.9,
+      "y": 14.7,
+      "w": 0.55,
+      "h": 0.55,
+      "type": "ground",
+      "z": 0.018,
+      "yaw": 0,
+      "anchor": 1
+    },
+    {
+      "sprite": "fern",
+      "x": 17.7,
+      "y": 14.2,
+      "w": 0.55,
+      "h": 0.55,
+      "type": "ground",
+      "z": 0.018,
+      "yaw": 0,
+      "anchor": 1
+    },
+    {
+      "sprite": "fern",
+      "x": 23.2,
+      "y": 15.5,
+      "w": 0.55,
+      "h": 0.55,
+      "type": "ground",
+      "z": 0.018,
+      "yaw": 0,
+      "anchor": 1
+    },
+    {
+      "sprite": "fern",
+      "x": 23.5,
+      "y": 19,
+      "w": 0.55,
+      "h": 0.55,
+      "type": "ground",
+      "z": 0.018,
+      "yaw": 0,
+      "anchor": 1
+    },
+    {
+      "sprite": "fern",
+      "x": 7,
+      "y": 16.8,
+      "w": 0.55,
+      "h": 0.55,
+      "type": "ground",
+      "z": 0.018,
+      "yaw": 0,
+      "anchor": 1
+    },
+    {
+      "sprite": "fern",
+      "x": 8,
+      "y": 15.6,
+      "w": 0.55,
+      "h": 0.55,
+      "type": "ground",
+      "z": 0.018,
+      "yaw": 0,
+      "anchor": 1
+    },
+    {
+      "sprite": "flower_orange",
+      "x": 9.7,
+      "y": 14.5,
+      "w": 0.58,
+      "h": 0.58,
+      "type": "ground",
+      "z": 0.018,
+      "yaw": 0,
+      "anchor": 1
+    },
+    {
+      "sprite": "flower_orange",
+      "x": 9.9,
+      "y": 14.8,
+      "w": 0.58,
+      "h": 0.58,
+      "type": "ground",
+      "z": 0.018,
+      "yaw": 0,
+      "anchor": 1
+    },
+    {
+      "sprite": "flower_orange",
+      "x": 10.3,
+      "y": 14.5,
+      "w": 0.58,
+      "h": 0.58,
+      "type": "ground",
+      "z": 0.018,
+      "yaw": 0,
+      "anchor": 1
+    },
+    {
+      "sprite": "flower_orange",
+      "x": 16.3,
+      "y": 14.9,
+      "w": 0.58,
+      "h": 0.58,
+      "type": "ground",
+      "z": 0.018,
+      "yaw": 0,
+      "anchor": 1
+    },
+    {
+      "sprite": "flower_orange",
+      "x": 16.7,
+      "y": 15.1,
+      "w": 0.58,
+      "h": 0.58,
+      "type": "ground",
+      "z": 0.018,
+      "yaw": 0,
+      "anchor": 1
+    },
+    {
+      "sprite": "flower_orange",
+      "x": 7,
+      "y": 17,
+      "w": 0.58,
+      "h": 0.58,
+      "type": "ground",
+      "z": 0.018,
+      "yaw": 0,
+      "anchor": 1
+    },
+    {
+      "sprite": "flower_orange",
+      "x": 7.4,
+      "y": 17.2,
+      "w": 0.58,
+      "h": 0.58,
+      "type": "ground",
+      "z": 0.018,
+      "yaw": 0,
+      "anchor": 1
+    },
+    {
+      "sprite": "flower_white",
+      "x": 11,
+      "y": 14.9,
+      "w": 0.58,
+      "h": 0.58,
+      "type": "ground",
+      "z": 0.018,
+      "yaw": 0,
+      "anchor": 1
+    },
+    {
+      "sprite": "flower_white",
+      "x": 11.3,
+      "y": 15.1,
+      "w": 0.58,
+      "h": 0.58,
+      "type": "ground",
+      "z": 0.018,
+      "yaw": 0,
+      "anchor": 1
+    },
+    {
+      "sprite": "flower_white",
+      "x": 15.2,
+      "y": 14.6,
+      "w": 0.58,
+      "h": 0.58,
+      "type": "ground",
+      "z": 0.018,
+      "yaw": 0,
+      "anchor": 1
+    },
+    {
+      "sprite": "flower_white",
+      "x": 15.5,
+      "y": 14.9,
+      "w": 0.58,
+      "h": 0.58,
+      "type": "ground",
+      "z": 0.018,
+      "yaw": 0,
+      "anchor": 1
+    },
+    {
+      "sprite": "flower_white",
+      "x": 23,
+      "y": 16.4,
+      "w": 0.58,
+      "h": 0.58,
+      "type": "ground",
+      "z": 0.018,
+      "yaw": 0,
+      "anchor": 1
+    },
+    {
+      "sprite": "flower_blue",
+      "x": 17.4,
+      "y": 15,
+      "w": 0.58,
+      "h": 0.58,
+      "type": "ground",
+      "z": 0.018,
+      "yaw": 0,
+      "anchor": 1
+    },
+    {
+      "sprite": "flower_blue",
+      "x": 17.8,
+      "y": 15.2,
+      "w": 0.58,
+      "h": 0.58,
+      "type": "ground",
+      "z": 0.018,
+      "yaw": 0,
+      "anchor": 1
+    },
+    {
+      "sprite": "flower_blue",
+      "x": 18.2,
+      "y": 15,
+      "w": 0.58,
+      "h": 0.58,
+      "type": "ground",
+      "z": 0.018,
+      "yaw": 0,
+      "anchor": 1
+    },
+    {
+      "sprite": "flower_blue",
+      "x": 23.7,
+      "y": 20.5,
+      "w": 0.58,
+      "h": 0.58,
+      "type": "ground",
+      "z": 0.018,
+      "yaw": 0,
+      "anchor": 1
+    },
+    {
+      "sprite": "flower_blue",
+      "x": 23.3,
+      "y": 20.9,
+      "w": 0.58,
+      "h": 0.58,
+      "type": "ground",
+      "z": 0.018,
+      "yaw": 0,
+      "anchor": 1
+    },
+    {
+      "sprite": "fence",
+      "x": 4,
+      "y": 22.1,
+      "w": 2,
+      "h": 1,
+      "type": "plane",
+      "z": 0,
+      "yaw": 0,
+      "anchor": 1
+    },
+    {
+      "sprite": "fence",
+      "x": 6,
+      "y": 22.1,
+      "w": 2,
+      "h": 1,
+      "type": "plane",
+      "z": 0,
+      "yaw": 0,
+      "anchor": 1
+    },
+    {
+      "sprite": "fence",
+      "x": 8,
+      "y": 22.1,
+      "w": 2,
+      "h": 1,
+      "type": "plane",
+      "z": 0,
+      "yaw": 0,
+      "anchor": 1
+    },
+    {
+      "sprite": "fence",
+      "x": 18,
+      "y": 22.1,
+      "w": 2,
+      "h": 1,
+      "type": "plane",
+      "z": 0,
+      "yaw": 0,
+      "anchor": 1
+    },
+    {
+      "sprite": "fence",
+      "x": 20,
+      "y": 22.1,
+      "w": 2,
+      "h": 1,
+      "type": "plane",
+      "z": 0,
+      "yaw": 0,
+      "anchor": 1
+    },
+    {
+      "sprite": "fence",
+      "x": 22,
+      "y": 22.1,
+      "w": 2,
+      "h": 1,
+      "type": "plane",
+      "z": 0,
+      "yaw": 0,
+      "anchor": 1
+    },
+    {
+      "sprite": "fence",
+      "x": 24,
+      "y": 22.1,
+      "w": 2,
+      "h": 1,
+      "type": "plane",
+      "z": 0,
+      "yaw": 0,
+      "anchor": 1
+    },
+    {
+      "sprite": "fence",
+      "x": 26,
+      "y": 22.1,
+      "w": 2,
+      "h": 1,
+      "type": "plane",
+      "z": 0,
+      "yaw": 0,
+      "anchor": 1
+    }
+  ],
+  "outdoorRoute": [
+    {
+      "x": 17.5,
+      "y": 20
+    },
+    {
+      "x": 19.5,
+      "y": 15
+    },
+    {
+      "x": 18.5,
+      "y": 14.5
+    },
+    {
+      "x": 13,
+      "y": 14.5
+    },
+    {
+      "x": 13,
+      "y": 12.9
+    }
+  ],
+  "indoorRoute": [
+    {
+      "x": 12,
+      "y": 16.5
+    },
+    {
+      "x": 12,
+      "y": 14
+    },
+    {
+      "x": 18.5,
+      "y": 14
+    },
+    {
+      "x": 18.5,
+      "y": 16.5
+    },
+    {
+      "x": 16.5,
+      "y": 17.5
+    }
+  ],
+  "interiorViewCenter": {
+    "x": 17,
+    "y": 12.5
+  },
+  "companionDistance": 3.75,
+  "visualRefinement": {
+    "revision": "2P5D-002-v0.2",
+    "facade": "facade_brick",
+    "groundUnderlay": "dirt"
+  }
+}

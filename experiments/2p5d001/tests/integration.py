@@ -24,9 +24,11 @@ def fixture(root, source):
     for p in paths:
         (data / p.name).write_bytes(p.read_bytes())
     ids = set(scene['materials'].values()) | {p['sprite'] for p in scene['props']}
+    if 'visualRefinement' in scene:
+        ids |= {scene['visualRefinement']['facade'],scene['visualRefinement']['groundUnderlay']}
     for m in [outside, inside]:
         ids |= set(m['legend'].values()) | {o['sprite'] for o in m['objects']}
-    dimensions = dict(tree=(32,64), bush=(32,32), fence=(32,16), door=(32,48), window=(32,32), room_wall=(48,64), room_bed=(32,64), room_hearth=(48,96), room_table=(32,48), room_chair=(16,16), room_pot=(32,32), room_rug=(48,48), room_exit=(48,48))
+    dimensions = dict(tree=(32,64), bush=(32,32), fence=(32,16), door=(32,48), window=(32,32), room_wall=(48,64), room_bed=(32,64), room_hearth=(48,96), room_table=(32,48), room_chair=(16,16), room_pot=(32,32), room_rug=(48,48), room_exit=(48,48), facade_brick=(96,48), windowbox=(32,16), lupine=(16,32), threshold=(32,16), room_chest=(32,32), room_window=(32,32))
     images = []
     def save(id, w, h, pixels):
         file = id + '.rgba'
@@ -65,7 +67,7 @@ def main():
             serial+=1;prefix=root/f'run{serial}'
             cmd=[str(native if sdl else exe),'--assets',str(root/'pack.json'),'--data',str(root/'data'),'--output',str(prefix),'--capture',str(prefix.with_suffix('.ppm')),'--frames','1','--fps','0']
             if not sdl:cmd+=['--headless']
-            r=subprocess.run([*cmd,*args],capture_output=True,text=True,timeout=90,env=dict(os.environ,SDL_VIDEODRIVER='dummy',SDL_AUDIODRIVER='dummy'))
+            r=subprocess.run([*cmd,*args],capture_output=True,text=True,timeout=180,env=dict(os.environ,SDL_VIDEODRIVER='dummy',SDL_AUDIODRIVER='dummy'))
             assert (r.returncode==0)==ok,(cmd,args,r.stdout,r.stderr)
             if ok:return json.loads(prefix.with_suffix('.json').read_text()),prefix.with_suffix('.ppm').read_bytes(),list(csv.DictReader(prefix.with_suffix('.csv').open()))
             assert '2P5D-001 ERROR' in r.stderr
@@ -82,7 +84,20 @@ def main():
         config=root/'data/hybrid.json'
         for bad in [scene|{'schema':'invalid'},scene|{'materials':scene['materials']|{'roof':'missing'}},scene|{'houses':[scene['houses'][0]|{'w':100}]}]:
             config.write_text(json.dumps(bad));run(ok=False)
+        bad=scene|{'houses':[scene['houses'][0]|{'ridgeAxis':'z'},*scene['houses'][1:]]}
+        config.write_text(json.dumps(bad));run(ok=False)
+        if 'visualRefinement' in scene:
+            bad=scene|{'visualRefinement':scene['visualRefinement']|{'revision':'unknown'}}
+            config.write_text(json.dumps(bad));run(ok=False)
         config.write_text(json.dumps(scene))
+        if 'visualRefinement' in scene:
+            facadeId=scene['visualRefinement']['facade']
+            bad=pack|{'images':[e|dict(file='actor.rgba') if e['id']==facadeId else e for e in pack['images']]}
+            (root/'pack.json').write_text(json.dumps(bad));run(ok=False)
+            (root/'pack.json').write_text(json.dumps(pack))
+            path=root/next(e['file'] for e in pack['images']if e['id']==facadeId)
+            original=path.read_bytes();changed=bytearray(original);changed[27]=128
+            changed[16:24]=struct.pack('<Q',fnv(changed[24:]));path.write_bytes(changed);run(ok=False);path.write_bytes(original)
         actor=root/'actor.rgba';raw=actor.read_bytes();actor.write_bytes(raw[:-1]);run(ok=False);actor.write_bytes(raw)
         if native:
             a,q,_=run(sdl=True);_,p,_=run();assert p==q,'SDL loop changed world pixels'

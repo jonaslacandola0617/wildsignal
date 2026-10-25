@@ -13,6 +13,11 @@ double num(const ws::Json &j, const char *k, double lo, double hi) {
     throw std::runtime_error(std::string("Invalid scene value: ") + k);
   return n;
 }
+const ws::Json *optional(const ws::Json &j, const char *key) {
+  const auto &object = std::get<ws::Json::Object>(j.value);
+  const auto it = object.find(key);
+  return it == object.end() ? nullptr : &it->second;
+}
 td::Vec point(const ws::Json &j) {
   return {num(j, "x", 0, 64), num(j, "y", 0, 64)};
 }
@@ -41,6 +46,24 @@ Scene Scene::load(const std::filesystem::path &p, const td::Art &a,
   s.wood = mat("wood");
   s.doorArt = mat("door");
   s.window = mat("window");
+  if (const auto *visual = optional(j, "visualRefinement")) {
+    if (visual->at("revision").string() != "2P5D-002-v0.2")
+      throw std::runtime_error("Unknown visual refinement revision");
+    s.facade = a.find(visual->at("facade").string());
+    s.groundUnderlay = a.find(visual->at("groundUnderlay").string());
+    const auto &module = a.images[static_cast<std::size_t>(s.facade)];
+    if (module.w != 96 || module.h != 48)
+      throw std::runtime_error("Facade must be the native 96x48 module");
+    for (std::size_t k = 3; k < module.rgba.size(); k += 4)
+      if (module.rgba[k] != 255)
+        throw std::runtime_error("Opaque facade required");
+    const auto &ground = a.images[static_cast<std::size_t>(s.groundUnderlay)];
+    if (ground.w != 16 || ground.h != 16)
+      throw std::runtime_error("Ground underlay must be native16px");
+    for (std::size_t k = 3; k < ground.rgba.size(); k += 4)
+      if (ground.rgba[k] != 255)
+        throw std::runtime_error("Opaque ground underlay required");
+  }
   for (int id : {s.plaster, s.roof, s.wood}) {
     const auto &im = a.images[static_cast<std::size_t>(id)];
     if (im.w != 16 || im.h != 16)
@@ -58,6 +81,13 @@ Scene Scene::load(const std::filesystem::path &p, const td::Art &a,
             num(e, "w", 2, 10),     num(e, "d", 2, 10),
             num(e, "height", 2, 4), num(e, "rise", .6, 2),
             num(e, "eave", .1, .5), num(e, "thickness", .05, .2)};
+    if (const auto *axis = optional(e, "ridgeAxis")) {
+      if (axis->string() != "x" && axis->string() != "y")
+        throw std::runtime_error("Roof ridge axis must be x or y");
+      h.ridgeAlongX = axis->string() == "x";
+    }
+    if (s.facade >= 0 && (h.w > 6 || h.d > 6 || h.height > 3))
+      throw std::runtime_error("Facade would stretch beyond native6x3 module");
     if (h.x + h.w >= out.w || h.y + h.d >= out.h)
       throw std::runtime_error("House outside map");
     // Every body cell must collide. Overhangs are deliberately not colliders.
@@ -84,9 +114,12 @@ Scene Scene::load(const std::filesystem::path &p, const td::Art &a,
     t.anchor = num(e, "anchor", 0, 1);
     t.yaw = num(e, "yaw", -360, 360) * pi / 180;
     const auto type = e.at("type").string();
-    if (type != "billboard" && type != "plane")
+    if (type != "billboard" && type != "plane" && type != "crossed" &&
+        type != "ground")
       throw std::runtime_error("Invalid prop type");
     t.billboard = type == "billboard";
+    t.crossed = type == "crossed";
+    t.ground = type == "ground";
     s.props.push_back(t);
   }
   const auto route = [&](const char *k, auto &v, const td::Map &m) {
