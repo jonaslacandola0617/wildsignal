@@ -1,0 +1,12 @@
+{
+ "revision":1,
+ "source_repository":"jonaslacandola0617/wildsignal-art",
+ "source_commit":"0b9350e76b175b2f69cf2191a4af79adf84e0f91",
+ "source_path":"WORLDLOOK_001A/exports/grass_kit.json",
+ "art_draft_PR":18,
+ "art_issue":17,
+ "engine_issue":37,
+ "privacy":"Atlas/PNG/SVG/ZIP and all source artwork remain in private art repository; public engine contains no art bytes",
+ "source_access":"Manifest and atlas fetched back from this exact private GitHub commit and compared to authoring exports in the execution workspace",
+ "status":"PROVISIONAL_ART_KIT_OWNER_VISUAL_REVIEW_PENDING"
+}
