@@ -1,0 +1,46 @@
+{
+  "revision": 1,
+  "sun_direction": [
+    -0.25,
+    0.85,
+    0.55
+  ],
+  "sun_color": [
+    1.4,
+    1.12,
+    0.72
+  ],
+  "ambient_sky": [
+    0.46,
+    0.54,
+    0.66
+  ],
+  "ambient_ground": [
+    0.34,
+    0.4,
+    0.45
+  ],
+  "sky_top": [
+    0.36,
+    0.72,
+    0.98
+  ],
+  "sky_horizon": [
+    0.78,
+    0.88,
+    0.84
+  ],
+  "haze_color": [
+    0.62,
+    0.8,
+    0.65
+  ],
+  "exposure": 1.12,
+  "band_softness": 0.08,
+  "contact_strength": 0.38,
+  "haze_start": 24,
+  "haze_end": 95,
+  "haze_strength": 0.45,
+  "outline_strength": 0.6,
+  "foliage_outline_strength": 0.22
+}

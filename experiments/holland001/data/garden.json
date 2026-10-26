@@ -1,0 +1,216 @@
+{
+  "revision": 1,
+  "status": "PROVISIONAL_WORDLINE_ENGINEERING_SCENE_NOT_APPROVED_GAME_ART",
+  "scale_note": "Authored metre geometry scaled explicitly for this test; no production scale contract",
+  "instances": [
+    {
+      "id": "ENGINEERING_GROUND_NOT_PRODUCTION_ART",
+      "model": "TEST_GROUND",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "yaw": 0,
+      "scale": 1
+    },
+    {
+      "id": "wordline-barn",
+      "model": "RURAL_05",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "yaw": 0,
+      "scale": 0.38
+    },
+    {
+      "id": "tree-left",
+      "model": "TREE_01",
+      "position": [
+        -5.5,
+        0,
+        -1.7
+      ],
+      "yaw": 15,
+      "scale": 0.38
+    },
+    {
+      "id": "tree-right",
+      "model": "TREE_06",
+      "position": [
+        5.8,
+        0,
+        -2.8
+      ],
+      "yaw": -20,
+      "scale": 0.43
+    },
+    {
+      "id": "flowers-left",
+      "model": "PLANT_03",
+      "position": [
+        -3.4,
+        0,
+        3.3
+      ],
+      "yaw": 10,
+      "scale": 0.6
+    },
+    {
+      "id": "flowers-right",
+      "model": "PLANT_03",
+      "position": [
+        4.3,
+        0,
+        1.8
+      ],
+      "yaw": 80,
+      "scale": 0.55
+    },
+    {
+      "id": "fern-left",
+      "model": "PLANT_05",
+      "position": [
+        -4.5,
+        0,
+        1.1
+      ],
+      "yaw": 30,
+      "scale": 0.4
+    },
+    {
+      "id": "fern-right",
+      "model": "PLANT_05",
+      "position": [
+        4.5,
+        0,
+        3.6
+      ],
+      "yaw": -40,
+      "scale": 0.38
+    },
+    {
+      "id": "rock",
+      "model": "TERRAIN_01",
+      "position": [
+        3.5,
+        0,
+        4.4
+      ],
+      "yaw": 20,
+      "scale": 0.65
+    },
+    {
+      "id": "grass-0",
+      "model": "PLANT_01",
+      "position": [
+        -4.1,
+        0,
+        4.2
+      ],
+      "yaw": 0,
+      "scale": 1.1
+    },
+    {
+      "id": "grass-1",
+      "model": "PLANT_01",
+      "position": [
+        -3.4,
+        0,
+        4.4
+      ],
+      "yaw": 37,
+      "scale": 0.9
+    },
+    {
+      "id": "grass-2",
+      "model": "PLANT_01",
+      "position": [
+        -4.8,
+        0,
+        3.2
+      ],
+      "yaw": 74,
+      "scale": 1.1
+    },
+    {
+      "id": "grass-3",
+      "model": "PLANT_01",
+      "position": [
+        -2.8,
+        0,
+        4.9
+      ],
+      "yaw": 111,
+      "scale": 0.9
+    },
+    {
+      "id": "grass-4",
+      "model": "PLANT_01",
+      "position": [
+        3.2,
+        0,
+        5.2
+      ],
+      "yaw": 148,
+      "scale": 1.1
+    },
+    {
+      "id": "grass-5",
+      "model": "PLANT_01",
+      "position": [
+        4.3,
+        0,
+        4.7
+      ],
+      "yaw": 185,
+      "scale": 0.9
+    },
+    {
+      "id": "grass-6",
+      "model": "PLANT_01",
+      "position": [
+        5.1,
+        0,
+        3.2
+      ],
+      "yaw": 222,
+      "scale": 1.1
+    },
+    {
+      "id": "grass-7",
+      "model": "PLANT_01",
+      "position": [
+        3.1,
+        0,
+        2.5
+      ],
+      "yaw": 259,
+      "scale": 0.9
+    },
+    {
+      "id": "grass-8",
+      "model": "PLANT_01",
+      "position": [
+        -5.5,
+        0,
+        2.3
+      ],
+      "yaw": 296,
+      "scale": 1.1
+    },
+    {
+      "id": "grass-9",
+      "model": "PLANT_01",
+      "position": [
+        1.6,
+        0,
+        5.7
+      ],
+      "yaw": 333,
+      "scale": 0.9
+    }
+  ]
+}
