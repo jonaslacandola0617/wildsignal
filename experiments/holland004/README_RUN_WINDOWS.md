@@ -1,10 +1,10 @@
 # Windows x64 owner pacing review
 
-Extract the entire **private** package to a writable folder. Do not run inside ZIP preview. The supplied executable uses static SDL/C++ runtime and requires a working OpenGL3.3 driver. Do not bypass an antivirus alert without inspecting the package provenance/checksums. No administrator privilege or installation is required by the application. Windows11 Intel UHD execution of this new build is **NOT RUN** until the owner tests it.
+Extract the entire **private** package to a writable folder. Do not run inside ZIP preview. The supplied executable uses static SDL/C++ runtime and requires a working OpenGL 3.3 driver. Do not bypass an antivirus alert without inspecting the package provenance/checksums. No administrator privilege or installation is required by the application. Windows 11 Intel UHD execution of this new build is **NOT RUN** until the owner tests it.
 
-1. Run `GARDEN_480_CAP30_LEGACY.cmd` and `GARDEN_480_CAP30_PRECISE.cmd`, then the640/cap60 pair. Compare the same moving camera manually with the arrow/WASD controls. P toggles pacing, N cap, V vsync; mixed controls invalidate a benchmark run.
+1. Run `GARDEN_480_CAP30_LEGACY.cmd` and `GARDEN_480_CAP30_PRECISE.cmd`, then the 640/cap60 pair. Compare the same moving camera manually with the arrow/WASD controls. P toggles pacing, N cap, V vsync; mixed controls invalidate a benchmark run.
 2. Run the equivalent `SIMPLE_...` pairs. This loads the owner's exact five-object diagnostic scene (two blocks, two spheres, plane), without replacing any garden assets or implementing HOLLAND-005.
-3. Close other optional applications, retain the same power/display settings and run `HARDWARE_PACING_SUITE.cmd`. Eight paced runs plus four uncapped controls take approximately2minutes when the cap is met. Each run uses600 frames/120 warmup, same deterministic strafe route,2xdrawable, exact look/effects. Nothing is recorded during measurements.
+3. Close other optional applications, retain the same power/display settings and run `HARDWARE_PACING_SUITE.cmd`. Eight paced runs plus four uncapped controls take approximately 2minutes when the cap is met. Each run uses 600 frames/120 warmup, same deterministic strafe route,2x drawable, exact look/effects. Nothing is recorded during measurements.
 4. Return the newly created `runs/pacing-TIMESTAMP` folder privately. `RESULTS.csv/json`, frame CSVs, process CPU, peak working set, driver/OS and model/fixture SHA256 inventory are included. Missing fixtures explicitly SKIP; execution errors stop the suite, never switch to software rendering.
 
 Optional controlled comparisons (run from a terminal in this folder):
@@ -15,13 +15,13 @@ HARDWARE_PACING_SUITE.cmd -WaitBackend sdl
 HARDWARE_PACING_SUITE.cmd -FineTailUs 0
 HARDWARE_PACING_SUITE.cmd -TimerResolution 0
 ```
-These options apply identically to legacy and precise. The default inherited SDL policy requests1ms timer resolution;0 disables that request for the experiment. Repeats reverse pacing order on odd repeats. Optional vsync stays clearly labeled. Uncapped is a throughput control, not displayed FPS.
+These options apply identically to legacy and precise. The default inherited SDL policy requests 1ms timer resolution;0 disables that request for the experiment. Repeats reverse pacing order on odd repeats. Optional vsync stays clearly labeled. Uncapped is a throughput control, not displayed FPS.
 
-The original strict loop AND API-return interval P95 gates are <33.34ms at30 and <16.67ms at60. A PASS is API pacing only; no scanout is measured. The original owner's legacy build failed these gates. Never infer new success from CI, short timer-only tests or Mesa software rendering.
+The original strict loop AND API-return interval P95 gates are <33.34ms at 30 and <16.67ms at 60. A PASS is API pacing only; no scanout is measured. The original owner's legacy build failed these gates. Never infer new success from CI, short timer-only tests or Mesa software rendering.
 
-## Rebuild with Visual Studio2022 Build Tools
+## Rebuild with Visual Studio 2022 Build Tools
 
-Install Desktop development with C++, CMake3.24+, Git and a WindowsSDK. In x64 Native Tools prompt, from the repository at the review source commit:
+Install Desktop development with C++, CMake 3.24+, Git and a Windows SDK. In x64 Native Tools prompt, from the repository at the review source commit:
 ```
 cmake -S experiments/holland004 -B build/h4 -G "Visual Studio 17 2022" -A x64 -T v143
 cmake --build build/h4 --config Release --parallel 2

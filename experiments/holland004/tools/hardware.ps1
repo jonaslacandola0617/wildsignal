@@ -7,12 +7,12 @@ param(
  [string]$SimpleRoot=''
 )
 $ErrorActionPreference='Stop'
-if($Frames-lt($Warmup+480)-or $Warmup-lt0-or $Repeats-lt1-or $Repeats-gt4){throw 'Need >=480 measured samples, warmup>=0, repeats1..4.'}
+if($Frames -lt ($Warmup+480) -or  $Warmup -lt 0 -or  $Repeats -lt 1 -or  $Repeats -gt 4){throw 'Need >=480 measured samples, warmup>=0, repeats1..4.'}
 $root=Split-Path -Parent $PSScriptRoot
 $exe=Join-Path $root 'wildsignal_holland004.exe'
-if(-not(Test-Path -LiteralPath $exe)){throw "Missing $exe"}
-if(-not $SimpleRoot){$SimpleRoot=Join-Path $root 'fixtures/simple'}
-$dest=Join-Path $root ('runs/pacing-'+(Get-Date -Format 'yyyyMMdd-HHmmss'))
+if( -not (Test-Path -LiteralPath $exe)){throw "Missing $exe"}
+if( -not  $SimpleRoot){$SimpleRoot=Join-Path $root 'fixtures/simple'}
+$dest=Join-Path $root ('runs/pacing-'+(Get-Date -Format 'yyyyMMdd-HHmmss')+'-'+[guid]::NewGuid().ToString('N').Substring(0,8))
 New-Item -ItemType Directory -Path $dest | Out-Null
 $system=[ordered]@{utc=(Get-Date).ToUniversalTime().ToString('o');scope='API frame pacing; no scanout or thermals measurement';requested_timer_resolution=$TimerResolution;fine_tail_us=$FineTailUs;wait_backend=$WaitBackend}
 try{
@@ -34,28 +34,28 @@ $fixtures=@(
 )
 $fixtureRecords=[Collections.Generic.List[object]]::new()
 foreach($f in $fixtures){
- $f.Available=(Test-Path -LiteralPath $f.Pack)-and(Test-Path -LiteralPath $f.Scene)
- if(-not $f.Available){
+ $f.Available=(Test-Path -LiteralPath $f.Pack) -and (Test-Path -LiteralPath $f.Scene)
+ if( -not  $f.Available){
   Write-Warning "SKIPPED_MISSING_FIXTURE: $($f.Name); no substitution."
   $results.Add([pscustomobject]@{case=$f.Name;status='SKIPPED_MISSING_FIXTURE';pack=$f.Pack;scene=$f.Scene});Save-Results;continue
  }
  $scene=Get-Content -LiteralPath $f.Scene -Raw|ConvertFrom-Json
- if(($f.Name-eq'garden'-and $scene.instances.Count-ne19)-or($f.Name-eq'simple'-and $scene.instances.Count-ne5)){throw "Unexpected $($f.Name) fixture; refusing silent replacement."}
+ if(($f.Name -eq 'garden' -and  $scene.instances.Count -ne 19) -or ($f.Name -eq 'simple' -and  $scene.instances.Count -ne 5)){throw "Unexpected $($f.Name) fixture; refusing silent replacement."}
  $pack=Get-Content -LiteralPath $f.Pack -Raw|ConvertFrom-Json
  $packRoot=Split-Path -Parent $f.Pack
  $hashes=@(Get-FileHash -LiteralPath $f.Pack,$f.Scene -Algorithm SHA256)
  foreach($model in $pack.models){
   $path=Join-Path $packRoot $model.path
-  if(-not(Test-Path -LiteralPath $path)){throw "Missing model in $($f.Name): $path"}
+  if( -not (Test-Path -LiteralPath $path)){throw "Missing model in $($f.Name): $path"}
   $hashes+=Get-FileHash -LiteralPath $path -Algorithm SHA256
  }
- if($f.Name-eq'simple'){
+ if($f.Name -eq 'simple'){
   $manifest=Join-Path $SimpleRoot 'MANIFEST.json'
-  if(-not(Test-Path -LiteralPath $manifest)){throw 'Missing original simple-fixture MANIFEST.json'}
+  if( -not (Test-Path -LiteralPath $manifest)){throw 'Missing original simple-fixture MANIFEST.json'}
   $m=Get-Content -LiteralPath $manifest -Raw|ConvertFrom-Json
   foreach($entry in $m.assets.PSObject.Properties){
    $model=Join-Path $packRoot $entry.Name
-   if((Get-FileHash -LiteralPath $model -Algorithm SHA256).Hash-ne$entry.Value.sha256){throw "Supplied primitive hash mismatch: $model"}
+   if((Get-FileHash -LiteralPath $model -Algorithm SHA256).Hash -ne $entry.Value.sha256){throw "Supplied primitive hash mismatch: $model"}
   }
  }
  $fixtureRecords.Add([pscustomobject]@{fixture=$f.Name;origin=$f.Origin;instances=$scene.instances.Count;hashes=$hashes})
@@ -74,17 +74,17 @@ function Invoke-Run($fixture,[int]$width,[int]$cap,[string]$pacer,[bool]$vsync,[
  $quoted=@($cmd|ForEach-Object{'"'+$_+'"'})-join' '
  Write-Host "Running $name; visible actual GL, no recording."
  $proc=Start-Process -FilePath $exe -ArgumentList $quoted -WorkingDirectory $root -NoNewWindow -Wait -PassThru -RedirectStandardOutput (Join-Path $dest ($name+'-stdout.txt')) -RedirectStandardError (Join-Path $dest ($name+'-stderr.txt'))
- if($proc.ExitCode-ne0){throw "Run failed: $name ($($proc.ExitCode)). Inspect stderr. No software fallback allowed."}
+ if($proc.ExitCode -ne 0){throw "Run failed: $name ($($proc.ExitCode)). Inspect stderr. No software fallback allowed."}
  $s=Get-Content -LiteralPath (Join-Path $out 'summary.json') -Raw|ConvertFrom-Json
  $p=Get-Content -LiteralPath (Join-Path $out 'pacing.json') -Raw|ConvertFrom-Json
- $rows=@(Import-Csv -LiteralPath (Join-Path $out 'frames.csv')|Where-Object{[int]$_.frame-ge$Warmup})
- $target=if($width-eq480){33.34}else{16.67}
- $observed=$s.hardware_gpu_tested-and($s.vendor-match'Intel')-and($s.renderer-match'UHD')-and($s.os_build-match'^Windows')
- $valid=$observed-and($rows.Count-ge480)-and(-not $s.capture_enabled)-and(-not $p.mixed_controls)-and($s.fixture_id-eq$fixture.Name)
+ $rows=@(Import-Csv -LiteralPath (Join-Path $out 'frames.csv')|Where-Object{[int]$_.frame -ge $Warmup})
+ $target=if($width -eq 480){33.34}else{16.67}
+ $observed=$s.hardware_gpu_tested -and ($s.vendor -match 'Intel') -and ($s.renderer -match 'UHD') -and ($s.os_build -match '^Windows')
+ $valid=$observed -and ($rows.Count -ge 480) -and ( -not  $s.capture_enabled) -and ( -not  $p.mixed_controls) -and ($s.fixture_id -eq $fixture.Name)
  $gate='NOT_APPLICABLE_UNCAPPED'
- if($cap-gt0){
-  if(-not $valid){$gate='NOT_VERIFIED_INTEL_UHD'}
-  elseif($s.loop_p95_ms-lt$target-and$s.swap_completion_interval_p95_ms-lt$target){$gate='PASS_API_PACING_NOT_SCANOUT'}
+ if($cap -gt 0){
+  if( -not  $valid){$gate='NOT_VERIFIED_INTEL_UHD'}
+  elseif($s.loop_p95_ms -lt $target -and $s.swap_completion_interval_p95_ms -lt $target){$gate='PASS_API_PACING_NOT_SCANOUT'}
   else{$gate='FAIL_API_FRAME_PACING'}
  }
  $r=[pscustomobject][ordered]@{
@@ -107,17 +107,17 @@ function Invoke-Run($fixture,[int]$width,[int]$cap,[string]$pacer,[bool]$vsync,[
  ConvertTo-Json -InputObject @($cmd) -Depth 3|Set-Content -LiteralPath (Join-Path $out 'COMMAND.json') -Encoding UTF8
 }
 foreach($fixture in $fixtures){
- if(-not$fixture.Available){continue}
+ if( -not $fixture.Available){continue}
  foreach($width in @(480,640)){
-  $cap=if($width-eq480){30}else{60}
+  $cap=if($width -eq 480){30}else{60}
   $swaps=@($false);if($IncludeVsync){$swaps+= $true}
   foreach($swap in $swaps){
-   for($repeat=0;$repeat-lt$Repeats;$repeat++){
+   for($repeat=0;$repeat -lt $Repeats;$repeat++){
     $order=@('legacy','precise');if($repeat%2){[array]::Reverse($order)}
     foreach($pacer in $order){Invoke-Run $fixture $width $cap $pacer $swap $repeat}
    }
   }
-  if(-not$SkipUncapped){Invoke-Run $fixture $width 0 'precise' $false 0}
+  if( -not $SkipUncapped){Invoke-Run $fixture $width 0 'precise' $false 0}
  }
 }
 Write-Host "Done: $dest"
