@@ -1,0 +1,88 @@
+name: HOLLAND-004 isolated code and synthetic GL validation
+on:
+  push:
+    branches: [feat/holland-004-precise-frame-pacing]
+  pull_request:
+    branches: [feat/holland-003-edge-shadow-sunlight]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows-x64:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - run: cmake -S experiments/holland004 -B build/holland -G "Visual Studio 17 2022" -A x64 -T v143
+      - run: cmake --build build/holland --config Release --parallel 2
+      - run: ctest --test-dir build/holland -C Release --output-on-failure
+      - run: ./build/holland/Release/wildsignal_holland004.exe --help
+      - name: Parse hardware launcher without claiming a hardware run
+        shell: pwsh
+        run: |
+          $tokens = $null; $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path experiments/holland004/tools/hardware.ps1), [ref]$tokens, [ref]$errors) | Out-Null
+          if ($errors.Count) { $errors | Format-List; throw 'PowerShell parser failed' }
+      - name: Mock launcher orchestration (not a GPU or hardware test)
+        shell: pwsh
+        run: ./experiments/holland004/tests/hardware_launcher.ps1
+      - name: Windows VM timer diagnostics (no GPU or scanout acceptance)
+        shell: pwsh
+        run: |
+          foreach ($cap in @(30,60)) {
+            foreach ($mode in @('legacy','precise')) {
+              ./build/holland/Release/holland004_timer_probe.exe --pacing $mode --cap $cap --frames 180 --warmup 30 --output "timer/$cap-$mode-native"
+              if ($LASTEXITCODE) { throw 'Timer probe failed' }
+            }
+            ./build/holland/Release/holland004_timer_probe.exe --pacing precise --wait-backend sdl --cap $cap --frames 180 --warmup 30 --output "timer/$cap-precise-sdl"
+            if ($LASTEXITCODE) { throw 'SDL timer probe failed' }
+          }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: holland004-windows-vm-timer-only
+          path: timer
+          retention-days: 14
+      - run: cmake --install build/holland --config Release --prefix out/holland004-windows-x64
+      - name: Code-only artifact checksums (no private model/capture bytes)
+        shell: pwsh
+        run: |
+          $root = (Resolve-Path out/holland004-windows-x64).Path
+          $sums = @(Get-ChildItem $root -Recurse -File | ForEach-Object {
+            "$((Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant())  $([IO.Path]::GetRelativePath($root, $_.FullName))"
+          })
+          [IO.File]::WriteAllLines((Join-Path $root SHA256SUMS.txt), $sums)
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: holland004-windows-x64-code-only
+          path: out/holland004-windows-x64
+          retention-days: 14
+  linux-sanitizers:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - run: cmake -S experiments/holland004 -B build/asan -DCMAKE_BUILD_TYPE=Debug -DPIXEL3D_BUILD_GL=OFF -DPIXEL3D_SANITIZE=ON
+      - run: cmake --build build/asan --parallel 2
+      - run: ctest --test-dir build/asan --output-on-failure
+      - name: Preserve previous code regressions
+        run: |
+          cmake -S experiments/pixel3d004 -B build/p4 -DCMAKE_BUILD_TYPE=Release -DPIXEL3D_BUILD_GL=OFF
+          cmake --build build/p4 --parallel 2
+          ctest --test-dir build/p4 --output-on-failure
+          cmake -S experiments/2p5d001 -B build/hybrid -DCMAKE_BUILD_TYPE=Release -DHYBRID_BUILD_SDL=OFF
+          cmake --build build/hybrid --parallel 2
+          ctest --test-dir build/hybrid --output-on-failure
+          cmake -S . -B build/original -DCMAKE_BUILD_TYPE=Release -DENGINE001_BUILD_SDL=OFF
+          cmake --build build/original --parallel 2
+          ctest --test-dir build/original --output-on-failure
+  linux-mesa-software:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - run: sudo apt-get update && sudo apt-get install -y libegl-dev libgl-dev libegl-mesa0 libgl1-mesa-dri
+      - run: python -m pip install Pillow numpy
+      - run: cmake -S experiments/holland004 -B build/gl -DCMAKE_BUILD_TYPE=Release -DPIXEL3D_TEST_GL=ON -DSDL_UNIX_CONSOLE_BUILD=ON -DSDL_X11=OFF -DSDL_WAYLAND=OFF
+      - run: cmake --build build/gl --parallel 2
+      - name: Actual synthetic GL checks (software only, not Intel UHD)
+        env:
+          SDL_VIDEODRIVER: offscreen
+          LIBGL_ALWAYS_SOFTWARE: '1'
+        run: ctest --test-dir build/gl --output-on-failure
