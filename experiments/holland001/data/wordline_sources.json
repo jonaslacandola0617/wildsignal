@@ -1,0 +1,167 @@
+{
+  "repository": "jonaslacandola0617/wordline-animation",
+  "commit": "e7e803fe1faeea07b1332790cc16b8994bd3b8b7",
+  "files": [
+    {
+      "path": "assets/claude generated assets/WORLDLINE_ASSET_PACK_03A_80/ASSET_CATALOG.json",
+      "relative": "WORLDLINE_ASSET_PACK_03A_80/ASSET_CATALOG.json",
+      "git_blob_sha": "8844e2a27a8778ebf0c33e980b2cd7036024bca4",
+      "size": 27921,
+      "sha256": "c2bab77811533b5bc650a5bfac2135780fe9b356db24e3955f41544cc19b552d"
+    },
+    {
+      "path": "assets/claude generated assets/WORLDLINE_ASSET_PACK_03A_80/README.md",
+      "relative": "WORLDLINE_ASSET_PACK_03A_80/README.md",
+      "git_blob_sha": "d907d8c14d19ec949d3fa3242256faf7b1a7518b",
+      "size": 5869,
+      "sha256": "a06e8d1cb311314d748fcf7a68c805a6e580586f26045e18b56d785972c8fed4"
+    },
+    {
+      "path": "assets/claude generated assets/WORLDLINE_ASSET_PACK_03A_80/metadata/PLANT_01.json",
+      "relative": "WORLDLINE_ASSET_PACK_03A_80/metadata/PLANT_01.json",
+      "git_blob_sha": "1d4cf7c2beb708106664af5101458034011f0c78",
+      "size": 577,
+      "sha256": "df45e8c1864159df0d00611fe06a1e47719bd7e6fe2c56b63bdeffe446a870b9"
+    },
+    {
+      "path": "assets/claude generated assets/WORLDLINE_ASSET_PACK_03A_80/metadata/PLANT_03.json",
+      "relative": "WORLDLINE_ASSET_PACK_03A_80/metadata/PLANT_03.json",
+      "git_blob_sha": "86c47aee6ce1517338f610af61c5c472cb324ca8",
+      "size": 676,
+      "sha256": "0b2399b0aa6bfb7d096117b7b3ee78c6dc765970c3a0294e1c71c4b2e6980579"
+    },
+    {
+      "path": "assets/claude generated assets/WORLDLINE_ASSET_PACK_03A_80/metadata/PLANT_05.json",
+      "relative": "WORLDLINE_ASSET_PACK_03A_80/metadata/PLANT_05.json",
+      "git_blob_sha": "0407082c4b760fcdde56aeb1df53e5225e8192c9",
+      "size": 574,
+      "sha256": "6d141e4c60979df503f5accf67783a69c5097ea7a273c3d5a3950ab91072e310"
+    },
+    {
+      "path": "assets/claude generated assets/WORLDLINE_ASSET_PACK_03A_80/metadata/RURAL_05.json",
+      "relative": "WORLDLINE_ASSET_PACK_03A_80/metadata/RURAL_05.json",
+      "git_blob_sha": "3c0a30135b2f4bc1820b8e533922a2e7a02072a7",
+      "size": 906,
+      "sha256": "bcfcc1f6bc40b268706a8dd150ab67117ed23d0efbd4eedbdeee68d29da45c17"
+    },
+    {
+      "path": "assets/claude generated assets/WORLDLINE_ASSET_PACK_03A_80/metadata/TERRAIN_01.json",
+      "relative": "WORLDLINE_ASSET_PACK_03A_80/metadata/TERRAIN_01.json",
+      "git_blob_sha": "5045383938bf7706c43800f5aee294e2dfd3e599",
+      "size": 564,
+      "sha256": "e78d967b8e6bb6a9f2478bb83912ee9780926959df976e8e5295e14308352dc5"
+    },
+    {
+      "path": "assets/claude generated assets/WORLDLINE_ASSET_PACK_03A_80/plants/PLANT_01.mtl",
+      "relative": "WORLDLINE_ASSET_PACK_03A_80/plants/PLANT_01.mtl",
+      "git_blob_sha": "2b71d3d0453ea10bf80eda2bc8e50d73bbedd779",
+      "size": 400,
+      "sha256": "b6ae308ded0792697800d6f58d62754f0f09454fff7755b4fd00432bac797e3c"
+    },
+    {
+      "path": "assets/claude generated assets/WORLDLINE_ASSET_PACK_03A_80/plants/PLANT_01.obj",
+      "relative": "WORLDLINE_ASSET_PACK_03A_80/plants/PLANT_01.obj",
+      "git_blob_sha": "3e505dd2f2f3d3c0a18e9f118910e8a4f30e7f96",
+      "size": 52464,
+      "sha256": "bd0fda0a82bf57dbdda89960d6ff0b26c220ba50b19b83c9682fcface2780d53"
+    },
+    {
+      "path": "assets/claude generated assets/WORLDLINE_ASSET_PACK_03A_80/plants/PLANT_03.mtl",
+      "relative": "WORLDLINE_ASSET_PACK_03A_80/plants/PLANT_03.mtl",
+      "git_blob_sha": "776cc74587daa19059a96d69b84fca455233f264",
+      "size": 790,
+      "sha256": "b9c00fd88efc132d422c7cfe943d206fe21ac9cad49c8ca614acab13a4283f48"
+    },
+    {
+      "path": "assets/claude generated assets/WORLDLINE_ASSET_PACK_03A_80/plants/PLANT_03.obj",
+      "relative": "WORLDLINE_ASSET_PACK_03A_80/plants/PLANT_03.obj",
+      "git_blob_sha": "42176aebe6aeb275c474139df225a30a9f0077de",
+      "size": 249090,
+      "sha256": "d096704171218070b08c1709856e920fef31d118b8c8b7e1ec7c25cb4be30529"
+    },
+    {
+      "path": "assets/claude generated assets/WORLDLINE_ASSET_PACK_03A_80/plants/PLANT_05.mtl",
+      "relative": "WORLDLINE_ASSET_PACK_03A_80/plants/PLANT_05.mtl",
+      "git_blob_sha": "1dac0e9b4ff3f1d91d6f2564ea63cd6b9d972b39",
+      "size": 400,
+      "sha256": "ee2c81ebfc0b9a4bebd9ff2e54afed7a0564501b9a5dc10840dedb1e8c2c4ecb"
+    },
+    {
+      "path": "assets/claude generated assets/WORLDLINE_ASSET_PACK_03A_80/plants/PLANT_05.obj",
+      "relative": "WORLDLINE_ASSET_PACK_03A_80/plants/PLANT_05.obj",
+      "git_blob_sha": "6890b18b93a44e8cc826be991055577cbc9317fc",
+      "size": 293303,
+      "sha256": "66dcbdfe541106f134a2c1fd4b1dd759555169de3a82eb1472eccad342dd4e64"
+    },
+    {
+      "path": "assets/claude generated assets/WORLDLINE_ASSET_PACK_03A_80/rural_landmarks/RURAL_05.mtl",
+      "relative": "WORLDLINE_ASSET_PACK_03A_80/rural_landmarks/RURAL_05.mtl",
+      "git_blob_sha": "7b1f532a71173186d3f2c8249ccbe0c410a6cc38",
+      "size": 703,
+      "sha256": "df9bd2abb2211ae0f2fa5a4c47eeb8af03d85af816210a06e6dbc67319a1e800"
+    },
+    {
+      "path": "assets/claude generated assets/WORLDLINE_ASSET_PACK_03A_80/rural_landmarks/RURAL_05.obj",
+      "relative": "WORLDLINE_ASSET_PACK_03A_80/rural_landmarks/RURAL_05.obj",
+      "git_blob_sha": "38c2e1eee73228b1fc10a82941b9f72d957d929f",
+      "size": 55364,
+      "sha256": "82f20f7eb4b96dc60d4aea1d0d3794131ec6cd653359f3bd1f86fc46a9ed7124"
+    },
+    {
+      "path": "assets/claude generated assets/WORLDLINE_ASSET_PACK_03A_80/terrain/TERRAIN_01.mtl",
+      "relative": "WORLDLINE_ASSET_PACK_03A_80/terrain/TERRAIN_01.mtl",
+      "git_blob_sha": "b9ca13f17ae0f5670e3074ddbdac32c0e1984749",
+      "size": 303,
+      "sha256": "04e2c19fda1cc935f466a23ca3b0a12c22ffeea7bde50b1a0b4d9e3e73c4d451"
+    },
+    {
+      "path": "assets/claude generated assets/WORLDLINE_ASSET_PACK_03A_80/terrain/TERRAIN_01.obj",
+      "relative": "WORLDLINE_ASSET_PACK_03A_80/terrain/TERRAIN_01.obj",
+      "git_blob_sha": "c9f5d7b8ce10ad926d3bcf2cc43d023c581ef4c1",
+      "size": 28598,
+      "sha256": "17215ec60f631ff5ecb5d1f57cb0647f7c0cfa937e80542b7d8c2d767acda3da"
+    },
+    {
+      "path": "assets/claude generated assets/WORLDLINE_LAB_ASSET_PACK_46/README.md",
+      "relative": "WORLDLINE_LAB_ASSET_PACK_46/README.md",
+      "git_blob_sha": "2c6677021adeb7d0509986d5803337772071b3b7",
+      "size": 3975,
+      "sha256": "7e72433e02248f0062dedfbb5990621821bfee3645c858e356e962e2f7b47c3b"
+    },
+    {
+      "path": "assets/claude generated assets/WORLDLINE_LAB_ASSET_PACK_46/manifest.json",
+      "relative": "WORLDLINE_LAB_ASSET_PACK_46/manifest.json",
+      "git_blob_sha": "0d35987fee8cf7dab895429fe1daed6352367484",
+      "size": 53139,
+      "sha256": "737437ba525ab785be9a05b28619f80988f06e14dc3a99699202d645afd40b9f"
+    },
+    {
+      "path": "assets/claude generated assets/WORLDLINE_LAB_ASSET_PACK_46/models/trees/TREE_01.mtl",
+      "relative": "WORLDLINE_LAB_ASSET_PACK_46/models/trees/TREE_01.mtl",
+      "git_blob_sha": "2858bad18ad255fdc3fa7ba5b0b8fa1b88aef178",
+      "size": 415,
+      "sha256": "d92c938bbaa5b937ba97bf2f766b834ee97e1ea0f6984c452bbce9e36e087b72"
+    },
+    {
+      "path": "assets/claude generated assets/WORLDLINE_LAB_ASSET_PACK_46/models/trees/TREE_01.obj",
+      "relative": "WORLDLINE_LAB_ASSET_PACK_46/models/trees/TREE_01.obj",
+      "git_blob_sha": "7e6c297b6b6fe8c665b80f001cef95ff162abbce",
+      "size": 89239,
+      "sha256": "9e7668d25cdf8a0b2ceea387c7c3f22e205c5f8a092ac1d490a319cafb160065"
+    },
+    {
+      "path": "assets/claude generated assets/WORLDLINE_LAB_ASSET_PACK_46/models/trees/TREE_06.mtl",
+      "relative": "WORLDLINE_LAB_ASSET_PACK_46/models/trees/TREE_06.mtl",
+      "git_blob_sha": "2d289c7903cf6b74ca45c1d869fb504654ec7dfe",
+      "size": 414,
+      "sha256": "03caaf8872dc2f655c5a12f90a58f5b0aad0cd0d1706e2faff1a45cdcc9b734e"
+    },
+    {
+      "path": "assets/claude generated assets/WORLDLINE_LAB_ASSET_PACK_46/models/trees/TREE_06.obj",
+      "relative": "WORLDLINE_LAB_ASSET_PACK_46/models/trees/TREE_06.obj",
+      "git_blob_sha": "65832dd6ed239071d7611bc76e7128a5df1e8b7e",
+      "size": 152843,
+      "sha256": "c4c81a3946a3e776f2ab25b762347e11d92509afea12d9ba013ad91142226d0c"
+    }
+  ]
+}
