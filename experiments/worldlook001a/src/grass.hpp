@@ -29,7 +29,7 @@ struct GrassOptions {
  void validate()const;
 };
 struct GrassVisibility {
- std::size_t total=0,visible=0,distanceCulled=0,frustumCulled=0,chunksVisible=0,chunksCulled=0,near=0,mid=0;
+ std::size_t total=0,visible=0,distanceCulled=0,frustumCulled=0,chunksVisible=0,chunksCulled=0,nearCount=0,midCount=0;
  std::array<std::size_t,12> byAsset{};
 };
 struct GrassGpuInstance { // explicit tightly packed per-instance input, no mat4 per clump

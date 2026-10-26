@@ -79,7 +79,7 @@ GrassVisibility Meadow::select(const Camera&camera,const Frustum&f){
    if(options.cull&&!f.visible(i.bounds)){out.frustumCulled++;continue;}
    const auto&a=kit.assets[i.asset];float second=1-grassSmooth(options.nearStart,options.nearEnd,dist),fade=1-grassSmooth(options.farStart,options.farEnd,dist);
    GrassGpuInstance g{i.root.x,i.root.y,i.root.z,a.width*i.scale,a.height*i.scale,i.angle,i.tint,a.rect[0],a.rect[1],a.rect[2],a.rect[3],second,fade};
-   if(second>0){nearBatch.push_back(g);out.near++;}else{midBatch.push_back(g);out.mid++;}out.visible++;out.byAsset[i.asset]++;
+   if(second>0){nearBatch.push_back(g);out.nearCount++;}else{midBatch.push_back(g);out.midCount++;}out.visible++;out.byAsset[i.asset]++;
   }
  }
  return out;
