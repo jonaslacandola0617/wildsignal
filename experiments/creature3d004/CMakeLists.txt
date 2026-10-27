@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 3.24)
 project(WILDSIGNAL_PETALYN_REVIEW LANGUAGES C CXX)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 # Isolated opt-in executable; no private asset bytes or automatic fixture download.
 include(CTest)
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
