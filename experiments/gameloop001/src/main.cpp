@@ -268,8 +268,22 @@ int main(int argc, char **argv) {
         throw std::runtime_error("invalid solid");
     if (game.solids.size() > 16)
       throw std::runtime_error("solid budget");
-    if (!o.house)
-      game.solids.erase(game.solids.begin());
+    auto grassSolids = game.solids;
+    if (!o.house) {
+      std::vector<std::size_t> indices;
+      for (auto &v : cfg.at("house_solids").array()) {
+        double index = v.number();
+        if (index < 0 || index >= game.solids.size() ||
+            index != std::floor(index))
+          throw std::runtime_error("house collider index");
+        indices.push_back(std::size_t(index));
+      }
+      std::sort(indices.rbegin(), indices.rend());
+      if (std::adjacent_find(indices.begin(), indices.end()) != indices.end())
+        throw std::runtime_error("duplicate house collider");
+      for (auto index : indices)
+        game.solids.erase(game.solids.begin() + std::ptrdiff_t(index));
+    }
     if (!o.fresh && !o.benchmark) {
       auto load = game::load(o.save);
       if (load.loaded) {
