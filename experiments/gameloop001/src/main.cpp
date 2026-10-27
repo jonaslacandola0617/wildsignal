@@ -211,22 +211,32 @@ void push(const Replay &r) {
   if (!SDL_PushEvent(&e))
     throw std::runtime_error(SDL_GetError());
 }
-p3::Camera pose(int n) {
+p3::Camera pose(int n, const ws::Json &cfg,
+                const std::vector<game::Solid> &solids) {
+  const auto &views = cfg.at("review_cameras").array();
+  if (n < 0 || std::size_t(n) >= views.size() || views.size() > 16)
+    throw std::runtime_error("review camera index");
+  const auto &v = views[std::size_t(n)];
+  auto vector = [](const ws::Json &value) {
+    const auto &a = value.array();
+    if (a.size() != 3)
+      throw std::runtime_error("camera vector size");
+    p3::Vec p{float(a[0].number()), float(a[1].number()), float(a[2].number())};
+    if (!p3::finite(p))
+      throw std::runtime_error("nonfinite camera");
+    return p;
+  };
   p3::Camera c;
-  const p3::Vec pos[] = {
-      {.95f, 1.65f, 4.5f}, {2.2f, 1.65f, 2.4f},  {-3.5f, 1.65f, 1.6f},
-      {1.1f, 1.65f, -.7f}, {4.8f, 1.65f, 0},     {-4.9f, 1.65f, 1.1f},
-      {0, 18, 6.1f},       {-2.5f, 1.65f, 5.5f}, {3.5f, 1.65f, 5.4f}};
-  const p3::Vec targets[] = {
-      {1.8f, .2f, 1.2f},  {3, .2f, -.5f},        {-2.8f, 1.5f, -2.6f},
-      {2.6f, .4f, -2.3f}, {1.5f, .1f, -2},       {-2.5f, 1.5f, -2.8f},
-      {0, 0, .01f},       {-2.5f, 3.75f, -2.8f}, {-2.5f, 3.6f, -2.8f}};
-  c.position = pos[n];
-  if (n != 6)
+  c.position = vector(v.at("position"));
+  if (v.at("terrain_relative").number() == 1) {
+    if (!game::freeAt(c.position, solids))
+      throw std::runtime_error("review camera overlaps solid");
     c.position.y += game::terrain(c.position.x, c.position.z);
-  c.aim(targets[n]);
+  }
+  c.aim(vector(v.at("target")));
   return c;
 }
+
 std::string phaseName(game::Phase p) {
   switch (p) {
   case game::Phase::Explore:
@@ -592,7 +602,7 @@ int main(int argc, char **argv) {
       }
       if (o.benchmark) {
         if (o.pose >= 0)
-          camera = pose(o.pose);
+          camera = pose(o.pose, cfg, game.solids);
         else {
           float t = float(frame % 900) / 900;
           camera.position = {game::pathX(4.8f - t * 8), 1.65f, 4.8f - t * 8};
