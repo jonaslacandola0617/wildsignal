@@ -316,7 +316,7 @@ int main(int argc, char **argv) {
     auto &rig = world.models[world.instances[actors[0]].model].rig;
     for (auto clip : {"Idle", "Fly", "Attack"})
       rig->sample(clip, 0);
-    p3::MeshClumps grass(o.assets, game.solids);
+    p3::MeshClumps grass(o.assets, grassSolids);
     grass.density = o.density;
     Screen screen;
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS))
