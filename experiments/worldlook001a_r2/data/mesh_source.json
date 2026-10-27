@@ -1,0 +1,11 @@
+{
+  "revision": 1,
+  "repository": "jonaslacandola0617/wildsignal-art",
+  "source_commit": "c0a4d66719375b8a032b0eb1387d55ff371abeb2",
+  "directory": "WORLDLOOK_001A_R2/exports",
+  "candidate_ids": ["WL_R2_M1", "WL_R2_M2"],
+  "geometry": "true closed original 3D leaves; one opaque vertex-color material; no textures",
+  "scope": "two candidate small plot only, not approved meadow",
+  "approval": "WORLDLOOK_001A_R2_ART_VISUAL_REVIEW_PENDING",
+  "privacy": "all GLB/Blender/captures private; public tests use synthetic tetrahedra"
+}
