@@ -1,9 +1,10 @@
-# GAMELOOP-002 — OWNER PLAYTEST BUGS AND GRASS COVERAGE
+# GAMELOOP-002 owner review
 
-**Scaffold only. No fixes implemented at this commit.**
+Implemented follower/grass/material corrections for Issue49 and private39. Original GAMELOOP001 is unchanged. Read README.md for build/controls/comparison flags.
 
-Read [engine Issue #49](https://github.com/jonaslacandola0617/wildsignal/issues/49) and [paired private asset/style Issue #39](https://github.com/jonaslacandola0617/wildsignal-art/issues/39).
+Default: translation-trail following, continuous Medium grass and private WORLDSTYLE pixel maps. F3 shows follower state. Legacy yaw following remains only as --followers legacy. --grass-layout legacy and --worldstyle source provide independent controls. Battle/recruitment/save schema and rules are identical to GAMELOOP001.
 
-Owner confirms exploration, battle, defense, recruitment, interaction and save/load work on physical Windows. Keep these intact. **Blockers:** follower target based on mouse yaw (main.cpp) despite stationary player; greedy avoidance tangent and no progress hysteresis around rocks (game.cpp); static terrain+0.55 height for flying models near solid footprints; meadow still has visual gaps despite a combined painted+mesh coverage metric >75%; MegaKit house/trees not matching authored pixel-art style (separate private study).
+Owner confirmed GAMELOOP001 physical Windows playability. The newer revision still needs owner Windows/Intel movement and visual review. Source-only CI is not a physical GPU result. All art/captures/portable packages remain private. No merge.
 
-New work must include **real** yaw-only and obstacle/catch-up replay tests, actual native 480/640 gameplay after fixes, vegetation medium/high before/after comparison and no regressions. Preserve old branch and source art, owner-only models, no auto-merge. Physical Intel UHD 4800 benchmark frames exist in owner runs(3).zip, but no code fix is yet made.
+GAMELOOP002_OWNER_MOVEMENT_AND_MEADOW_REVIEW_PENDING
+WORLDSTYLE001_MEGAKIT_STYLE_OWNER_REVIEW_PENDING
