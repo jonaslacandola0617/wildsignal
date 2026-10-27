@@ -220,7 +220,7 @@ p3::Camera pose(int n) {
   const p3::Vec targets[] = {
       {1.8f, .2f, 1.2f},  {3, .2f, -.5f},       {-2.8f, 1.5f, -2.6f},
       {2.6f, .4f, -2.3f}, {1.5f, .1f, -2},      {-2.5f, 1.5f, -2.8f},
-      {0, 0, .01f},       {-2.5f, 2.0f, -2.8f}, {-2.5f, 2.0f, -2.8f}};
+      {0, 0, .01f},       {-2.5f, 3.0f, -2.8f}, {-2.5f, 3.0f, -2.8f}};
   c.position = pos[n];
   if (n != 6)
     c.position.y += game::terrain(c.position.x, c.position.z);

@@ -1,6 +1,6 @@
 # GAMELOOP-001 — playable slice integration gate (scaffold only)
 
-**Current state: SETUP ONLY — no playable gameplay implementation has been committed yet.**
+**Scope record:** The scaffold below records the authorized acceptance gate. A playable implementation now exists on this branch; see `README.md` and `docs/reports/GAMELOOP001_IMPLEMENTATION.md` for actual validation and remaining owner hardware review. This does not promote art or hardware performance to approved.
 
 Owner authorized integration on 27 October 2026: core offline gameplay + visible Petalyn/Driftfin follower + existing R4/R5 foliage with increased real meadow coverage + Quaternius MegaKit authentic house test. All previous original branches/drafts stay unmerged.
 
