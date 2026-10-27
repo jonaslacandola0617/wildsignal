@@ -202,7 +202,15 @@ Model Model::load(const std::filesystem::path &path) {
   }
   if (!out.bounds.valid() || out.parts.empty())
     throw std::runtime_error("empty model");
-  if(out.rig){out.bounds.lo=out.bounds.lo-Vec{.18f,.18f,.18f};out.bounds.hi=out.bounds.hi+Vec{.18f,.18f,.18f};}
+  if(out.rig){
+#ifdef PETALYN_RUNTIME
+    // Explicit conservative padding, checked against every exported pose.
+    constexpr Vec padding{.30f,.30f,.30f};
+#else
+    constexpr Vec padding{.18f,.18f,.18f};
+#endif
+    out.bounds.lo=out.bounds.lo-padding;out.bounds.hi=out.bounds.hi+padding;
+  }
   return out;
 }
 } // namespace p3
