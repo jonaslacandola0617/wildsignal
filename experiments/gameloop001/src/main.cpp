@@ -12,8 +12,10 @@
 #include <sstream>
 #include <thread>
 #ifdef _WIN32
-#include <psapi.h>
+// clang-format off
 #include <windows.h>
+#include <psapi.h>
+// clang-format on
 #else
 #include <sys/resource.h>
 #include <unistd.h>
@@ -211,10 +213,10 @@ void push(const Replay &r) {
 }
 p3::Camera pose(int n) {
   p3::Camera c;
-  const p3::Vec pos[] = {
-      {.95f, 1.65f, 4.5f}, {2.2f, 1.65f, 2.4f}, {-3.5f, 1.65f, 1.6f},
-      {1.1f, 1.65f, -.7f}, {4.8f, 1.65f, 0},    {-4.9f, 1.65f, 1.1f},
-      {0, 18, 0}};
+  const p3::Vec pos[] = {{.95f, 1.65f, 4.5f},  {2.2f, 1.65f, 2.4f},
+                         {-3.5f, 1.65f, 1.6f}, {1.1f, 1.65f, -.7f},
+                         {4.8f, 1.65f, 0},     {-4.9f, 1.65f, 1.1f},
+                         {0, 18, 6.1f}};
   const p3::Vec targets[] = {{1.8f, .2f, 1.2f},    {3, .2f, -.5f},
                              {-2.8f, 1.5f, -2.6f}, {2.6f, .4f, -2.3f},
                              {1.5f, .1f, -2},      {-2.5f, 1.5f, -2.8f},
