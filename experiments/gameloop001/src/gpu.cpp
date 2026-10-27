@@ -603,6 +603,9 @@ void Gpu::setCoverage(int mode, const std::vector<game::Solid> &solids,
     p->grass->coverage = mode;
   if (mode && !p->leafCoverage) {
     auto im = loadImage(mask);
+    textureBytes += im.rgba.size();
+    textureMipBytes += im.rgba.size();
+    texturesLoaded++;
     gl::GenTextures(1, &p->leafCoverage);
     gl::BindTexture(GL_TEXTURE_2D, p->leafCoverage);
     gl::TexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, im.w, im.h, 0, GL_RGBA,
@@ -620,6 +623,7 @@ void Gpu::setGrass(MeshClumps *m, const std::filesystem::path &ground,
   if (!m)
     return;
   p->grassRenderer = std::make_unique<MeshRenderer>(*m);
+  bufferBytes += p->grassRenderer->bytes();
   auto upload = [&](const std::filesystem::path &path, GLuint &tex, bool srgb) {
     auto image = loadImage(path);
     gl::GenTextures(1, &tex);
@@ -631,6 +635,7 @@ void Gpu::setGrass(MeshClumps *m, const std::filesystem::path &ground,
     gl::TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     gl::TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     textureBytes += image.rgba.size();
+    textureMipBytes += image.rgba.size(); // These two maps have one mip level.
     texturesLoaded++;
   };
   upload(ground, p->grassGround, true);
