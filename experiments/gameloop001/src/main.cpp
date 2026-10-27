@@ -650,12 +650,18 @@ int main(int argc, char **argv) {
       auto hudStart = Clock::now();
       std::vector<std::string> hud;
       hud.push_back("WILDSIGNAL / GLADE PLAYTEST / " + phaseName(game.phase));
-      hud.push_back("PETALYN HP " + std::to_string(game.state.hp) +
-                    "/30   PARTY " +
-                    std::to_string(game.state.recruited ? 2 : 1) + "   GRASS " +
-                    std::to_string(grass.density) + "   " +
-                    std::to_string(o.w) + "x" + std::to_string(o.w * 9 / 16));
+      hud.push_back(
+          "PETALYN HP " + std::to_string(game.state.hp) + "/30   PARTY " +
+          std::to_string(game.state.recruited ? 2 : 1) + "   GRASS " +
+          std::string(std::array<const char *, 4>{"OFF", "LOW", "MED",
+                                                  "HIGH"}[grass.density]) +
+          "   " + std::to_string(o.w) + "x" + std::to_string(o.w * 9 / 16));
       if (game.phase == game::Phase::Explore) {
+        hud.push_back(
+            !game.state.visited ? "GOAL: VISIT THE COTTAGE SHELTER / E TO REST"
+            : !game.state.recruited
+                ? "GOAL: MEET THE WILD PETALYN / E TO INTERACT"
+                : "COTTAGE VISITED / RECRUITED / F5 SAVE THEN REOPEN");
         hud.push_back(
             "WASD MOVE / MOUSE LOOK / E INTERACT / G DENSITY / R RES");
         hud.push_back("F5 SAVE / F9 LOAD / ESC PAUSE");
@@ -672,6 +678,8 @@ int main(int argc, char **argv) {
         hud.push_back(game.phase == game::Phase::Battle
                           ? "1 ATTACK(-6) / 2 DEFEND / 3 BEFRIEND"
                           : "3 BEFRIEND / ENTER RETURN TO EXPLORATION");
+        if (game.phase == game::Phase::Battle)
+          hud.push_back("BEFRIEND: WILD HP12 OR LESS + DEFEND AT LEAST ONCE");
       }
       if (paused)
         hud.push_back("PAUSED / ENTER RESUME / Q SAVE AND QUIT");
