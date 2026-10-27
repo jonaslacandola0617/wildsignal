@@ -522,7 +522,10 @@ Gpu::Gpu(World &world, bool allowSoftware) {
 
   for (auto &i : world.instances) {
     auto &id = world.models[i.model].id;
+#ifndef PETALYN_RUNTIME
+    // Driftfin's grounded contact approximation must not ground hovering Petalyn.
     if(world.models[i.model].rig){auto root=point(i.matrix,{0,0,0});p->contacts.push_back({root.x,root.z,.16f,.21f});}
+#endif
     auto center = (i.bounds.lo + i.bounds.hi) * .5f;
     if(id=="RURAL_05") {
       Box base;

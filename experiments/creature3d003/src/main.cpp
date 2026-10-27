@@ -368,6 +368,9 @@ struct SDLState {
   }
 };
 struct Row {
+#ifdef PETALYN_RUNTIME
+  double animation = 0;
+#endif
   p3::Integration integration;
   std::size_t shadowTriangles=0;
   int frame = 0, w = 0, h = 0, mode = 0;
@@ -436,7 +439,12 @@ int main(int argc, char **argv) {
     SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 0);
     SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 0);
     s.window =
-        SDL_CreateWindow("WILDSIGNAL CREATURE3D-003",
+        SDL_CreateWindow(
+#ifdef PETALYN_RUNTIME
+                         "WILDSIGNAL Petalyn A — animation review",
+#else
+                         "WILDSIGNAL CREATURE3D-003",
+#endif
                          o.verifyUpscale ? o.w * 3 : o.presentScale ? o.w * o.presentScale : o.hidden ? o.w : 1280,
                          o.verifyUpscale ? o.h * 3 : o.presentScale ? o.h * o.presentScale : o.hidden ? o.h : 720,
                          SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE |
@@ -485,6 +493,9 @@ int main(int argc, char **argv) {
     };
     p3::Camera camera = proofPose(o.pose);
     bool hasCreature=std::any_of(world.models.begin(),world.models.end(),[](auto &m){return bool(m.rig);});
+#ifdef PETALYN_RUNTIME
+    p3::Vec creatureAnchor{};
+#endif
     if(hasCreature){
       if(o.creatureView=="front")camera.position={0,.50f,1.65f};
       else if(o.creatureView=="side")camera.position={1.65f,.50f,0};
@@ -496,6 +507,9 @@ int main(int argc, char **argv) {
       p3::Vec anchor{};int creatureCount=0;
       for(auto &i:world.instances)if(world.models[i.model].rig){anchor=anchor+p3::point(i.matrix,{0,0,0});creatureCount++;}
       anchor=anchor*(1.f/float(creatureCount));camera.position=camera.position+anchor;camera.aim(anchor+p3::Vec{0,.45f,0});
+#ifdef PETALYN_RUNTIME
+      creatureAnchor=anchor;
+#endif
     }
     float animationSeconds=o.animationTime;
     bool running = true, relative = false, capture = false;
@@ -516,7 +530,15 @@ int main(int argc, char **argv) {
       previous = begin;
       SDL_Event e;
       while (SDL_PollEvent(&e)) {
-        if(e.type==SDL_EVENT_KEY_DOWN){if(e.key.key==SDLK_1)o.clip="Idle";if(e.key.key==SDLK_2)o.clip="Walk";if(e.key.key==SDLK_3)o.clip="Attack";}
+        if(e.type==SDL_EVENT_KEY_DOWN){
+#ifdef PETALYN_RUNTIME
+          if(!e.key.repeat&&e.key.key==SDLK_1){o.clip="Idle";animationSeconds=0;}
+          if(!e.key.repeat&&e.key.key==SDLK_2){o.clip="Fly";animationSeconds=0;}
+          if(!e.key.repeat&&e.key.key==SDLK_3){o.clip="Attack";animationSeconds=0;}
+#else
+          if(e.key.key==SDLK_1)o.clip="Idle";if(e.key.key==SDLK_2)o.clip="Walk";if(e.key.key==SDLK_3)o.clip="Attack";
+#endif
+        }
 
         if (e.type == SDL_EVENT_QUIT)
           running = false;
@@ -539,6 +561,7 @@ int main(int argc, char **argv) {
             } else
               running = false;
             break;
+#ifndef PETALYN_RUNTIME
           case SDLK_1:
             o.mode = 0;
             break;
@@ -548,6 +571,7 @@ int main(int argc, char **argv) {
           case SDLK_3:
             o.mode = 2;
             break;
+#endif
           case SDLK_H:
             o.style.highlights=!o.style.highlights;gpu.setStyle(o.style);break;
           case SDLK_J:
@@ -635,6 +659,13 @@ int main(int argc, char **argv) {
           }
         }
       }
+#ifdef PETALYN_RUNTIME
+      if(o.orbit&&hasCreature){
+        float a=2*p3::pi*float(frame)/float(o.frames?o.frames:1200);
+        camera.position=creatureAnchor+p3::Vec{2.f*std::sin(a),.9f,2.f*std::cos(a)};
+        camera.aim(creatureAnchor+p3::Vec{0,.55f,0});
+      } else
+#endif
       if(o.studyRoute==4){
         float a=2*p3::pi*float(frame)/float(o.frames?o.frames:1200);
         camera=proofPose(20);camera.position.x+=.8f*std::sin(a);camera.position.z+=.3f*std::cos(a);camera.aim({4,4,0});
@@ -669,10 +700,21 @@ int main(int argc, char **argv) {
       auto vp = p3::perspective(60 * p3::pi / 180,
                                 static_cast<float>(width) / height) *
                 pixel.render.view();
+#ifdef PETALYN_RUNTIME
+      auto animationStart=Clock::now();
+#endif
       animationSeconds=o.fixedAnimation?o.animationTime+float(frame)/24.f:animationSeconds+dt;
+#ifdef PETALYN_RUNTIME
+      int animatedIndex=0;
+#endif
       for(std::size_t ai=0;ai<world.instances.size();ai++){
         auto &instance=world.instances[ai];auto &rig=world.models[instance.model].rig;
+#ifdef PETALYN_RUNTIME
+        // Deterministic independent phases; Attack is a one-shot, not a loop.
+        if(rig)instance.palette=rig->sample(o.clip,animationSeconds+float(animatedIndex++)*.173f,o.clip!="Attack");
+#else
         if(rig)instance.palette=rig->sample(o.clip,animationSeconds+float(ai)*.173f);
+#endif
       }
       auto beforeCull = Clock::now();
       auto counts = world.visible(p3::Frustum(vp), o.cull, visible);
@@ -734,6 +776,10 @@ int main(int argc, char **argv) {
       row.mode = o.mode;
       row.cull = o.cull;
       row.update = elapsed(begin, updated);
+#ifdef PETALYN_RUNTIME
+      row.animation=elapsed(animationStart,beforeCull);
+      row.update+=row.animation;
+#endif
       row.culling = elapsed(beforeCull, afterCull);
       row.submit = stats.cpuSubmitMs;
       row.swap = elapsed(beforeSwap, afterSwap);
@@ -822,7 +868,11 @@ int main(int argc, char **argv) {
            "z,cozy,contact_strength,haze_strength,shadow_mode,shaft_mode,"
            "shadow_size,shaft_divisor,shaft_steps,soft_shadow,quality_stage,"
            "shadow_draws,shadow_submit_ms,shaft_submit_ms,art_style,atmosphere_"
-           "width,atmosphere_height,study,pixel_camera,offset_x_pixels,offset_y_pixels,world_per_pixel,drawable_width,drawable_height,edge_mode,highlight_mask,architecture_highlight_strength,foliage_highlight_strength,sun_threshold,stable_shadow,bounded_air,wordline_contacts,shadow_triangles,total_scene_triangles_submitted\n";
+           "width,atmosphere_height,study,pixel_camera,offset_x_pixels,offset_y_pixels,world_per_pixel,drawable_width,drawable_height,edge_mode,highlight_mask,architecture_highlight_strength,foliage_highlight_strength,sun_threshold,stable_shadow,bounded_air,wordline_contacts,shadow_triangles,total_scene_triangles_submitted"
+#ifdef PETALYN_RUNTIME
+           ",animation_ms"
+#endif
+           "\n";
     csv << std::setprecision(9);
     std::vector<double> wall, culling, submit, gpuTimes, present;
     std::uint64_t peak = 0;
@@ -850,7 +900,11 @@ int main(int argc, char **argv) {
           << r.outW << ',' << r.outH << ',' << r.integration.edges << ',' << r.integration.highlightMask
           << ',' << r.integration.architectureStrength << ',' << r.integration.foliageStrength << ',' << r.integration.sunThreshold
           << ',' << r.integration.stableShadow << ',' << r.integration.boundedAir << ',' << r.integration.wordlineContacts
-          << ',' << r.shadowTriangles << ',' << (r.visibility.triangles+r.shadowTriangles) << '\n';
+          << ',' << r.shadowTriangles << ',' << (r.visibility.triangles+r.shadowTriangles)
+#ifdef PETALYN_RUNTIME
+          << ',' << r.animation
+#endif
+          << '\n';
       peak = std::max(peak, r.memory);
       if (r.frame >= o.warmup) {
         wall.push_back(r.wall);
