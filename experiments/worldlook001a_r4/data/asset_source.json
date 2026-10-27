@@ -1,0 +1,16 @@
+{
+  "task": "WORLDLOOK-001A-R4",
+  "private_art_issue": 22,
+  "engine_issue": 42,
+  "R3_engine": "77d70242b778f1fea56361a575930e206820651c",
+  "R3_art": "041a25f123d8899caa2f2a2221aa2da6d552da60",
+  "geometry": "UNCHANGED; actual original R3 external kit required",
+  "R4_art_source_commit": "4e82ff50094a257a6c63b4a4aafe1c70cea8faea",
+  "R4_art_draft_PR": 24,
+  "private_export_blobs": {
+    "pixel_surface.json": "b44fd445320f93fb547bdc3fdc1ab2d0cf156239",
+    "WL_R4_GROUND_128.png": "ca5e097a890af77cfb843f5d5e3fd5822015ce8e",
+    "WL_R4_TUFT_GROUPS_128.png": "ac089d12768efa37f45f7b1165d86f1aeed189ba"
+  },
+  "private_material_bytes": 131072
+}
