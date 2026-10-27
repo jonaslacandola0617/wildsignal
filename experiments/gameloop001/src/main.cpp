@@ -75,7 +75,7 @@ Options options(int argc, char **argv) {
           << "GAMELOOP001 offline playtest\n--assets DIR --resolution 480|640 "
              "--grass-density off|low|medium|high\n--megakit-house on|off "
              "--render-mode original|toon --pacing precise|legacy|off\n--cap "
-             "0|30|60 --benchmark --pose 0..6 --frames N --capture-every "
+             "0|30|60 --benchmark --pose 0..8 --frames N --capture-every "
              "N\n--save FILE --new-game --output DIR --allow-software --hidden "
              "--replay FILE\n";
       std::exit(0);
@@ -135,7 +135,7 @@ Options options(int argc, char **argv) {
       else
         throw std::runtime_error("coveragemeadow|geometry|combined");
     } else if (a == "--pose")
-      o.pose = integer(value(), 0, 6);
+      o.pose = integer(value(), 0, 8);
     else if (a == "--pacing") {
       o.pacing = value();
       if (o.pacing != "precise" && o.pacing != "legacy" && o.pacing != "off")
@@ -213,16 +213,16 @@ void push(const Replay &r) {
 }
 p3::Camera pose(int n) {
   p3::Camera c;
-  const p3::Vec pos[] = {{.95f, 1.65f, 4.5f},  {2.2f, 1.65f, 2.4f},
-                         {-3.5f, 1.65f, 1.6f}, {1.1f, 1.65f, -.7f},
-                         {4.8f, 1.65f, 0},     {-4.9f, 1.65f, 1.1f},
-                         {0, 18, 6.1f}};
-  const p3::Vec targets[] = {{1.8f, .2f, 1.2f},    {3, .2f, -.5f},
-                             {-2.8f, 1.5f, -2.6f}, {2.6f, .4f, -2.3f},
-                             {1.5f, .1f, -2},      {-2.5f, 1.5f, -2.8f},
-                             {0, 0, .01f}};
+  const p3::Vec pos[] = {
+      {.95f, 1.65f, 4.5f}, {2.2f, 1.65f, 2.4f},  {-3.5f, 1.65f, 1.6f},
+      {1.1f, 1.65f, -.7f}, {4.8f, 1.65f, 0},     {-4.9f, 1.65f, 1.1f},
+      {0, 18, 6.1f},       {-2.5f, 1.65f, 4.5f}, {1.2f, 1.65f, 2.8f}};
+  const p3::Vec targets[] = {
+      {1.8f, .2f, 1.2f},  {3, .2f, -.5f},       {-2.8f, 1.5f, -2.6f},
+      {2.6f, .4f, -2.3f}, {1.5f, .1f, -2},      {-2.5f, 1.5f, -2.8f},
+      {0, 0, .01f},       {-2.5f, 2.0f, -2.8f}, {-2.5f, 2.0f, -2.8f}};
   c.position = pos[n];
-  if (n < 6)
+  if (n != 6)
     c.position.y += game::terrain(c.position.x, c.position.z);
   c.aim(targets[n]);
   return c;
