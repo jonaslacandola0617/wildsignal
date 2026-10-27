@@ -1,0 +1,11 @@
+{
+ "revision":3,
+ "private_repository":"jonaslacandola0617/wildsignal-art",
+ "source_commit":"4f00d3c0e09fcb42b0da44cb3240423ce8829176",
+ "directory":"WORLDLOOK_001A_R3/exports",
+ "assets":["WL_R3_FINE_A","WL_R3_FINE_B","WL_R3_FINE_FAR","WL_R3_GROUND"],
+ "original_R2_comparisons_commit":"c0a4d66719375b8a032b0eb1387d55ff371abeb2",
+ "privacy":"Original Blender/GLB/palette/capture bytes private; this public file only records provenance",
+ "status":"R3_FINE_MEADOW_ART_REVIEW_PENDING",
+ "reference":"Owner-uploaded40.63s Short actually inspected; no video pixels/assets copied"
+}
