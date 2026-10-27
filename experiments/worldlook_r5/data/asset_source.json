@@ -1,0 +1,14 @@
+{
+  "task": "R5 soft-leaf grass visual gate",
+  "private_art_repository": "jonaslacandola0617/wildsignal-art",
+  "private_art_PR": 25,
+  "soft_source_commit": "a8410a37300e6a98a85897a30759f494e5673cb5",
+  "unchanged_R4_engine_commit": "1211647c4ec87fd1687cc302fc63c33fe62f9bcb",
+  "unchanged_R4_art_commit": "ecc938d35e271b6d2f88c6f79fb9bf908d117f0c",
+  "fine_tufts": 252,
+  "soft_tufts": 108,
+  "fine_near_blades": 3276,
+  "soft_near_blades": 1404,
+  "B_only_fine_height_scale": 0.78,
+  "status": "R5_SOFT_LEAF_OWNER_VISUAL_REVIEW_PENDING"
+}
