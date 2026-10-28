@@ -1,0 +1,36 @@
+name: HEARTHGROVE001 authentic MegaKit validation
+on:
+  push:
+    branches: [feat/hearthgrove-001-native-megakit]
+    paths: ['experiments/hearthgrove001/**', '.github/workflows/hearthgrove001.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows-x64:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - run: cmake -S experiments/hearthgrove001 -B build/game -G "Visual Studio 17 2022" -A x64
+      - run: cmake --build build/game --config Release --parallel 2
+      - run: ctest --test-dir build/game -C Release --output-on-failure
+      - run: ./build/game/Release/wildsignal_hearthgrove001.exe --help
+      - name: Parse hardware launcher
+        shell: pwsh
+        run: |
+          $tokens=$null; $errors=$null
+          [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path experiments/hearthgrove001/tools/hardware.ps1),[ref]$tokens,[ref]$errors) | Out-Null
+          if($errors.Count){$errors | Format-List; throw 'Launcher parser failed'}
+      - run: cmake --install build/game --config Release --prefix out/gameloop002-windows-x64
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: hearthgrove001-windows-x64-code-only
+          path: out/gameloop002-windows-x64
+          retention-days: 14
+  linux-logic:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - run: cmake -S experiments/hearthgrove001 -B build/game -DPIXEL3D_BUILD_GL=OFF -DCMAKE_BUILD_TYPE=Debug -DPIXEL3D_SANITIZE=ON
+      - run: cmake --build build/game --parallel 2
+      - run: ctest --test-dir build/game --output-on-failure
