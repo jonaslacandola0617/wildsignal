@@ -427,6 +427,29 @@ int main(int argc, char **argv) {
                     : o.pixelMaterials ? "pack_style.json"
                                        : "pack.json"),
         o.assets / (o.house ? "scene.json" : "scene_nohouse.json"), false);
+    // Select existing approved components without rewriting source asset files.
+    for (const auto &entry : cfg.at("exclude_materials").array()) {
+      bool found = false;
+      for (auto &model : world.models)
+        if (model.id == entry.at("model").string()) {
+          for (const auto &name : entry.at("materials").array()) {
+            bool matched = false;
+            std::erase_if(model.parts, [&](const p3::Primitive &part) {
+              bool remove =
+                  model.materials.at(part.material).name == name.string();
+              matched |= remove;
+              return remove;
+            });
+            if (!matched)
+              throw std::runtime_error("excluded source material not found");
+          }
+          if (model.parts.empty())
+            throw std::runtime_error("source selection removed entire model");
+          found = true;
+        }
+      if (!found)
+        throw std::runtime_error("source selection model missing");
+    }
     if (!o.house)
       std::erase_if(world.instances,
                     [](auto &i) { return i.id.starts_with("house_"); });
