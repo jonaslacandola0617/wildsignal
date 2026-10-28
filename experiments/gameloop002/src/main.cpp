@@ -55,6 +55,9 @@ struct Options {
   bool allow = false, hidden = false, house = true, benchmark = false,
        fresh = false, original = false;
   std::string pacing = "precise";
+  bool shadows = true, forceLegacyGrass = false, requireAuthored = false,
+       fragmentReceiver = false, cacheProbe = false;
+  int receiveGrass = -1, diagnostic = 0, scaleFamily = 0, canopyMask = -1;
 };
 int integer(const std::string &s, int lo, int hi) {
   std::size_t n = 0;
@@ -81,6 +84,13 @@ Options options(int argc, char **argv) {
              "N\n--save FILE --new-game --output DIR --allow-software --hidden "
              "--replay FILE --followers trail|legacy --grass-layout "
              "continuous|legacy\n--worldstyle source|pixel --debug-follow\n";
+      std::cout << "WORLDART003 R2: --grass-family auto|legacy|r2 "
+                   "--grass-scale mixed|standard|small\n"
+                   "--shadow on|off --grass-cast off --grass-receive on|off "
+                   "--grass-receiver root|fragment\n"
+                   "--diagnostic lit|albedo|visibility|patch --canopy-shadow "
+                   "solid|mask\n"
+                   "--shadow-cache-probe (isolated technical test only)\n";
       std::exit(0);
     } else if (a == "--assets")
       o.assets = value();
@@ -141,7 +151,60 @@ Options options(int argc, char **argv) {
         throw std::runtime_error("coveragemeadow|geometry|combined");
     } else if (a == "--pose")
       o.pose = integer(value(), 0, 8);
-    else if (a == "--pacing") {
+    else if (a == "--grass-family") {
+      auto v = value();
+      if (v != "auto" && v != "legacy" && v != "r2")
+        throw std::runtime_error("grass-family auto|legacy|r2");
+      o.forceLegacyGrass = v == "legacy";
+      o.requireAuthored = v == "r2";
+    } else if (a == "--grass-scale") {
+      auto v = value();
+      if (v == "mixed")
+        o.scaleFamily = 0;
+      else if (v == "standard")
+        o.scaleFamily = 1;
+      else if (v == "small")
+        o.scaleFamily = 2;
+      else
+        throw std::runtime_error("grass-scale mixed|standard|small");
+    } else if (a == "--shadow") {
+      auto v = value();
+      if (v != "on" && v != "off")
+        throw std::runtime_error("shadow on|off");
+      o.shadows = v == "on";
+    } else if (a == "--grass-receive") {
+      auto v = value();
+      if (v != "on" && v != "off")
+        throw std::runtime_error("grass-receive on|off");
+      o.receiveGrass = v == "on";
+    } else if (a == "--grass-cast") {
+      if (value() != "off")
+        throw std::runtime_error("Grass casting must remain OFF");
+    } else if (a == "--grass-receiver") {
+      auto v = value();
+      if (v != "root" && v != "fragment")
+        throw std::runtime_error("grass-receiver root|fragment");
+      o.fragmentReceiver = v == "fragment";
+    } else if (a == "--diagnostic") {
+      auto v = value();
+      if (v == "lit")
+        o.diagnostic = 0;
+      else if (v == "albedo")
+        o.diagnostic = 1;
+      else if (v == "visibility")
+        o.diagnostic = 4;
+      else if (v == "patch")
+        o.diagnostic = 5;
+      else
+        throw std::runtime_error("diagnostic lit|albedo|visibility|patch");
+    } else if (a == "--shadow-cache-probe")
+      o.cacheProbe = true;
+    else if (a == "--canopy-shadow") {
+      auto v = value();
+      if (v != "solid" && v != "mask")
+        throw std::runtime_error("canopy-shadow solid|mask");
+      o.canopyMask = v == "mask";
+    } else if (a == "--pacing") {
       o.pacing = value();
       if (o.pacing != "precise" && o.pacing != "legacy" && o.pacing != "off")
         throw std::runtime_error("pacingprecise|legacy|off");
@@ -175,6 +238,8 @@ Options options(int argc, char **argv) {
     else
       throw std::runtime_error("unknown option " + a);
   }
+  if (o.cacheProbe && !o.benchmark)
+    throw std::runtime_error("shadow-cache-probe requires --benchmark");
   return o;
 }
 struct Screen {
@@ -366,7 +431,17 @@ int main(int argc, char **argv) {
     auto &rig = world.models[world.instances[actors[0]].model].rig;
     for (auto clip : {"Idle", "Fly", "Attack"})
       rig->sample(clip, 0);
-    p3::MeshClumps grass(o.assets, grassSolids, o.legacyGrass);
+    p3::MeshClumps grass(o.assets, grassSolids, o.legacyGrass,
+                         o.forceLegacyGrass, o.scaleFamily);
+    if (o.requireAuthored && !grass.authored)
+      throw std::runtime_error("R2 vegetation.json required");
+    if (grass.authored && o.coverage)
+      throw std::runtime_error("Legacy coverage masks do not describe R2; use "
+                               "patch/albedo diagnostics");
+    if (o.receiveGrass >= 0)
+      grass.receiveShadows = o.receiveGrass != 0;
+    grass.fragmentReceiver = o.fragmentReceiver;
+    grass.diagnostic = o.diagnostic;
     grass.density = o.density;
     Screen screen;
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS))
@@ -396,6 +471,7 @@ int main(int argc, char **argv) {
     style.materials = o.pixelMaterials;
     style.smoothLight = false;
     style.sampling = o.pixelMaterials ? 0 : 1;
+    style.diagnostic = o.diagnostic;
     if (o.coverage) {
       style.mode = 0;
       style.outlines = false;
@@ -407,12 +483,30 @@ int main(int argc, char **argv) {
     integration.stableShadow = true;
     gpu.setIntegration(integration);
     p3::Effects effects;
-    effects.shadow = p3::Shadow::Cached;
+    effects.shadow = o.shadows ? p3::Shadow::Cached : p3::Shadow::Off;
     effects.shadowSize = 512;
     effects.shafts = p3::Shafts::Off;
     gpu.setEffects(effects);
-    gpu.setGrass(&grass, o.assets / "GLADE_R4_DERIVED_GROUND_256.png",
-                 o.assets / "GLADE_GROUPS_256.png");
+    if (grass.authored) {
+      auto cfg = ws::parseJson(p3::readText(o.assets / "vegetation.json"));
+      for (const auto &entry : cfg.at("surfaces").array())
+        for (std::size_t i = 0; i < world.models.size(); i++)
+          if (world.models[i].id == entry.at("model").string())
+            gpu.setSurfacePolicy(
+                i, {entry.at("cast").number() != 0,
+                    entry.at("receive").number() != 0,
+                    float(entry.at("sun_tint").number()),
+                    float(entry.at("shadow_floor").number()),
+                    world.models[i].id == "GLADE_TREES" &&
+                        (o.canopyMask < 0
+                             ? entry.at("leaf_shadow_mask").number() != 0
+                             : o.canopyMask != 0)});
+    }
+    gpu.setGrass(&grass,
+                 grass.authored ? grass.groundMap
+                                : o.assets / "GLADE_R4_DERIVED_GROUND_256.png",
+                 grass.authored ? grass.patchMap
+                                : o.assets / "GLADE_GROUPS_256.png");
     gpu.setCoverage(o.coverage, game.solids,
                     o.assets / "GLADE_LEAF_COVERAGE_256.png");
     log << "vendor=" << gpu.vendor << "\nrenderer=" << gpu.renderer
@@ -428,6 +522,14 @@ int main(int argc, char **argv) {
         << "\nfollowers=" << (o.legacyFollow ? "legacy" : "trail")
         << "\ngrass_layout=" << (o.legacyGrass ? "legacy" : "continuous")
         << "\nworldstyle=" << (o.pixelMaterials ? "pixel" : "source") << "\n";
+    log << "grass_family="
+        << (grass.authored ? "R2_AUTHORED_ONLY" : "LEGACY_CONTROL")
+        << "\ngrass_receive=" << grass.receiveShadows
+        << "\ngrass_cast=0\nshadow_enabled=" << o.shadows
+        << "\nreceiver=" << (o.fragmentReceiver ? "fragment" : "root")
+        << "\ndiagnostic=" << o.diagnostic << "\n";
+    log << "grass_models=" << grass.models.size()
+        << "\nlegacy_fine_models_loaded=" << (grass.authored ? 0 : 6) << "\n";
     log.flush();
     std::ofstream frames(o.out / "frames.csv"), timers(o.out / "gpu.csv"),
         events(o.out / "events.csv");
@@ -438,7 +540,10 @@ int main(int argc, char **argv) {
               "bytes,player_x,player_z,follower_x,follower_z,follower_moving,"
               "party,follower_state,follower_speed,follower_target_x,follower_"
               "target_z,follower_stalled,follower_plans,second_x,second_z,"
-              "second_state,player_yaw\n";
+              "second_state,player_yaw,grass_total,grass_culled,grass_shadow_"
+              "draws,grass_shadow_triangles,tree_caster_draws,rock_caster_"
+              "draws,building_caster_draws,shadow_cache_invalidations,shadow_"
+              "cpu_ms\n";
     timers << "frame,gpu_elapsed_ms\n";
     events << "frame,event,phase,hp,enemy_hp,recruited,x,z\n";
     auto event = [&](int f, const std::string &name) {
@@ -656,6 +761,24 @@ int main(int argc, char **argv) {
               {game::pathX(camera.position.z - 2), .6f, camera.position.z - 2});
         }
       }
+      if (o.cacheProbe) {
+        if (frame == 10) {
+          for (auto &i : world.instances)
+            if (world.models[i.model].id == "GLADE_ROCKS") {
+              i.matrix.v[12] += .1f;
+              i.bounds =
+                  p3::transformed(world.models[i.model].bounds, i.matrix);
+            }
+          world.partition(3);
+        }
+        if (frame == 20) {
+          look.sunDirection =
+              p3::normalized(look.sunDirection + p3::Vec{.08f, 0, 0});
+          gpu.setLook(look);
+        }
+        if (frame >= 30)
+          camera.yaw += .12f;
+      }
       auto updateEnd = Clock::now();
       auto animateStart = Clock::now();
       for (std::size_t j = 0; j < actors.size(); j++) {
@@ -805,7 +928,12 @@ int main(int argc, char **argv) {
              << ',' << game.follower.stalled << ',' << game.follower.plans
              << ',' << game.second.position.x << ',' << game.second.position.z
              << ',' << game::followName(game.second.state) << ','
-             << game.state.yaw << '\n';
+             << game.state.yaw << ',' << stats.grass.total << ','
+             << stats.grass.culled << ',' << stats.grass.shadowDraws << ','
+             << stats.grass.shadowTriangles << ',' << stats.treeCasterDraws
+             << ',' << stats.rockCasterDraws << ',' << stats.buildingCasterDraws
+             << ',' << gpu.shadowCacheInvalidations << ',' << stats.shadowCpuMs
+             << '\n';
       lastSwap = swapped;
       if (frame % 120 == 0) {
         frames.flush();
@@ -819,6 +947,8 @@ int main(int argc, char **argv) {
     while (gpu.pollTimer(qi, qms))
       timers << qi << ',' << qms << '\n';
     gpu.save(o.out / "final_world.ppm");
+    if (o.diagnostic == 4 || o.cacheProbe)
+      gpu.saveDiagnostics(o.out);
     int ow = 0, oh = 0;
     SDL_GetWindowSizeInPixels(
         screen.window, &ow,

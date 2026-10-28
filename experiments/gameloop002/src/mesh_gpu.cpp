@@ -14,18 +14,19 @@ namespace mg {
   F(GenVertexArrays)                                                           \
   F(DeleteVertexArrays)                                                        \
   F(BindVertexArray)                                                           \
-  F(GenBuffers) F(DeleteBuffers) F(BindBuffer) F(BufferData) F(BufferSubData)  \
-      F(EnableVertexAttribArray) F(VertexAttribPointer) F(VertexAttribDivisor) \
-          F(DrawElementsInstanced) F(CreateShader) F(ShaderSource)             \
-              F(CompileShader) F(GetShaderiv) F(GetShaderInfoLog)              \
-                  F(DeleteShader) F(CreateProgram) F(AttachShader)             \
-                      F(LinkProgram) F(GetProgramiv) F(GetProgramInfoLog)      \
-                          F(DeleteProgram) F(UseProgram) F(GetUniformLocation) \
-                              F(UniformMatrix4fv) F(Uniform3f) F(Uniform1i)    \
-                                  F(Uniform1f) F(Enable) F(Disable)            \
-                                      F(DepthMask) F(DepthFunc) F(CullFace)    \
-                                          F(ActiveTexture) F(BindTexture)      \
-                                              F(BindSampler)
+  F(GenBuffers)                                                                \
+  F(DeleteBuffers)                                                             \
+  F(BindBuffer) F(BufferData) F(BufferSubData) F(EnableVertexAttribArray)      \
+      F(VertexAttribPointer) F(VertexAttribDivisor) F(DrawElementsInstanced)   \
+          F(CreateShader) F(ShaderSource) F(CompileShader) F(GetShaderiv)      \
+              F(GetShaderInfoLog) F(DeleteShader) F(CreateProgram)             \
+                  F(AttachShader) F(LinkProgram) F(GetProgramiv)               \
+                      F(GetProgramInfoLog) F(DeleteProgram) F(UseProgram)      \
+                          F(GetUniformLocation) F(UniformMatrix4fv)            \
+                              F(Uniform3f) F(Uniform1i) F(Uniform1f) F(Enable) \
+                                  F(Disable) F(DepthMask) F(DepthFunc)         \
+                                      F(CullFace) F(ActiveTexture)             \
+                                          F(BindTexture) F(BindSampler)
 #define DECL(n) static decltype(&::gl##n) n;
 FNS(DECL)
 #undef DECL
@@ -41,17 +42,28 @@ void load() {
 static const char *vs = R"GLSL(#version 330 core
 layout(location=0)in vec3 position;layout(location=1)in vec3 normal;layout(location=2)in vec4 vertexColour;
 layout(location=3)in mat4 instance;layout(location=7)in vec4 tint;
-uniform mat4 VP;uniform vec3 rootAlbedo;uniform int fine;out vec3 worldPosition,worldNormal;out vec4 colour;flat out vec3 rootPosition,rootColour;out float rootWeight;out float bladeHeight;
-void main(){bladeHeight=position.y;vec4 p=instance*vec4(position,1);worldPosition=p.xyz;worldNormal=mat3(instance)*normal;if(fine!=0){mat3 orientation=mat3(normalize(instance[0].xyz),vec3(0,1,0),normalize(instance[2].xyz));worldNormal=orientation*normal;}colour=vertexColour*tint;rootPosition=(instance*vec4(0,0,0,1)).xyz;rootColour=rootAlbedo*tint.rgb;rootWeight=1.-smoothstep(.006,.045,position.y);gl_Position=VP*p;}
+uniform mat4 VP;uniform vec3 rootAlbedo;uniform int fine,authored;out vec3 worldPosition,worldNormal;out vec4 colour;flat out vec3 rootPosition,rootColour;flat out int familyID;flat out vec3 rootNormal;out float rootWeight;out float bladeHeight;
+void main(){bladeHeight=position.y;vec4 p=instance*vec4(position,1);worldPosition=p.xyz;worldNormal=mat3(instance)*normal;if(fine!=0){mat3 orientation=mat3(normalize(instance[0].xyz),vec3(0,1,0),normalize(instance[2].xyz));worldNormal=orientation*normal;}colour=authored!=0?vertexColour:vertexColour*tint;familyID=clamp(int(round(tint.r)),0,3);rootNormal=authored!=0?normalize(tint.gba):vec3(0,1,0);rootPosition=(instance*vec4(0,0,0,1)).xyz;rootColour=rootAlbedo*tint.rgb;rootWeight=1.-smoothstep(.006,.045,position.y);gl_Position=VP*p;}
 )GLSL";
 static const char *fs = R"GLSL(#version 330 core
-in vec3 worldPosition,worldNormal;in vec4 colour;flat in vec3 rootPosition,rootColour;in float rootWeight;in float bladeHeight;
+in vec3 worldPosition,worldNormal;in vec4 colour;flat in vec3 rootPosition,rootColour;flat in int familyID;flat in vec3 rootNormal;in float rootWeight;in float bladeHeight;
+uniform int authored,fragmentReceiver;uniform vec3 familyRamp[12];uniform float sunTint,receiverFloor;
 uniform int coverage;uniform sampler2D pixelGround,pixelGroups;uniform int pixelSurface;uniform vec3 grassRamp[6];
 uniform vec3 sunDirection,sunColor,ambientSky,ambientGround;uniform float exposure,bandSoftness,bias;
 uniform int mode,bands,smoothLight,shadowMode,diagnostic,cozy,fine;
 // VISIBILITY
 layout(location=0)out vec4 color;layout(location=1)out vec4 normals;
-void main(){if(coverage>0){color=vec4(vec3(coverage==1?0.:1.),1);normals=vec4(.5,1,.5,.025);return;}vec3 n=normalize(worldNormal);vec3 sd=normalize(sunDirection);float sun=max(0.,dot(n,sd));
+void main(){if(coverage>0){color=vec4(vec3(coverage==1?0.:1.),1);normals=vec4(.5,1,.5,.025);return;}
+ if(authored!=0){
+  vec3 n=normalize(worldNormal),sd=normalize(sunDirection);ivec2 size=textureSize(pixelGround,0);ivec2 at=clamp(ivec2(floor((rootPosition.xz+6.)/12.*vec2(size))),ivec2(0),size-1);vec3 root=texelFetch(pixelGround,at,0).rgb;
+  float region=clamp((colour.a-.1)/.9,0.,1.);vec3 body=mix(familyRamp[familyID*3+1],familyRamp[familyID*3+2],smoothstep(.35,1.,region));vec3 albedo=colour.a<.05?colour.rgb:mix(body,root,rootWeight);
+  float sun=max(0.,dot(rootNormal,sd));float s=max(.001,bandSoftness);if(mode!=0&&bands!=0)sun=.12+.4*smoothstep(.20-s,.20+s,sun)+.48*smoothstep(.58-s,.58+s,sun);
+  float visibility=1.;if(shadowMode!=0)visibility=fragmentReceiver!=0?stableReceiver(worldPosition,vec3(0,1,0),bias*.000015):stableReceiver(rootPosition,rootNormal,bias*.000015);
+  vec3 direct=mix(vec3(dot(sunColor,vec3(.2126,.7152,.0722))),sunColor,sunTint);vec3 ambient=mix(ambientGround,ambientSky,clamp(rootNormal.y*.5+.5,0.,1.));vec3 light=ambient+direct*sun*mix(receiverFloor,1.,visibility);vec3 lit=max(vec3(0),albedo*light*exposure);lit=lit/(1.+lit*.18);vec3 display=pow(clamp(lit,0.,1.),vec3(1./2.2));
+  if(diagnostic==1)display=pow(clamp(albedo,0.,1.),vec3(1./2.2));if(diagnostic==4)display=vec3(visibility);if(diagnostic==5)display=familyID==0?vec3(1,.8,.1):familyID==1?vec3(.2,1,.3):familyID==2?vec3(.1,.8,1):vec3(.55,.2,.85);
+  color=vec4(display,1);normals=vec4(n*.5+.5,.025);return;
+ }
+ vec3 n=normalize(worldNormal);vec3 sd=normalize(sunDirection);float sun=max(0.,dot(n,sd));
  if(fine!=0)sun=max(0.,sd.y); // same ground toon band, mild orientation response below
  if(mode!=0&&bands!=0&&smoothLight==0){float s=max(.001,bandSoftness);sun=.12+.4*smoothstep(.20-s,.20+s,sun)+.48*smoothstep(.58-s,.58+s,sun);}
  vec3 ambient=fine!=0?ambientSky:mix(ambientGround,ambientSky,clamp(n.y*.5+.5,0.,1.));float visibility=1.;
@@ -63,7 +75,7 @@ void main(){if(coverage>0){color=vec4(vec3(coverage==1?0.:1.),1);normals=vec4(.5
  if(fine!=0)light*=1.+.18*(dot(n,sd)-sd.y)*(1.-rootWeight);
  vec3 lit=max(vec3(0),mix(albedo*light*exposure,albedo,.68));lit=lit/(1.+lit*.18);
  vec3 display=pow(clamp(lit,0.,1.),vec3(1./2.2));
- if(diagnostic==1)display=pow(clamp(colour.rgb,0.,1.),vec3(1./2.2));if(diagnostic==2)display=n*.5+.5;if(diagnostic==3)display=vec3(visibility);
+ if(diagnostic==1)display=pow(clamp(colour.rgb,0.,1.),vec3(1./2.2));if(diagnostic==2)display=n*.5+.5;if(diagnostic==3||diagnostic==4)display=vec3(visibility);
  color=vec4(display,1);normals=vec4(n*.5+.5,.025); // no crawling per-leaf ink/highlight
 }
 )GLSL";
@@ -118,10 +130,12 @@ struct MeshRenderer::Impl {
   struct Part {
     GLuint vao = 0, vertices = 0, indices = 0, stream = 0;
     GLsizei count = 0;
+    std::size_t capacity = 0;
   };
-  std::array<Part, 6> parts;
+  std::vector<Part> parts;
   GLuint shader = 0, shadow = 0, pixelGround = 0, pixelGroups = 0;
   std::array<Vec, 6> ramp{};
+  std::array<GLint, 12> families{};
   std::size_t bytes = 0, capacity = 0;
   std::map<std::string_view, GLint> locations;
   ~Impl() {
@@ -138,28 +152,65 @@ struct MeshRenderer::Impl {
 MeshRenderer::MeshRenderer(const MeshClumps &m) {
   mg::load();
   p = std::make_unique<Impl>();
+  p->parts.resize(m.models.size());
   p->capacity = m.all.size();
   std::string fragment(fs);
   auto at = fragment.find("// VISIBILITY");
   fragment.replace(at, 13, visibilityGLSL);
   p->shader = program(vs, fragment.c_str());
   p->shadow = program(meshShadowVS, meshShadowFS);
-  for (const char *n : {"coverage",      "pixelSurface", "pixelGround",
-                        "pixelGroups",   "grassRamp[0]", "grassRamp[1]",
-                        "grassRamp[2]",  "grassRamp[3]", "grassRamp[4]",
-                        "grassRamp[5]",  "VP",           "fine",
-                        "rootAlbedo",    "lightVP",      "lightNormalMatrix",
-                        "sunDirection",  "sunColor",     "ambientSky",
-                        "ambientGround", "exposure",     "bandSoftness",
-                        "bias",          "mode",         "bands",
-                        "smoothLight",   "shadowMode",   "diagnostic",
-                        "cozy",          "softShadow",   "shadowDepth"})
+  for (const char *n : {"coverage",
+                        "pixelSurface",
+                        "pixelGround",
+                        "pixelGroups",
+                        "grassRamp[0]",
+                        "grassRamp[1]",
+                        "grassRamp[2]",
+                        "grassRamp[3]",
+                        "grassRamp[4]",
+                        "grassRamp[5]",
+                        "VP",
+                        "fine",
+                        "rootAlbedo",
+                        "lightVP",
+                        "lightNormalMatrix",
+                        "sunDirection",
+                        "sunColor",
+                        "ambientSky",
+                        "ambientGround",
+                        "exposure",
+                        "bandSoftness",
+                        "bias",
+                        "mode",
+                        "bands",
+                        "smoothLight",
+                        "shadowMode",
+                        "diagnostic",
+                        "cozy",
+                        "softShadow",
+                        "shadowDepth",
+                        "authored",
+                        "fragmentReceiver",
+                        "sunTint",
+                        "receiverFloor"})
     p->locations.emplace(n, mg::GetUniformLocation(p->shader, n));
+  for (int i = 0; i < 12; i++) {
+    auto name = "familyRamp[" + std::to_string(i) + "]";
+    p->families[i] = mg::GetUniformLocation(p->shader, name.c_str());
+  }
   static_assert(sizeof(MeshTransform) == 20 * sizeof(float));
-  for (int tier = 0; tier < 6; tier++) {
+  std::vector<std::size_t> capacities(m.models.size(),
+                                      m.authored ? 0 : m.all.size());
+  if (m.authored)
+    for (int variant : m.variants) {
+      capacities[variant]++;
+      capacities[m.farVariants[variant]]++;
+    }
+  for (std::size_t tier = 0; tier < m.models.size(); tier++) {
     if (m.models[tier].parts.empty())
       continue;
     auto &g = p->parts[tier];
+    g.capacity = std::max(std::size_t(1), capacities[tier]);
     auto &part = m.models[tier].parts[0];
     g.count = static_cast<GLsizei>(part.indices.size());
     mg::GenVertexArrays(1, &g.vao);
@@ -183,8 +234,8 @@ MeshRenderer::MeshRenderer(const MeshClumps &m) {
                    part.indices.data(), GL_STATIC_DRAW);
     mg::GenBuffers(1, &g.stream);
     mg::BindBuffer(GL_ARRAY_BUFFER, g.stream);
-    mg::BufferData(GL_ARRAY_BUFFER, p->capacity * sizeof(MeshTransform),
-                   nullptr, GL_STREAM_DRAW);
+    mg::BufferData(GL_ARRAY_BUFFER, g.capacity * sizeof(MeshTransform), nullptr,
+                   GL_STREAM_DRAW);
     for (int a = 0; a < 5; a++) {
       mg::EnableVertexAttribArray(3 + a);
       mg::VertexAttribPointer(3 + a, 4, GL_FLOAT, GL_FALSE,
@@ -194,7 +245,7 @@ MeshRenderer::MeshRenderer(const MeshClumps &m) {
     }
     p->bytes += part.vertices.size() * sizeof(Vertex) +
                 part.indices.size() * sizeof(std::uint32_t) +
-                p->capacity * sizeof(MeshTransform);
+                g.capacity * sizeof(MeshTransform);
   }
   mg::BindVertexArray(0);
 }
@@ -254,6 +305,14 @@ MeshVisibility MeshRenderer::draw(MeshClumps &m, const Camera &camera,
     for (int i = 0; i < 6; i++)
       vec(("grassRamp[" + std::to_string(i) + "]").c_str(), p->ramp[i]);
     integer("fine", m.options.profile == 2);
+    integer("authored", m.authored);
+    integer("fragmentReceiver", m.fragmentReceiver);
+    mg::Uniform1f(loc("sunTint"), m.sunTint);
+    mg::Uniform1f(loc("receiverFloor"), m.shadowFloor);
+    for (int i = 0; i < 12; i++) {
+      auto c = m.familyRamp[i];
+      mg::Uniform3f(p->families[i], c.x, c.y, c.z);
+    }
     vec("rootAlbedo", m.baseAlbedo);
     matrix("VP", vp);
     matrix("lightVP", light);
@@ -269,7 +328,7 @@ MeshVisibility MeshRenderer::draw(MeshClumps &m, const Camera &camera,
     integer("bands", bands);
     integer("smoothLight", smooth);
     integer("shadowMode", shadowMode);
-    integer("diagnostic", 0);
+    integer("diagnostic", m.diagnostic);
     integer("cozy", look.cozy);
     integer("softShadow", soft);
     integer("shadowDepth", 3);
@@ -282,7 +341,7 @@ MeshVisibility MeshRenderer::draw(MeshClumps &m, const Camera &camera,
     mg::Enable(GL_CULL_FACE);
     mg::CullFace(GL_BACK);
     mg::Disable(GL_BLEND);
-    for (int i = 0; i < 6; i++) {
+    for (std::size_t i = 0; i < m.models.size(); i++) {
       const auto &data = m.batches[i];
       if (data.empty())
         continue;
@@ -291,7 +350,7 @@ MeshVisibility MeshRenderer::draw(MeshClumps &m, const Camera &camera,
         mg::Disable(GL_CULL_FACE);
       else
         mg::Enable(GL_CULL_FACE);
-      submit(g.vao, g.stream, g.count, data, p->capacity);
+      submit(g.vao, g.stream, g.count, data, g.capacity);
       s.draws++;
       s.triangles += data.size() * std::size_t(g.count / 3);
     }

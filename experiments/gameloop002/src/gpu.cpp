@@ -111,6 +111,13 @@ uniform mat4 model,viewProjection;
 out vec3 worldPosition;out vec3 worldNormal;out vec2 uv;out vec4 tint;
 void main(){mat4 skin=mat4(1);if(skinned!=0)skin=bones[int(jointIndices.x)]*jointWeights.x+bones[int(jointIndices.y)]*jointWeights.y+bones[int(jointIndices.z)]*jointWeights.z+bones[int(jointIndices.w)]*jointWeights.w;vec4 p=model*skin*vec4(position,1);worldPosition=p.xyz;worldNormal=mat3(model)*mat3(skin)*normal;uv=texcoord;tint=vertexColor;gl_Position=viewProjection*p;}
 )GLSL";
+// Optional canopy transmittance proxy, anchored in the fixed sun projection.
+// The same ray samples the same authored alpha through front/back surfaces.
+// This is not geometric leaf porosity and never runs for grass or legacy trees.
+static constexpr const char *canopyShadowFS = R"GLSL(#version 330 core
+in vec2 uv,canopyUV;in float alpha;uniform sampler2D albedo;uniform int textured,alphaMode,leafProxy;uniform float cutoff,factorAlpha;
+void main(){if(alphaMode==1){float a=factorAlpha*alpha;if(textured!=0)a*=texture(albedo,leafProxy!=0?fract(canopyUV*8.):uv).a;if(a<cutoff)discard;}}
+)GLSL";
 static constexpr const char *meshFS = R"GLSL(#version 330 core
 in vec3 worldPosition;in vec3 worldNormal;in vec2 uv;in vec4 tint;
 uniform int coverage,meadowSolidCount;uniform vec4 meadowSolids[16];uniform sampler2D leafCoverage;
@@ -122,6 +129,7 @@ uniform vec3 sunDirection,sunColor,ambientSky,ambientGround,eye,hazeColor;
 uniform float exposure,bandSoftness,contactStrength,hazeStart,hazeEnd,hazeStrength;
 uniform vec4 contacts[12];
 uniform int pixelMaterial;uniform int artStyle,diagnostic,sampling,vertexTint,kind,architecture,leafy,smoothLighting,receiverCorrection;uniform float biasScale;
+uniform int receiveShadows,patchStudy;uniform float surfaceSunTint,surfaceShadowFloor;uniform sampler2D patchIDs;
 uniform int shadowMode;uniform sampler2D groundShadow;
 // VISIBILITY
 float hash2(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
@@ -135,6 +143,7 @@ vec3 shadeNormal=mode==0?normalize(cross(dFdx(worldPosition),dFdy(worldPosition)
 if(dot(shadeNormal,n)<0)shadeNormal=-shadeNormal;
 if(coverage>0){float value=ground!=0&&designated(worldPosition.xz)&&(coverage!=4||length(worldPosition.xz-eye.xz)<=5.)?((coverage==1||coverage==4)?1.:coverage==3?step(.5,texture(leafCoverage,uv).r):0.):0.;color=vec4(vec3(value),1);normals=vec4(n*.5+.5,1);return;}
 if(diagnostic==1){color=vec4(pow(clamp(a.rgb,0.,1.),vec3(1./2.2)),1);normals=vec4(n*.5+.5,1);return;}
+if(diagnostic==5&&patchStudy!=0){int family=clamp(int(round(texture(patchIDs,uv).r*255.)),0,3);vec3 c=family==0?vec3(1,.8,.1):family==1?vec3(.2,1,.3):family==2?vec3(.1,.8,1):vec3(.55,.2,.85);color=vec4(ground!=0&&patchStudy!=0?c:vec3(.18),1);normals=vec4(n*.5+.5,.025);return;}
 if(diagnostic==2){color=vec4(shadeNormal*.5+.5,1);normals=vec4(n*.5+.5,1);return;}
 if(diagnostic==3){color=vec4(tint.rgb,1);normals=vec4(n*.5+.5,1);return;}
 if(diagnostic==5){color=vec4(ground!=0?vec3(.2,.6,.1):foliage!=0?vec3(.1,.5,.3):kind==1?vec3(.6,.3,.1):kind==2?vec3(.9,.8,.6):kind==3?vec3(.8,.2,.1):kind==4?vec3(.4,.4,.5):vec3(.6,.6,.6),1);normals=vec4(n*.5+.5,1);return;}
@@ -158,10 +167,10 @@ vec3 ambient=mix(ambientGround,ambientSky,clamp(shadeNormal.y*.5+.5,0.,1.));
 // Authored style maps only: keep three calm form tones and avoid black trim.
 if(pixelMaterial!=0){float d=max(0.,dot(shadeNormal,normalize(sunDirection)));sun=.22+.40*smoothstep(.25-.025,.25+.025,d)+.38*smoothstep(.67-.025,.67+.025,d);ambient=mix(ambient,vec3(.20,.23,.22),.35);}
 float visibility=1.;
-if(shadowMode==1||shadowMode==2)visibility=stableShadow!=0?stableReceiver(worldPosition,normalize(cross(dFdx(worldPosition),dFdy(worldPosition))),biasScale*.000015):receiverCorrection!=0?receiverShadow(worldPosition,biasScale*.00006):sunlight(worldPosition,biasScale*max(.00055,.0010*(1.-max(0.,dot(n,sunDirection)))));
+if(receiveShadows!=0&&(shadowMode==1||shadowMode==2))visibility=stableShadow!=0?stableReceiver(worldPosition,normalize(cross(dFdx(worldPosition),dFdy(worldPosition))),biasScale*.000015):receiverCorrection!=0?receiverShadow(worldPosition,biasScale*.00006):sunlight(worldPosition,biasScale*max(.00055,.0010*(1.-max(0.,dot(n,sunDirection)))));
 else if(shadowMode==3&&ground!=0&&all(lessThan(abs(worldPosition.xz),vec2(24))))visibility=texture(groundShadow,worldPosition.xz/48.+.5).r;
 if(diagnostic==4){color=vec4(vec3(visibility),1);normals=vec4(n*.5+.5,1);return;}
-vec3 light=ambient+sunColor*sun*visibility;
+vec3 direct=mix(vec3(dot(sunColor,vec3(.2126,.7152,.0722))),sunColor,surfaceSunTint);vec3 light=ambient+direct*sun*mix(surfaceShadowFloor,1.,visibility);
 if(ground!=0&&contactStrength>0.){
  float occlusion=0.;
  for(int i=0;i<contactCount;i++){
@@ -235,6 +244,7 @@ struct Gpu::Impl {
   std::map<std::filesystem::path, GLuint> textures;
   std::vector<Draw> blends;
   std::vector<Material> materials;
+  std::vector<SurfacePolicy> policies;
   Look look;
   std::vector<std::array<float, 4>> contacts, wordlineContacts;
   std::uint64_t shadowSignature = 0;
@@ -256,6 +266,7 @@ struct Gpu::Impl {
          shaftFbo = 0, shaftImage = 0;
   GLuint mesh = 0, post = 0, emptyVAO = 0, fbo = 0, postFbo = 0, color = 0,
          normal = 0, depth = 0, finalColor = 0;
+  bool grassGroundBorrowed = false;
   int w = 0, h = 0;
   std::array<Timer, 64> queries{};
   int active = -1;
@@ -264,10 +275,12 @@ struct Gpu::Impl {
         bandsLoc = -1, alphaLoc = -1, cutoffLoc = -1, outlineLoc = -1,
         groundLoc = -1, foliageLoc = -1, eyeLoc = -1, contactsLoc = -1,
         contactCountLoc = -1;
+  GLint receivesLoc = -1, sunTintLoc = -1, shadowFloorLoc = -1;
   ~Impl() {
     grassRenderer.reset();
     gl::DeleteTextures(1, &leafCoverage);
-    gl::DeleteTextures(1, &grassGround);
+    if (!grassGroundBorrowed)
+      gl::DeleteTextures(1, &grassGround);
     gl::DeleteTextures(1, &grassGroups);
     for (auto &q : queries)
       if (q.id)
@@ -397,7 +410,11 @@ Gpu::Gpu(World &world, bool allowSoftware) {
   gl::SamplerParameteri(p->linearSampler, GL_TEXTURE_MIN_FILTER,
                         GL_LINEAR_MIPMAP_LINEAR);
   gl::SamplerParameteri(p->linearSampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  p->shadowProgram = program(hasSkins ? shadowVS : staticShadowVS, shadowFS);
+  std::string casterVS(hasSkins ? shadowVS : staticShadowVS);
+  casterVS.insert(casterVS.find("void main"), "out vec2 canopyUV;\n");
+  casterVS.insert(casterVS.rfind('}'),
+                  "canopyUV=gl_Position.xy/gl_Position.w*.5+.5;");
+  p->shadowProgram = program(casterVS.c_str(), canopyShadowFS);
   p->bakeProgram = program(postVS, visibility(groundFS).c_str());
   p->shaftProgram = program(postVS, visibility(shaftsFS).c_str());
   p->post = program(postVS, postFS);
@@ -429,6 +446,9 @@ Gpu::Gpu(World &world, bool allowSoftware) {
   p->eyeLoc = gl::GetUniformLocation(p->mesh, "eye");
   p->contactsLoc = gl::GetUniformLocation(p->mesh, "contacts");
   p->contactCountLoc = gl::GetUniformLocation(p->mesh, "contactCount");
+  p->receivesLoc = gl::GetUniformLocation(p->mesh, "receiveShadows");
+  p->sunTintLoc = gl::GetUniformLocation(p->mesh, "surfaceSunTint");
+  p->shadowFloorLoc = gl::GetUniformLocation(p->mesh, "surfaceShadowFloor");
   gl::Uniform1i(gl::GetUniformLocation(p->mesh, "albedo"), 0);
   gl::UseProgram(p->post);
   gl::Uniform1i(gl::GetUniformLocation(p->post, "sceneColor"), 0);
@@ -448,6 +468,7 @@ Gpu::Gpu(World &world, bool allowSoftware) {
                  bool, std::array<float, 3>, int>;
   std::map<MaterialKey, std::size_t> materialPool;
   for (auto &model : world.models) {
+    p->policies.push_back({});
     p->models.emplace_back();
     auto &parts = p->models.back();
     std::vector<std::size_t> materialRemap;
@@ -627,6 +648,13 @@ void Gpu::setGrass(MeshClumps *m, const std::filesystem::path &ground,
   p->grassRenderer = std::make_unique<MeshRenderer>(*m);
   bufferBytes += p->grassRenderer->bytes();
   auto upload = [&](const std::filesystem::path &path, GLuint &tex, bool srgb) {
+    // R2 roots sample the exact already-resident terrain albedo at mip0.
+    // Borrow ownership; only the material texture pool deletes this object.
+    if (m->authored && srgb && p->textures.contains(path)) {
+      tex = p->textures.at(path);
+      p->grassGroundBorrowed = true;
+      return;
+    }
     auto image = loadImage(path);
     gl::GenTextures(1, &tex);
     gl::BindTexture(GL_TEXTURE_2D, tex);
@@ -663,6 +691,14 @@ void Gpu::setGrass(MeshClumps *m, const std::filesystem::path &ground,
   if (index != 6)
     throw std::runtime_error("grass palette requires3pairs");
   p->grassRenderer->setPixelSurface(p->grassGround, p->grassGroups, ramp);
+}
+void Gpu::setSurfacePolicy(std::size_t model, const SurfacePolicy &v) {
+  if (model >= p->policies.size() || !std::isfinite(v.sunTint) ||
+      v.sunTint < 0 || v.sunTint > 1 || !std::isfinite(v.shadowFloor) ||
+      v.shadowFloor < 0 || v.shadowFloor > .35f)
+    throw std::runtime_error("surface policy range");
+  p->policies[model] = v;
+  p->shadowValid = p->groundValid = false;
 }
 void Gpu::setIntegration(const Integration &v) {
   v.validate();
@@ -816,8 +852,12 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
       p->effects.shadow != Shadow::Off || p->effects.shafts == Shafts::Volume;
   if (p->integration.stableShadow && needsMap) {
     std::uint64_t signature = 1469598103934665603ULL;
+    for (float f : {p->look.sunDirection.x, p->look.sunDirection.y,
+                    p->look.sunDirection.z})
+      signature =
+          (signature ^ std::bit_cast<std::uint32_t>(f)) * 1099511628211ULL;
     for (const auto &i : world.instances) {
-      if (world.models[i.model].rig)
+      if (world.models[i.model].rig || !p->policies[i.model].casts)
         continue;
       signature = (signature ^ i.model) * 1099511628211ULL;
       for (float f : i.matrix.v)
@@ -864,6 +904,8 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
       uniformInt(p->shadowProgram, "albedo", 0);
       Frustum lightFrustum(p->lightVP);
       for (auto &instance : world.instances) {
+        if (!p->policies[instance.model].casts)
+          continue;
         if (world.models[instance.model].rig &&
             p->effects.shadow != Shadow::Live)
           continue;
@@ -913,6 +955,14 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
           uniformInt(p->shadowProgram, "textured", !mat.texture.empty());
           uniformInt(p->shadowProgram, "alphaMode", int(mat.alpha));
           uniformFloat(p->shadowProgram, "cutoff", mat.cutoff);
+          uniformInt(p->shadowProgram, "leafProxy",
+                     p->policies[instance.model].leafShadowMask &&
+                         mat.foliage && !mat.texture.empty());
+          if (p->policies[instance.model].leafShadowMask && mat.foliage &&
+              !mat.texture.empty()) {
+            uniformInt(p->shadowProgram, "alphaMode", int(Alpha::Mask));
+            uniformFloat(p->shadowProgram, "cutoff", .5f);
+          }
           uniformFloat(p->shadowProgram, "factorAlpha", mat.color[3]);
           if (!mat.texture.empty()) {
             bind(0, p->textures.at(mat.texture));
@@ -923,6 +973,15 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
           gl::DrawElements(GL_TRIANGLES, part.count, GL_UNSIGNED_INT, nullptr);
           stats.draws++;
           stats.shadowDraws++;
+          const auto &id = world.models[instance.model].id;
+          if (id == "GLADE_TREES")
+            stats.treeCasterDraws++;
+          if (id == "GLADE_ROCKS")
+            stats.rockCasterDraws++;
+          if (id.starts_with("Wall_") || id.starts_with("Roof_") ||
+              id.starts_with("Door") || id.starts_with("Corner_") ||
+              id == "Prop_Chimney")
+            stats.buildingCasterDraws++;
           stats.shadowTriangles += std::size_t(part.count) / 3;
         }
       }
@@ -963,6 +1022,10 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
   }
   stats.shadowCpuMs = ms(shadowStart, Clock::now());
   gl::UseProgram(p->mesh);
+  uniformInt(p->mesh, "patchStudy", p->grass && p->grass->authored);
+  uniformInt(p->mesh, "patchIDs", 7);
+  bind(7, p->grassGroups);
+  gl::BindSampler(7, 0);
   uniformMatrix(p->mesh, "lightVP", p->lightVP);
   uniformInt(p->mesh, "stableShadow", p->integration.stableShadow);
   uniformInt(p->mesh, "wordlineContacts", p->integration.wordlineContacts);
@@ -1048,6 +1111,9 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     auto &i = world.instances[index];
     auto &part = p->models[i.model][partIndex];
     auto &mat = p->materials[part.material];
+    gl::Uniform1i(p->receivesLoc, p->policies[i.model].receives);
+    gl::Uniform1f(p->sunTintLoc, p->policies[i.model].sunTint);
+    gl::Uniform1f(p->shadowFloorLoc, p->policies[i.model].shadowFloor);
     gl::UniformMatrix4fv(p->modelLoc, 1, GL_FALSE, i.matrix.data());
     uniformInt(p->mesh, "skinned", !i.palette.empty());
     if (!i.palette.empty())
@@ -1115,9 +1181,10 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     }
   }
   if (p->grassRenderer && p->grass && p->coverage != 1 && p->coverage != 4) {
-    stats.grass = p->grassRenderer->draw(*p->grass, effective, vp, p->look,
-                                         p->lightVP, p->shadowDepth, 0, true, 1,
-                                         mode, bands, true, h);
+    stats.grass = p->grassRenderer->draw(
+        *p->grass, effective, vp, p->look, p->lightVP, p->shadowDepth,
+        p->grass->receiveShadows ? static_cast<int>(p->effects.shadow) : 0,
+        true, 1, mode, bands, !p->grass->authored, h);
     stats.draws += stats.grass.draws;
     gl::UseProgram(p->mesh);
     currentMaterial = std::numeric_limits<std::size_t>::max();
