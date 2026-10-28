@@ -947,6 +947,8 @@ int main(int argc, char **argv) {
     while (gpu.pollTimer(qi, qms))
       timers << qi << ',' << qms << '\n';
     gpu.save(o.out / "final_world.ppm");
+    if (o.diagnostic == 4 || o.cacheProbe)
+      gpu.saveDiagnostics(o.out);
     int ow = 0, oh = 0;
     SDL_GetWindowSizeInPixels(
         screen.window, &ow,
