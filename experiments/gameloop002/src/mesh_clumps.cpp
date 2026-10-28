@@ -13,6 +13,7 @@ MeshClumps::MeshClumps(const std::filesystem::path &r,
     if (cfg.at("revision").number() != 1)
       throw std::runtime_error("vegetation revision");
     authored = receiveShadows = true;
+    legacy = false;
     sunTint = float(cfg.at("sun_tint").number());
     shadowFloor = float(cfg.at("shadow_floor").number());
     if (!std::isfinite(shadowFloor) || shadowFloor < 0 || shadowFloor > .35f)

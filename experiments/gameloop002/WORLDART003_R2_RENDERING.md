@@ -22,7 +22,7 @@ Controls:
 - `--grass-receiver root|fragment` compares existing limited stable PCF methods.
 - `--diagnostic lit|albedo|patch|visibility` outputs native debug renders.
 - `--canopy-shadow solid|mask` compares solid canopy shadows with a bounded
-  authored alpha-mask proxy in its shadow pass only. This is not geometric leaf
+  authored alpha-mask proxy in its shadow pass only, anchored to the fixed sunlight projection so front/back surfaces share a ray-coherent sample. This is not geometric leaf
   porosity or Holland's billboard-instance tree method.
 - `--shadow-cache-probe` is an isolated automated test: caster transform atframe10,
   sun direction at20, camera-only yaw at30. Disabled for normal play.

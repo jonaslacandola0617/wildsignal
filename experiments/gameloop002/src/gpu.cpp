@@ -111,6 +111,13 @@ uniform mat4 model,viewProjection;
 out vec3 worldPosition;out vec3 worldNormal;out vec2 uv;out vec4 tint;
 void main(){mat4 skin=mat4(1);if(skinned!=0)skin=bones[int(jointIndices.x)]*jointWeights.x+bones[int(jointIndices.y)]*jointWeights.y+bones[int(jointIndices.z)]*jointWeights.z+bones[int(jointIndices.w)]*jointWeights.w;vec4 p=model*skin*vec4(position,1);worldPosition=p.xyz;worldNormal=mat3(model)*mat3(skin)*normal;uv=texcoord;tint=vertexColor;gl_Position=viewProjection*p;}
 )GLSL";
+// Optional canopy transmittance proxy, anchored in the fixed sun projection.
+// The same ray samples the same authored alpha through front/back surfaces.
+// This is not geometric leaf porosity and never runs for grass or legacy trees.
+static constexpr const char *canopyShadowFS = R"GLSL(#version 330 core
+in vec2 uv,canopyUV;in float alpha;uniform sampler2D albedo;uniform int textured,alphaMode,leafProxy;uniform float cutoff,factorAlpha;
+void main(){if(alphaMode==1){float a=factorAlpha*alpha;if(textured!=0)a*=texture(albedo,leafProxy!=0?fract(canopyUV*8.):uv).a;if(a<cutoff)discard;}}
+)GLSL";
 static constexpr const char *meshFS = R"GLSL(#version 330 core
 in vec3 worldPosition;in vec3 worldNormal;in vec2 uv;in vec4 tint;
 uniform int coverage,meadowSolidCount;uniform vec4 meadowSolids[16];uniform sampler2D leafCoverage;
@@ -259,6 +266,7 @@ struct Gpu::Impl {
          shaftFbo = 0, shaftImage = 0;
   GLuint mesh = 0, post = 0, emptyVAO = 0, fbo = 0, postFbo = 0, color = 0,
          normal = 0, depth = 0, finalColor = 0;
+  bool grassGroundBorrowed = false;
   int w = 0, h = 0;
   std::array<Timer, 64> queries{};
   int active = -1;
@@ -267,10 +275,12 @@ struct Gpu::Impl {
         bandsLoc = -1, alphaLoc = -1, cutoffLoc = -1, outlineLoc = -1,
         groundLoc = -1, foliageLoc = -1, eyeLoc = -1, contactsLoc = -1,
         contactCountLoc = -1;
+  GLint receivesLoc = -1, sunTintLoc = -1, shadowFloorLoc = -1;
   ~Impl() {
     grassRenderer.reset();
     gl::DeleteTextures(1, &leafCoverage);
-    gl::DeleteTextures(1, &grassGround);
+    if (!grassGroundBorrowed)
+      gl::DeleteTextures(1, &grassGround);
     gl::DeleteTextures(1, &grassGroups);
     for (auto &q : queries)
       if (q.id)
@@ -400,7 +410,11 @@ Gpu::Gpu(World &world, bool allowSoftware) {
   gl::SamplerParameteri(p->linearSampler, GL_TEXTURE_MIN_FILTER,
                         GL_LINEAR_MIPMAP_LINEAR);
   gl::SamplerParameteri(p->linearSampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  p->shadowProgram = program(hasSkins ? shadowVS : staticShadowVS, shadowFS);
+  std::string casterVS(hasSkins ? shadowVS : staticShadowVS);
+  casterVS.insert(casterVS.find("void main"), "out vec2 canopyUV;\n");
+  casterVS.insert(casterVS.rfind('}'),
+                  "canopyUV=gl_Position.xy/gl_Position.w*.5+.5;");
+  p->shadowProgram = program(casterVS.c_str(), canopyShadowFS);
   p->bakeProgram = program(postVS, visibility(groundFS).c_str());
   p->shaftProgram = program(postVS, visibility(shaftsFS).c_str());
   p->post = program(postVS, postFS);
@@ -432,6 +446,9 @@ Gpu::Gpu(World &world, bool allowSoftware) {
   p->eyeLoc = gl::GetUniformLocation(p->mesh, "eye");
   p->contactsLoc = gl::GetUniformLocation(p->mesh, "contacts");
   p->contactCountLoc = gl::GetUniformLocation(p->mesh, "contactCount");
+  p->receivesLoc = gl::GetUniformLocation(p->mesh, "receiveShadows");
+  p->sunTintLoc = gl::GetUniformLocation(p->mesh, "surfaceSunTint");
+  p->shadowFloorLoc = gl::GetUniformLocation(p->mesh, "surfaceShadowFloor");
   gl::Uniform1i(gl::GetUniformLocation(p->mesh, "albedo"), 0);
   gl::UseProgram(p->post);
   gl::Uniform1i(gl::GetUniformLocation(p->post, "sceneColor"), 0);
@@ -631,6 +648,13 @@ void Gpu::setGrass(MeshClumps *m, const std::filesystem::path &ground,
   p->grassRenderer = std::make_unique<MeshRenderer>(*m);
   bufferBytes += p->grassRenderer->bytes();
   auto upload = [&](const std::filesystem::path &path, GLuint &tex, bool srgb) {
+    // R2 roots sample the exact already-resident terrain albedo at mip0.
+    // Borrow ownership; only the material texture pool deletes this object.
+    if (m->authored && srgb && p->textures.contains(path)) {
+      tex = p->textures.at(path);
+      p->grassGroundBorrowed = true;
+      return;
+    }
     auto image = loadImage(path);
     gl::GenTextures(1, &tex);
     gl::BindTexture(GL_TEXTURE_2D, tex);
@@ -931,6 +955,9 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
           uniformInt(p->shadowProgram, "textured", !mat.texture.empty());
           uniformInt(p->shadowProgram, "alphaMode", int(mat.alpha));
           uniformFloat(p->shadowProgram, "cutoff", mat.cutoff);
+          uniformInt(p->shadowProgram, "leafProxy",
+                     p->policies[instance.model].leafShadowMask &&
+                         mat.foliage && !mat.texture.empty());
           if (p->policies[instance.model].leafShadowMask && mat.foliage &&
               !mat.texture.empty()) {
             uniformInt(p->shadowProgram, "alphaMode", int(Alpha::Mask));
@@ -1084,10 +1111,9 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     auto &i = world.instances[index];
     auto &part = p->models[i.model][partIndex];
     auto &mat = p->materials[part.material];
-    uniformInt(p->mesh, "receiveShadows", p->policies[i.model].receives);
-    uniformFloat(p->mesh, "surfaceSunTint", p->policies[i.model].sunTint);
-    uniformFloat(p->mesh, "surfaceShadowFloor",
-                 p->policies[i.model].shadowFloor);
+    gl::Uniform1i(p->receivesLoc, p->policies[i.model].receives);
+    gl::Uniform1f(p->sunTintLoc, p->policies[i.model].sunTint);
+    gl::Uniform1f(p->shadowFloorLoc, p->policies[i.model].shadowFloor);
     gl::UniformMatrix4fv(p->modelLoc, 1, GL_FALSE, i.matrix.data());
     uniformInt(p->mesh, "skinned", !i.palette.empty());
     if (!i.palette.empty())

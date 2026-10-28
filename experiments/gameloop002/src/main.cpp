@@ -528,6 +528,8 @@ int main(int argc, char **argv) {
         << "\ngrass_cast=0\nshadow_enabled=" << o.shadows
         << "\nreceiver=" << (o.fragmentReceiver ? "fragment" : "root")
         << "\ndiagnostic=" << o.diagnostic << "\n";
+    log << "grass_models=" << grass.models.size()
+        << "\nlegacy_fine_models_loaded=" << (grass.authored ? 0 : 6) << "\n";
     log.flush();
     std::ofstream frames(o.out / "frames.csv"), timers(o.out / "gpu.csv"),
         events(o.out / "events.csv");
@@ -540,7 +542,8 @@ int main(int argc, char **argv) {
               "target_z,follower_stalled,follower_plans,second_x,second_z,"
               "second_state,player_yaw,grass_total,grass_culled,grass_shadow_"
               "draws,grass_shadow_triangles,tree_caster_draws,rock_caster_"
-              "draws,building_caster_draws,shadow_cache_invalidations\n";
+              "draws,building_caster_draws,shadow_cache_invalidations,shadow_"
+              "cpu_ms\n";
     timers << "frame,gpu_elapsed_ms\n";
     events << "frame,event,phase,hp,enemy_hp,recruited,x,z\n";
     auto event = [&](int f, const std::string &name) {
@@ -929,7 +932,8 @@ int main(int argc, char **argv) {
              << stats.grass.culled << ',' << stats.grass.shadowDraws << ','
              << stats.grass.shadowTriangles << ',' << stats.treeCasterDraws
              << ',' << stats.rockCasterDraws << ',' << stats.buildingCasterDraws
-             << ',' << gpu.shadowCacheInvalidations << '\n';
+             << ',' << gpu.shadowCacheInvalidations << ',' << stats.shadowCpuMs
+             << '\n';
       lastSwap = swapped;
       if (frame % 120 == 0) {
         frames.flush();
