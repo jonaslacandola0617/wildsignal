@@ -139,7 +139,7 @@ void main(){vec4 a=factor*(vertexTint!=0?tint:vec4(1));if(textured!=0)a*=(sampli
 vec3 n=normalize(worldNormal);if(!gl_FrontFacing)n=-n;
 // Derivatives give actual planar triangle lighting in BASE without rewriting
 // the original mesh normals. TOON/normal outlines retain authored normals.
-vec3 shadeNormal=mode==0?normalize(cross(dFdx(worldPosition),dFdy(worldPosition))):n;
+vec3 shadeNormal=n; // A/B share the original supplied normals; no flat diagnostic bias.
 if(dot(shadeNormal,n)<0)shadeNormal=-shadeNormal;
 if(coverage>0){float value=ground!=0&&designated(worldPosition.xz)&&(coverage!=4||length(worldPosition.xz-eye.xz)<=5.)?((coverage==1||coverage==4)?1.:coverage==3?step(.5,texture(leafCoverage,uv).r):0.):0.;color=vec4(vec3(value),1);normals=vec4(n*.5+.5,1);return;}
 if(diagnostic==1){color=vec4(pow(clamp(a.rgb,0.,1.),vec3(1./2.2)),1);normals=vec4(n*.5+.5,1);return;}
