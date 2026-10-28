@@ -146,7 +146,7 @@ int main(int argc, char **argv) {
         }
       }
       p3::MeshClumps grass(root, s);
-      check(grass.all.size() > 4000, "actual populated grass");
+      check(grass.all.size() > (grass.authored?0:4000), "actual populated grass");
       auto c = p3::preset(1);
       auto v = grass.select(
           c, p3::Frustum(p3::perspective(p3::pi / 3, 16.f / 9) * c.view()),

@@ -14,6 +14,12 @@ struct GpuStats {
   double cpuSubmitMs = 0, gpuMs = -1;
   std::size_t draws = 0, shadowDraws = 0, shadowTriangles = 0;
   double shadowCpuMs = 0, shaftCpuMs = 0;
+  std::size_t treeCasterDraws = 0, rockCasterDraws = 0, buildingCasterDraws = 0;
+};
+struct SurfacePolicy {
+  bool casts = true, receives = true;
+  float sunTint = 1, shadowFloor = 0;
+  bool leafShadowMask = false;
 };
 struct Image {
   int w = 0, h = 0;
@@ -31,6 +37,7 @@ struct Gpu {
               materialsOriginal = 0, cpuGeometryReleased = 0;
   Gpu(World &, bool allowSoftware);
   void setIntegration(const Integration &);
+  void setSurfacePolicy(std::size_t model, const SurfacePolicy &);
   void setGrass(MeshClumps *, const std::filesystem::path &,
                 const std::filesystem::path &);
   void setCoverage(int, const std::vector<game::Solid> &,
