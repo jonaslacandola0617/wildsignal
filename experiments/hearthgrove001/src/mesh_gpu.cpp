@@ -17,17 +17,17 @@ namespace mg {
   F(GenBuffers)                                                                \
   F(DeleteBuffers)                                                             \
   F(BindBuffer)                                                                \
-  F(BufferData) F(BufferSubData) F(EnableVertexAttribArray)                    \
-      F(VertexAttribPointer) F(VertexAttribDivisor) F(DrawElementsInstanced)   \
-          F(CreateShader) F(ShaderSource) F(CompileShader) F(GetShaderiv)      \
-              F(GetShaderInfoLog) F(DeleteShader) F(CreateProgram)             \
-                  F(AttachShader) F(LinkProgram) F(GetProgramiv)               \
-                      F(GetProgramInfoLog) F(DeleteProgram) F(UseProgram)      \
-                          F(GetUniformLocation) F(UniformMatrix4fv)            \
-                              F(Uniform3f) F(Uniform1i) F(Uniform1f) F(Enable) \
-                                  F(Disable) F(DepthMask) F(DepthFunc)         \
-                                      F(CullFace) F(ActiveTexture)             \
-                                          F(BindTexture) F(BindSampler)
+  F(BufferData)                                                                \
+  F(BufferSubData) F(EnableVertexAttribArray) F(VertexAttribPointer)           \
+      F(VertexAttribDivisor) F(DrawElementsInstanced) F(CreateShader)          \
+          F(ShaderSource) F(CompileShader) F(GetShaderiv) F(GetShaderInfoLog)  \
+              F(DeleteShader) F(CreateProgram) F(AttachShader) F(LinkProgram)  \
+                  F(GetProgramiv) F(GetProgramInfoLog) F(DeleteProgram)        \
+                      F(UseProgram) F(GetUniformLocation) F(UniformMatrix4fv)  \
+                          F(Uniform3f) F(Uniform1i) F(Uniform1f) F(Enable)     \
+                              F(Disable) F(DepthMask) F(DepthFunc) F(CullFace) \
+                                  F(ActiveTexture) F(BindTexture)              \
+                                      F(BindSampler)
 #define DECL(n) static decltype(&::gl##n) n;
 FNS(DECL)
 #undef DECL
@@ -48,7 +48,7 @@ void main(){bladeHeight=position.y;vec4 p=instance*vec4(position,1);worldPositio
 )GLSL";
 static const char *fs = R"GLSL(#version 330 core
 in vec3 worldPosition,worldNormal;in vec4 colour;flat in vec3 rootPosition,rootColour;flat in int familyID;flat in vec3 rootNormal;in float rootWeight;in float bladeHeight;
-uniform int authored,fragmentReceiver;uniform vec3 familyRamp[12];uniform float sunTint,receiverFloor;
+uniform int authored,fragmentReceiver;uniform vec3 familyRamp[12];uniform float sunTint,receiverFloor,tileSpacing;
 uniform int coverage;uniform sampler2D pixelGround,pixelGroups;uniform int pixelSurface;uniform vec3 grassRamp[6];
 uniform vec3 sunDirection,sunColor,ambientSky,ambientGround;uniform float exposure,bandSoftness,bias;
 uniform int mode,bands,smoothLight,shadowMode,diagnostic,cozy,fine;
@@ -56,7 +56,7 @@ uniform int mode,bands,smoothLight,shadowMode,diagnostic,cozy,fine;
 layout(location=0)out vec4 color;layout(location=1)out vec4 normals;
 void main(){if(coverage>0){color=vec4(vec3(coverage==1?0.:1.),1);normals=vec4(.5,1,.5,.025);return;}
  if(authored!=0){
-  vec3 n=normalize(worldNormal),sd=normalize(sunDirection);ivec2 size=textureSize(pixelGround,0);ivec2 at=clamp(ivec2(floor(fract((rootPosition.xz+6.)/12.)*vec2(size))),ivec2(0),size-1);vec3 root=texelFetch(pixelGround,at,0).rgb;
+  vec3 n=normalize(worldNormal),sd=normalize(sunDirection);ivec2 size=textureSize(pixelGround,0);ivec2 at=clamp(ivec2(floor(((rootPosition.xz-tileSpacing*floor((rootPosition.xz+tileSpacing*.5)/tileSpacing)+6.)/12.)*vec2(size))),ivec2(0),size-1);vec3 root=texelFetch(pixelGround,at,0).rgb;
   float region=clamp((colour.a-.1)/.9,0.,1.);vec3 body=mix(familyRamp[familyID*3+1],familyRamp[familyID*3+2],smoothstep(.35,1.,region));vec3 albedo=colour.a<.05?colour.rgb:mix(body,root,rootWeight);
   float sun=max(0.,dot(rootNormal,sd));float s=max(.001,bandSoftness);if(mode!=0&&bands!=0)sun=.12+.4*smoothstep(.20-s,.20+s,sun)+.48*smoothstep(.58-s,.58+s,sun);
   float visibility=1.;if(shadowMode!=0)visibility=fragmentReceiver!=0?stableReceiver(worldPosition,vec3(0,1,0),bias*.000015):stableReceiver(rootPosition,rootNormal,bias*.000015);
@@ -193,7 +193,8 @@ MeshRenderer::MeshRenderer(const MeshClumps &m) {
                         "authored",
                         "fragmentReceiver",
                         "sunTint",
-                        "receiverFloor"})
+                        "receiverFloor",
+                        "tileSpacing"})
     p->locations.emplace(n, mg::GetUniformLocation(p->shader, n));
   for (int i = 0; i < 12; i++) {
     auto name = "familyRamp[" + std::to_string(i) + "]";
@@ -309,6 +310,7 @@ MeshVisibility MeshRenderer::draw(MeshClumps &m, const Camera &camera,
     integer("authored", m.authored);
     integer("fragmentReceiver", m.fragmentReceiver);
     mg::Uniform1f(loc("sunTint"), m.sunTint);
+    mg::Uniform1f(loc("tileSpacing"), m.tileSpacing);
     mg::Uniform1f(loc("receiverFloor"), m.shadowFloor);
     for (int i = 0; i < 12; i++) {
       auto c = m.familyRamp[i];

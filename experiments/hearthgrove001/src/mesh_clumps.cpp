@@ -24,6 +24,10 @@ MeshClumps::MeshClumps(const std::filesystem::path &r,
     patchMap = safePath(r, cfg.at("patch_ids").string());
     std::vector<ws::Json> rootBatches;
     const auto &object = std::get<ws::Json::Object>(cfg.value);
+    if (auto step = object.find("ground_spacing"); step != object.end())
+      tileSpacing = float(step->second.number());
+    if (!std::isfinite(tileSpacing) || tileSpacing < 11.5f || tileSpacing > 12)
+      throw std::runtime_error("ground tile spacing");
     if (auto files = object.find("instance_files"); files != object.end()) {
       if (files->second.array().size() > 64)
         throw std::runtime_error("vegetation chunk budget");

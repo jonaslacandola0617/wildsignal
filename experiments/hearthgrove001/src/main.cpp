@@ -353,7 +353,8 @@ int main(int argc, char **argv) {
     if (cfg.at("revision").number() != 1)
       throw std::runtime_error("game manifest revision");
     game::configureWorld(float(cfg.at("world_half_extent").number()),
-                         o.assets / "terrain_height.bin");
+                         o.assets / "terrain_height.bin",
+                         float(cfg.at("ground_spacing").number()));
     auto vector3 = [](const ws::Json &v) {
       auto &a = v.array();
       if (a.size() != 3)

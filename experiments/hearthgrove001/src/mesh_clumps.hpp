@@ -29,6 +29,7 @@ struct MeshClumps {
   bool authored = false, receiveShadows = false, fragmentReceiver = false;
   int diagnostic = 0;
   float sunTint = 1;
+  float tileSpacing = 12;
   float shadowFloor = 0;
   int density = 2, coverage = 0;
   bool enabled = true, legacy = false;

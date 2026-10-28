@@ -27,7 +27,8 @@ struct Follower {
   float retry = 0, stalled = 0, routeAge = 0;
   unsigned plans = 0;
 };
-void configureWorld(float halfExtent, const std::filesystem::path &heightGrid);
+void configureWorld(float halfExtent, const std::filesystem::path &heightGrid,
+                    float tileSpacing = 12);
 float terrain(float x, float z);
 float pathX(float z);
 bool meadow(float x, float z, const std::vector<Solid> &);

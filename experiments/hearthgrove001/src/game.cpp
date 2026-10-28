@@ -15,10 +15,13 @@
 #endif
 namespace game {
 namespace {
-float worldHalf = 5.85f;
+float worldHalf = 5.85f, tileStep = 12;
 std::vector<float> heights;
 } // namespace
-void configureWorld(float extent, const std::filesystem::path &path) {
+void configureWorld(float extent, const std::filesystem::path &path,
+                    float spacing) {
+  if (!std::isfinite(spacing) || spacing < 11.5f || spacing > 12)
+    throw std::runtime_error("terrain spacing");
   if (!std::isfinite(extent) || extent < 5.85f || extent > 48)
     throw std::runtime_error("world extent");
   std::ifstream f(path, std::ios::binary);
@@ -39,21 +42,31 @@ void configureWorld(float extent, const std::filesystem::path &path) {
   }
   heights = std::move(values);
   worldHalf = extent;
+  tileStep = spacing;
 }
 float terrain(float x, float z) {
   if (!heights.empty()) {
-    auto local = [](float v) {
-      return v - 12.f * std::floor((v + 6.f) / 12.f);
-    };
-    float u = (local(x) + 6) * 8, v = (local(z) + 6) * 8;
-    int i = std::clamp(int(u), 0, 95), j = std::clamp(int(v), 0, 95);
-    float a = u - i, b = v - j;
-    return (1 - b) *
-               ((1 - a) * heights[j * 97 + i] + a * heights[j * 97 + i + 1]) +
-           b * ((1 - a) * heights[(j + 1) * 97 + i] +
-                a * heights[(j + 1) * 97 + i + 1]);
+    float ox = tileStep * std::floor((x + tileStep * .5f) / tileStep),
+          oz = tileStep * std::floor((z + tileStep * .5f) / tileStep),
+          best = -2;
+    for (int dz = -1; dz <= 1; dz++)
+      for (int dx = -1; dx <= 1; dx++) {
+        float lx = x - (ox + dx * tileStep), lz = z - (oz + dz * tileStep);
+        if (std::abs(lx) > 6 || std::abs(lz) > 6)
+          continue;
+        float u = (lx + 6) * 8, v = (lz + 6) * 8;
+        int i = std::clamp(int(u), 0, 95), j = std::clamp(int(v), 0, 95);
+        float a = u - i, b = v - j;
+        float h = (1 - b) * ((1 - a) * heights[j * 97 + i] +
+                             a * heights[j * 97 + i + 1]) +
+                  b * ((1 - a) * heights[(j + 1) * 97 + i] +
+                       a * heights[(j + 1) * 97 + i + 1]);
+        best = std::max(best, h);
+      }
+    if (best < -1)
+      throw std::runtime_error("outside existing terrain modules");
+    return best;
   }
-
   return .055f * std::sin(x * .62f) * std::cos(z * .47f) -
          .025f * std::sin(z * .83f);
 }
