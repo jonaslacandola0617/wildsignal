@@ -523,7 +523,10 @@ int main(int argc, char **argv) {
     style.mode = 2;
     style.materials = o.pixelMaterials;
     style.smoothLight = false;
-    style.sampling = o.pixelMaterials ? 0 : 1;
+    style.sampling =
+        o.pixelMaterials
+            ? 0
+            : 2; // Source pack samplers are LINEAR / LINEAR_MIPMAP_LINEAR.
     style.diagnostic = o.diagnostic;
     if (o.coverage) {
       style.mode = 0;

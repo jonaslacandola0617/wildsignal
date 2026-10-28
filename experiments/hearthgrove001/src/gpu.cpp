@@ -1123,6 +1123,8 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
                            GLsizei(i.palette.size()), GL_FALSE,
                            i.palette.front().data());
     if (currentMaterial != part.material) {
+      gl::BindSampler(
+          0, !mat.ground && p->style.sampling == 2 ? p->linearSampler : 0);
       currentMaterial = part.material;
       gl::Uniform4fv(p->factorLoc, 1, mat.color.data());
       gl::Uniform3f(gl::GetUniformLocation(p->mesh, "emission"),
