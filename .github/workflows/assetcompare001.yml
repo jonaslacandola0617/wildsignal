@@ -1,0 +1,30 @@
+name: ASSETCOMPARE001 native source-only validation
+on:
+  push:
+    branches: [feat/assetcompare-001-native-three-pack]
+    paths: ['experiments/assetcompare001/**', '.github/workflows/assetcompare001.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows-x64:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - run: cmake -S experiments/assetcompare001 -B build/compare -G "Visual Studio 17 2022" -A x64
+      - run: cmake --build build/compare --config Release --parallel 2
+      - run: ctest --test-dir build/compare -C Release --output-on-failure
+      - run: ./build/compare/Release/wildsignal_assetcompare001.exe --help
+      - run: cmake --install build/compare --config Release --component AssetCompare --prefix out/compare
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: assetcompare001-windows-x64-code-only
+          path: out/compare
+          retention-days: 14
+  linux-logic:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - run: cmake -S experiments/assetcompare001 -B build/compare -DPIXEL3D_BUILD_GL=OFF -DPIXEL3D_SANITIZE=ON -DCMAKE_BUILD_TYPE=Debug
+      - run: cmake --build build/compare --parallel 2
+      - run: ctest --test-dir build/compare --output-on-failure
