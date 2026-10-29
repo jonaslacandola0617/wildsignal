@@ -3,6 +3,7 @@
 #include "game.hpp"
 #include "gpu.hpp"
 #include "json.hpp"
+#include "kit_terrain.hpp"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include <algorithm>
@@ -49,7 +50,7 @@ struct Options {
   std::filesystem::path assets = "assets", save = "saves/hearthgrove_emaceart.json",
                         out = "runs/play", replay;
   std::string preset="balanced",ink="balanced";std::filesystem::path styleSettings;
-  bool contacts=true;
+  bool contacts=true,edgeHighlights=true,edgeOutlines=true,vegetationEdges=true,cleanShadow=true;
   int hudMode=1;bool shadowSet=false,shaftSet=false,hazeSet=false;
   bool sourceTextures = false, legacyFollow = false, legacyGrass = false,
        pixelMaterials = true, debugFollow = false;
@@ -87,10 +88,10 @@ Options options(int argc, char **argv) {
              "--resolution 480|640|1280 "
              "--grass-density off|low|medium|high\n--buildings on|off "
              "--render-mode original|toon --pacing precise|legacy|off\n--cap "
-             "0|30|60 --benchmark --pose 0..8 --frames N --capture-every "
+             "0|30|60 --benchmark --pose 0..15 --frames N --capture-every "
              "N\n--save FILE --new-game --output DIR --allow-software --hidden "
              "--replay FILE --followers trail|legacy --grass-layout "
-             "continuous|legacy\n--worldstyle source|pixel --debug-follow\n--style-preset baseline|balanced|rich --ink off|balanced|bold --style-settings FILE --hud off|compact|debug (F2 toggles) --contacts on|off\n";
+             "continuous|legacy\n--worldstyle source|pixel --debug-follow\n--style-preset baseline|balanced|rich --ink off|balanced|bold --style-settings FILE --hud off|compact|debug (F2 toggles) --contacts on|off\n--shadow-policy clean|legacy --vegetation-edges on|off --highlights on|off --outlines on|off\n";
       std::cout << "Source EmaceArt: --grass-family auto|source "
                    "--grass-scale mixed (original uniform source scale)\n"
                    "--shadow on|off --grass-cast off --grass-receive on|off "
@@ -102,6 +103,8 @@ Options options(int argc, char **argv) {
       std::exit(0);
     } else if (a == "--assets")
       o.assets = value();
+    else if(a=="--shadow-policy"){auto v=value();if(v!="clean"&&v!="legacy")throw std::runtime_error("shadow-policy clean|legacy");o.cleanShadow=v=="clean";}
+    else if(a=="--highlights"||a=="--outlines"||a=="--vegetation-edges"){auto v=value();if(v!="on"&&v!="off")throw std::runtime_error("edges on|off");(a=="--highlights"?o.edgeHighlights:a=="--outlines"?o.edgeOutlines:o.vegetationEdges)=v=="on";}
     else if(a=="--contacts"){auto v=value();if(v!="on"&&v!="off")throw std::runtime_error("contacts on|off");o.contacts=v=="on";}
     else if(a=="--style-preset"){o.preset=value();if(o.preset!="baseline"&&o.preset!="balanced"&&o.preset!="rich")throw std::runtime_error("style-preset baseline|balanced|rich");}
     else if(a=="--style-settings")o.styleSettings=value();
@@ -173,7 +176,7 @@ Options options(int argc, char **argv) {
       else
         throw std::runtime_error("coveragemeadow|geometry|combined");
     } else if (a == "--pose")
-      o.pose = integer(value(), 0, 8);
+      o.pose = integer(value(), 0, 15);
     else if (a == "--grass-family") {
       auto v = value();
       if (v != "auto" && v != "source")
@@ -217,8 +220,12 @@ Options options(int argc, char **argv) {
       else if (v == "visibility")
         o.diagnostic = 4;
 
+      else if(v=="graded")o.diagnostic=7;
+      else if(v=="self-shadow")o.diagnostic=9;
+      else if(v=="families")o.diagnostic=5;
+      else if(v=="highlights")o.diagnostic=10;
       else
-        throw std::runtime_error("diagnostic lit|albedo|visibility|patch");
+        throw std::runtime_error("diagnostic lit|albedo|visibility|patch|graded|self-shadow");
     } else if (a == "--shadow-cache-probe")
       o.cacheProbe = true;
     else if (a == "--canopy-shadow") {
@@ -476,6 +483,10 @@ int main(int argc, char **argv) {
     if (!o.house)
       std::erase_if(world.instances,
                     [](auto &i) { return i.id.starts_with("house_"); });
+    float relief=1;
+    const auto &config=std::get<ws::Json::Object>(cfg.value);
+    if(auto at=config.find("terrain_instance_y_scale");at!=config.end())relief=float(at->second.number());
+    p3::applyKitRelief(world,relief);
     world.partition(3);
     for(auto &m:world.models) for(auto &mat:m.materials) {
       mat.architecture=m.id=="EA_HOUSE"||m.id=="EA_SHED"||m.id=="EA_HOVEL"||m.id.starts_with("EA_FENCE")||m.id=="EA_BENCH"||m.id=="EA_BARREL";
@@ -525,9 +536,11 @@ int main(int argc, char **argv) {
     if (!screen.context || !SDL_GL_MakeCurrent(screen.window, screen.context))
       throw std::runtime_error(SDL_GetError());
     SDL_GL_SetSwapInterval(0);
-    p3::Gpu gpu(world, o.allow);
+    p3::Gpu gpu(world, o.allow);gpu.setTerrainRelief(relief);gpu.setDiagnosticView(o.diagnostic);gpu.setShadowClean(o.cleanShadow);gpu.setSourceView(o.original);
+    log<<"terrain_instance_y_scale="<<relief<<"\nshadow_policy="<<(o.cleanShadow?"clean_object_external":"legacy_full_self")<<"\n";
     auto baselineLook = p3::Look::load(o.assets / "look.json");
     auto profile=p3::StyleProfile::load(o.styleSettings.empty()?o.assets/"style_profiles.json":o.styleSettings,o.preset,baselineLook);
+    profile.organicEdges=o.vegetationEdges;
     profile.inkMode=o.ink=="off"?0:o.ink=="bold"?2:1;
     if(profile.active)profile.majorWidth=o.ink=="bold"?2:1;
     gpu.setProfile(profile);
@@ -541,13 +554,13 @@ int main(int argc, char **argv) {
     p3::Style style;
     style.mode = 2;
     style.materials = false; // exact source pixels; no authored replacement material pass
-    style.highlights = style.outlines = !o.original;
+    style.highlights=!o.original&&o.edgeHighlights;style.outlines=!o.original&&o.edgeOutlines;
     style.smoothLight = false;
     style.sampling =
         o.pixelMaterials
             ? 0
             : 2; // Source pack samplers are LINEAR / LINEAR_MIPMAP_LINEAR.
-    style.diagnostic = o.diagnostic;
+    style.diagnostic = o.diagnostic<=6?o.diagnostic:1;
     if (o.coverage) {
       style.mode = 0;
       style.outlines = false;
@@ -556,7 +569,7 @@ int main(int argc, char **argv) {
     gpu.setStyle(style);
     gpu.setStudy(1,p3::PixelCameraMode::Off,10);
     p3::Integration integration;
-    integration.edges = 3;
+    integration.edges = 3;integration.edgeMask=o.diagnostic==10;
     integration.stableShadow = true;
     gpu.setIntegration(integration);
     p3::Effects effects;
@@ -734,7 +747,7 @@ int main(int argc, char **argv) {
             } else if(e.key.key==SDLK_H) {
               o.haze=!o.haze;look.hazeStrength=o.haze?authoredHaze:0;gpu.setLook(look);event(frame,"haze_toggle");
             } else if(e.key.key==SDLK_F) {
-              o.original=!o.original;style.highlights=style.outlines=!o.original;gpu.setStyle(style);event(frame,"source_toon_toggle");
+              o.original=!o.original;style.highlights=!o.original&&o.edgeHighlights;style.outlines=!o.original&&o.edgeOutlines;gpu.setSourceView(o.original);gpu.setStyle(style);event(frame,"source_toon_toggle");
             } else if(e.key.key==SDLK_L) {
               o.quality=o.quality=="low"?"medium":o.quality=="medium"?"high":"low";updateEffects();event(frame,"quality_toggle");
             } else if (e.key.key == SDLK_G) {
@@ -1037,8 +1050,9 @@ int main(int argc, char **argv) {
     while (gpu.pollTimer(qi, qms))
       timers << qi << ',' << qms << '\n';
     gpu.save(o.out / "final_world.ppm");
-    if (o.diagnostic == 4 || o.cacheProbe)
-      gpu.saveDiagnostics(o.out);
+    if(o.diagnostic>=4){gpu.saveObjectIDs(o.out);std::ofstream ids(o.out/"object_ids.csv");ids<<"owner,instance,model\n";for(std::size_t i=0;i<world.instances.size();i++)ids<<i+1<<','<<world.instances[i].id<<','<<world.models[world.instances[i].model].id<<'\n';}
+    if(o.diagnostic==4||o.diagnostic==9||o.cacheProbe)gpu.saveDiagnostics(o.out);
+    log<<"ownership_target_bytes="<<gpu.ownershipBytes()<<"\n";
     int ow = 0, oh = 0;
     SDL_GetWindowSizeInPixels(
         screen.window, &ow,

@@ -46,9 +46,15 @@ struct Gpu {
   void hud(const std::vector<std::string> &, int, int);
   void setLook(const Look &);
   void setProfile(const StyleProfile &);
+  void setSourceView(bool);
+  void setDiagnosticView(int);
+  void setShadowClean(bool);
+  void setTerrainRelief(float);
   void setStyle(const Style &);
   void setStudy(int, PixelCameraMode, float referenceDepth);
   void saveDiagnostics(const std::filesystem::path &);
+  void saveObjectIDs(const std::filesystem::path &);
+  std::size_t ownershipBytes() const;
   void setEffects(const Effects &);
   std::size_t effectBytes() const;
   ~Gpu();

@@ -57,8 +57,9 @@ uniform float exposure,bandSoftness,bias,normalUpBias,ambientLift,hazeStart,haze
 uniform int mode,bands,smoothLight,shadowMode,diagnostic;
 // PROFILE
 // VISIBILITY
-layout(location=0)out vec4 color;layout(location=1)out vec4 normals;
+layout(location=0)out vec4 color;layout(location=1)out vec4 normals;layout(location=2)out uint sceneOwner;
 void main(){
+ sceneOwner=uint(0);
  vec3 n=normalize(worldNormal),litNormal=normalize(mix(n,rootNormal,normalUpBias));
  vec3 sd=normalize(sunDirection);float sun=max(0.,dot(litNormal,sd));
  if(mode!=0&&bands!=0&&smoothLight==0){float s=max(.001,bandSoftness);sun=profileBand(sun,s);}
@@ -71,8 +72,10 @@ void main(){
  vec3 display=pow(clamp(lit,0.,1.),vec3(1./2.2));
  float haze=smoothstep(hazeStart,hazeEnd,length(worldPosition-eye))*hazeStrength;
  display=mix(display,hazeColor,haze);
+ if(diagnostic==9)display=vec3(0);
+ if(diagnostic==7)display=srgbEncode(clamp(albedo,0.,1.));
  if(diagnostic==1)display=pow(clamp(albedo,0.,1.),vec3(1./2.2));if(diagnostic==4)display=vec3(visibility);
- color=vec4(display,1);normals=vec4(n*.5+.5,.025);
+ color=vec4(display,1);normals=vec4(n*.5+.5,profileGreenOnly!=0?.65:.025);
 }
 )GLSL";
 static const char *meshShadowVS = R"GLSL(#version 330 core
@@ -279,6 +282,7 @@ MeshVisibility MeshRenderer::draw(MeshClumps &m, const Camera &camera,
   auto s = m.select(camera, Frustum(vp), height);
   if (s.visible) {
     mg::UseProgram(p->shader);
+    mg::Uniform1i(mg::GetUniformLocation(p->shader,"profileGreenOnly"),p->profile.greenOnly);
     mg::Uniform1i(mg::GetUniformLocation(p->shader,"profileActive"),p->profile.active&&p->toon);
     mg::Uniform1f(mg::GetUniformLocation(p->shader,"profileLow"),p->profile.lowTone);mg::Uniform1f(mg::GetUniformLocation(p->shader,"profileMid"),p->profile.midTone);
     for(int f=0;f<6;f++){auto v=p->profile.grades[f];auto name="familyGrade["+std::to_string(f)+"]";mg::Uniform3f(mg::GetUniformLocation(p->shader,name.c_str()),v.x,v.y,v.z);}
@@ -336,6 +340,7 @@ MeshVisibility MeshRenderer::draw(MeshClumps &m, const Camera &camera,
     integer("cozy", look.cozy);
     integer("softShadow", soft);
     integer("shadowDepth", 3);
+    mg::Uniform1i(mg::GetUniformLocation(p->shader,"shadowOwners"),9);mg::Uniform1i(mg::GetUniformLocation(p->shader,"shadowClean"),0);mg::Uniform1i(mg::GetUniformLocation(p->shader,"receiverOwner"),0);
     mg::ActiveTexture(GL_TEXTURE3);
     mg::BindTexture(GL_TEXTURE_2D, shadow);
     mg::BindSampler(3, 0);

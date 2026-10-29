@@ -32,7 +32,7 @@ float receiverShadow(vec3 world,float bias){vec4 c=lightVP*vec4(world,1);vec3 p=
 // Analytic receiver plane in shadow coordinates. It does not infer a plane
 // from neighbouring screen pixels that can belong to unrelated triangles.
 uniform mat4 lightNormalMatrix;
-float stableReceiver(vec3 world,vec3 normal,float bias){
+float legacyStableReceiver(vec3 world,vec3 normal,float bias){
  vec4 c=lightVP*vec4(world,1);vec3 p=c.xyz/c.w*.5+.5;
  if(any(lessThan(p,vec3(0)))||any(greaterThan(p,vec3(1))))return 1.;
  vec3 n=(lightNormalMatrix*vec4(normal,0)).xyz;
@@ -42,6 +42,27 @@ float stableReceiver(vec3 world,vec3 normal,float bias){
  for(int y=0;y<2;y++)for(int x=0;x<2;x++){ivec2 q=clamp(base+ivec2(x,y),ivec2(0),size-1);vec2 at=(vec2(q)+.5)/vec2(size);float ref=p.z+dot(gradient,at-p.xy)-bias;float weight=(x==0?1.-f.x:f.x)*(y==0?1.-f.y:f.y);sum+=weight*(ref<=texelFetch(shadowDepth,q,0).r?1.:0.);}
  return sum;
 }
+// Stylized owner-aware policy: omit rock/foliage self-occlusion. Architecture
+// rejects only near self-contact (12cm); separated roof/eave shadows remain.
+// Shadows from other objects always keep their depth test; legacy is selectable.
+uniform usampler2D shadowOwners;uniform int shadowClean,receiverOwner;uniform float receiverSelfTolerance;
+float ownedTap(ivec2 q,float reference,float bias){
+ uint owner=texelFetch(shadowOwners,q,0).r;
+ if(receiverOwner>0&&owner==uint(receiverOwner)&&(receiverSelfTolerance<0.||reference-texelFetch(shadowDepth,q,0).r<=receiverSelfTolerance))return 1.;
+ return reference-bias<=texelFetch(shadowDepth,q,0).r?1.:0.;
+}
+float cleanReceiver(vec3 world,vec3 normal,float bias){
+ vec4 c=lightVP*vec4(world,1);vec3 p=c.xyz/c.w*.5+.5;
+ if(any(lessThan(p,vec3(0)))||any(greaterThan(p,vec3(1))))return 1.;
+ vec3 n=(lightNormalMatrix*vec4(normal,0)).xyz;
+ vec2 gradient=abs(n.z)>.00001?clamp(-n.xy/n.z,vec2(-8),vec2(8)):vec2(0);
+ ivec2 size=textureSize(shadowDepth,0);vec2 t=p.xy*vec2(size)-.5;ivec2 base=ivec2(floor(t));vec2 f=fract(t);float sum=0.;
+ if(softShadow==0){ivec2 q=clamp(ivec2(floor(p.xy*vec2(size))),ivec2(0),size-1);return ownedTap(q,p.z+dot(gradient,(vec2(q)+.5)/vec2(size)-p.xy),bias);}
+ for(int y=0;y<2;y++)for(int x=0;x<2;x++){ivec2 q=clamp(base+ivec2(x,y),ivec2(0),size-1);float w=(x==0?1.-f.x:f.x)*(y==0?1.-f.y:f.y);sum+=w*ownedTap(q,p.z+dot(gradient,(vec2(q)+.5)/vec2(size)-p.xy),bias);}
+ return sum;
+}
+float stableReceiver(vec3 world,vec3 normal,float bias){return shadowClean!=0?cleanReceiver(world,normal,bias):legacyStableReceiver(world,normal,bias);}
+
 )GLSL";
 static constexpr const char *groundFS = R"GLSL(#version 330 core
 in vec2 uv;out vec4 color;
