@@ -28,7 +28,7 @@ namespace gl {
   F(CreateShader) F(ShaderSource) F(CompileShader) F(GetShaderiv) F(GetShaderInfoLog) F(DeleteShader) F(CreateProgram) F(AttachShader) F(LinkProgram) F(GetProgramiv) F(GetProgramInfoLog) F(DeleteProgram) F(UseProgram) \
   F(GetUniformLocation) F(UniformMatrix4fv) F(Uniform4fv) F(Uniform1i) F(Uniform1f) F(Uniform2f) F(Uniform3f) \
   F(GenFramebuffers) F(DeleteFramebuffers) F(BindFramebuffer) F(FramebufferTexture2D) F(CheckFramebufferStatus) F(DrawBuffers) F(ReadBuffer) F(ReadPixels) \
-  F(Scissor) F(Viewport) F(ClearColor) F(Clear) F(ClearBufferfv) F(Enable) F(Disable) F(DepthMask) F(DepthFunc) F(BlendFunc) F(CullFace) F(DrawElements) F(DrawArrays) F(BlitFramebuffer) \
+  F(Scissor) F(Viewport) F(ClearColor) F(Clear) F(ClearBufferfv) F(ClearBufferuiv) F(Enable) F(Disable) F(DepthMask) F(DepthFunc) F(BlendFunc) F(CullFace) F(DrawElements) F(DrawArrays) F(BlitFramebuffer) \
   F(GenSamplers) F(DeleteSamplers) F(BindSampler) F(SamplerParameteri) F(PolygonMode) F(GetQueryiv) F(GenQueries) F(DeleteQueries) F(BeginQuery) F(EndQuery) F(GetQueryObjectiv) F(GetQueryObjectui64v) F(Finish)
 // clang-format on
 #define DECL(n) static decltype(&::gl##n) n;
@@ -92,9 +92,9 @@ layout(location=0) in vec3 position;
 layout(location=1) in vec3 normal;
 layout(location=2) in vec2 texcoord;
 layout(location=3) in vec4 vertexColor;
-uniform mat4 model,viewProjection;
+uniform mat4 model,viewProjection;uniform float normalYCorrection;
 out vec3 worldPosition;out vec3 worldNormal;out vec2 uv;out vec4 tint;
-void main(){vec4 p=model*vec4(position,1);worldPosition=p.xyz;worldNormal=mat3(model)*normal;uv=texcoord;tint=vertexColor;gl_Position=viewProjection*p;}
+void main(){vec4 p=model*vec4(position,1);worldPosition=p.xyz;worldNormal=mat3(model)*normal;worldNormal.y*=normalYCorrection;uv=texcoord;tint=vertexColor;gl_Position=viewProjection*p;}
 )GLSL";
 static constexpr const char *staticShadowVS = R"GLSL(#version 330 core
 layout(location=0)in vec3 position;layout(location=2)in vec2 texcoord;layout(location=3)in vec4 vertexColor;
@@ -108,16 +108,16 @@ layout(location=2) in vec2 texcoord;
 layout(location=3) in vec4 vertexColor;
 layout(location=4) in vec4 jointIndices;layout(location=5) in vec4 jointWeights;
 uniform int skinned;uniform mat4 bones[24];
-uniform mat4 model,viewProjection;
+uniform mat4 model,viewProjection;uniform float normalYCorrection;
 out vec3 worldPosition;out vec3 worldNormal;out vec2 uv;out vec4 tint;
-void main(){mat4 skin=mat4(1);if(skinned!=0)skin=bones[int(jointIndices.x)]*jointWeights.x+bones[int(jointIndices.y)]*jointWeights.y+bones[int(jointIndices.z)]*jointWeights.z+bones[int(jointIndices.w)]*jointWeights.w;vec4 p=model*skin*vec4(position,1);worldPosition=p.xyz;worldNormal=mat3(model)*mat3(skin)*normal;uv=texcoord;tint=vertexColor;gl_Position=viewProjection*p;}
+void main(){mat4 skin=mat4(1);if(skinned!=0)skin=bones[int(jointIndices.x)]*jointWeights.x+bones[int(jointIndices.y)]*jointWeights.y+bones[int(jointIndices.z)]*jointWeights.z+bones[int(jointIndices.w)]*jointWeights.w;vec4 p=model*skin*vec4(position,1);worldPosition=p.xyz;worldNormal=mat3(model)*mat3(skin)*normal;worldNormal.y*=normalYCorrection;uv=texcoord;tint=vertexColor;gl_Position=viewProjection*p;}
 )GLSL";
 // Optional canopy transmittance proxy, anchored in the fixed sun projection.
 // The same ray samples the same authored alpha through front/back surfaces.
 // This is not geometric leaf porosity and never runs for grass or legacy trees.
 static constexpr const char *canopyShadowFS = R"GLSL(#version 330 core
-in vec2 uv,canopyUV;in float alpha;uniform sampler2D albedo;uniform int textured,alphaMode,leafProxy;uniform float cutoff,factorAlpha;
-void main(){if(alphaMode==1){float a=factorAlpha*alpha;if(textured!=0)a*=texture(albedo,leafProxy!=0?fract(canopyUV*8.):uv).a;if(a<cutoff)discard;}}
+in vec2 uv,canopyUV;in float alpha;uniform sampler2D albedo;uniform int textured,alphaMode,leafProxy;uniform float cutoff,factorAlpha;uniform int shadowCasterID;layout(location=0)out uint casterOwner;
+void main(){casterOwner=uint(shadowCasterID);if(alphaMode==1){float a=factorAlpha*alpha;if(textured!=0)a*=texture(albedo,leafProxy!=0?fract(canopyUV*8.):uv).a;if(a<cutoff)discard;}}
 )GLSL";
 static constexpr const char *meshFS = R"GLSL(#version 330 core
 in vec3 worldPosition;in vec3 worldNormal;in vec2 uv;in vec4 tint;
@@ -136,8 +136,8 @@ uniform int shadowMode;uniform sampler2D groundShadow;
 // VISIBILITY
 float hash2(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 float field(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash2(i),hash2(i+vec2(1,0)),f.x),mix(hash2(i+vec2(0,1)),hash2(i+vec2(1,1)),f.x),f.y);}
-layout(location=0) out vec4 color;layout(location=1) out vec4 normals;
-void main(){vec4 a=factor*(vertexTint!=0?tint:vec4(1));if(textured!=0)a*=(sampling==1?textureLod(albedo,uv,0.):texture(albedo,uv));if(alphaMode==1&&a.a<cutoff)discard;
+layout(location=0) out vec4 color;layout(location=1) out vec4 normals;layout(location=2)out uint sceneOwner;uniform int drawOwnerID;
+void main(){sceneOwner=uint(drawOwnerID);vec4 a=factor*(vertexTint!=0?tint:vec4(1));if(textured!=0)a*=(sampling==1?textureLod(albedo,uv,0.):texture(albedo,uv));if(alphaMode==1&&a.a<cutoff)discard;
 vec3 n=normalize(worldNormal);if(!gl_FrontFacing)n=-n;
 // Derivatives give actual planar triangle lighting in BASE without rewriting
 // the original mesh normals. TOON/normal outlines retain authored normals.
@@ -163,6 +163,7 @@ if(ground!=0&&textured!=0&&studyKind!=4){
  a.rgb=mix(g0,g1,.12+.42*broad+.12*small);
 }
 a.rgb=profileColor(a.rgb,profileFamily);
+if(diagnostic==7){color=vec4(srgbEncode(clamp(a.rgb,0.,1.)),1);normals=vec4(n*.5+.5,1);return;}
 float sun=max(0.,dot(shadeNormal,normalize(sunDirection)));
 if(mode!=0&&bands!=0&&smoothLighting==0){float soft=max(.001,bandSoftness);sun=profileBand(sun,soft);}
 if(smoothLighting!=0&&leafy!=0)sun=max(0.,(dot(shadeNormal,normalize(sunDirection))+.2)/1.2);
@@ -172,6 +173,7 @@ if(pixelMaterial!=0){float d=max(0.,dot(shadeNormal,normalize(sunDirection)));su
 float visibility=1.;
 if(receiveShadows!=0&&(shadowMode==1||shadowMode==2))visibility=stableShadow!=0?stableReceiver(worldPosition,normalize(cross(dFdx(worldPosition),dFdy(worldPosition))),biasScale*.000015):receiverCorrection!=0?receiverShadow(worldPosition,biasScale*.00006):sunlight(worldPosition,biasScale*max(.00055,.0010*(1.-max(0.,dot(n,sunDirection)))));
 else if(shadowMode==3&&ground!=0&&all(lessThan(abs(worldPosition.xz),vec2(24))))visibility=texture(groundShadow,worldPosition.xz/48.+.5).r;
+if(diagnostic==9){vec3 g=normalize(cross(dFdx(worldPosition),dFdy(worldPosition)));float before=legacyStableReceiver(worldPosition,g,biasScale*.000015),after=cleanReceiver(worldPosition,g,biasScale*.000015);color=vec4(1.-before,1.-after,0,1);normals=vec4(n*.5+.5,1);return;}
 if(diagnostic==4){color=vec4(vec3(visibility),1);normals=vec4(n*.5+.5,1);return;}
 vec3 direct=mix(vec3(dot(sunColor,vec3(.2126,.7152,.0722))),sunColor,surfaceSunTint);vec3 light=ambient+direct*sun*mix(surfaceShadowFloor,1.,visibility);
 if(ground!=0&&contactStrength>0.){
@@ -255,6 +257,7 @@ struct Gpu::Impl {
   Effects effects;
   Style style;
   StyleProfile profile;
+  bool sourceView=false,shadowClean=true;float terrainRelief=1;int diagnosticView=0;
   Integration integration;
   GLuint edgePost = 0;
   int study = 0;
@@ -267,10 +270,10 @@ struct Gpu::Impl {
   bool shadowValid = false, groundValid = false;
   int mapSize = 0, shaftW = 0, shaftH = 0;
   GLuint shadowProgram = 0, bakeProgram = 0, shaftProgram = 0;
-  GLuint shadowFbo = 0, shadowDepth = 0, groundFbo = 0, groundImage = 0,
+  GLuint shadowFbo = 0, shadowDepth = 0,shadowOwners=0, groundFbo = 0, groundImage = 0,
          shaftFbo = 0, shaftImage = 0;
   GLuint mesh = 0, post = 0, emptyVAO = 0, fbo = 0, postFbo = 0, color = 0,
-         normal = 0, depth = 0, finalColor = 0;
+         normal = 0, depth = 0, finalColor = 0,owners=0;
   bool grassGroundBorrowed = false;
   int w = 0, h = 0;
   std::array<Timer, 64> queries{};
@@ -310,8 +313,8 @@ struct Gpu::Impl {
     gl::DeleteProgram(shadowProgram);
     gl::DeleteProgram(bakeProgram);
     gl::DeleteProgram(shaftProgram);
-    GLuint atmosphericTextures[] = {shadowDepth, groundImage, shaftImage};
-    gl::DeleteTextures(3, atmosphericTextures);
+    GLuint atmosphericTextures[] = {shadowDepth, groundImage, shaftImage,shadowOwners};
+    gl::DeleteTextures(4, atmosphericTextures);
     GLuint atmosphericFbos[] = {shadowFbo, groundFbo, shaftFbo};
     gl::DeleteFramebuffers(3, atmosphericFbos);
     gl::DeleteProgram(mesh);
@@ -320,11 +323,11 @@ struct Gpu::Impl {
     freeTargets();
   }
   void freeTargets() {
-    GLuint t[] = {color, normal, depth, finalColor};
-    gl::DeleteTextures(4, t);
+    GLuint t[] = {color, normal, depth, finalColor,owners};
+    gl::DeleteTextures(5, t);
     GLuint f[] = {fbo, postFbo};
     gl::DeleteFramebuffers(2, f);
-    color = normal = depth = finalColor = fbo = postFbo = 0;
+    color = normal = depth = finalColor = owners = fbo = postFbo = 0;
   }
   void target(GLuint &id, GLint internal, GLenum format, GLenum type) {
     gl::GenTextures(1, &id);
@@ -345,6 +348,7 @@ struct Gpu::Impl {
     target(normal, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE);
     target(depth, GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT);
     target(finalColor, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE);
+    target(owners,GL_R16UI,GL_RED_INTEGER,GL_UNSIGNED_SHORT);
     gl::GenFramebuffers(1, &fbo);
     gl::BindFramebuffer(GL_FRAMEBUFFER, fbo);
     gl::FramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
@@ -353,8 +357,9 @@ struct Gpu::Impl {
                              GL_TEXTURE_2D, normal, 0);
     gl::FramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D,
                              depth, 0);
-    GLenum attachments[] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
-    gl::DrawBuffers(2, attachments);
+    gl::FramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT2,GL_TEXTURE_2D,owners,0);
+    GLenum attachments[] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1,GL_COLOR_ATTACHMENT2};
+    gl::DrawBuffers(3, attachments);
     if (gl::CheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
       throw std::runtime_error("geometry framebuffer incomplete");
     gl::GenFramebuffers(1, &postFbo);
@@ -425,7 +430,7 @@ Gpu::Gpu(World &world, bool allowSoftware) {
   p->post = program(postVS, postFS);
   p->artPost = program(postVS, artPostFS);
   p->studyPost = program(postVS, studyPostFS);
-  p->edgePost = program(postVS, edgePostFS);
+  p->edgePost = program(postVS, visibility(edgePostFS).c_str());
   p->presentProgram = program(postVS, compensatedPresentFS);
   p->airFilter = program(postVS, airFilterFS);
   gl::GenSamplers(1, &p->compareSampler);
@@ -570,8 +575,8 @@ Gpu::Gpu(World &world, bool allowSoftware) {
       gl::GenQueries(1, &q.id);
   GLint bits = 0;
   gl::GetIntegerv(GL_MAX_DRAW_BUFFERS, &bits);
-  if (bits < 2)
-    throw std::runtime_error("two color attachments required");
+  if (bits < 3)
+    throw std::runtime_error("three color attachments required");
 
   for (auto &i : world.instances) {
     auto &id = world.models[i.model].id;
@@ -686,6 +691,10 @@ void Gpu::setIntegration(const Integration &v) {
   p->integration = v;
   p->lightVP = villageLightProjection(p->look.sunDirection);
 }
+void Gpu::setDiagnosticView(int v){if(v<0||v>10||v==8)throw std::runtime_error("diagnostic view range");p->diagnosticView=v;}
+void Gpu::setSourceView(bool v){p->sourceView=v;}
+void Gpu::setShadowClean(bool v){p->shadowClean=v;}
+void Gpu::setTerrainRelief(float v){if(!std::isfinite(v)||v<.75f||v>1)throw std::runtime_error("terrain instance relief range");p->terrainRelief=v;}
 void Gpu::setProfile(const StyleProfile &v) { p->profile=v; }
 void Gpu::setLook(const Look &l) {
   if (dot(p->look.sunDirection - l.sunDirection,
@@ -745,6 +754,15 @@ void Gpu::setStudy(int study, PixelCameraMode cameraMode, float depth) {
   p->cameraMode = cameraMode;
   p->referenceDepth = depth;
 }
+std::size_t Gpu::ownershipBytes()const{return(p->owners?std::size_t(p->w)*p->h*2:0)+(p->shadowOwners?std::size_t(p->mapSize)*p->mapSize*2:0);}
+void Gpu::saveObjectIDs(const std::filesystem::path &dir){
+ std::vector<std::uint16_t> data(std::size_t(p->w)*p->h);
+ gl::BindFramebuffer(GL_READ_FRAMEBUFFER,p->fbo);gl::ReadBuffer(GL_COLOR_ATTACHMENT2);gl::PixelStorei(GL_PACK_ALIGNMENT,1);
+ gl::ReadPixels(0,0,p->w,p->h,GL_RED_INTEGER,GL_UNSIGNED_SHORT,data.data());
+ std::ofstream file(dir/"owner_ids.u16",std::ios::binary);file.write(reinterpret_cast<char*>(data.data()),std::streamsize(data.size()*sizeof(std::uint16_t)));
+ auto normal=capture(true);std::ofstream nf(dir/"normal_rgba.u8",std::ios::binary);nf.write(reinterpret_cast<char*>(normal.rgba.data()),std::streamsize(normal.rgba.size()));
+ std::ofstream(dir/"owner_dimensions.txt")<<p->w<<' '<<p->h<<" bottom_up little_endian\n";check("object ID readback");
+}
 void Gpu::saveDiagnostics(const std::filesystem::path &dir) {
   if (!p->shadowDepth)
     return;
@@ -764,11 +782,11 @@ void Gpu::saveDiagnostics(const std::filesystem::path &dir) {
 void Gpu::setEffects(const Effects &e) {
   e.validate();
   if (p->effects.shadowSize != e.shadowSize) {
-    GLuint t = p->shadowDepth;
-    gl::DeleteTextures(1, &t);
+    GLuint t[] = {p->shadowDepth,p->shadowOwners};
+    gl::DeleteTextures(2,t);
     GLuint f = p->shadowFbo;
     gl::DeleteFramebuffers(1, &f);
-    p->shadowDepth = p->shadowFbo = 0;
+    p->shadowDepth = p->shadowOwners=p->shadowFbo = 0;
     p->shadowValid = p->groundValid = false;
   }
   if (p->effects.soft != e.soft) {
@@ -777,7 +795,7 @@ void Gpu::setEffects(const Effects &e) {
   p->effects = e;
 }
 std::size_t Gpu::effectBytes() const {
-  return (p->shadowDepth ? std::size_t(p->mapSize) * p->mapSize * 4 : 0) +
+  return (p->shadowDepth ? std::size_t(p->mapSize) * p->mapSize * 6 : 0) +
          (p->groundImage ? 256 * 256 : 0) +
          (p->shaftImage ? std::size_t(p->shaftW) * p->shaftH * 8 : 0) +
          (p->filteredAir ? std::size_t(p->shaftW) * p->shaftH * 8 : 0);
@@ -863,9 +881,10 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
       gl::BindFramebuffer(GL_FRAMEBUFFER, p->shadowFbo);
       gl::FramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
                                GL_TEXTURE_2D, p->shadowDepth, 0);
-      GLenum none = GL_NONE;
-      gl::DrawBuffers(1, &none);
-      gl::ReadBuffer(GL_NONE);
+      gl::GenTextures(1,&p->shadowOwners);bind(9,p->shadowOwners);
+      gl::TexImage2D(GL_TEXTURE_2D,0,GL_R16UI,p->mapSize,p->mapSize,0,GL_RED_INTEGER,GL_UNSIGNED_SHORT,nullptr);configureTexture(GL_NEAREST);
+      gl::FramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,p->shadowOwners,0);
+      GLenum attachment=GL_COLOR_ATTACHMENT0;gl::DrawBuffers(1,&attachment);gl::ReadBuffer(GL_COLOR_ATTACHMENT0);
       if (gl::CheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         throw std::runtime_error("shadow framebuffer incomplete");
     }
@@ -877,7 +896,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
       gl::DepthMask(GL_TRUE);
       gl::Disable(GL_BLEND);
       gl::Disable(GL_CULL_FACE);
-      gl::Clear(GL_DEPTH_BUFFER_BIT);
+      gl::Clear(GL_DEPTH_BUFFER_BIT);const GLuint noOwner[]={0,0,0,0};gl::ClearBufferuiv(GL_COLOR,0,noOwner);
       gl::UseProgram(p->shadowProgram);
       uniformMatrix(p->shadowProgram, "lightVP", p->lightVP);
       uniformInt(p->shadowProgram, "albedo", 0);
@@ -921,6 +940,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
         }
         if (!lightFrustum.visible(instance.bounds))
           continue;
+        uniformInt(p->shadowProgram,"shadowCasterID",int(&instance-world.instances.data())+1);
         uniformMatrix(p->shadowProgram, "model", instance.matrix);
         for (auto &part : p->models[instance.model]) {
           auto &mat = p->materials[part.material];
@@ -1016,7 +1036,9 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
   uniformMatrix(p->mesh, "lightNormalMatrix", transpose(inverse(p->lightVP)));
   bool smoothAir = p->style.mode == 2 && p->style.smoothAir;
   bool smoothLight = p->style.mode == 2 && p->style.smoothLight;
-  uniformInt(p->mesh,"profileActive",p->profile.active&&p->style.highlights);
+  uniformInt(p->mesh,"profileGreenOnly",p->profile.greenOnly);
+  uniformInt(p->mesh,"shadowClean",p->shadowClean);uniformInt(p->mesh,"shadowOwners",9);bind(9,p->shadowOwners);gl::BindSampler(9,0);
+  uniformInt(p->mesh,"profileActive",p->profile.active&&!p->sourceView);
   uniformFloat(p->mesh,"groundHarmony",p->profile.groundHarmony);
   uniformFloat(p->mesh,"groundAnchor",p->profile.groundAnchor);uniformFloat(p->mesh,"groundContrast",p->profile.groundContrast);
   uniformFloat(p->mesh,"profileLow",p->profile.lowTone);uniformFloat(p->mesh,"profileMid",p->profile.midTone);
@@ -1026,7 +1048,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
   uniformInt(p->mesh, "smoothLighting", smoothLight);
   uniformInt(p->mesh, "receiverCorrection",
              p->style.mode == 2 && p->style.shadowCorrection);
-  uniformInt(p->mesh, "diagnostic", p->style.diagnostic);
+  uniformInt(p->mesh, "diagnostic", p->diagnosticView);
   uniformInt(p->mesh, "coverage", p->coverage);
   uniformInt(p->mesh, "meadowSolidCount", p->solidCount);
   uniformInt(p->mesh, "leafCoverage", 8);
@@ -1048,12 +1070,13 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
   gl::BindFramebuffer(GL_FRAMEBUFFER, p->fbo);
   gl::Viewport(0, 0, w, h);
   gl::DepthMask(GL_TRUE);
-  GLenum both[] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
-  gl::DrawBuffers(2, both);
+  GLenum both[] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1,GL_COLOR_ATTACHMENT2};
+  gl::DrawBuffers(3, both);
   const float sky[] = {.59f, .79f, .87f, 1}, empty[] = {.5f, .5f, .5f, 0},
               depth[] = {1};
   gl::ClearBufferfv(GL_COLOR, 0, sky);
   gl::ClearBufferfv(GL_COLOR, 1, empty);
+  const GLuint noOwner[]={0,0,0,0};gl::ClearBufferuiv(GL_COLOR,2,noOwner);
   gl::ClearBufferfv(GL_DEPTH, 0, depth);
   gl::Enable(GL_DEPTH_TEST);
   gl::DepthFunc(GL_LESS);
@@ -1100,6 +1123,11 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     const auto &model=world.models[i.model];
     int family=model.rig?-1:model.id.starts_with("EA_TREE")||model.id.starts_with("EA_BUSH")||model.id.starts_with("EA_REED")?1:model.id.starts_with("EA_ROCK")?4:model.id.starts_with("EA_PATH")||model.id=="EA_COBBLE"||model.id.starts_with("HG_PATH")?3:model.id=="EA_GROUND"||model.id.starts_with("HG_GROUND")||model.id.starts_with("HG_GREEN")||model.id.starts_with("EA_GREEN")?5:model.id.starts_with("EA_GREEN")||model.id.starts_with("HG_GREEN")||model.id=="EA_MOSS"?0:2;
     uniformInt(p->mesh,"profileFamily",family);
+    uniformInt(p->mesh,"drawOwnerID",int(index)+1);uniformInt(p->mesh,"receiverOwner",int(index)+1);
+    float depthUnit=.5f*std::sqrt(p->lightVP.v[2]*p->lightVP.v[2]+p->lightVP.v[6]*p->lightVP.v[6]+p->lightVP.v[10]*p->lightVP.v[10]);
+    uniformFloat(p->mesh,"receiverSelfTolerance",model.materials.front().architecture?.12f*depthUnit:-1.f);
+    bool terrain=model.materials.front().ground;
+    uniformFloat(p->mesh,"normalYCorrection",terrain?1.f/(p->terrainRelief*p->terrainRelief):1.f);
     gl::Uniform1i(p->receivesLoc, p->policies[i.model].receives);
     gl::Uniform1f(p->sunTintLoc, p->policies[i.model].sunTint);
     gl::Uniform1f(p->shadowFloorLoc, p->policies[i.model].shadowFloor);
@@ -1157,7 +1185,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     gl::DrawElements(GL_TRIANGLES, part.count, GL_UNSIGNED_INT, nullptr);
     stats.draws++;
   };
-  if (p->style.diagnostic == 6)
+  if (p->diagnosticView == 6)
     gl::PolygonMode(GL_FRONT_AND_BACK, GL_LINE);
   for (auto index : visible) {
     auto &i = world.instances[index];
@@ -1171,7 +1199,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
         draw(index, j);
     }
   }
-  if(p->grassRenderer)p->grassRenderer->setProfile(p->profile,p->style.highlights);
+  if(p->grassRenderer)p->grassRenderer->setProfile(p->profile,!p->sourceView);
   if (p->grassRenderer && p->grass && p->coverage != 1 && p->coverage != 4) {
     stats.grass = p->grassRenderer->draw(
         *p->grass, effective, vp, p->look, p->lightVP, p->shadowDepth,
@@ -1310,6 +1338,15 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
   gl::UseProgram(postProgram);
   const auto &integration = p->integration;
   uniformInt(postProgram,"profileActive",p->profile.active);
+  uniformInt(postProgram,"profileGreenOnly",p->profile.greenOnly);
+  uniformInt(postProgram,"organicEdges",p->profile.organicEdges);
+  uniformFloat(postProgram,"grassInk",p->profile.grassInk);uniformFloat(postProgram,"organicCeiling",p->profile.organicCeiling);
+  gl::Uniform3f(gl::GetUniformLocation(postProgram,"organicHighlights"),p->profile.organicHighlights.x,p->profile.organicHighlights.y,p->profile.organicHighlights.z);
+  uniformInt(postProgram,"shadowClean",p->shadowClean);uniformInt(postProgram,"shadowOwners",9);bind(9,p->shadowOwners);gl::BindSampler(9,0);
+  uniformInt(postProgram,"sceneOwners",10);bind(10,p->owners);gl::BindSampler(10,0);
+  uniformInt(postProgram,"shadowDepth",11);bind(11,p->shadowDepth);gl::BindSampler(11,0);
+  uniformInt(postProgram,"softShadow",p->effects.soft);
+  uniformMatrix(postProgram,"lightNormalMatrix",transpose(inverse(p->lightVP)));
   uniformInt(postProgram,"profileInk",p->profile.inkMode);
   uniformInt(postProgram,"majorWidth",p->profile.majorWidth);
   gl::Uniform4fv(gl::GetUniformLocation(postProgram,"profileInkStrength"),1,p->profile.ink.data());
@@ -1335,7 +1372,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
   gl::BindSampler(5, p->compareSampler);
   uniformInt(postProgram, "edgeShadow", 5);
   uniformInt(postProgram, "shaftEnabled",
-             p->effects.shafts != Shafts::Off && p->style.diagnostic == 0);
+             p->effects.shafts != Shafts::Off && p->diagnosticView == 0);
   uniformInt(postProgram, "shaftMethod", int(p->effects.shafts));
   uniformInt(postProgram, "shaftImage", 3);
   bind(3, (smoothAir || p->integration.boundedAir) &&
@@ -1343,9 +1380,9 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
               ? p->filteredAir
               : p->shaftImage);
   uniformInt(postProgram, "outline",
-             mode == 2 && outline && p->style.diagnostic == 0 && p->profile.inkMode!=0);
+             mode == 2 && outline && p->diagnosticView == 0 && p->profile.inkMode!=0);
   uniformInt(postProgram, "refined", p->style.outlines);
-  uniformInt(postProgram, "highlights", p->style.highlights&&p->profile.inkMode!=0);
+  uniformInt(postProgram, "highlights", p->style.highlights&&p->profile.inkMode!=0&&p->diagnosticView==0);
   uniformInt(postProgram, "cozy", p->look.cozy);
   uniformInt(postProgram, "sceneColor", 0);
   uniformInt(postProgram, "sceneNormal", 1);

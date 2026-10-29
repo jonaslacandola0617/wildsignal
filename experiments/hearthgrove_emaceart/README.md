@@ -1,41 +1,30 @@
-# HG-STYLE-TERRAIN-R1 — isolated EmaceArt Hearthgrove pilot
+# Hearthgrove balanced corrections R2
 
-Start revision: PR #60, `7c58f5a6ebe7da724d79fd3126134890aed35661`. Private baseline: PR #59, `83b6d9e7dfbea96ec3fc97d33e080dd5abb33ec1`. Earlier experiments and assets remain unchanged on their branches. No merges or artistic approval.
+Owner feedback keeps the BALANCED cottage look and rejects R1's generated flat ground and green treatment of brown texels. This isolated branch restores original EmaceArt terrain/road/cover mesh files, preserves source textures/UVs, and changes only instance placement and bounded vertical relief. Default relief is85% of the original, with100% available in ORIGINAL_KIT_RELIEF.cmd. No source vertices/normals/indices are rewritten and no new ground texture or model is authored. The numeric support cache is scaled by the SAME world-Y transform as the rendered instances; props and sparse existing grass roots are reprojected. Existing source bumps and field patterns remain. This does not claim R1's flattening-based slope targets.
 
-This branch adds versioned per-family HSV controls applied in encoded material-color space with explicit sRGB conversion around the operation. Hardware sRGB sampling is decoded once; lighting remains linear. Alpha, UV sampling, source texture bytes and Petalyn palette are untouched. Instanced grass uses the same grading and band controls. Families: grass, tree/bush foliage, timber/roof, soil/path, stone and terrain; sky has separate look settings. Shared tree atlases classify bark separately by sampled hue. This heuristic can misclassify unusual texels; it is not a painted replacement texture.
+Material revision2 keeps balanced architecture/lighting, retains the previously selected green hue direction ONLY on green vegetation texels, and increases their saturation modestly. Brown/cream terrain, soil/path texels and brown vegetation texels bypass grading. Original source textures remain byte-identical. Revision1 settings and baseline remain supported for historical comparisons. Sky, character sources and approved building look are preserved.
 
-The moderate `balanced` and stronger `rich` presets reduce warm overexposure, preserve three broad toon levels, and offer selective off/balanced/bold ink. BOLD extends only major architecture silhouettes to two native pixels within 28m. Interior strokes and foliage stay one pixel, grass/terrain receive no outlines, and added highlights have a brightness ceiling. Existing pale art can already exceed that ceiling; the effect never darkens it to enforce the cap. Ground-only hue/saturation harmonization and value-contrast controls reduce the original field-row color contrast without painting new art.
+Trees/bushes get stronger one-pixel silhouettes and sun-facing warm rims. Grass gets a separate G-buffer category so its depth silhouettes and sun-facing rims are enabled without outlining every internal triangle. Rocks get readable outer/convex sun-facing highlights instead of the old tiny capped change. Architecture keeps its balanced treatment. All use real depth/normal masks; no image paint, random noise or glow pass. Use **J** to toggle highlights and **K** for outlines at the SAME camera position. Material grading stays unchanged during these toggles. F still toggles the source look.
 
-Default candidate: cast shadows/shafts/haze OFF, restrained inexpensive ground contacts ON. O/V/H retain independent comparison toggles. Shadow ON is an option, not rejected universally. The original atmospheric system remains available; no new volumetric work. Contacts include original EmaceArt house/tree/rock/prop roots, with no individual grass shadows.
+## Shadow correction and its tradeoff
 
-## Build and run
+An R16UI owner target is written beside the existing shadow depth map in the SAME pass; an R16UI scene-owner target is written beside existing color/normals. No extra geometry pass. Clean mode omits same-object shadowing for rocks/foliage, removing the rejected per-facet cut marks. This is a deliberate stylized rule and also removes genuine rock/foliage self-occlusion. Architecture filters near self-contact within12cm while retaining separated roof/eave self-shadows. Shadows cast ONTO OTHER OBJECTS keep their normal depth comparison. Grass still casts zero shadows and receives other-object shadows. Source gray facets visible with shadows OFF remain part of the mesh/material/toon lighting.
 
-```sh
-cmake -S experiments/hearthgrove_emaceart -B build/style-r1 -G "Visual Studio 17 2022" -A x64
-cmake --build build/style-r1 --config Release --parallel 2
-ctest --test-dir build/style-r1 -C Release --output-on-failure
-cmake --install build/style-r1 --config Release --prefix out/style-r1
-```
+`--shadow-policy clean|legacy` preserves the original comparison. The owner-ID diagnostic separates same-object darkening from other-object shadows; it does not claim every same-object shadow was a mathematical error. At1024² shadows and640×360 the two integer targets require about2.44MiB logical storage, excluding driver overhead; LOW shadows reduce that. No large kernels, high-resolution map, full-screen blur or new volumetrics. Existing atmosphere is retained and defaults OFF.
 
-C++20, SDL3, OpenGL 3.3; dependencies retain pinned inherited versions. Code-only CI artifacts lack licensed runtime assets. Obtain the complete **private game review ZIP**, extract into a new folder, and run `PLAY_GAME.cmd`. `PLAY_640.cmd`:640×360; `PLAY_BOLD.cmd`:rich/bold; `LOW_SPEC.cmd`:sparse LOW grass; `BASELINE_ORIGINAL.cmd`:original scene/settings; `SOURCE_MATERIALS.cmd`:source shading on final geometry; `SHADOWS_ON.cmd`:balanced with casts. `ALL_EFFECTS.cmd` retains experimental atmosphere. Full source assets may not be redistributed as a standalone pack.
-
-Settings: `assets/style_profiles.json`, revision1, copied from this branch's safe numeric `data/style_profiles.json`. `--style-settings FILE` overrides the path. `--style-preset baseline|balanced|rich`; `--ink off|balanced|bold`; `--contacts on|off`; `--hud off|compact|debug`. Baseline needs no new settings file and restores original lighting/bands/edge behavior. Use `assets_baseline` for exact original geometry as well. Candidate and baseline remain separate runtime folders. Grass defaults to MEDIUM; no source grass remodeling.
-
-All existing controls remain: WASD/mouse, E rest/encounter,1attack/2defend/3befriend, Enter return, F5/F9save/load, Escpause/Qsave-quit, F source/toon, O shadows, V shafts, H haze, G density, R480/640, L quality, F3follower debug. F2cycles compact/off/debug HUD. HUD changes preserve the underlying game state and telemetry. Clean `final_world.ppm` is the native framebuffer; presented captures include actual HUD.
-
-## Terrain and private runtime
-
-The private assembly derives walkable top surfaces from original source meshes, retaining XZ footprints, UVs, texture/material bytes and recognizable source identity. Y/normals are reprojected to gentle relief with calm building pads. Side/bottom faces that collapse into coplanar duplicates are removed; source colors are decoded according to their original UINT16 normalization. Family/24m spatial batches stay within existing model budgets and conservative culling. Final rendered triangles are rasterized into the 257² height cache. Roads route around actual conservative colliders; one original entrance tree and its collider move together by0.9m to clear the spawn corridor. Props and existing grass roots are reprojected to the same surface. No cache-only smoothing, replacement building/tree/rock/grass or texture painting.
-
-The grass distribution selects from original roots, using stable clustered masks, path/door/rest/wild-companion clearances and lower existing clump scale. Original mesh/palette files remain unchanged. This is a readable settlement pilot, not a dense-meadow target. Distant cutoff/LOD limitations and source field-pattern repetition remain.
-
-Optional private validation:
+## Build and review
 
 ```sh
-python experiments/hearthgrove_emaceart/tests/terrain_mesh.py PRIVATE_ASSETS PRIVATE_ASSEMBLY.json terrain-validation.json
-python experiments/hearthgrove_emaceart/tests/runtime.py PATH_TO_EXECUTABLE PRIVATE_ASSETS
+cmake -S experiments/hearthgrove_emaceart -B build/hg-r2 -G "Visual Studio 17 2022" -A x64
+cmake --build build/hg-r2 --config Release --parallel 2
+ctest --test-dir build/hg-r2 -C Release --output-on-failure
+cmake --install build/hg-r2 --config Release --prefix out/hg-r2
 ```
 
-Terrain QA independently raycasts the final glTF triangles and checks slopes, seam steps, cache agreement and route collision. It fails on any sampled blocked corridor. `GAMELOOP_ASSETS` plus `HG_TERRAIN_LAYOUT` adds this check to CTest. Windows hardware launcher records BASELINE_OLD/OFF/BALANCED/BOLD/LOW at480/640, adapter/driver identity, counters, process RAM, API timings and swap intervals. These do not prove sustained displayed FPS. Mesa software is not Intel UHD. Physical Windows GPU, Android and Win7 remain unverified until actually tested.
+Use the complete PRIVATE Windows ZIP, extract into a NEW folder, then PLAY_GAME.cmd or PLAY_640.cmd. SHADOWS_ON.cmd uses the corrected rule; LEGACY_SHADOWS.cmd reproduces the cut-mark problem. HIGHLIGHTS_OFF/OUTLINES_OFF isolate the effects. ORIGINAL_KIT_RELIEF.cmd uses the same corrected look with uncompressed source relief. Earlier builds and source assets remain separate and unmerged. The public code-only CI artifact cannot run without private assets.
 
-Private review includes matched baseline/Phase1/final matrices, terrain QA, real gameplay preview, source hashes and performance distributions. Automated tests cannot approve the visual direction. Stop at `HEARTHGROVE_EMACEART_STYLE_TERRAIN_R1_OWNER_REVIEW_PENDING`.
+Existing movement/mouse, companion Idle/Fly/Attack, E interactions, battle/recruit, F5/F9 saves, F2 HUD, O shadows, V shafts, H haze, R resolution and G density remain. Added flags: `--vegetation-edges on|off`, `--highlights on|off`, `--outlines on|off`, `--shadow-policy clean|legacy`. Diagnostic flags: graded (albedo after grading), self-shadow (red legacy vs green clean occlusion), highlights (eligible sun-rim mask); numeric owner buffers are private QA output, not artwork. J/K controls are ordinary live renderer comparisons.
+
+Private review contains real native480/640 captures, independent effect comparisons, color/ownership diagnostics, real first-person motion, full gameplay/save regressions and measured software timings. Physical Windows GPU/Intel UHD, Android and Win7 remain NOT TESTED until run on those devices. Mesa software is not hardware FPS proof. No visual approval and no merges.
+
+BENCHMARK_EFFECTS.cmd runs a bounded8-case suite (480/640; shadow OFF, clean ON, legacy ON, highlights OFF). All use the same intact kit geometry and camera,30warmup+90measured frames. Adapter/driver, counters, per-frame timings and working set are recorded. This is application/API cadence, not displayed-FPS certification.
