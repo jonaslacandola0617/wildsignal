@@ -28,6 +28,7 @@ struct MeshClumps {
   std::filesystem::path groundMap, patchMap;
   std::filesystem::path sourcePalette;
   float normalUpBias = .5f, ambientLift = .25f;
+  bool ownerPalette = false;
   bool authored = false, receiveShadows = false, fragmentReceiver = false;
   int diagnostic = 0;
   float sunTint = 1;
@@ -38,7 +39,7 @@ struct MeshClumps {
   explicit MeshClumps(const std::filesystem::path &,
                       const std::vector<game::Solid> &,
                       bool legacyLayout = false, bool forceLegacy = false,
-                      int scaleFamily = 0);
+                      int scaleFamily = 0, bool useOwner = false);
   MeshVisibility select(const Camera &, const Frustum &, int height);
 };
 } // namespace p3

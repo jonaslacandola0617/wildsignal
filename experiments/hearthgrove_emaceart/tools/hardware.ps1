@@ -6,9 +6,9 @@ function Q($values,[double]$q){$v=@($values|Sort-Object);if(!$v.Count){return $n
 $ci=[System.Globalization.CultureInfo]::InvariantCulture
 function N($s){return [double]::Parse([string]$s,$ci)}
 $summary=@()
-foreach($res in @(480,640)){foreach($mode in @('OFF','SHADOW','SHADOW_SHAFTS','ALL_ATMOSPHERE')){
- $out=Join-Path $run ($mode+'_'+$res);$shadow=if($mode -eq 'OFF'){'off'}else{'on'};$shafts=if($mode -in @('SHADOW_SHAFTS','ALL_ATMOSPHERE')){'on'}else{'off'};$haze=if($mode -eq 'ALL_ATMOSPHERE'){'on'}else{'off'};$extra=@('--shadow',$shadow,'--shafts',$shafts,'--haze',$haze,'--quality','medium')
- $a=@('--assets',(Join-Path $Root 'assets'),'--benchmark','--pose','2','--resolution',"$res",'--frames','180','--cap','0','--pacing','off','--output',$out)+$extra
+foreach($res in @(480,640)){foreach($mode in @('OFF','GLOW','STREAKS')){
+ $out=Join-Path $run ($mode+'_'+$res);$shafts=if($mode -eq 'OFF'){'off'}else{'on'};$profile=if($mode -eq 'GLOW'){'glow'}else{'streaks'};$extra=@('--shadow','on','--shafts',$shafts,'--shaft-profile',$profile,'--haze','off','--grass-style','owner','--grass-density','high','--quality','medium')
+ $a=@('--assets',(Join-Path $Root 'assets'),'--benchmark','--pose','8','--resolution',"$res",'--frames','180','--cap','0','--pacing','off','--output',$out)+$extra
  & (Join-Path $Root 'wildsignal_hearthgrove_emaceart.exe') @a
  if($LASTEXITCODE -ne 0){throw "Runtime failed: $mode $res. Return error.txt and run.log."}
  $f=@(Import-Csv (Join-Path $out 'frames.csv')|Where-Object {[int]$_.frame -ge 30});$g=@(Import-Csv (Join-Path $out 'gpu.csv')|Where-Object {[int]$_.frame -ge 30});if($f.Count -ne 150){throw 'Incomplete frames'}

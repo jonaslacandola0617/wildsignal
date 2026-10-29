@@ -51,7 +51,7 @@ void main(){vec3 world=vec3((uv.x-.5)*48.,-.039,(uv.y-.5)*48.);color=vec4(sunlig
 static constexpr const char *shaftsFS = R"GLSL(#version 330 core
 in vec2 uv;out vec4 color;
 uniform sampler2D sceneDepth;uniform mat4 inverseVP;uniform vec3 eye,sunDirection;
-uniform sampler2DShadow smoothShadow;uniform int smoothAtmosphere,boundedAir;uniform vec2 airGrid;
+uniform sampler2DShadow smoothShadow;uniform int smoothAtmosphere,boundedAir,sunStreaks;uniform vec2 airGrid;
 uniform vec2 sunUV;uniform float sunOnScreen,strength;uniform int method,steps;
 // VISIBILITY
 float linearDepth(float z){return .2*350./(350.1-(z*2.-1.)*349.9);}
@@ -85,7 +85,7 @@ void main(){float raw=texture(sceneDepth,uv).r;
    result=vec3(1.,.78,.43)*sum/24.*radial*.75*sunOnScreen*strength;}
  }else{
   vec3 endpoint=position(uv,raw);vec3 ray=normalize(endpoint-eye);
-  float end=min(length(endpoint-eye)-.12,16.);float ds=max(0.,end-.2)/float(steps);
+  float end=min(length(endpoint-eye)-.12,sunStreaks!=0?24.:16.);float ds=max(0.,end-.2)/float(steps);
   float integral=0.;float phase=.35+.65*pow(max(0.,dot(ray,normalize(sunDirection))),4.);
   if(boundedAir!=0){
    // Three longitudinal quadrature samples replace the inherited three
@@ -97,10 +97,19 @@ void main(){float raw=texture(sceneDepth,uv).r;
      float weight=j==1?.444444444:.277777778;
      float t=.2+(float(i)+offset)*ds;vec3 p=eye+ray*t;
      float density=exp(-abs(p.y-2.8)*.35)*smoothstep(.05,.65,p.y)*(1.-smoothstep(24.,34.,length(p.xz)))*(1.-smoothstep(4.5,7.,p.y));
-     integral+=airVisibility(p)*density*exp(-t*.035)*ds*weight;
+     float visibility=airVisibility(p);
+     if(sunStreaks!=0){
+       // Isolate actual lit channels adjacent to canopy/architecture shadows.
+       // World-space sun-perpendicular taps: stable under camera motion.
+       vec3 side=normalize(cross(sunDirection,vec3(0,1,0)))*.8;
+       float neighbor=.5*(airVisibility(p+side)+airVisibility(p-side));
+       float channel=smoothstep(.08,.65,1.-neighbor);
+       density=exp(-abs(p.y-3.5)*.20)*smoothstep(.05,.65,p.y)*(1.-smoothstep(24.,34.,length(p.xz)))*(1.-smoothstep(8.,12.,p.y));
+       integral+=visibility*channel*density*exp(-t*.025)*ds*weight;
+     }else integral+=visibility*density*exp(-t*.035)*ds*weight;
     }
    }
-   phase=.12+.88*pow(max(0.,dot(ray,normalize(sunDirection))),6.);
+   phase=sunStreaks!=0?.5+.5*pow(max(0.,dot(ray,normalize(sunDirection))),4.):.12+.88*pow(max(0.,dot(ray,normalize(sunDirection))),6.);
   }else{
   for(int i=0;i<16;i++){if(i>=steps)break;float t=.2+(float(i)+(smoothAtmosphere!=0?.5:.25+.5*fract(dot(floor(gl_FragCoord.xy),vec2(.754877666,.569840296)))))*ds;vec3 p=eye+ray*t;
    float density=exp(-abs(p.y-2.8)*.35)*smoothstep(.05,.65,p.y)*(1.-smoothstep(24.,34.,length(p.xz)))*(1.-smoothstep(4.5,7.,p.y));
@@ -113,7 +122,7 @@ void main(){float raw=texture(sceneDepth,uv).r;
    float locality=.08+.92*clamp((1.-neighbor)*2.,0.,1.);
    integral+=visibility*locality*density*exp(-t*.035)*ds;}
   }
-  result=vec3(1.,.78,.43)*integral*phase*(boundedAir!=0?.12:.20)*strength;
+  result=vec3(1.,.78,.43)*integral*phase*(sunStreaks!=0?.55:boundedAir!=0?.12:.20)*strength;
  }
  color=vec4(result,(method==2?min(depth,30.):depth)/350.);}
 )GLSL";

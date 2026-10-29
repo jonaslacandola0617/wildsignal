@@ -47,6 +47,7 @@ struct Gpu {
   void setStyle(const Style &);
   void setStudy(int, PixelCameraMode, float referenceDepth);
   void saveDiagnostics(const std::filesystem::path &);
+  void setShaftProfile(bool streaks);
   void setEffects(const Effects &);
   std::size_t effectBytes() const;
   ~Gpu();

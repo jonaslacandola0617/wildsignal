@@ -1,6 +1,10 @@
-# Hearthgrove — original EmaceArt environment
+# Owner grass and visible sun-shaft comparison
 
-Isolated playable variant of Hearthgrove PR #55. Every active environmental mesh and texture comes from the owner-supplied EmaceArt Slavic World Free pack; Petalyn remains the original owner creature. No new artwork, geometry, texture paint or palette was generated. Three buildings reuse the one supplied complete building at consistent scale. Earlier targets, sources and saves are preserved.
+Follow-up to EmaceArt Hearthgrove draft PR #60. Default grass now uses the existing approved R2 large clumps, original root/mid/tip ramps and original near/far meshes. No artwork is generated or repainted. Original light green is approximately75%of placements; green15%, teal8%, deep shade2%, assigned in coherent patches. Roots, yaw, scales, terrain, cottages, trees, rocks, lighting and gameplay are preserved. The previous EmaceArt grass remains available with `--grass-style emaceart`.
+
+Default sunlight uses a separate `--shaft-profile streaks` experiment. It integrates real shadow-map visibility in lit channels adjacent to actual canopy/building shadows, reducing the old full-scene glow. World-space sampling keeps the channels anchored when looking around. This is a stylized shadow-aware volumetric approximation, not a painted overlay or generated light-card mesh. It uses additional shadow taps and must be hardware-tested. `--shaft-profile glow` preserves the old broad-scattering control; `--shafts off` disables either profile. B toggles glow/streaks while playing. Haze and shadows retain independent H/O controls. Turning shadows OFF removes the occlusion information required for geometric shafts.
+
+Use `PLAY_GAME.cmd` for owner grass/high density at480; `PLAY_640.cmd` selects640. `EMACEART_CONTROL.cmd` and `GLOW_CONTROL.cmd` select the comparisons. Existing save/gameplay controls remain unchanged. No cottage, tree, rock, ground-texture or creature artwork changes. No merge or final artistic approval.
 
 ## Windows build
 

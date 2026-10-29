@@ -48,6 +48,7 @@ std::uint64_t memory(bool peak = false) {
 struct Options {
   std::filesystem::path assets = "assets", save = "saves/hearthgrove_emaceart.json",
                         out = "runs/play", replay;
+  bool ownerGrass = true, sunStreaks = true;
   bool sourceTextures = false, legacyFollow = false, legacyGrass = false,
        pixelMaterials = true, debugFollow = false;
   int w = 480, frames = 0, every = 0, cap = 30, density = 2, pose = -1,
@@ -95,10 +96,12 @@ Options options(int argc, char **argv) {
                    "--diagnostic lit|albedo|visibility --canopy-shadow "
                    "solid\n"
                    "--shadow-cache-probe (isolated technical test only)\n"
-                   "--shafts on|off --haze on|off --quality low|medium|high --shaft-strength 0..3\n";
+                   "--shafts on|off --haze on|off --quality low|medium|high --shaft-strength 0..3\n--grass-style owner|emaceart --shaft-profile glow|streaks\n";
       std::exit(0);
     } else if (a == "--assets")
       o.assets = value();
+    else if(a=="--grass-style") {auto v=value();if(v!="owner"&&v!="emaceart")throw std::runtime_error("grass-style owner|emaceart");o.ownerGrass=v=="owner";}
+    else if(a=="--shaft-profile") {auto v=value();if(v!="glow"&&v!="streaks")throw std::runtime_error("shaft-profile glow|streaks");o.sunStreaks=v=="streaks";}
     else if(a=="--shaft-strength") {
       auto v=value();std::size_t used=0;o.shaftStrength=std::stof(v,&used);
       if(used!=v.size()||!std::isfinite(o.shaftStrength)||o.shaftStrength<0||o.shaftStrength>3)throw std::runtime_error("shaft-strength 0..3");
@@ -485,7 +488,7 @@ int main(int argc, char **argv) {
     for (auto clip : {"Idle", "Fly", "Attack"})
       rig->sample(clip, 0);
     p3::MeshClumps grass(o.assets, grassSolids, o.legacyGrass,
-                         o.forceLegacyGrass, o.scaleFamily);
+                         o.forceLegacyGrass, o.scaleFamily, o.ownerGrass);
     if (o.requireAuthored && !grass.authored)
       throw std::runtime_error("EmaceArt revision2 vegetation.json required");
     if (grass.authored && o.coverage)
@@ -542,6 +545,7 @@ int main(int argc, char **argv) {
     integration.edges = 3;
     integration.stableShadow = true;
     gpu.setIntegration(integration);
+    gpu.setShaftProfile(o.sunStreaks);
     p3::Effects effects;
     auto updateEffects=[&] {
       effects.shadow=o.shadows?p3::Shadow::Cached:p3::Shadow::Off;
@@ -573,9 +577,10 @@ int main(int argc, char **argv) {
         << "\ngrass_layout=" << (o.legacyGrass ? "legacy" : "continuous")
         << "\nworldstyle=" << (o.pixelMaterials ? "pixel" : "source") << "\n";
     log << "grass_family="
-        << (grass.authored ? "EMACEART_SOURCE_ONLY" : "LEGACY_CONTROL")
+        << (grass.ownerPalette ? "OWNER_R2_LIGHT_GREEN" : "EMACEART_SOURCE_ONLY")
         << "\ngrass_receive=" << grass.receiveShadows
         << "\ngrass_cast=0\nshadow_enabled=" << o.shadows
+        << "\nshaft_profile=" << (o.sunStreaks?"streaks":"glow")
         << "\nshafts=" << o.shafts << "\nshaft_strength=" << o.shaftStrength << "\nhaze=" << o.haze << "\nquality=" << o.quality
         << "\nreceiver=" << (o.fragmentReceiver ? "fragment" : "root")
         << "\ndiagnostic=" << o.diagnostic << "\n";
@@ -711,6 +716,7 @@ int main(int argc, char **argv) {
               o.debugFollow = !o.debugFollow;
             } else if(e.key.key==SDLK_V) {
               o.shafts=!o.shafts;updateEffects();event(frame,"shafts_toggle");
+            } else if(e.key.key==SDLK_B) {o.sunStreaks=!o.sunStreaks;gpu.setShaftProfile(o.sunStreaks);event(frame,"shaft_profile");
             } else if(e.key.key==SDLK_O) {
               o.shadows=!o.shadows;updateEffects();event(frame,"shadows_toggle");
             } else if(e.key.key==SDLK_H) {
@@ -925,7 +931,7 @@ int main(int argc, char **argv) {
         if (game.phase == game::Phase::Battle)
           hud.push_back("BEFRIEND: WILD HP12 OR LESS + DEFEND AT LEAST ONCE");
       }
-      hud.push_back(std::string("O SHADOW ")+(o.shadows?"ON":"OFF")+" / V SHAFTS "+(o.shafts?"ON":"OFF")+" / H HAZE "+(o.haze?"ON":"OFF")+" / L "+o.quality);
+      hud.push_back(std::string("O SHADOW ")+(o.shadows?"ON":"OFF")+" / V SHAFTS "+(o.shafts?"ON":"OFF")+" / H HAZE "+(o.haze?"ON":"OFF")+" / B "+(o.sunStreaks?"STREAKS":"GLOW")+" / L "+o.quality);
       if (o.debugFollow)
         hud.push_back(std::string("FOLLOW ") +
                       game::followName(game.follower.state) + " / SECOND " +

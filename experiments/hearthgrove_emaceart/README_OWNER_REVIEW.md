@@ -1,9 +1,9 @@
-# Owner review
+# Owner grass and sun-shaft review
 
-Open PLAY_GAME.cmd. This is the complete EmaceArt Hearthgrove variant, preserving earlier builds. The original building is reused three times; this free pack does not contain three separate complete cottage designs. The supplied green ground-cover meshes, field tiles, mud paths, trees, rocks, bushes, fences, barrels, benches and grass are all genuine EmaceArt art. Petalyn is unchanged.
+Extract the complete private ZIP and run PLAY_GAME.cmd. Default: original approved R2 grass clumps,75%light-green family, three other original ramps retained in grouped patches, high density, shadows and the new visible-shaft profile ON. No new grass mesh or texture. Other village assets and gameplay remain unchanged.
 
-Try walking the central paths, visiting cottage markers (E), meeting the wild Petalyn (E), defend once and attack twice, then befriend (3), Enter and F5. Close and reopen to check progress. The scene has no new interiors, NPCs or quests.
+EMACEART_CONTROL.cmd: previous supplied grass and old glow. OWNER_GRASS_GLOW.cmd: our grass with old glow (isolates grass change). SHAFTS_OFF.cmd: our grass with shadows/haze still enabled but no volumetric light. B toggles old glow/new streaks; V toggles shafts; O shadows; H haze; G density; R480/640; L effect quality. F source/toon. Save/load/combat/following controls are unchanged.
 
-F compares source diffuse / toon without changing geometry. O shadows, V real volumetric shafts, H haze. G density; R internal resolution; L effect quality. LOW_SPEC.cmd disables shafts and lowers shadow size; PLAY_640.cmd selects 640×360. No claim of physical hardware speed is made until the owner runs it.
+PLAY_640.cmd selects640. LOW_SPEC.cmd reduces grass and disables shafts. BENCHMARK_EFFECTS.cmd records a small identical-camera OFF/glow/streaks comparison at480and640; return the complete runs folder privately. Local software-Mesa timings are not physical Intel UHD or displayed-FPS results.
 
-BENCHMARK_EFFECTS.cmd runs a small matched-camera suite and writes per-frame timing, draw/triangle counts, RAM, adapter identity and effect state. It is deliberately bounded. Application/swap timings are not sustained displayed-FPS certification. Do not redistribute the private runtime assets as a source pack.
+Inspect actual native screenshots and moving-camera video before approving the grass colors and light streaks. The new profile depends on real shadow occluders and view direction; open sky cannot produce canopy beams. Source foliage and ground remain exactly as supplied. No new interiors, NPCs, quests or art are introduced.

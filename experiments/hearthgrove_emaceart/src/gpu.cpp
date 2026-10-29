@@ -258,6 +258,7 @@ struct Gpu::Impl {
   GLuint studyPost = 0, presentProgram = 0;
   GLuint linearSampler = 0, compareSampler = 0;
   GLuint artPost = 0, airFilter = 0, filteredAir = 0, filteredFbo = 0;
+  bool sunStreaks = true;
   Mat lightVP;
   bool shadowValid = false, groundValid = false;
   int mapSize = 0, shaftW = 0, shaftH = 0;
@@ -650,6 +651,7 @@ void Gpu::setGrass(MeshClumps *m, const std::filesystem::path &ground,
   (void)ground;(void)groups;
   // Borrow the exact original palette from the existing material texture pool.
   // Grass and environment share ownership, mip policy, and unchanged source pixels.
+  if(m->ownerPalette) return; // original vertex-region colors; no extra texture art
   auto found=p->textures.find(m->sourcePalette);
   if(found==p->textures.end()) throw std::runtime_error("source palette must already be resident");
   p->grassGround=found->second;p->grassGroundBorrowed=true;
@@ -749,6 +751,7 @@ void Gpu::saveDiagnostics(const std::filesystem::path &dir) {
     v << n << ' ';
   v << '\n';
 }
+void Gpu::setShaftProfile(bool streaks) { p->sunStreaks=streaks; }
 void Gpu::setEffects(const Effects &e) {
   e.validate();
   if (p->effects.shadowSize != e.shadowSize) {
@@ -1225,6 +1228,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     uniformInt(p->shaftProgram, "smoothAtmosphere",
                smoothAir || p->integration.boundedAir);
     uniformInt(p->shaftProgram, "boundedAir", p->integration.boundedAir);
+    uniformInt(p->shaftProgram, "sunStreaks", p->sunStreaks);
     gl::Uniform2f(gl::GetUniformLocation(p->shaftProgram, "airGrid"), float(sw),
                   float(sh));
     uniformInt(p->shaftProgram, "smoothShadow", 5);
