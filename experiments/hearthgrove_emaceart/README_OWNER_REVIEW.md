@@ -1,11 +1,11 @@
-# Owner grass and sun-shaft review
+# Hearthgrove — sparse original EmaceArt grass restored
 
-Extract the complete private ZIP and run PLAY_GAME.cmd. Default: original approved R2 grass clumps,75% light-green family, three other original ramps retained in grouped patches, high density, shadows and the new visible-shaft profile ON. No new grass mesh or texture. Other village assets and gameplay remain unchanged.
+Extract the entire private ZIP into a NEW folder and run PLAY_GAME.cmd. Default: original EmaceArt grass, sparse LOW density. PLAY_640.cmd uses640×360. This restores the selected source grass without the owner-grass replacement or a density boost.
 
-EMACEART_CONTROL.cmd: previous supplied grass and old glow. OWNER_GRASS_GLOW.cmd: our grass with old glow (isolates grass change). SHAFTS_OFF.cmd: our grass with shadows/haze still enabled but no volumetric light. B toggles old glow/new streaks; V toggles shafts; O shadows; H haze; G density; R 480/640; L effect quality. F source/toon. Save/load/combat/following controls are unchanged.
+The current lighting, shadows and sun shafts remain. B old glow/streaks; V shafts; O shadows; H haze. F source/toon; R480/640. LOW_SPEC.cmd keeps sparse grass and disables shafts. EMACEART_CONTROL.cmd uses the same sparse EmaceArt grass with the old glow; SHAFTS_OFF.cmd isolates volumetric light. OWNER_GRASS_GLOW.cmd is explicitly a preserved rejected-grass comparison, not the default.
 
-PLAY_640.cmd selects 640. LOW_SPEC.cmd reduces grass and disables shafts. BENCHMARK_EFFECTS.cmd records a small identical-camera OFF/glow/streaks comparison at 480 and 640; return the complete runs folder privately. Local software-Mesa timings are not physical Intel UHD or displayed-FPS results.
+Movement, following, interactions, combat, recruitment and save/load are unchanged. Existing original assets, prior builds and source history are preserved; nothing is merged. No new artwork, texture or geometry is generated.
 
-Inspect actual native screenshots and moving-camera video before approving the grass colors and light streaks. The new profile depends on real shadow occluders and view direction; open sky cannot produce canopy beams. Source foliage and ground remain exactly as supplied. No new interiors, NPCs, quests or art are introduced.
+The sparse preset selects a stable quarter of the existing candidate roots, with the existing12mvisibility limit and conservative frustum/projected-size culling. Original models, palette and scene placement data are unmodified. It intentionally leaves more ground visible; this is not a lush-meadow coverage target.
 
-The streak profile includes five sun-aligned lighting accents selected from actual source-shadow gaps; these are explicit volumetric FX parameters. Four original willow instances overlap at the existing forest exit to provide the canopy. No source geometry, textures, existing scene instances or village bounds are altered. Pose 13/15: eye-height views; pose 14: elevated diagnostic.
+Windows build instructions remain in README.md. All local render captures use Mesa software. Physical Intel UHD/Windows GPU performance, Android and Win7compatibility remain NOT TESTED. No new performance claim accompanies this default-only revert.

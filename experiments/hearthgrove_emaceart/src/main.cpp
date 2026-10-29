@@ -48,10 +48,10 @@ std::uint64_t memory(bool peak = false) {
 struct Options {
   std::filesystem::path assets = "assets", save = "saves/hearthgrove_emaceart.json",
                         out = "runs/play", replay;
-  bool ownerGrass = true, sunStreaks = true;
+  bool ownerGrass = false, sunStreaks = true;
   bool sourceTextures = false, legacyFollow = false, legacyGrass = false,
        pixelMaterials = true, debugFollow = false;
-  int w = 480, frames = 0, every = 0, cap = 30, density = 2, pose = -1,
+  int w = 480, frames = 0, every = 0, cap = 30, density = 1, pose = -1,
       coverage = 0;
   bool allow = false, hidden = false, house = true, benchmark = false,
        fresh = false, original = false;

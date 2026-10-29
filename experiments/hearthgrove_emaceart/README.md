@@ -1,6 +1,8 @@
-# Hearthgrove — owner grass and sun-shaft review
+# Hearthgrove — sparse original EmaceArt grass
 
-Follow-up to EmaceArt Hearthgrove draft PR #60. The new default restores the owner's approved R2 large grass clumps, original root/mid/tip color ramps and original near/far meshes. No new artwork, textures or models are generated. Approximately 75% of root placements use the original light-green family, with 15% green, 8% teal and 2% deep shade in coherent patches. Original source mesh bytes and palette values remain unchanged. The previous EmaceArt grass is a selectable control.
+Owner review rejected the owner-grass replacement. The default is restored to the original EmaceArt grass meshes, original palette/UVs and sparse LOW density. No density boost, owner color-family override, grass remodeling or new artwork. Direct executable launches and PLAY_GAME/PLAY_640/SHAFTS_OFF/EMACEART_CONTROL/LOW_SPEC all select the sparse EmaceArt behavior. The current lighting, shadows, sun-streak profile, canopy arrangement and gameplay remain unchanged.
+
+The previous owner-grass implementation is retained only as an explicit comparison (`--grass-style owner` / OWNER_GRASS_GLOW.cmd) and in the preserved earlier build. It is not the approved/default vegetation direction.
 
 ## Build
 
@@ -8,14 +10,14 @@ Follow-up to EmaceArt Hearthgrove draft PR #60. The new default restores the own
 cmake -S experiments/hearthgrove_emaceart -B build/emacegrove -G "Visual Studio 17 2022" -A x64
 cmake --build build/emacegrove --config Release --parallel 2
 ctest --test-dir build/emacegrove -C Release --output-on-failure
-cmake --install build/emacegrove --config Release --prefix out/hearthgrove-owner-grass
+cmake --install build/emacegrove --config Release --prefix out/hearthgrove-emaceart-sparse
 ```
 
 All private art stays outside this public source tree. The owner-only Windows game ZIP includes the validated assets. Code-only CI artifacts do not include models, textures or screenshots.
 
 ## Play and compare
 
-Extract the entire private ZIP and run PLAY_GAME.cmd (480×270, owner grass, high density, shafts/shadows/haze ON). PLAY_640.cmd selects 640×360. LOW_SPEC.cmd reduces grass and disables shafts. EMACEART_CONTROL.cmd uses supplied EmaceArt grass and the previous glow; OWNER_GRASS_GLOW.cmd isolates the grass change; SHAFTS_OFF.cmd retains shadows and haze but disables volumetric light.
+Extract the entire private ZIP and run PLAY_GAME.cmd (480×270, original EmaceArt grass, sparse LOW density, shafts/shadows/haze ON). PLAY_640.cmd selects 640×360. LOW_SPEC.cmd reduces grass and disables shafts. EMACEART_CONTROL.cmd uses supplied EmaceArt grass and the previous glow; OWNER_GRASS_GLOW.cmd isolates the grass change; SHAFTS_OFF.cmd retains shadows and haze but disables volumetric light.
 
 WASD/mouse; E rests/interacts; 1 attack, 2 defend, 3 befriend; Enter returns; F5 saves, F9 loads; Esc pauses, Q saves/quits from pause. Existing gameplay, two-companion following/animations and saves are unchanged.
 

@@ -7,7 +7,7 @@ $ci=[System.Globalization.CultureInfo]::InvariantCulture
 function N($s){return [double]::Parse([string]$s,$ci)}
 $summary=@()
 foreach($res in @(480,640)){foreach($mode in @('OFF','GLOW','STREAKS')){
- $out=Join-Path $run ($mode+'_'+$res);$shafts=if($mode -eq 'OFF'){'off'}else{'on'};$profile=if($mode -eq 'GLOW'){'glow'}else{'streaks'};$extra=@('--shadow','on','--shafts',$shafts,'--shaft-profile',$profile,'--haze','off','--grass-style','owner','--grass-density','high','--quality','medium')
+ $out=Join-Path $run ($mode+'_'+$res);$shafts=if($mode -eq 'OFF'){'off'}else{'on'};$profile=if($mode -eq 'GLOW'){'glow'}else{'streaks'};$extra=@('--shadow','on','--shafts',$shafts,'--shaft-profile',$profile,'--haze','off','--grass-style','emaceart','--grass-density','low','--quality','medium')
  $a=@('--assets',(Join-Path $Root 'assets'),'--benchmark','--pose','13','--resolution',"$res",'--frames','180','--cap','0','--pacing','off','--output',$out)+$extra
  & (Join-Path $Root 'wildsignal_hearthgrove_emaceart.exe') @a
  if($LASTEXITCODE -ne 0){throw "Runtime failed: $mode $res. Return error.txt and run.log."}
