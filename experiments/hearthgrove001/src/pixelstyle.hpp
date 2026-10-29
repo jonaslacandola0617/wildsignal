@@ -1,5 +1,6 @@
 #pragma once
 #include "core.hpp"
+#include <algorithm>
 #include <stdexcept>
 #include <string_view>
 namespace p3 {
