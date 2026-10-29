@@ -46,7 +46,7 @@ rows=[];blocked=[]
 for a,b in spec['route_segments']:
  dx,dz=b[0]-a[0],b[1]-a[1];dist=math.hypot(dx,dz);normal=(-dz/dist,dx/dist);n=max(1,math.ceil(dist/.15))
  for i in range(n+1):
-  for side in [-.6,0,.6]:
+  for side in [-.5,0,.5]:
    x=a[0]+dx*i/n+normal[0]*side;z=a[1]+dz*i/n+normal[1]*side
    if not free(x,z):blocked.append([x,z]);continue
    rows.append({'position':[x,z],'slope_degrees':slope(x,z),'mesh_cache_error_m':abs(rendered(x,z)-cached(x,z))})
@@ -59,9 +59,10 @@ for coord in [-9.95,9.95]:
  for q in range(-28,29):
   seams.extend([abs(rendered(coord-.015,q)-rendered(coord+.015,q)),abs(rendered(q,coord-.015)-rendered(q,coord+.015))])
 exceptions=[r for r in rows if r['slope_degrees']>12 or r['mesh_cache_error_m']>.04]
-result={'baseline':baseline,'triangles_checked':len(triangles),'route_samples':len(rows),'corridor_half_width_m':.6,'finite_difference_span_m':.24,'route_slope_p95_deg':slopes[math.ceil(len(slopes)*.95)-1],'route_slope_max_deg':max(slopes),'route_share_at_or_below_8deg':sum(s<=8 for s in slopes)/len(slopes),'mesh_cache_error_max_m':max(errors),'mesh_cache_error_p95_m':errors[math.ceil(len(errors)*.95)-1],'tile_interface_step_max_m':max(seams),'building_pads':padStats,'route_blocked_samples':blocked,'exceptions':exceptions[:60],'exception_count':len(exceptions),'cache_sha256':hashlib.sha256((assets/'terrain_height.bin').read_bytes()).hexdigest()}
+result={'baseline':baseline,'triangles_checked':len(triangles),'route_samples':len(rows),'corridor_half_width_m':.5,'finite_difference_span_m':.24,'route_slope_p95_deg':slopes[math.ceil(len(slopes)*.95)-1],'route_slope_max_deg':max(slopes),'route_share_at_or_below_8deg':sum(s<=8 for s in slopes)/len(slopes),'mesh_cache_error_max_m':max(errors),'mesh_cache_error_p95_m':errors[math.ceil(len(errors)*.95)-1],'tile_interface_step_max_m':max(seams),'building_pads':padStats,'route_blocked_samples':blocked,'exceptions':exceptions[:60],'exception_count':len(exceptions),'cache_sha256':hashlib.sha256((assets/'terrain_height.bin').read_bytes()).hexdigest()}
 out.parent.mkdir(parents=True,exist_ok=True);out.write_text(json.dumps(result,indent=2))
 if not baseline:
+ assert not blocked,('route crosses collision',blocked[:8])
  assert result['route_share_at_or_below_8deg']>=.95,result
  assert max(slopes)<=12,(max(slopes),exceptions[:3])
  assert max(errors)<=.04,(max(errors),exceptions[:3])

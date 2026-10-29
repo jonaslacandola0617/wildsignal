@@ -6,6 +6,7 @@ namespace p3 {
 struct StyleProfile {
  bool active=false; int inkMode=1,majorWidth=1;
  std::array<Vec,6> grades{}; std::array<float,4> ink{};
+ float groundAnchor=.64f,groundContrast=.30f;
  float lowTone=.12f,midTone=.52f,highlight=.2f,ceiling=.82f;
  Look look;
  static StyleProfile load(const std::filesystem::path &path,const std::string &name,const Look &baseline) {
@@ -19,6 +20,7 @@ struct StyleProfile {
   for(int i=0;i<6;i++){s.grades[i]=vector(grades[i],-.5f,1.5f);if(s.grades[i].y<.2f||s.grades[i].z<.2f)throw std::runtime_error("style saturation/value");}
   auto &ink=v.at("ink").array();if(ink.size()!=4)throw std::runtime_error("style ink size");for(int i=0;i<4;i++)s.ink[i]=scalar(ink[i],0,1);
   s.majorWidth=int(scalar(v.at("major_width"),1,2));if(v.at("major_width").number()!=s.majorWidth)throw std::runtime_error("integer edge width");
+  s.groundAnchor=scalar(v.at("ground_value_anchor"),.3f,.8f);s.groundContrast=scalar(v.at("ground_contrast"),.1f,1.f);
   s.lowTone=scalar(v.at("low_tone"),0,.4f);s.midTone=scalar(v.at("mid_tone"),.25f,.8f);if(s.lowTone>=s.midTone)throw std::runtime_error("ordered tone levels");
   s.highlight=scalar(v.at("highlight_strength"),0,.4f);s.ceiling=scalar(v.at("highlight_ceiling"),.5f,.9f);
   s.look.sunColor=vector(v.at("sun_color"),0,2);s.look.ambientSky=vector(v.at("ambient_sky"),0,.6f);s.look.ambientGround=vector(v.at("ambient_ground"),0,.6f);

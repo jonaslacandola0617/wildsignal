@@ -1017,6 +1017,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
   bool smoothAir = p->style.mode == 2 && p->style.smoothAir;
   bool smoothLight = p->style.mode == 2 && p->style.smoothLight;
   uniformInt(p->mesh,"profileActive",p->profile.active&&p->style.highlights);
+  uniformFloat(p->mesh,"groundAnchor",p->profile.groundAnchor);uniformFloat(p->mesh,"groundContrast",p->profile.groundContrast);
   uniformFloat(p->mesh,"profileLow",p->profile.lowTone);uniformFloat(p->mesh,"profileMid",p->profile.midTone);
   for(int f=0;f<6;f++){auto v=p->profile.grades[f];auto name="familyGrade["+std::to_string(f)+"]";gl::Uniform3f(gl::GetUniformLocation(p->mesh,name.c_str()),v.x,v.y,v.z);}
   uniformInt(p->mesh, "artStyle", p->style.mode);
@@ -1096,7 +1097,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     auto &part = p->models[i.model][partIndex];
     auto &mat = p->materials[part.material];
     const auto &model=world.models[i.model];
-    int family=model.rig?-1:model.id.starts_with("EA_TREE")||model.id.starts_with("EA_BUSH")||model.id.starts_with("EA_REED")?1:model.id.starts_with("EA_ROCK")?4:model.id.starts_with("EA_PATH")||model.id=="EA_COBBLE"||model.id.starts_with("HG_PATH")?3:model.id=="EA_GROUND"||model.id.starts_with("HG_GROUND")?5:model.id.starts_with("EA_GREEN")||model.id.starts_with("HG_GREEN")||model.id=="EA_MOSS"?0:2;
+    int family=model.rig?-1:model.id.starts_with("EA_TREE")||model.id.starts_with("EA_BUSH")||model.id.starts_with("EA_REED")?1:model.id.starts_with("EA_ROCK")?4:model.id.starts_with("EA_PATH")||model.id=="EA_COBBLE"||model.id.starts_with("HG_PATH")?3:model.id=="EA_GROUND"||model.id.starts_with("HG_GROUND")||model.id.starts_with("HG_GREEN")||model.id.starts_with("EA_GREEN")?5:model.id.starts_with("EA_GREEN")||model.id.starts_with("HG_GREEN")||model.id=="EA_MOSS"?0:2;
     uniformInt(p->mesh,"profileFamily",family);
     gl::Uniform1i(p->receivesLoc, p->policies[i.model].receives);
     gl::Uniform1f(p->sunTintLoc, p->policies[i.model].sunTint);
@@ -1341,9 +1342,9 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
               ? p->filteredAir
               : p->shaftImage);
   uniformInt(postProgram, "outline",
-             mode == 2 && outline && p->style.diagnostic == 0);
+             mode == 2 && outline && p->style.diagnostic == 0 && p->profile.inkMode!=0);
   uniformInt(postProgram, "refined", p->style.outlines);
-  uniformInt(postProgram, "highlights", p->style.highlights);
+  uniformInt(postProgram, "highlights", p->style.highlights&&p->profile.inkMode!=0);
   uniformInt(postProgram, "cozy", p->look.cozy);
   uniformInt(postProgram, "sceneColor", 0);
   uniformInt(postProgram, "sceneNormal", 1);

@@ -1,9 +1,11 @@
-# Owner review
+# Hearthgrove style and terrain R1 — owner review
 
-Open PLAY_GAME.cmd. This is the complete EmaceArt Hearthgrove variant, preserving earlier builds. The original building is reused three times; this free pack does not contain three separate complete cottage designs. The supplied green ground-cover meshes, field tiles, mud paths, trees, rocks, bushes, fences, barrels, benches and grass are all genuine EmaceArt art. Petalyn is unchanged.
+Extract the complete private Windows ZIP into a NEW folder. Run PLAY_GAME.cmd (480×270), or PLAY_640.cmd (640×360). The default balanced candidate uses calmer material-specific colors, stronger controlled toon form separation, selective single-pixel ink, clear village paths, coherent gentle ground and grouped original EmaceArt grass. Cast shadows, shafts and haze default OFF; modest source-object ground contacts remain ON. O/V/H toggle the effects independently.
 
-Try walking the central paths, visiting cottage markers (E), meeting the wild Petalyn (E), defend once and attack twice, then befriend (3), Enter and F5. Close and reopen to check progress. The scene has no new interiors, NPCs or quests.
+PLAY_BOLD.cmd enables rich materials and selective two-pixel major architecture contours; individual grass and terrain remain unoutlined. BASELINE_ORIGINAL.cmd restores the original PR60 scene and rendering. SOURCE_MATERIALS.cmd shows original source-material colors on the final terrain. SHADOWS_ON.cmd compares genuine cast shadows. LOW_SPEC.cmd reduces grass. No source asset was repainted or remodeled except the explicitly authorized private walkable-surface height derivation; original inputs remain untouched.
 
-F compares source diffuse / toon without changing geometry. O shadows, V real volumetric shafts, H haze. G density; R internal resolution; L effect quality. LOW_SPEC.cmd disables shafts and lowers shadow size; PLAY_640.cmd selects 640×360. No claim of physical hardware speed is made until the owner runs it.
+Movement and mouse camera parameters, Petalyn source/animations, interactions, following, battle/recruitment and save format are preserved. F2 cycles compact/hidden/debug HUD; the normal gameplay actions remain visible in compact mode. Extracting a new review folder protects previous builds/saves. You can copy a previous save into saves/hearthgrove_emaceart.json; obstructed coordinates fall back safely to spawn.
 
-BENCHMARK_EFFECTS.cmd runs a small matched-camera suite and writes per-frame timing, draw/triangle counts, RAM, adapter identity and effect state. It is deliberately bounded. Application/swap timings are not sustained displayed-FPS certification. Do not redistribute the private runtime assets as a source pack.
+Read the accompanying private OWNER_REVIEW.md, VISUAL_MATRIX.md, TERRAIN_QA.md, PERFORMANCE.md and SOURCE_PROVENANCE.md for real captures and exact test limits. Native PNGs are authoritative for pixel detail. The Windows executable is built/tested in CI; physical Intel UHD, Android, Win7 and sustained displayed FPS are not certified. Visual approval remains yours. No merges.
+
+HEARTHGROVE_EMACEART_STYLE_TERRAIN_R1_OWNER_REVIEW_PENDING
