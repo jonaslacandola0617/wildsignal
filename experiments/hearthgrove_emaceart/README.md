@@ -25,7 +25,7 @@ Example genuine native capture:
 wildsignal_hearthgrove_emaceart.exe --assets assets --benchmark --pose 2 --frames 4 --cap 0 --resolution 640 --shafts on --shadow on --haze on --quality medium --output runs/canopy
 ```
 
-`final_world.ppm` is the actual internal framebuffer. `--pose 0..8`, `--render-mode original|toon`, `--resolution 480|640|1280`, `--grass-density off|low|medium|high`, `--shafts on|off`, `--haze on|off`, `--shadow on|off`, `--quality low|medium|high`. Source assets are required; legacy R2/procedural grass switches fail closed in this target. Earlier executables retain their controls.
+`final_world.ppm` is the actual internal framebuffer. `--pose 0..8`, `--render-mode original|toon`, `--resolution 480|640|1280`, `--grass-density off|low|medium|high`, `--shafts on|off`, `--haze on|off`, `--shadow on|off`, `--shaft-strength 0..3`, `--quality low|medium|high`. Source assets are required; legacy R2/procedural grass switches fail closed in this target. Earlier executables retain their controls.
 
 ## Rendering and limits
 

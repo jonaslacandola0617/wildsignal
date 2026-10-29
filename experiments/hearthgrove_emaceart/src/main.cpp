@@ -57,8 +57,9 @@ struct Options {
   std::string pacing = "precise";
   bool shafts = true, haze = true;
   std::string quality = "medium";
+  float shaftStrength = 1.5f;
   bool shadows = true, forceLegacyGrass = false, requireAuthored = false,
-       fragmentReceiver = false, cacheProbe = false;
+       fragmentReceiver = true, cacheProbe = false;
   int receiveGrass = -1, diagnostic = 0, scaleFamily = 0, canopyMask = -1;
 };
 int integer(const std::string &s, int lo, int hi) {
@@ -81,23 +82,27 @@ Options options(int argc, char **argv) {
       std::cout
           << "HEARTHGROVE EMACEART complete playable village\n--assets DIR "
              "--resolution 480|640|1280 "
-             "--grass-density off|low|medium|high\n--megakit-house on|off "
+             "--grass-density off|low|medium|high\n--buildings on|off "
              "--render-mode original|toon --pacing precise|legacy|off\n--cap "
              "0|30|60 --benchmark --pose 0..8 --frames N --capture-every "
              "N\n--save FILE --new-game --output DIR --allow-software --hidden "
              "--replay FILE --followers trail|legacy --grass-layout "
              "continuous|legacy\n--worldstyle source|pixel --debug-follow\n";
-      std::cout << "Source EmaceArt: --grass-family auto|legacy|r2 "
-                   "--grass-scale mixed|standard|small\n"
+      std::cout << "Source EmaceArt: --grass-family auto|source "
+                   "--grass-scale mixed (original uniform source scale)\n"
                    "--shadow on|off --grass-cast off --grass-receive on|off "
-                   "--grass-receiver root|fragment\n"
-                   "--diagnostic lit|albedo|visibility|patch --canopy-shadow "
-                   "solid|mask\n"
+                   "--grass-receiver fragment\n"
+                   "--diagnostic lit|albedo|visibility --canopy-shadow "
+                   "solid\n"
                    "--shadow-cache-probe (isolated technical test only)\n"
-                   "--shafts on|off --haze on|off --quality low|medium|high\n";
+                   "--shafts on|off --haze on|off --quality low|medium|high --shaft-strength 0..3\n";
       std::exit(0);
     } else if (a == "--assets")
       o.assets = value();
+    else if(a=="--shaft-strength") {
+      auto v=value();std::size_t used=0;o.shaftStrength=std::stof(v,&used);
+      if(used!=v.size()||!std::isfinite(o.shaftStrength)||o.shaftStrength<0||o.shaftStrength>3)throw std::runtime_error("shaft-strength 0..3");
+    }
     else if (a == "--shafts" || a == "--haze") {
       auto v=value();if(v!="on"&&v!="off")throw std::runtime_error("effect on|off");
       (a=="--shafts"?o.shafts:o.haze)=v=="on";
@@ -137,7 +142,7 @@ Options options(int argc, char **argv) {
         o.density = 3;
       else
         throw std::runtime_error("densityoff|low|medium|high");
-    } else if (a == "--megakit-house") {
+    } else if ((a == "--megakit-house" || a == "--buildings")) {
       auto v = value();
       if (v != "on" && v != "off")
         throw std::runtime_error("houseon|off");
@@ -163,10 +168,10 @@ Options options(int argc, char **argv) {
       o.pose = integer(value(), 0, 8);
     else if (a == "--grass-family") {
       auto v = value();
-      if (v != "auto" && v != "legacy" && v != "r2")
-        throw std::runtime_error("grass-family auto|legacy|r2");
-      o.forceLegacyGrass = v == "legacy";
-      o.requireAuthored = v == "r2";
+      if (v != "auto" && v != "source")
+        throw std::runtime_error("grass-family auto|source; use the earlier executable for R2");
+      o.forceLegacyGrass = false;
+      o.requireAuthored = true;
     } else if (a == "--grass-scale") {
       auto v = value();
       if (v == "mixed")
@@ -192,8 +197,8 @@ Options options(int argc, char **argv) {
         throw std::runtime_error("Grass casting must remain OFF");
     } else if (a == "--grass-receiver") {
       auto v = value();
-      if (v != "root" && v != "fragment")
-        throw std::runtime_error("grass-receiver root|fragment");
+      if (v != "fragment")
+        throw std::runtime_error("grass-receiver fragment");
       o.fragmentReceiver = v == "fragment";
     } else if (a == "--diagnostic") {
       auto v = value();
@@ -203,16 +208,15 @@ Options options(int argc, char **argv) {
         o.diagnostic = 1;
       else if (v == "visibility")
         o.diagnostic = 4;
-      else if (v == "patch")
-        o.diagnostic = 5;
+
       else
         throw std::runtime_error("diagnostic lit|albedo|visibility|patch");
     } else if (a == "--shadow-cache-probe")
       o.cacheProbe = true;
     else if (a == "--canopy-shadow") {
       auto v = value();
-      if (v != "solid" && v != "mask")
-        throw std::runtime_error("canopy-shadow solid|mask");
+      if (v != "solid")
+        throw std::runtime_error("EmaceArt source foliage is opaque; canopy-shadow solid only");
       o.canopyMask = v == "mask";
     } else if (a == "--pacing") {
       o.pacing = value();
@@ -544,6 +548,7 @@ int main(int argc, char **argv) {
       effects.shadowSize=o.quality=="low"?512:1024;
       effects.shafts=o.shafts?p3::Shafts::Volume:p3::Shafts::Off;
       effects.divisor=4;effects.steps=o.quality=="high"?12:8;
+      effects.shaftStrength=o.shaftStrength;
       effects.automatic=false; // explicit comparison controls never silently change
       gpu.setEffects(effects);
     };
@@ -571,7 +576,7 @@ int main(int argc, char **argv) {
         << (grass.authored ? "EMACEART_SOURCE_ONLY" : "LEGACY_CONTROL")
         << "\ngrass_receive=" << grass.receiveShadows
         << "\ngrass_cast=0\nshadow_enabled=" << o.shadows
-        << "\nshafts=" << o.shafts << "\nhaze=" << o.haze << "\nquality=" << o.quality
+        << "\nshafts=" << o.shafts << "\nshaft_strength=" << o.shaftStrength << "\nhaze=" << o.haze << "\nquality=" << o.quality
         << "\nreceiver=" << (o.fragmentReceiver ? "fragment" : "root")
         << "\ndiagnostic=" << o.diagnostic << "\n";
     log << "grass_models=" << grass.models.size()
@@ -909,8 +914,7 @@ int main(int argc, char **argv) {
             std::hypot(game.state.player.x - game.wild.x,
                        game.state.player.z - game.wild.z) < 1.8f)
           hud.push_back("E: ENCOUNTER WILD PETALYN");
-        else if (o.house && std::hypot(game.state.player.x + 3.5f,
-                                       game.state.player.z - .25f) < 1.5f)
+        else if (o.house && std::any_of(game.restSpots.begin(), game.restSpots.end(), [&](p3::Vec p){return std::hypot(game.state.player.x-p.x,game.state.player.z-p.z)<1.5f;}))
           hud.push_back("E: REST AT THE COTTAGE SHELTER");
       } else {
         hud.push_back("WILD HP " + std::to_string(game.enemyHp) +

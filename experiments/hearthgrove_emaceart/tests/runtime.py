@@ -1,26 +1,28 @@
-"""Actual native SDL route through Hearthgrove, battle/recruit/reopen/recovery.
-No private art in this test; provide a validated private runtime directory.
-"""
+"""Actual SDL gameplay, two-companion camera Idle, reopen and corrupt-save recovery."""
 import csv,json,os,subprocess,sys,tempfile
 from pathlib import Path
-exe=Path(sys.argv[1]).resolve();assets=Path(sys.argv[2]).resolve();env=dict(os.environ);env.setdefault('SDL_VIDEODRIVER','offscreen');env.setdefault('LIBGL_ALWAYS_SOFTWARE','1');env.setdefault('LP_NUM_THREADS','2')
-with tempfile.TemporaryDirectory(prefix='wildsignal-hearthgrove-')as tmp:
- r=Path(tmp);save=r/'saves/hearthgrove.json'
- prefix=[(0,'down','W'),(180,'up','W'),(181,'down','A'),(261,'up','A'),(262,'down','W'),(292,'up','W'),(293,'down','A'),(333,'up','A'),(334,'down','E'),(335,'up','E'),(340,'down','D'),(460,'up','D'),(462,'down','S'),(537,'up','S'),(540,'down','E'),(541,'up','E')]
- end=[(660,'down','Return'),(661,'up','Return'),(663,'down','F5'),(664,'up','F5'),(695,'down','Escape'),(696,'up','Escape'),(700,'down','Q')]
- def script(name,actions):
-  p=r/(name+'.txt');p.write_text('\n'.join(f'{f} {a} {b}'for f,a,b in prefix+actions+end)+'\n');return p
+from route import build
+exe=Path(sys.argv[1]).resolve();assets=Path(sys.argv[2]).resolve()
+env=dict(os.environ);env.setdefault('SDL_VIDEODRIVER','offscreen');env.setdefault('LIBGL_ALWAYS_SOFTWARE','1');env.setdefault('LP_NUM_THREADS','2')
+cfg=json.loads((assets/'game.json').read_text());actions,count=build(cfg)
+with tempfile.TemporaryDirectory(prefix='wildsignal-emacegrove-')as tmp:
+ r=Path(tmp);save=r/'saves/game.json';replay=r/'loop.txt';replay.write_text('\n'.join(f'{f} {a} {v}'for f,a,v in actions)+'\n')
  def run(name,extra=()):
-  out=r/name;cmd=[str(exe),'--assets',str(assets),'--allow-software','--hidden','--frames','740','--cap','0','--save',str(save),'--output',str(out)]+list(extra);p=subprocess.run(cmd,env=env,capture_output=True,text=True,timeout=240);assert p.returncode==0,(name,p.stderr);return out
- actions=[(560,'down','2'),(561,'up','2'),(585,'down','1'),(586,'up','1'),(610,'down','1'),(611,'up','1'),(635,'down','3'),(636,'up','3')]
- out=run('full-loop',['--new-game','--replay',str(script('loop',actions))]);events=list(csv.DictReader((out/'events.csv').open()));names={e['event']for e in events};assert {'cottage_rest','encounter','defend','attack','befriend','return_explore','save','save_quit'}<=names,(names,events)
- state=json.loads(save.read_text());assert state['hp']==12 and state['recruited']==1 and state['visited']==1,state
- fs=list(csv.DictReader((out/'frames.csv').open()));assert max(float(f['player_z'])for f in fs)>12,'still trapped in12mglade';assert min(float(f['player_x'])for f in fs)<-8,'west cottage inaccessible';assert any(f['follower_moving']=='1'for f in fs);assert all(f['grass_shadow_draws']=='0'and f['grass_shadow_triangles']=='0'for f in fs);assert max(int(f['shadow_cache_invalidations'])for f in fs)==1,'camera/actors rebuild cached shadows'
- reopened=run('reopen',['--frames','3']);assert 'loaded=1 recovered=0'in(reopened/'run.log').read_text();assert json.loads(save.read_text())==state
- yaw=r/'yaw.txt';yaw.write_text('\n'.join(f'{i} mouse 40 0'for i in range(20,100))+'\n');turn=run('yaw-only',['--frames','150','--replay',str(yaw)]);fs=list(csv.DictReader((turn/'frames.csv').open()));assert all(f['party']=='2'for f in fs);assert len({(f['follower_x'],f['follower_z'])for f in fs})==1;assert all(f['follower_moving']=='0'and f['follower_state']=='IDLE'for f in fs),'camera caused follower orbit'
- save.write_text('corrupt primary');backup=run('recover',['--frames','3']);assert 'loaded=1 recovered=1'in(backup/'run.log').read_text();assert json.loads(save.read_text())['recruited']==1
- save.write_text('bad');Path(str(save)+'.bak').write_text('bad');fresh=run('both-corrupt',['--frames','3']);assert 'loaded=0'in(fresh/'run.log').read_text();assert json.loads(save.read_text())['hp']==30
- loss=[]
- for f in[560,585,610,635]:loss.extend([(f,'down','3'),(f+1,'up','3')])
- lost=run('loss',['--new-game','--replay',str(script('loss',loss))]);es=list(csv.DictReader((lost/'events.csv').open()));assert any(e['phase']=='REST NEEDED'for e in es);state=json.loads(save.read_text());assert state['hp']==30 and state['recruited']==0 and abs(state['z']-14)<.02,state
- print('PASS actual Hearthgrove SDL walking beyond old bounds, cottage rest, collision route, followers, battle/attack/defend/recruit, restart, corrupt-save recovery, loss return and camera-only two-companion Idle. Mesa software only.')
+  out=r/name
+  cmd=[str(exe),'--assets',str(assets),'--allow-software','--hidden','--frames','3','--cap','0','--grass-density','off','--shafts','off','--shadow','off','--haze','off','--save',str(save),'--output',str(out)]+list(extra)
+  p=subprocess.run(cmd,env=env,capture_output=True,text=True,timeout=240)
+  assert p.returncode==0,(name,p.stderr)
+  return out
+ out=run('full-loop',['--new-game','--frames',str(count),'--replay',str(replay)])
+ events=list(csv.DictReader((out/'events.csv').open()));names={e['event']for e in events}
+ assert {'cottage_rest','encounter','defend','attack','befriend','return_explore','save'}<=names,names
+ state=json.loads(save.read_text());assert state['recruited']==1 and state['visited']==1 and state['hp']==12,state
+ fs=list(csv.DictReader((out/'frames.csv').open()));assert max(float(f['player_z'])for f in fs)>20;assert any(f['follower_moving']=='1'for f in fs)
+ reopened=run('reopen');assert 'loaded=1 recovered=0'in(reopened/'run.log').read_text();assert json.loads(save.read_text())==state
+ yaw=r/'yaw.txt';yaw.write_text('\n'.join(f'{i} mouse 40 0'for i in range(20,100))+'\n')
+ out=run('yaw',['--frames','150','--replay',str(yaw)]);fs=list(csv.DictReader((out/'frames.csv').open()));assert all(f['party']=='2'for f in fs)
+ assert len({(f['follower_x'],f['follower_z'])for f in fs})==1
+ assert all(f['follower_moving']=='0'and f['follower_state']=='IDLE'for f in fs),'camera-only orbit'
+ save.write_text('corrupt primary');out=run('backup');assert 'loaded=1 recovered=1'in(out/'run.log').read_text();assert json.loads(save.read_text())['recruited']==1
+ save.write_text('bad');Path(str(save)+'.bak').write_text('bad');out=run('both-corrupt');assert 'loaded=0'in(out/'run.log').read_text();assert json.loads(save.read_text())['hp']==30
+ print('PASS actual SDL cottage/rest/battle/defend/attack/recruit/exploration/save/reopen, two-companion stationary-camera Idle and corrupt-save recovery. Effects OFF for logic test; Mesa software only.')
