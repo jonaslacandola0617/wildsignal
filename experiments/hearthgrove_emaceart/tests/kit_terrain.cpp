@@ -2,7 +2,7 @@
 #include <iostream>
 int main(){try{
  p3::World world;world.models.resize(2);world.models[0].id="EA_GROUND";world.models[1].id="EA_HOUSE";
- for(auto&m:world.models){m.bounds.add({-2,-.3f,-2});m.bounds.add({2,.24f,2});}
+ for(auto&m:world.models){m.bounds.add(p3::Vec{-2,-.3f,-2});m.bounds.add(p3::Vec{2,.24f,2});}
  world.instances.resize(2);
  for(int k=0;k<2;k++){auto&i=world.instances[k];i.model=k;i.matrix=p3::transform({10,.5f,10},.23f,1);i.bounds=p3::transformed(world.models[k].bounds,i.matrix);}
  auto ground=world.instances[0].matrix,house=world.instances[1].matrix;
