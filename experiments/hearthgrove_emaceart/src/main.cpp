@@ -960,7 +960,7 @@ int main(int argc, char **argv) {
         compact.push_back("PETALYN "+std::to_string(game.state.hp)+"/30 / PARTY "+std::to_string(game.state.recruited?2:1));
         if(paused)compact.push_back("PAUSED / ENTER RESUME / Q SAVE AND QUIT");
         else if(game.phase!=game::Phase::Explore)compact.push_back("WILD "+std::to_string(game.enemyHp)+"/24 / 1 ATTACK 2 DEFEND 3 BEFRIEND / ENTER");
-        else compact.push_back(game.state.visited?"E ENCOUNTER / F5 SAVE / F2 HUD":"E COTTAGE REST / F5 SAVE / F2 HUD");
+        else compact.push_back(game.state.recruited?"EXPLORE / F5 SAVE / F2 HUD":game.state.visited?"E ENCOUNTER / F5 SAVE / F2 HUD":"E COTTAGE REST / F5 SAVE / F2 HUD");
         if(!game.message.empty())compact.push_back(game.message.substr(0,68));hud=std::move(compact);}
       if (!o.coverage&&o.hudMode!=0)
         gpu.hud(hud, ow, oh);
