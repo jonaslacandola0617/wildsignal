@@ -48,9 +48,11 @@ std::uint64_t memory(bool peak = false) {
 struct Options {
   std::filesystem::path assets = "assets", save = "saves/hearthgrove_emaceart.json",
                         out = "runs/play", replay;
+  bool ownerGrass = false, sunStreaks = true;
   bool sourceTextures = false, legacyFollow = false, legacyGrass = false,
        pixelMaterials = true, debugFollow = false;
-  int w = 480, frames = 0, every = 0, cap = 30, density = 2, pose = -1,
+  int outlineWidth = 2, highlightWidth = 2;
+  int w = 480, frames = 0, every = 0, cap = 30, density = 1, pose = -1,
       coverage = 0;
   bool allow = false, hidden = false, house = true, benchmark = false,
        fresh = false, original = false;
@@ -84,7 +86,7 @@ Options options(int argc, char **argv) {
              "--resolution 480|640|1280 "
              "--grass-density off|low|medium|high\n--buildings on|off "
              "--render-mode original|toon --pacing precise|legacy|off\n--cap "
-             "0|30|60 --benchmark --pose 0..8 --frames N --capture-every "
+             "0|30|60 --benchmark --pose 0..15 --frames N --capture-every "
              "N\n--save FILE --new-game --output DIR --allow-software --hidden "
              "--replay FILE --followers trail|legacy --grass-layout "
              "continuous|legacy\n--worldstyle source|pixel --debug-follow\n";
@@ -95,10 +97,14 @@ Options options(int argc, char **argv) {
                    "--diagnostic lit|albedo|visibility --canopy-shadow "
                    "solid\n"
                    "--shadow-cache-probe (isolated technical test only)\n"
-                   "--shafts on|off --haze on|off --quality low|medium|high --shaft-strength 0..3\n";
+                   "--shafts on|off --haze on|off --quality low|medium|high --shaft-strength 0..3\n--grass-style owner|emaceart --shaft-profile glow|streaks\n--outline-width 1|2 --highlight-width 1|2 (native pixels; default 2)\n";
       std::exit(0);
     } else if (a == "--assets")
       o.assets = value();
+    else if(a=="--grass-style") {auto v=value();if(v!="owner"&&v!="emaceart")throw std::runtime_error("grass-style owner|emaceart");o.ownerGrass=v=="owner";}
+    else if(a=="--outline-width") o.outlineWidth=integer(value(),1,2);
+    else if(a=="--highlight-width") o.highlightWidth=integer(value(),1,2);
+    else if(a=="--shaft-profile") {auto v=value();if(v!="glow"&&v!="streaks")throw std::runtime_error("shaft-profile glow|streaks");o.sunStreaks=v=="streaks";}
     else if(a=="--shaft-strength") {
       auto v=value();std::size_t used=0;o.shaftStrength=std::stof(v,&used);
       if(used!=v.size()||!std::isfinite(o.shaftStrength)||o.shaftStrength<0||o.shaftStrength>3)throw std::runtime_error("shaft-strength 0..3");
@@ -165,7 +171,7 @@ Options options(int argc, char **argv) {
       else
         throw std::runtime_error("coveragemeadow|geometry|combined");
     } else if (a == "--pose")
-      o.pose = integer(value(), 0, 8);
+      o.pose = integer(value(), 0, 15);
     else if (a == "--grass-family") {
       auto v = value();
       if (v != "auto" && v != "source")
@@ -485,7 +491,7 @@ int main(int argc, char **argv) {
     for (auto clip : {"Idle", "Fly", "Attack"})
       rig->sample(clip, 0);
     p3::MeshClumps grass(o.assets, grassSolids, o.legacyGrass,
-                         o.forceLegacyGrass, o.scaleFamily);
+                         o.forceLegacyGrass, o.scaleFamily, o.ownerGrass);
     if (o.requireAuthored && !grass.authored)
       throw std::runtime_error("EmaceArt revision2 vegetation.json required");
     if (grass.authored && o.coverage)
@@ -542,6 +548,16 @@ int main(int argc, char **argv) {
     integration.edges = 3;
     integration.stableShadow = true;
     gpu.setIntegration(integration);
+    gpu.setEdgeWidths(o.outlineWidth, o.highlightWidth);
+    gpu.setShaftProfile(o.sunStreaks);
+    if(std::filesystem::is_regular_file(o.assets/"sun_shafts.json")) {
+      auto cfg=ws::parseJson(p3::readText(o.assets/"sun_shafts.json"));
+      if(cfg.at("revision").number()!=1)throw std::runtime_error("sun shaft config revision");
+      std::vector<std::array<float,4>> beams;
+      for(auto &e:cfg.at("beams").array()){auto v=vector3(e.at("position"));beams.push_back({v.x,v.y,v.z,float(e.at("radius").number())});}
+      gpu.setSunBeams(beams);
+      log<<"sun_beam_accents="<<beams.size()<<"\n";
+    }
     p3::Effects effects;
     auto updateEffects=[&] {
       effects.shadow=o.shadows?p3::Shadow::Cached:p3::Shadow::Off;
@@ -553,7 +569,8 @@ int main(int argc, char **argv) {
       gpu.setEffects(effects);
     };
     integration.boundedAir=true;
-    gpu.setIntegration(integration);updateEffects();
+    gpu.setIntegration(integration);
+    gpu.setEdgeWidths(o.outlineWidth, o.highlightWidth);updateEffects();
     for(std::size_t i=0;i<world.models.size();++i) {
       bool ground=!world.models[i].materials.empty()&&world.models[i].materials[0].ground;
       gpu.setSurfacePolicy(i,{!ground,true,1,0,false});
@@ -573,9 +590,13 @@ int main(int argc, char **argv) {
         << "\ngrass_layout=" << (o.legacyGrass ? "legacy" : "continuous")
         << "\nworldstyle=" << (o.pixelMaterials ? "pixel" : "source") << "\n";
     log << "grass_family="
-        << (grass.authored ? "EMACEART_SOURCE_ONLY" : "LEGACY_CONTROL")
+        << (grass.ownerPalette ? "OWNER_R2_LIGHT_GREEN" : "EMACEART_SOURCE_ONLY")
         << "\ngrass_receive=" << grass.receiveShadows
         << "\ngrass_cast=0\nshadow_enabled=" << o.shadows
+        << "\ngrass_density=" << o.density
+        << "\noutline_width_native_px=" << o.outlineWidth
+        << "\nhighlight_width_native_px=" << o.highlightWidth
+        << "\nshaft_profile=" << (o.sunStreaks?"streaks":"glow")
         << "\nshafts=" << o.shafts << "\nshaft_strength=" << o.shaftStrength << "\nhaze=" << o.haze << "\nquality=" << o.quality
         << "\nreceiver=" << (o.fragmentReceiver ? "fragment" : "root")
         << "\ndiagnostic=" << o.diagnostic << "\n";
@@ -711,6 +732,7 @@ int main(int argc, char **argv) {
               o.debugFollow = !o.debugFollow;
             } else if(e.key.key==SDLK_V) {
               o.shafts=!o.shafts;updateEffects();event(frame,"shafts_toggle");
+            } else if(e.key.key==SDLK_B) {o.sunStreaks=!o.sunStreaks;gpu.setShaftProfile(o.sunStreaks);event(frame,"shaft_profile");
             } else if(e.key.key==SDLK_O) {
               o.shadows=!o.shadows;updateEffects();event(frame,"shadows_toggle");
             } else if(e.key.key==SDLK_H) {
@@ -925,7 +947,7 @@ int main(int argc, char **argv) {
         if (game.phase == game::Phase::Battle)
           hud.push_back("BEFRIEND: WILD HP12 OR LESS + DEFEND AT LEAST ONCE");
       }
-      hud.push_back(std::string("O SHADOW ")+(o.shadows?"ON":"OFF")+" / V SHAFTS "+(o.shafts?"ON":"OFF")+" / H HAZE "+(o.haze?"ON":"OFF")+" / L "+o.quality);
+      hud.push_back(std::string("O SHADOW ")+(o.shadows?"ON":"OFF")+" / V SHAFTS "+(o.shafts?"ON":"OFF")+" / H HAZE "+(o.haze?"ON":"OFF")+" / B "+(o.sunStreaks?"STREAKS":"GLOW")+" / L "+o.quality);
       if (o.debugFollow)
         hud.push_back(std::string("FOLLOW ") +
                       game::followName(game.follower.state) + " / SECOND " +

@@ -45,12 +45,12 @@ layout(location=0)in vec3 position;layout(location=1)in vec3 normal;
 layout(location=2)in vec2 texcoord;layout(location=3)in vec4 vertexColour;
 layout(location=4)in mat4 instance;layout(location=8)in vec4 tint;
 uniform mat4 VP;out vec3 worldPosition,worldNormal;out vec2 uv;out vec4 colour;
-flat out vec3 rootNormal;
-void main(){vec4 p=instance*vec4(position,1);worldPosition=p.xyz;worldNormal=mat3(instance)*normal;uv=texcoord;colour=vertexColour;rootNormal=normalize(tint.gba);gl_Position=VP*p;}
+flat out vec3 rootNormal;flat out int familyID;out float bladeHeight;
+void main(){vec4 p=instance*vec4(position,1);worldPosition=p.xyz;worldNormal=mat3(instance)*normal;uv=texcoord;colour=vertexColour;bladeHeight=position.y;familyID=clamp(int(round(tint.r)),0,3);rootNormal=normalize(tint.gba);gl_Position=VP*p;}
 )GLSL";
 static const char *fs = R"GLSL(#version 330 core
-in vec3 worldPosition,worldNormal;in vec2 uv;in vec4 colour;flat in vec3 rootNormal;
-uniform sampler2D pixelGround;
+in vec3 worldPosition,worldNormal;in vec2 uv;in vec4 colour;flat in vec3 rootNormal;flat in int familyID;in float bladeHeight;
+uniform sampler2D pixelGround;uniform int ownerPalette;uniform vec3 familyRamp[12];uniform float sunTint,receiverFloor;
 uniform vec3 sunDirection,sunColor,ambientSky,ambientGround,eye,hazeColor;
 uniform float exposure,bandSoftness,bias,normalUpBias,ambientLift,hazeStart,hazeEnd,hazeStrength;
 uniform int mode,bands,smoothLight,shadowMode,diagnostic;
@@ -60,10 +60,17 @@ void main(){
  vec3 n=normalize(worldNormal),litNormal=normalize(mix(n,rootNormal,normalUpBias));
  vec3 sd=normalize(sunDirection);float sun=max(0.,dot(litNormal,sd));
  if(mode!=0&&bands!=0&&smoothLight==0){float s=max(.001,bandSoftness);sun=.12+.4*smoothstep(.20-s,.20+s,sun)+.48*smoothstep(.58-s,.58+s,sun);}
- vec3 albedo=texture(pixelGround,uv).rgb*colour.rgb;
+ vec3 albedo=colour.rgb;
+ if(ownerPalette!=0){
+   float region=clamp((colour.a-.1)/.9,0.,1.);
+   vec3 body=mix(familyRamp[familyID*3+1],familyRamp[familyID*3+2],smoothstep(.35,1.,region));
+   float rootWeight=1.-smoothstep(.006,.045,bladeHeight);
+   if(colour.a>=.05)albedo=mix(body,familyRamp[familyID*3],rootWeight);
+ }else albedo*=texture(pixelGround,uv).rgb;
  float visibility=shadowMode!=0?stableReceiver(worldPosition,vec3(0,1,0),bias*.000015):1.;
  vec3 ambient=mix(ambientGround,ambientSky,clamp(litNormal.y*.5+.5,0.,1.));
- vec3 light=ambient+sunColor*sun*visibility;
+ vec3 direct=mix(vec3(dot(sunColor,vec3(.2126,.7152,.0722))),sunColor,ownerPalette!=0?sunTint:1.);
+ vec3 light=ambient+direct*sun*mix(ownerPalette!=0?receiverFloor:0.,1.,visibility);
  vec3 lit=max(vec3(0),albedo*mix(light,vec3(1),ambientLift)*exposure);lit=lit/(1.+lit*.18);
  vec3 display=pow(clamp(lit,0.,1.),vec3(1./2.2));
  float haze=smoothstep(hazeStart,hazeEnd,length(worldPosition-eye))*hazeStrength;
@@ -152,7 +159,7 @@ MeshRenderer::MeshRenderer(const MeshClumps &m) {
   fragment.replace(at, 13, visibilityGLSL);
   p->shader = program(vs, fragment.c_str());
   p->shadow = program(meshShadowVS, meshShadowFS);
-  for (const char *n : {"normalUpBias", "ambientLift", "eye", "hazeColor", "hazeStart", "hazeEnd", "hazeStrength", "coverage",
+  for (const char *n : {"ownerPalette", "normalUpBias", "ambientLift", "eye", "hazeColor", "hazeStart", "hazeEnd", "hazeStrength", "coverage",
                         "pixelSurface",
                         "pixelGround",
                         "pixelGroups",
@@ -281,6 +288,7 @@ MeshVisibility MeshRenderer::draw(MeshClumps &m, const Camera &camera,
       mg::Uniform3f(loc(n), v.x, v.y, v.z);
     };
     auto integer = [&](const char *n, int v) { mg::Uniform1i(loc(n), v); };
+    integer("ownerPalette",m.ownerPalette);
     integer("coverage", m.coverage);
     integer("pixelSurface", p->pixelGround ? 1 : 0);
     integer("pixelGround", 6);

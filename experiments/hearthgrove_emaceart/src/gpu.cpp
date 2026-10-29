@@ -251,6 +251,7 @@ struct Gpu::Impl {
   Effects effects;
   Style style;
   Integration integration;
+  int outlineWidth = 2, highlightWidth = 2;
   GLuint edgePost = 0;
   int study = 0;
   PixelCameraMode cameraMode = PixelCameraMode::Off;
@@ -258,6 +259,7 @@ struct Gpu::Impl {
   GLuint studyPost = 0, presentProgram = 0;
   GLuint linearSampler = 0, compareSampler = 0;
   GLuint artPost = 0, airFilter = 0, filteredAir = 0, filteredFbo = 0;
+  bool sunStreaks = true;
   Mat lightVP;
   bool shadowValid = false, groundValid = false;
   int mapSize = 0, shaftW = 0, shaftH = 0;
@@ -650,6 +652,7 @@ void Gpu::setGrass(MeshClumps *m, const std::filesystem::path &ground,
   (void)ground;(void)groups;
   // Borrow the exact original palette from the existing material texture pool.
   // Grass and environment share ownership, mip policy, and unchanged source pixels.
+  if(m->ownerPalette) return; // original vertex-region colors; no extra texture art
   auto found=p->textures.find(m->sourcePalette);
   if(found==p->textures.end()) throw std::runtime_error("source palette must already be resident");
   p->grassGround=found->second;p->grassGroundBorrowed=true;
@@ -666,6 +669,12 @@ void Gpu::setSurfacePolicy(std::size_t model, const SurfacePolicy &v) {
 static Mat villageLightProjection(Vec sun) {
   Mat extent=Mat::identity();extent.v[0]=extent.v[5]=25.f/43.f;
   return extent*lightProjection(sun);
+}
+void Gpu::setEdgeWidths(int outlinePixels, int highlightPixels) {
+  if (outlinePixels < 1 || outlinePixels > 2 || highlightPixels < 1 || highlightPixels > 2)
+    throw std::runtime_error("edge widths must be 1 or 2 native pixels");
+  p->outlineWidth = outlinePixels;
+  p->highlightWidth = highlightPixels;
 }
 void Gpu::setIntegration(const Integration &v) {
   v.validate();
@@ -748,6 +757,13 @@ void Gpu::saveDiagnostics(const std::filesystem::path &dir) {
   for (float n : p->lightVP.v)
     v << n << ' ';
   v << '\n';
+}
+void Gpu::setShaftProfile(bool streaks) { p->sunStreaks=streaks; }
+void Gpu::setSunBeams(const std::vector<std::array<float,4>>& beams) {
+  if(beams.size()>8)throw std::runtime_error("sun beam budget");
+  for(const auto &b:beams)if(!finite({b[0],b[1],b[2]})||std::abs(b[0])>48||std::abs(b[2])>48||b[1]<-3||b[1]>12||!std::isfinite(b[3])||b[3]<.15f||b[3]>1.2f)throw std::runtime_error("sun beam bounds");
+  gl::UseProgram(p->shaftProgram);gl::Uniform1i(gl::GetUniformLocation(p->shaftProgram,"beamCount"),int(beams.size()));
+  for(std::size_t i=0;i<beams.size();++i){auto &b=beams[i];auto name="beamCenters["+std::to_string(i)+"]";gl::Uniform4fv(gl::GetUniformLocation(p->shaftProgram,name.c_str()),1,b.data());}
 }
 void Gpu::setEffects(const Effects &e) {
   e.validate();
@@ -1225,6 +1241,8 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     uniformInt(p->shaftProgram, "smoothAtmosphere",
                smoothAir || p->integration.boundedAir);
     uniformInt(p->shaftProgram, "boundedAir", p->integration.boundedAir);
+    uniformInt(p->shaftProgram, "sunStreaks", p->sunStreaks);
+    uniformInt(p->shaftProgram, "occlusionReady", p->effects.shadow!=Shadow::Off&&p->shadowDepth!=0);
     gl::Uniform2f(gl::GetUniformLocation(p->shaftProgram, "airGrid"), float(sw),
                   float(sh));
     uniformInt(p->shaftProgram, "smoothShadow", 5);
@@ -1289,6 +1307,8 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
   gl::UseProgram(postProgram);
   const auto &integration = p->integration;
   uniformInt(postProgram, "edgeMode", integration.edges);
+  uniformInt(postProgram, "outlineWidth", p->outlineWidth);
+  uniformInt(postProgram, "highlightWidth", p->highlightWidth);
   uniformInt(postProgram, "highlightMask", integration.highlightMask);
   uniformInt(postProgram, "edgeMask", integration.edgeMask);
   uniformInt(postProgram, "edgeShadowEnabled",

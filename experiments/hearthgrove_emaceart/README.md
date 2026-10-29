@@ -1,36 +1,48 @@
-# Hearthgrove — original EmaceArt environment
+# Hearthgrove — sparse original EmaceArt grass
 
-Isolated playable variant of Hearthgrove PR #55. Every active environmental mesh and texture comes from the owner-supplied EmaceArt Slavic World Free pack; Petalyn remains the original owner creature. No new artwork, geometry, texture paint or palette was generated. Three buildings reuse the one supplied complete building at consistent scale. Earlier targets, sources and saves are preserved.
+Owner review rejected the owner-grass replacement. The default is restored to the original EmaceArt grass meshes, original palette/UVs and sparse LOW density. No density boost, owner color-family override, grass remodeling or new artwork. Direct executable launches and PLAY_GAME/PLAY_640/SHAFTS_OFF/EMACEART_CONTROL/LOW_SPEC all select the sparse EmaceArt behavior. The current lighting, shadows, sun-streak profile, canopy arrangement and gameplay remain unchanged.
 
-## Windows build
+The previous owner-grass implementation is retained only as an explicit comparison (`--grass-style owner` / OWNER_GRASS_GLOW.cmd) and in the preserved earlier build. It is not the approved/default vegetation direction.
+
+## Build
 
 ```sh
 cmake -S experiments/hearthgrove_emaceart -B build/emacegrove -G "Visual Studio 17 2022" -A x64
 cmake --build build/emacegrove --config Release --parallel 2
 ctest --test-dir build/emacegrove -C Release --output-on-failure
-cmake --install build/emacegrove --config Release --prefix out/hearthgrove-emaceart
+cmake --install build/emacegrove --config Release --prefix out/hearthgrove-emaceart-sparse
 ```
 
-Use the separately supplied private `assets` runtime directory. Licensed models, textures and captures are not in this public source tree. The pack's custom EmaceArt license permits game use but prohibits redistribution as a standalone asset library. Code-only CI artifacts omit all private art.
+All private art stays outside this public source tree. The owner-only Windows game ZIP includes the validated assets. Code-only CI artifacts do not include models, textures or screenshots.
 
-## Play and inspect
+## Play and compare
 
-Run `PLAY_GAME.cmd`. WASD/mouse; E rests at cottage markers or encounters the wild Petalyn. Battle uses 1 attack, 2 defend, 3 befriend; Enter returns. F5 saves, F9 loads; Esc pauses and releases the mouse, Q saves/quits from pause. Existing full-loop and two-companion Idle/Fly animations remain. New saves default to `saves/hearthgrove_emaceart.json`.
+Extract the entire private ZIP and run PLAY_GAME.cmd (480×270, original EmaceArt grass, sparse LOW density, shafts/shadows/haze ON). PLAY_640.cmd selects 640×360. LOW_SPEC.cmd reduces grass and disables shafts. EMACEART_CONTROL.cmd uses supplied EmaceArt grass and the previous glow; OWNER_GRASS_GLOW.cmd isolates the grass change; SHAFTS_OFF.cmd retains shadows and haze but disables volumetric light.
 
-R toggles 480/640; G cycles grass OFF/LOW/MEDIUM/HIGH; F switches original diffuse versus pixel-toon; O shadows; V volumetric sunlight; H distance haze; L LOW/MEDIUM/HIGH effect quality. All environmental modes use identical original geometry, UVs and palette pixels. Source mode disables both outlines and convex highlights. Source mode is the renderer's diffuse interpretation, not a reproduction of the original Godot PBR shader.
+WASD/mouse; E rests/interacts; 1 attack, 2 defend, 3 befriend; Enter returns; F5 saves, F9 loads; Esc pauses, Q saves/quits from pause. Existing gameplay, two-companion following/animations and saves are unchanged.
 
-Example genuine native capture:
+F source/toon; O shadows; V volumetric light; B old glow/new streaks; H haze; L quality; G grass density; R internal resolution. Toon mode retains existing banded lighting, restrained outlines and architecture/foliage edge highlights. Source mode disables both outlines and convex highlights.
 
 ```sh
-wildsignal_hearthgrove_emaceart.exe --assets assets --benchmark --pose 2 --frames 4 --cap 0 --resolution 640 --shafts on --shadow on --haze on --quality medium --output runs/canopy
+wildsignal_hearthgrove_emaceart.exe --assets assets --grass-style owner --grass-density high --shaft-profile streaks --shadow on --shafts on --haze off --benchmark --pose 13 --resolution 640 --frames 5 --cap 0 --output runs/shafts
 ```
 
-`final_world.ppm` is the actual internal framebuffer. `--pose 0..8`, `--render-mode original|toon`, `--resolution 480|640|1280`, `--grass-density off|low|medium|high`, `--shafts on|off`, `--haze on|off`, `--shadow on|off`, `--shaft-strength 0..3`, `--quality low|medium|high`. Source assets are required; legacy R2/procedural grass switches fail closed in this target. Earlier executables retain their controls.
+Controls: `--grass-style owner|emaceart`, `--shaft-profile glow|streaks`, `--shafts on|off`, `--haze on|off`, `--shadow on|off`, `--shaft-strength 0..3`, `--quality low|medium|high`, `--grass-density off|low|medium|high`, `--resolution 480|640|1280`, `--pose 0..15`. Pose 13/15 are eye-height grove views; pose 14 is explicitly an elevated diagnostic. `final_world.ppm` is the genuine internal framebuffer.
 
-## Rendering and limits
+## Implementation and limits
 
-Original opaque grass meshes are instanced with original UVs and vertex colors. Nested density and conservative distance/frustum/projected-size culling avoid thousands of separate draws. No grass mesh simplification or new distant artwork. Grass receives object shadows and casts none. A shared original 32×32 palette stays resident once. Ground height is a numeric cache of actual placed source triangles, not generated terrain geometry.
+Owner grass uses the original 16 near/far pairs (32 meshes), original vertex-region semantics and original four color ramps. Roots, yaw, scale and terrain normals match the EmaceArt comparison. Instancing, conservative culling, existing LOD and grass-cast-OFF/object-shadow-receiving behavior remain. No new ground artwork: short owner grass reveals more of the original EmaceArt field rows and soil. Density/color counts do not imply a particular percentage of visible screen pixels.
 
-Sunlight uses the existing depth-aware, shadow-map-aware quarter-resolution bounded volumetric ray integration with 8 samples (12 HIGH), reconstructed separately from crisp material pixels. Shadows are world-anchored/cached 1024² (512² LOW), covering the village; haze is independently toggleable. Turning shadows OFF also removes occlusion information for shafts, so the best physical comparison leaves shadows ON. Large-area shadow resolution, low-sample shafts and density cutoffs can show aliasing or popping; inspect motion and use LOW_SPEC if needed. No expensive general-purpose fog, bloom or real-time sky simulation.
+The streak profile combines low-resolution shadow-aware scattering with up to eight configurable sun-aligned lighting accents at real sunlit canopy gaps (`sun_shafts.json`). Analytic ray/cylinder intervals and three quadrature samples per accent prevent narrow-beam sampling misses; actual shadow visibility and scene depth clip the result. These are deliberately composed volumetric lighting accents, not a claim of unbiased atmospheric simulation, a screen overlay, light-card geometry or new art assets. Four additional instances of original EmaceArt willows overlap at the existing forest exit; earlier scene instances and village bounds remain intact. Both comparison modes use the same augmented scene/cameras.
 
-This is an owner review, not a claim of final artistic approval, displayed FPS, physical Intel UHD performance, Android support or Windows 7 certification. Native software-Mesa results must be labeled separately from Windows hardware results. No new combat, account, inventory, quest or online systems.
+The old glow remains a control. Streaks depend on shadows and are disabled when occlusion is unavailable. Atmosphere is reconstructed separately from crisp material pixels; no full-resolution material blur, bloom, high-resolution shadow maps or heavy general-purpose fog. LOW keeps shafts OFF. The default world-anchored cached map remains 1024² (LOW 512²). Effects remain experimental: beam placement is authored lighting data, distant field/vegetation repetition and cutoffs remain, and coarse shadow/depth reconstruction can show artifacts in motion.
+
+The original complete building is reused three times; no new interiors, NPCs, quests, creature art or gameplay systems. All EmaceArt environment source art and owner grass originals are preserved. The custom EmaceArt license allows game use but prohibits standalone asset-library redistribution. Keep the integrated review private.
+
+Run BENCHMARK_EFFECTS.cmd for bounded matched OFF/glow/streak measurements at 480 and 640. Report application/API timings, frame pacing and RAM separately from displayed FPS. Mesa software results do not certify Intel UHD, Android, Win7 or final artistic approval. Stop for owner visual and hardware review; no merges.
+
+## Thicker edges review
+
+The default toon view now uses two-native-pixel outlines and sun-facing convex edge highlights, previously one pixel. Source textures, geometry, lighting and grass suppression are unchanged. This is a bounded second depth/normal sampling ring in the existing post pass; it adds no framebuffer or texture allocation. Foliage keeps its lighter ink and only outer-mass highlights. Ground and individual grass blades remain excluded.
+
+Use `THIN_EDGES_COMPARE.cmd` for the previous one-pixel width at otherwise identical sparse EmaceArt settings. Individual controls: `--outline-width 1|2 --highlight-width 1|2`. Width is measured at the internal render resolution before nearest-neighbor presentation. Source-material mode still disables both effects. The two-pixel reach can emphasize small overlapping leaves at distance; it is a review setting, not final style approval.

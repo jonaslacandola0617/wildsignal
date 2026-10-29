@@ -37,6 +37,7 @@ struct Gpu {
               materialsOriginal = 0, cpuGeometryReleased = 0;
   Gpu(World &, bool allowSoftware);
   void setIntegration(const Integration &);
+  void setEdgeWidths(int outlinePixels, int highlightPixels);
   void setSurfacePolicy(std::size_t model, const SurfacePolicy &);
   void setGrass(MeshClumps *, const std::filesystem::path &,
                 const std::filesystem::path &);
@@ -47,6 +48,8 @@ struct Gpu {
   void setStyle(const Style &);
   void setStudy(int, PixelCameraMode, float referenceDepth);
   void saveDiagnostics(const std::filesystem::path &);
+  void setShaftProfile(bool streaks);
+  void setSunBeams(const std::vector<std::array<float,4>>&);
   void setEffects(const Effects &);
   std::size_t effectBytes() const;
   ~Gpu();
