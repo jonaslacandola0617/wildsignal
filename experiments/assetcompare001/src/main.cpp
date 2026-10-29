@@ -10,8 +10,10 @@
 #include <iostream>
 #include <sstream>
 #ifdef _WIN32
-#include <psapi.h>
+// clang-format off
 #include <windows.h>
+#include <psapi.h>
+// clang-format on
 #else
 #include <sys/resource.h>
 #include <unistd.h>
