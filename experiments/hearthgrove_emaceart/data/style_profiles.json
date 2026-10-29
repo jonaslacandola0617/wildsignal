@@ -90,7 +90,8 @@
       "haze_end": 105,
       "haze_strength": 0.08,
       "ground_value_anchor": 0.64,
-      "ground_contrast": 0.3
+      "ground_contrast": 0.2,
+      "ground_harmony": 0.78
     },
     "rich": {
       "grades": [
@@ -173,7 +174,8 @@
       "haze_end": 105,
       "haze_strength": 0.08,
       "ground_value_anchor": 0.64,
-      "ground_contrast": 0.3
+      "ground_contrast": 0.2,
+      "ground_harmony": 0.65
     }
   }
 }

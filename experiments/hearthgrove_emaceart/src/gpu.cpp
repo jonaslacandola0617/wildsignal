@@ -1017,6 +1017,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
   bool smoothAir = p->style.mode == 2 && p->style.smoothAir;
   bool smoothLight = p->style.mode == 2 && p->style.smoothLight;
   uniformInt(p->mesh,"profileActive",p->profile.active&&p->style.highlights);
+  uniformFloat(p->mesh,"groundHarmony",p->profile.groundHarmony);
   uniformFloat(p->mesh,"groundAnchor",p->profile.groundAnchor);uniformFloat(p->mesh,"groundContrast",p->profile.groundContrast);
   uniformFloat(p->mesh,"profileLow",p->profile.lowTone);uniformFloat(p->mesh,"profileMid",p->profile.midTone);
   for(int f=0;f<6;f++){auto v=p->profile.grades[f];auto name="familyGrade["+std::to_string(f)+"]";gl::Uniform3f(gl::GetUniformLocation(p->mesh,name.c_str()),v.x,v.y,v.z);}

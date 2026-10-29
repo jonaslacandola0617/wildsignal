@@ -1,7 +1,7 @@
 #pragma once
 namespace p3 {
 static constexpr const char *profileGLSL=R"GLSL(
-uniform int profileActive,profileFamily;uniform vec3 familyGrade[6];uniform float profileLow,profileMid,groundAnchor,groundContrast;
+uniform int profileActive,profileFamily;uniform vec3 familyGrade[6];uniform float profileLow,profileMid,groundAnchor,groundContrast,groundHarmony;
 vec3 srgbEncode(vec3 x){return mix(x*12.92,1.055*pow(max(x,vec3(0)),vec3(1./2.4))-.055,step(vec3(.0031308),x));}
 vec3 srgbDecode(vec3 x){return mix(x/12.92,pow((max(x,vec3(0))+.055)/1.055,vec3(2.4)),step(vec3(.04045),x));}
 vec3 rgbHSV(vec3 c){float hi=max(c.r,max(c.g,c.b)),lo=min(c.r,min(c.g,c.b)),d=hi-lo;float h=0.;if(d>.00001){h=hi==c.r?mod((c.g-c.b)/d,6.):hi==c.g?(c.b-c.r)/d+2.:(c.r-c.g)/d+4.;h=fract(h/6.+1.);}return vec3(h,hi>.00001?d/hi:0.,hi);}
@@ -15,6 +15,7 @@ vec3 profileColor(vec3 linearColor,int family){
  if(family==5&&h.x>.16&&h.x<.47)family=0;
  if(terrain)h.z=groundAnchor+(h.z-groundAnchor)*groundContrast;
  vec3 g=familyGrade[clamp(family,0,5)];h.x=fract(h.x+g.x);h.y=clamp(h.y*g.y,0.,.9);h.z=clamp(h.z*g.z,0.,.94);
+ if(terrain){h.x=mix(h.x,.255,groundHarmony);h.y=mix(h.y,.48,groundHarmony);}
  return srgbDecode(hsvRGB(h));
 }
 float profileBand(float s,float softness){return profileActive==0?.12+.4*smoothstep(.20-softness,.20+softness,s)+.48*smoothstep(.58-softness,.58+softness,s):profileLow+(profileMid-profileLow)*smoothstep(.20-softness,.20+softness,s)+(1.-profileMid)*smoothstep(.58-softness,.58+softness,s);}
