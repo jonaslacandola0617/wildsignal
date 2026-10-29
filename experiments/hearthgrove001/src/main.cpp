@@ -3,6 +3,7 @@
 #include "game.hpp"
 #include "gpu.hpp"
 #include "json.hpp"
+#include "pixelstyle.hpp"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include <algorithm>
@@ -46,6 +47,8 @@ std::uint64_t memory(bool peak = false) {
   return 0;
 }
 struct Options {
+  p3::PixelStyleStudy pixelstyle;
+  bool pixelRig = false, pixelMotion = false;
   std::filesystem::path assets = "assets", save = "saves/game.json",
                         out = "runs/play", replay;
   bool sourceTextures = false, legacyFollow = false, legacyGrass = false,
@@ -77,7 +80,9 @@ Options options(int argc, char **argv) {
     };
     if (a == "--help") {
       std::cout
-          << "HEARTHGROVE001 authentic MegaKit playtest\n--assets DIR "
+          << "HEARTHGROVE001 / PIXELSTYLE001 study\n--pixelstyle A|B1|B2|B3 "
+             "--pixelstyle-rig --pixelstyle-motion --foliage-sampling "
+             "lod0|nearest-mip|filtered-mip\n--assets DIR "
              "--resolution 480|640|1280 "
              "--grass-density off|low|medium|high\n--megakit-house on|off "
              "--render-mode original|toon --pacing precise|legacy|off\n--cap "
@@ -93,7 +98,15 @@ Options options(int argc, char **argv) {
                    "solid|mask\n"
                    "--shadow-cache-probe (isolated technical test only)\n";
       std::exit(0);
-    } else if (a == "--assets")
+    } else if (a == "--pixelstyle")
+      o.pixelstyle.mode = p3::PixelStyleStudy::parse(value());
+    else if (a == "--foliage-sampling")
+      o.pixelstyle.sampling = p3::PixelStyleStudy::sample(value());
+    else if (a == "--pixelstyle-rig")
+      o.pixelRig = true;
+    else if (a == "--pixelstyle-motion")
+      o.pixelMotion = true;
+    else if (a == "--assets")
       o.assets = value();
     else if (a == "--save")
       o.save = value();
@@ -239,6 +252,10 @@ Options options(int argc, char **argv) {
     else
       throw std::runtime_error("unknown option " + a);
   }
+  if ((o.pixelRig && !o.benchmark) || (o.pixelMotion && !o.pixelRig) ||
+      (o.pixelstyle.mode != 0 && !o.pixelRig))
+    throw std::runtime_error(
+        "pixelstyle study requires --benchmark --pixelstyle-rig");
   if (o.cacheProbe && !o.benchmark)
     throw std::runtime_error("shadow-cache-probe requires --benchmark");
   return o;
@@ -454,6 +471,21 @@ int main(int argc, char **argv) {
     if (!o.house)
       std::erase_if(world.instances,
                     [](auto &i) { return i.id.starts_with("house_"); });
+    if (o.pixelRig) {
+      std::erase_if(world.instances, [&](const auto &i) {
+        const auto &m = world.models[i.model];
+        return !p3::pixelStyleRig(i.id, m.id, bool(m.rig));
+      });
+      int trees = 0, rocks = 0, cottages = 0;
+      for (const auto &i : world.instances) {
+        trees += i.id == "tree_0";
+        rocks += i.id == "nature_rock_0";
+        cottages += i.id.starts_with("house_2_");
+      }
+      if (trees != 1 || rocks != 1 || cottages != 20)
+        throw std::runtime_error(
+            "PIXELSTYLE001 verified rig instances missing");
+    }
     world.partition(3);
     for (auto &m : world.models)
       for (auto &mat : m.materials) {
@@ -518,6 +550,7 @@ int main(int argc, char **argv) {
       throw std::runtime_error(SDL_GetError());
     SDL_GL_SetSwapInterval(0);
     p3::Gpu gpu(world, o.allow);
+    gpu.setPixelStyle(o.pixelstyle);
     auto look = p3::Look::load(o.assets / "look.json");
     gpu.setLook(look);
     p3::Style style;
@@ -578,6 +611,10 @@ int main(int argc, char **argv) {
         << "\nfollowers=" << (o.legacyFollow ? "legacy" : "trail")
         << "\ngrass_layout=" << (o.legacyGrass ? "legacy" : "continuous")
         << "\nworldstyle=" << (o.pixelMaterials ? "pixel" : "source") << "\n";
+    log << "pixelstyle=" << o.pixelstyle.mode
+        << "\nfoliage_sampling=" << o.pixelstyle.sampling
+        << "\npixelstyle_rig=" << o.pixelRig
+        << "\npixelstyle_motion=" << o.pixelMotion << "\n";
     log << "grass_family="
         << (grass.authored ? "R2_AUTHORED_ONLY" : "LEGACY_CONTROL")
         << "\ngrass_receive=" << grass.receiveShadows
@@ -840,6 +877,9 @@ int main(int argc, char **argv) {
         if (frame >= 30)
           camera.yaw += .12f;
       }
+      if (o.pixelRig)
+        camera =
+            p3::pixelStyleCamera(o.pose, o.pixelMotion ? frame / 30.f : -1.f);
       auto updateEnd = Clock::now();
       auto animateStart = Clock::now();
       for (std::size_t j = 0; j < actors.size(); j++) {
@@ -877,6 +917,10 @@ int main(int argc, char **argv) {
       auto vp = p3::perspective(p3::pi / 3, 16.f / 9) * camera.view();
       auto cullStart = Clock::now();
       auto counts = world.visible(p3::Frustum(vp), true, visible);
+      if (o.pixelRig)
+        std::erase_if(visible, [&](std::size_t index) {
+          return bool(world.models[world.instances[index].model].rig);
+        }); // Render-only study; no creature simulation or asset modification.
       auto cullEnd = Clock::now();
       int ow = 0, oh = 0;
       SDL_GetWindowSizeInPixels(screen.window, &ow, &oh);
@@ -1008,6 +1052,15 @@ int main(int argc, char **argv) {
     while (gpu.pollTimer(qi, qms))
       timers << qi << ',' << qms << '\n';
     gpu.save(o.out / "final_world.ppm");
+    if (o.pixelRig) {
+      auto ids = gpu.capture(true);
+      std::ofstream f(o.out / "surface_ids.pgm", std::ios::binary);
+      f << "P5\n" << ids.w << ' ' << ids.h << "\n255\n";
+      for (std::size_t i = 3; i < ids.rgba.size(); i += 4)
+        f.put(char(ids.rgba[i]));
+      if (!f)
+        throw std::runtime_error("study evidence write failed");
+    }
     if (o.diagnostic == 4 || o.cacheProbe)
       gpu.saveDiagnostics(o.out);
     int ow = 0, oh = 0;

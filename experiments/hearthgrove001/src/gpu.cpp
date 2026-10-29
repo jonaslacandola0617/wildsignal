@@ -115,11 +115,12 @@ void main(){mat4 skin=mat4(1);if(skinned!=0)skin=bones[int(jointIndices.x)]*join
 // The same ray samples the same authored alpha through front/back surfaces.
 // This is not geometric leaf porosity and never runs for grass or legacy trees.
 static constexpr const char *canopyShadowFS = R"GLSL(#version 330 core
-in vec2 uv,canopyUV;in float alpha;uniform sampler2D albedo;uniform int textured,alphaMode,leafProxy;uniform float cutoff,factorAlpha;
-void main(){if(alphaMode==1){float a=factorAlpha*alpha;if(textured!=0)a*=texture(albedo,leafProxy!=0?fract(canopyUV*8.):uv).a;if(a<cutoff)discard;}}
+in vec2 uv,canopyUV;in float alpha;uniform sampler2D albedo;uniform int textured,alphaMode,leafProxy;uniform float cutoff,factorAlpha;uniform int alphaBaseLOD;
+void main(){if(alphaMode==1){float a=factorAlpha*alpha;if(textured!=0)a*=(alphaBaseLOD!=0?textureLod(albedo,uv,0.):texture(albedo,leafProxy!=0?fract(canopyUV*8.):uv)).a;if(a<cutoff)discard;}}
 )GLSL";
 static constexpr const char *meshFS = R"GLSL(#version 330 core
 in vec3 worldPosition;in vec3 worldNormal;in vec2 uv;in vec4 tint;
+uniform int pixelStyleSurface,pixelStyleLighting,alphaBaseLOD;
 uniform int coverage,meadowSolidCount;uniform vec4 meadowSolids[16];uniform sampler2D leafCoverage;
 bool designated(vec2 p){float path=.68*sin(-p.y*.57)-.13*p.y;if(abs(p.x)>5.8||abs(p.y)>5.8||abs(p.x-path)<.78)return false;if(p.x> -4.5&&p.x<.6&&abs(p.y-.25)<.8)return false;if(length(p-vec2(2.6,-2.3))<1.05)return false;for(int i=0;i<meadowSolidCount;i++)if(all(lessThan(abs(p-meadowSolids[i].xy),meadowSolids[i].zw+vec2(.18))))return false;return true;}
 uniform sampler2D albedo;uniform vec4 factor;uniform vec3 emission;uniform int textured,mode,bands,alphaMode;uniform float cutoff;
@@ -135,7 +136,7 @@ uniform int shadowMode;uniform sampler2D groundShadow;
 float hash2(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 float field(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash2(i),hash2(i+vec2(1,0)),f.x),mix(hash2(i+vec2(0,1)),hash2(i+vec2(1,1)),f.x),f.y);}
 layout(location=0) out vec4 color;layout(location=1) out vec4 normals;
-void main(){vec4 a=factor*(vertexTint!=0?tint:vec4(1));if(textured!=0)a*=(sampling==1?textureLod(albedo,uv,0.):texture(albedo,uv));if(alphaMode==1&&a.a<cutoff)discard;
+void main(){vec4 a=factor*(vertexTint!=0?tint:vec4(1));if(textured!=0)a*=((sampling==1||alphaBaseLOD!=0)?textureLod(albedo,uv,0.):texture(albedo,uv));if(alphaMode==1&&a.a<cutoff)discard;
 vec3 n=normalize(worldNormal);if(!gl_FrontFacing)n=-n;
 // Derivatives give actual planar triangle lighting in BASE without rewriting
 // the original mesh normals. TOON/normal outlines retain authored normals.
@@ -166,11 +167,24 @@ if(smoothLighting!=0&&leafy!=0)sun=max(0.,(dot(shadeNormal,normalize(sunDirectio
 vec3 ambient=mix(ambientGround,ambientSky,clamp(shadeNormal.y*.5+.5,0.,1.));
 // Authored style maps only: keep three calm form tones and avoid black trim.
 if(pixelMaterial!=0){float d=max(0.,dot(shadeNormal,normalize(sunDirection)));sun=.22+.40*smoothstep(.25-.025,.25+.025,d)+.38*smoothstep(.67-.025,.67+.025,d);ambient=mix(ambient,vec3(.20,.23,.22),.35);}
+if(pixelStyleLighting!=0&&pixelStyleSurface>0){
+ float d=max(0.,dot(shadeNormal,normalize(sunDirection)));
+ if(pixelStyleSurface==1){
+  d=clamp((dot(shadeNormal,normalize(sunDirection))+.35)/1.35,0.,1.);
+  sun=.20+.36*smoothstep(.24-.04,.24+.04,d)+.39*smoothstep(.62-.04,.62+.04,d);
+  ambient=max(ambient,vec3(.28,.36,.32));
+ }else{
+  sun=.23+.34*smoothstep(.25-.035,.25+.035,d)+.36*smoothstep(.67-.035,.67+.035,d);
+  ambient=max(ambient,vec3(.18,.22,.25));
+ }
+}
 float visibility=1.;
 if(receiveShadows!=0&&(shadowMode==1||shadowMode==2))visibility=stableShadow!=0?stableReceiver(worldPosition,normalize(cross(dFdx(worldPosition),dFdy(worldPosition))),biasScale*.000015):receiverCorrection!=0?receiverShadow(worldPosition,biasScale*.00006):sunlight(worldPosition,biasScale*max(.00055,.0010*(1.-max(0.,dot(n,sunDirection)))));
 else if(shadowMode==3&&ground!=0&&all(lessThan(abs(worldPosition.xz),vec2(24))))visibility=texture(groundShadow,worldPosition.xz/48.+.5).r;
 if(diagnostic==4){color=vec4(vec3(visibility),1);normals=vec4(n*.5+.5,1);return;}
 vec3 direct=mix(vec3(dot(sunColor,vec3(.2126,.7152,.0722))),sunColor,surfaceSunTint);vec3 light=ambient+direct*sun*mix(surfaceShadowFloor,1.,visibility);
+if(pixelStyleLighting!=0&&pixelStyleSurface==1)
+ light=ambient+direct*sun*mix(max(surfaceShadowFloor,.30),1.,visibility);
 if(ground!=0&&contactStrength>0.){
  float occlusion=0.;
  for(int i=0;i<contactCount;i++){
@@ -183,12 +197,15 @@ if(ground!=0&&contactStrength>0.){
  else light=mix(light,ambient*vec3(.65,.8,1.),occlusion);
 }
 vec3 lit=max(vec3(0),a.rgb*light*exposure+emission);
+if(pixelStyleLighting!=0&&pixelStyleSurface==1)
+ lit+=ambientSky*.10*(1.-sun); // bounded indirect fill, not painted texel detail
 lit=lit/(1.+lit*.18);
 vec3 display=pow(clamp(lit,0.,1.),vec3(1./2.2));
 float haze=smoothstep(hazeStart,hazeEnd,length(worldPosition-eye))*hazeStrength;
 color=vec4(mix(display,hazeColor,haze),alphaMode==2?a.a:1.);
 float category=ground!=0?.05:foliage!=0?.15:architecture!=0?.30+float(kind)*.09:.85;
 if(studyMode>0)category=studyKind==1?.4:studyKind==2?.15:studyKind==4?.05:.85;
+if(pixelStyleLighting!=0&&pixelStyleSurface>0)category=pixelStyleSurface==1?.18:.88;
 normals=vec4(n*.5+.5,artStyle==0?(foliage!=0?.5:1.):category);}
 
 )GLSL";
@@ -256,7 +273,9 @@ struct Gpu::Impl {
   PixelCameraMode cameraMode = PixelCameraMode::Off;
   float referenceDepth = 10;
   GLuint studyPost = 0, presentProgram = 0;
-  GLuint linearSampler = 0, compareSampler = 0;
+  GLuint linearSampler = 0, compareSampler = 0, foliageSampler = 0;
+  PixelStyleStudy pixelstyle;
+  std::vector<std::string> modelIDs;
   GLuint artPost = 0, airFilter = 0, filteredAir = 0, filteredFbo = 0;
   Mat lightVP;
   bool shadowValid = false, groundValid = false;
@@ -294,6 +313,7 @@ struct Gpu::Impl {
     for (auto &[p, id] : textures)
       gl::DeleteTextures(1, &id);
     gl::DeleteSamplers(1, &linearSampler);
+    gl::DeleteSamplers(1, &foliageSampler);
     gl::DeleteSamplers(1, &compareSampler);
     gl::DeleteProgram(artPost);
     gl::DeleteProgram(studyPost);
@@ -420,7 +440,29 @@ Gpu::Gpu(World &world, bool allowSoftware) {
   p->post = program(postVS, postFS);
   p->artPost = program(postVS, artPostFS);
   p->studyPost = program(postVS, studyPostFS);
-  p->edgePost = program(postVS, edgePostFS);
+  // Keep inherited edge shader immutable. Only the study-tagged source leaf
+  // and rock receive local restraint; architecture/grass follow exact old code.
+  std::string studyEdges(edgePostFS);
+  auto edit = [&](const std::string &a, const std::string &b) {
+    auto at = studyEdges.find(a);
+    if (at == studyEdges.npos)
+      throw std::runtime_error("edge study splice missing");
+    studyEdges.replace(at, a.size(), b);
+  };
+  edit("float silhouette=0.,crease=0.,shine=0.;",
+       "bool "
+       "styleLeaf=enc.a>.17&&enc.a<.19,styleRock=enc.a>.87&&enc.a<.89;float "
+       "silhouette=0.,crease=0.,shine=0.;");
+  edit("if(outside)silhouette=1.;", "if(styleLeaf&&other.a>.1&&other.a<.22)"
+                                    "outside=false;if(outside)silhouette=1.;");
+  edit("leaf?silhouette*.14:max(silhouette*.48,crease*.27)",
+       "leaf?silhouette*(styleLeaf?.07:.14):max(silhouette*(styleRock?.24:.48),"
+       "crease*.27)");
+  edit("leaf?foliageStrength:architectureStrength",
+       "leaf?(styleLeaf?min(foliageStrength,.10):foliageStrength):"
+       "architectureStrength");
+  p->edgePost = program(postVS, studyEdges.c_str());
+  gl::GenSamplers(1, &p->foliageSampler);
   p->presentProgram = program(postVS, compensatedPresentFS);
   p->airFilter = program(postVS, airFilterFS);
   gl::GenSamplers(1, &p->compareSampler);
@@ -468,6 +510,7 @@ Gpu::Gpu(World &world, bool allowSoftware) {
                  bool, std::array<float, 3>, int>;
   std::map<MaterialKey, std::size_t> materialPool;
   for (auto &model : world.models) {
+    p->modelIDs.push_back(model.id);
     p->policies.push_back({});
     p->models.emplace_back();
     auto &parts = p->models.back();
@@ -691,6 +734,17 @@ void Gpu::setGrass(MeshClumps *m, const std::filesystem::path &ground,
   if (index != 6)
     throw std::runtime_error("grass palette requires3pairs");
   p->grassRenderer->setPixelSurface(p->grassGround, p->grassGroups, ramp);
+}
+void Gpu::setPixelStyle(const PixelStyleStudy &study) {
+  if (study.mode < 0 || study.mode > 3 || study.sampling < 0 ||
+      study.sampling > 2)
+    throw std::runtime_error("invalid pixelstyle study");
+  p->pixelstyle = study;
+  gl::SamplerParameteri(p->foliageSampler, GL_TEXTURE_MIN_FILTER,
+                        study.sampling == 2 ? GL_LINEAR_MIPMAP_LINEAR
+                                            : GL_NEAREST_MIPMAP_NEAREST);
+  gl::SamplerParameteri(p->foliageSampler, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  p->shadowValid = p->groundValid = false;
 }
 void Gpu::setSurfacePolicy(std::size_t model, const SurfacePolicy &v) {
   if (model >= p->policies.size() || !std::isfinite(v.sunTint) ||
@@ -952,6 +1006,11 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
               (p->integration.stableShadow && mat.studyKind == 4) ||
               mat.alpha == Alpha::Blend)
             continue;
+          bool studyLeaf = p->pixelstyle.alpha() &&
+                           pixelStyleLeaf(p->modelIDs[instance.model], mat);
+          gl::BindSampler(0, studyLeaf ? p->foliageSampler : 0);
+          uniformInt(p->shadowProgram, "alphaBaseLOD",
+                     studyLeaf && p->pixelstyle.sampling == 0);
           uniformInt(p->shadowProgram, "textured", !mat.texture.empty());
           uniformInt(p->shadowProgram, "alphaMode", int(mat.alpha));
           uniformFloat(p->shadowProgram, "cutoff", mat.cutoff);
@@ -1038,6 +1097,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
   bool smoothAir = p->style.mode == 2 && p->style.smoothAir;
   bool smoothLight = p->style.mode == 2 && p->style.smoothLight;
   uniformInt(p->mesh, "artStyle", p->style.mode);
+  uniformInt(p->mesh, "pixelStyleLighting", p->pixelstyle.lighting());
   uniformInt(p->mesh, "studyMode", p->study);
   uniformInt(p->mesh, "smoothLighting", smoothLight);
   uniformInt(p->mesh, "receiverCorrection",
@@ -1122,9 +1182,27 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
       gl::UniformMatrix4fv(gl::GetUniformLocation(p->mesh, "bones"),
                            GLsizei(i.palette.size()), GL_FALSE,
                            i.palette.front().data());
+    int studySurface = pixelStyleLeaf(p->modelIDs[i.model], mat) ? 1
+                       : pixelStyleRock(p->modelIDs[i.model])    ? 2
+                                                                 : 0;
+    bool studyLeaf = p->pixelstyle.alpha() && studySurface == 1;
+    uniformInt(p->mesh, "pixelStyleSurface", studySurface);
+    uniformInt(p->mesh, "alphaBaseLOD",
+               studyLeaf && p->pixelstyle.sampling == 0);
+    // Target scope is model+material, not pooled-material identity.
+    gl::BindSampler(0, studyLeaf ? p->foliageSampler
+                                 : (!mat.ground && p->style.sampling == 2
+                                        ? p->linearSampler
+                                        : 0));
+    if (studyLeaf) {
+      gl::SamplerParameteri(p->foliageSampler, GL_TEXTURE_WRAP_S, mat.wrapS);
+      gl::SamplerParameteri(p->foliageSampler, GL_TEXTURE_WRAP_T, mat.wrapT);
+    }
     if (currentMaterial != part.material) {
-      gl::BindSampler(
-          0, !mat.ground && p->style.sampling == 2 ? p->linearSampler : 0);
+      gl::BindSampler(0, studyLeaf ? p->foliageSampler
+                                   : (!mat.ground && p->style.sampling == 2
+                                          ? p->linearSampler
+                                          : 0));
       currentMaterial = part.material;
       gl::Uniform4fv(p->factorLoc, 1, mat.color.data());
       gl::Uniform3f(gl::GetUniformLocation(p->mesh, "emission"),
@@ -1313,6 +1391,8 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     stats.draws++;
   }
   stats.shaftCpuMs = ms(shaftStart, Clock::now());
+  gl::BindSampler(
+      0, 0); // Study sampling never leaks into framebuffer reconstruction.
   gl::BindFramebuffer(GL_FRAMEBUFFER, p->postFbo);
   gl::Viewport(0, 0, w, h);
   GLuint postProgram = p->integration.edges > 0 ? p->edgePost

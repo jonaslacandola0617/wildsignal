@@ -5,6 +5,7 @@
 #include "look.hpp"
 #include "mesh_clumps.hpp"
 #include "pixel_camera.hpp"
+#include "pixelstyle.hpp"
 #include "style.hpp"
 #include <memory>
 struct SDL_Window;
@@ -37,6 +38,7 @@ struct Gpu {
               materialsOriginal = 0, cpuGeometryReleased = 0;
   Gpu(World &, bool allowSoftware);
   void setIntegration(const Integration &);
+  void setPixelStyle(const PixelStyleStudy &);
   void setSurfacePolicy(std::size_t model, const SurfacePolicy &);
   void setGrass(MeshClumps *, const std::filesystem::path &,
                 const std::filesystem::path &);
