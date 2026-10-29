@@ -1,36 +1,41 @@
-# Hearthgrove — original EmaceArt environment
+# HG-STYLE-TERRAIN-R1 — isolated EmaceArt Hearthgrove pilot
 
-Isolated playable variant of Hearthgrove PR #55. Every active environmental mesh and texture comes from the owner-supplied EmaceArt Slavic World Free pack; Petalyn remains the original owner creature. No new artwork, geometry, texture paint or palette was generated. Three buildings reuse the one supplied complete building at consistent scale. Earlier targets, sources and saves are preserved.
+Start revision: PR #60, `7c58f5a6ebe7da724d79fd3126134890aed35661`. Private baseline: PR #59, `83b6d9e7dfbea96ec3fc97d33e080dd5abb33ec1`. Earlier experiments and assets remain unchanged on their branches. No merges or artistic approval.
 
-## Windows build
+This branch adds versioned per-family HSV controls applied in encoded material-color space with explicit sRGB conversion around the operation. Hardware sRGB sampling is decoded once; lighting remains linear. Alpha, UV sampling, source texture bytes and Petalyn palette are untouched. Instanced grass uses the same grading and band controls. Families: grass, tree/bush foliage, timber/roof, soil/path, stone and terrain; sky has separate look settings. Shared tree atlases classify bark separately by sampled hue. This heuristic can misclassify unusual texels; it is not a painted replacement texture.
 
-```sh
-cmake -S experiments/hearthgrove_emaceart -B build/emacegrove -G "Visual Studio 17 2022" -A x64
-cmake --build build/emacegrove --config Release --parallel 2
-ctest --test-dir build/emacegrove -C Release --output-on-failure
-cmake --install build/emacegrove --config Release --prefix out/hearthgrove-emaceart
-```
+The moderate `balanced` and stronger `rich` presets reduce warm overexposure, preserve three broad toon levels, and offer selective off/balanced/bold ink. BOLD extends only major architecture silhouettes to two native pixels within 28m. Interior strokes and foliage stay one pixel, grass/terrain receive no outlines, and added highlights have a brightness ceiling. Existing pale art can already exceed that ceiling; the effect never darkens it to enforce the cap. Ground-only hue/saturation harmonization and value-contrast controls reduce the original field-row color contrast without painting new art.
 
-Use the separately supplied private `assets` runtime directory. Licensed models, textures and captures are not in this public source tree. The pack's custom EmaceArt license permits game use but prohibits redistribution as a standalone asset library. Code-only CI artifacts omit all private art.
+Default candidate: cast shadows/shafts/haze OFF, restrained inexpensive ground contacts ON. O/V/H retain independent comparison toggles. Shadow ON is an option, not rejected universally. The original atmospheric system remains available; no new volumetric work. Contacts include original EmaceArt house/tree/rock/prop roots, with no individual grass shadows.
 
-## Play and inspect
-
-Run `PLAY_GAME.cmd`. WASD/mouse; E rests at cottage markers or encounters the wild Petalyn. Battle uses 1 attack, 2 defend, 3 befriend; Enter returns. F5 saves, F9 loads; Esc pauses and releases the mouse, Q saves/quits from pause. Existing full-loop and two-companion Idle/Fly animations remain. New saves default to `saves/hearthgrove_emaceart.json`.
-
-R toggles 480/640; G cycles grass OFF/LOW/MEDIUM/HIGH; F switches original diffuse versus pixel-toon; O shadows; V volumetric sunlight; H distance haze; L LOW/MEDIUM/HIGH effect quality. All environmental modes use identical original geometry, UVs and palette pixels. Source mode disables both outlines and convex highlights. Source mode is the renderer's diffuse interpretation, not a reproduction of the original Godot PBR shader.
-
-Example genuine native capture:
+## Build and run
 
 ```sh
-wildsignal_hearthgrove_emaceart.exe --assets assets --benchmark --pose 2 --frames 4 --cap 0 --resolution 640 --shafts on --shadow on --haze on --quality medium --output runs/canopy
+cmake -S experiments/hearthgrove_emaceart -B build/style-r1 -G "Visual Studio 17 2022" -A x64
+cmake --build build/style-r1 --config Release --parallel 2
+ctest --test-dir build/style-r1 -C Release --output-on-failure
+cmake --install build/style-r1 --config Release --prefix out/style-r1
 ```
 
-`final_world.ppm` is the actual internal framebuffer. `--pose 0..8`, `--render-mode original|toon`, `--resolution 480|640|1280`, `--grass-density off|low|medium|high`, `--shafts on|off`, `--haze on|off`, `--shadow on|off`, `--shaft-strength 0..3`, `--quality low|medium|high`. Source assets are required; legacy R2/procedural grass switches fail closed in this target. Earlier executables retain their controls.
+C++20, SDL3, OpenGL 3.3; dependencies retain pinned inherited versions. Code-only CI artifacts lack licensed runtime assets. Obtain the complete **private game review ZIP**, extract into a new folder, and run `PLAY_GAME.cmd`. `PLAY_640.cmd`:640×360; `PLAY_BOLD.cmd`:rich/bold; `LOW_SPEC.cmd`:sparse LOW grass; `BASELINE_ORIGINAL.cmd`:original scene/settings; `SOURCE_MATERIALS.cmd`:source shading on final geometry; `SHADOWS_ON.cmd`:balanced with casts. `ALL_EFFECTS.cmd` retains experimental atmosphere. Full source assets may not be redistributed as a standalone pack.
 
-## Rendering and limits
+Settings: `assets/style_profiles.json`, revision1, copied from this branch's safe numeric `data/style_profiles.json`. `--style-settings FILE` overrides the path. `--style-preset baseline|balanced|rich`; `--ink off|balanced|bold`; `--contacts on|off`; `--hud off|compact|debug`. Baseline needs no new settings file and restores original lighting/bands/edge behavior. Use `assets_baseline` for exact original geometry as well. Candidate and baseline remain separate runtime folders. Grass defaults to MEDIUM; no source grass remodeling.
 
-Original opaque grass meshes are instanced with original UVs and vertex colors. Nested density and conservative distance/frustum/projected-size culling avoid thousands of separate draws. No grass mesh simplification or new distant artwork. Grass receives object shadows and casts none. A shared original 32×32 palette stays resident once. Ground height is a numeric cache of actual placed source triangles, not generated terrain geometry.
+All existing controls remain: WASD/mouse, E rest/encounter,1attack/2defend/3befriend, Enter return, F5/F9save/load, Escpause/Qsave-quit, F source/toon, O shadows, V shafts, H haze, G density, R480/640, L quality, F3follower debug. F2cycles compact/off/debug HUD. HUD changes preserve the underlying game state and telemetry. Clean `final_world.ppm` is the native framebuffer; presented captures include actual HUD.
 
-Sunlight uses the existing depth-aware, shadow-map-aware quarter-resolution bounded volumetric ray integration with 8 samples (12 HIGH), reconstructed separately from crisp material pixels. Shadows are world-anchored/cached 1024² (512² LOW), covering the village; haze is independently toggleable. Turning shadows OFF also removes occlusion information for shafts, so the best physical comparison leaves shadows ON. Large-area shadow resolution, low-sample shafts and density cutoffs can show aliasing or popping; inspect motion and use LOW_SPEC if needed. No expensive general-purpose fog, bloom or real-time sky simulation.
+## Terrain and private runtime
 
-This is an owner review, not a claim of final artistic approval, displayed FPS, physical Intel UHD performance, Android support or Windows 7 certification. Native software-Mesa results must be labeled separately from Windows hardware results. No new combat, account, inventory, quest or online systems.
+The private assembly derives walkable top surfaces from original source meshes, retaining XZ footprints, UVs, texture/material bytes and recognizable source identity. Y/normals are reprojected to gentle relief with calm building pads. Side/bottom faces that collapse into coplanar duplicates are removed; source colors are decoded according to their original UINT16 normalization. Family/24m spatial batches stay within existing model budgets and conservative culling. Final rendered triangles are rasterized into the 257² height cache. Roads route around actual conservative colliders; one original entrance tree and its collider move together by0.9m to clear the spawn corridor. Props and existing grass roots are reprojected to the same surface. No cache-only smoothing, replacement building/tree/rock/grass or texture painting.
+
+The grass distribution selects from original roots, using stable clustered masks, path/door/rest/wild-companion clearances and lower existing clump scale. Original mesh/palette files remain unchanged. This is a readable settlement pilot, not a dense-meadow target. Distant cutoff/LOD limitations and source field-pattern repetition remain.
+
+Optional private validation:
+
+```sh
+python experiments/hearthgrove_emaceart/tests/terrain_mesh.py PRIVATE_ASSETS PRIVATE_ASSEMBLY.json terrain-validation.json
+python experiments/hearthgrove_emaceart/tests/runtime.py PATH_TO_EXECUTABLE PRIVATE_ASSETS
+```
+
+Terrain QA independently raycasts the final glTF triangles and checks slopes, seam steps, cache agreement and route collision. It fails on any sampled blocked corridor. `GAMELOOP_ASSETS` plus `HG_TERRAIN_LAYOUT` adds this check to CTest. Windows hardware launcher records BASELINE_OLD/OFF/BALANCED/BOLD/LOW at480/640, adapter/driver identity, counters, process RAM, API timings and swap intervals. These do not prove sustained displayed FPS. Mesa software is not Intel UHD. Physical Windows GPU, Android and Win7 remain unverified until actually tested.
+
+Private review includes matched baseline/Phase1/final matrices, terrain QA, real gameplay preview, source hashes and performance distributions. Automated tests cannot approve the visual direction. Stop at `HEARTHGROVE_EMACEART_STYLE_TERRAIN_R1_OWNER_REVIEW_PENDING`.

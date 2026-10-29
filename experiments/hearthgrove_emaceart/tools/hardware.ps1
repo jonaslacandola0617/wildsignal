@@ -6,13 +6,19 @@ function Q($values,[double]$q){$v=@($values|Sort-Object);if(!$v.Count){return $n
 $ci=[System.Globalization.CultureInfo]::InvariantCulture
 function N($s){return [double]::Parse([string]$s,$ci)}
 $summary=@()
-foreach($res in @(480,640)){foreach($mode in @('OFF','SHADOW','SHADOW_SHAFTS','ALL_ATMOSPHERE')){
- $out=Join-Path $run ($mode+'_'+$res);$shadow=if($mode -eq 'OFF'){'off'}else{'on'};$shafts=if($mode -in @('SHADOW_SHAFTS','ALL_ATMOSPHERE')){'on'}else{'off'};$haze=if($mode -eq 'ALL_ATMOSPHERE'){'on'}else{'off'};$extra=@('--shadow',$shadow,'--shafts',$shafts,'--haze',$haze,'--quality','medium')
- $a=@('--assets',(Join-Path $Root 'assets'),'--benchmark','--pose','2','--resolution',"$res",'--frames','180','--cap','0','--pacing','off','--output',$out)+$extra
+foreach($res in @(480,640)){foreach($mode in @('BASELINE_OLD','OFF','BALANCED','BOLD','LOW')){
+ $out=Join-Path $run ($mode+'_'+$res)
+ $assetFolder=if($mode -eq 'BASELINE_OLD'){'assets_baseline'}else{'assets'}
+ $preset=if($mode -in @('BASELINE_OLD','OFF')){'baseline'}elseif($mode -eq 'BOLD'){'rich'}else{'balanced'}
+ $ink=if($mode -eq 'OFF'){'off'}elseif($mode -eq 'BOLD'){'bold'}else{'balanced'}
+ $shadow=if($mode -eq 'BASELINE_OLD'){'on'}else{'off'}
+ $density=if($mode -eq 'LOW'){'low'}else{'medium'}
+ $extra=@('--style-preset',$preset,'--ink',$ink,'--grass-density',$density,'--shadow',$shadow,'--shafts',$shadow,'--haze',$shadow,'--quality','medium','--hud','off')
+ $a=@('--assets',(Join-Path $Root $assetFolder),'--benchmark','--pose','1','--resolution',"$res",'--frames','180','--cap','0','--pacing','off','--output',$out)+$extra
  & (Join-Path $Root 'wildsignal_hearthgrove_emaceart.exe') @a
  if($LASTEXITCODE -ne 0){throw "Runtime failed: $mode $res. Return error.txt and run.log."}
  $f=@(Import-Csv (Join-Path $out 'frames.csv')|Where-Object {[int]$_.frame -ge 30});$g=@(Import-Csv (Join-Path $out 'gpu.csv')|Where-Object {[int]$_.frame -ge 30});if($f.Count -ne 150){throw 'Incomplete frames'}
- $summary+=@{Mode=$mode;Resolution=$res;Measured=150;GpuValid=$g.Count;AppP50=(Q @($f|ForEach-Object {N $_.app_loop_ms}) .5);AppP95=(Q @($f|ForEach-Object {N $_.app_loop_ms}) .95);AppP99=(Q @($f|ForEach-Object {N $_.app_loop_ms}) .99);SubmitP50=(Q @($f|ForEach-Object {N $_.cpu_submit_ms}) .5);GpuP50=(Q @($g|ForEach-Object {N $_.gpu_elapsed_ms}) .5);WorkingSetMiB=(Q @($f|ForEach-Object {(N $_.peak_rss_bytes)/1MB}) 1);Draws=(Q @($f|ForEach-Object {N $_.draws}) .5);Triangles=(Q @($f|ForEach-Object {N $_.triangles}) .5);GrassShadowDraws=(Q @($f|ForEach-Object {N $_.grass_shadow_draws}) 1)}
+ $summary+=@{Mode=$mode;Resolution=$res;Measured=150;GpuValid=$g.Count;AppP50=(Q @($f|ForEach-Object {N $_.app_loop_ms}) .5);AppP95=(Q @($f|ForEach-Object {N $_.app_loop_ms}) .95);AppP99=(Q @($f|ForEach-Object {N $_.app_loop_ms}) .99);SwapIntervalP95=(Q @($f|ForEach-Object {N $_.swap_completion_interval_ms}) .95);GrassTriangles=(Q @($f|ForEach-Object {N $_.grass_triangles}) .5);GrassVisible=(Q @($f|ForEach-Object {N $_.grass_visible}) .5);SubmitP50=(Q @($f|ForEach-Object {N $_.cpu_submit_ms}) .5);GpuP50=(Q @($g|ForEach-Object {N $_.gpu_elapsed_ms}) .5);WorkingSetMiB=(Q @($f|ForEach-Object {(N $_.peak_rss_bytes)/1MB}) 1);Draws=(Q @($f|ForEach-Object {N $_.draws}) .5);Triangles=(Q @($f|ForEach-Object {N $_.triangles}) .5);GrassShadowDraws=(Q @($f|ForEach-Object {N $_.grass_shadow_draws}) 1)}
 }}
 $summary|ConvertTo-Json -Depth 5|Set-Content (Join-Path $run 'SUMMARY.json') -Encoding UTF8
-Write-Host "Return this complete folder privately: $run";Write-Host 'No capture/encoding in timed loop. Original textures; normal-map/PBR rendering is unsupported. This is not display-FPS certification.';Read-Host 'Enter to close'
+Write-Host "Return this complete folder privately: $run";Write-Host 'Original textures and source normals. BASELINE_OLD uses original geometry; OFF/BALANCED/BOLD/LOW use the SAME R1 geometry/camera. No capture/encoding in timed loop. API/software throughput and swap intervals do NOT certify displayed FPS.';Read-Host 'Enter to close'

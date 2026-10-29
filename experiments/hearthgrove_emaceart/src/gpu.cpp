@@ -6,6 +6,7 @@
 #include "mesh_gpu.hpp"
 #include "study_shaders.hpp"
 #include "style_shaders.hpp"
+#include "style_profile_glsl.hpp"
 #include <SDL3/SDL.h>
 #define GL_GLEXT_PROTOTYPES 1
 #include <SDL3/SDL_opengl.h>
@@ -131,6 +132,7 @@ uniform vec4 contacts[12];
 uniform int pixelMaterial;uniform int artStyle,diagnostic,sampling,vertexTint,kind,architecture,leafy,smoothLighting,receiverCorrection;uniform float biasScale;
 uniform int receiveShadows,patchStudy;uniform float surfaceSunTint,surfaceShadowFloor;uniform sampler2D patchIDs;
 uniform int shadowMode;uniform sampler2D groundShadow;
+// PROFILE
 // VISIBILITY
 float hash2(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 float field(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash2(i),hash2(i+vec2(1,0)),f.x),mix(hash2(i+vec2(0,1)),hash2(i+vec2(1,1)),f.x),f.y);}
@@ -160,8 +162,9 @@ if(ground!=0&&textured!=0&&studyKind!=4){
  float broad=field(worldPosition.xz*.38),small=field(worldPosition.xz*2.6);
  a.rgb=mix(g0,g1,.12+.42*broad+.12*small);
 }
+a.rgb=profileColor(a.rgb,profileFamily);
 float sun=max(0.,dot(shadeNormal,normalize(sunDirection)));
-if(mode!=0&&bands!=0&&smoothLighting==0){float soft=max(.001,bandSoftness);sun=.12+.4*smoothstep(.20-soft,.20+soft,sun)+.48*smoothstep(.58-soft,.58+soft,sun);}
+if(mode!=0&&bands!=0&&smoothLighting==0){float soft=max(.001,bandSoftness);sun=profileBand(sun,soft);}
 if(smoothLighting!=0&&leafy!=0)sun=max(0.,(dot(shadeNormal,normalize(sunDirection))+.2)/1.2);
 vec3 ambient=mix(ambientGround,ambientSky,clamp(shadeNormal.y*.5+.5,0.,1.));
 // Authored style maps only: keep three calm form tones and avoid black trim.
@@ -189,6 +192,7 @@ float haze=smoothstep(hazeStart,hazeEnd,length(worldPosition-eye))*hazeStrength;
 color=vec4(mix(display,hazeColor,haze),alphaMode==2?a.a:1.);
 float category=ground!=0?.05:foliage!=0?.15:architecture!=0?.30+float(kind)*.09:.85;
 if(studyMode>0)category=studyKind==1?.4:studyKind==2?.15:studyKind==4?.05:.85;
+if(profileActive!=0&&profileFamily==4)category=.27;
 normals=vec4(n*.5+.5,artStyle==0?(foliage!=0?.5:1.):category);}
 
 )GLSL";
@@ -246,10 +250,11 @@ struct Gpu::Impl {
   std::vector<Material> materials;
   std::vector<SurfacePolicy> policies;
   Look look;
-  std::vector<std::array<float, 4>> contacts, wordlineContacts;
+  std::vector<std::array<float, 4>> contacts, wordlineContacts,emaceContacts;
   std::uint64_t shadowSignature = 0;
   Effects effects;
   Style style;
+  StyleProfile profile;
   Integration integration;
   GLuint edgePost = 0;
   int study = 0;
@@ -405,7 +410,7 @@ Gpu::Gpu(World &world, bool allowSoftware) {
   const bool hasSkins = std::any_of(world.models.begin(), world.models.end(),
                                     [](const auto &m) { return bool(m.rig); });
   p->mesh =
-      program(hasSkins ? meshVS : staticMeshVS, visibility(meshFS).c_str());
+      program(hasSkins ? meshVS : staticMeshVS, ([&]{auto text=visibility(meshFS);auto at=text.find("// PROFILE");text.replace(at,10,profileGLSL);return text;}()).c_str());
   gl::GenSamplers(1, &p->linearSampler);
   gl::SamplerParameteri(p->linearSampler, GL_TEXTURE_MIN_FILTER,
                         GL_LINEAR_MIPMAP_LINEAR);
@@ -593,6 +598,12 @@ Gpu::Gpu(World &world, bool allowSoftware) {
       auto root = point(i.matrix, {0, 0, 0});
       p->wordlineContacts.push_back({root.x, root.z, .34f, .34f});
     }
+    if(id=="EA_HOUSE"||id=="EA_SHED"||id=="EA_HOVEL") {
+      p->emaceContacts.push_back({center.x,center.z,(i.bounds.hi.x-i.bounds.lo.x)*.43f,-(i.bounds.hi.z-i.bounds.lo.z)*.43f});
+    }else if(id.starts_with("EA_TREE")) {auto root=point(i.matrix,{});p->emaceContacts.push_back({root.x,root.z,.60f,.60f});}
+    else if(id.starts_with("EA_ROCK")||id=="EA_BARREL"||id=="EA_BENCH") {
+      p->emaceContacts.push_back({center.x,center.z,std::clamp((i.bounds.hi.x-i.bounds.lo.x)*.45f,.2f,1.7f),std::clamp((i.bounds.hi.z-i.bounds.lo.z)*.45f,.2f,1.7f)});
+    }
     if (i.id == "front-door-wall") {
       auto c = point(i.matrix, {1, 0, -2});
       p->contacts.push_back({c.x, c.z, 2, -2});
@@ -675,6 +686,7 @@ void Gpu::setIntegration(const Integration &v) {
   p->integration = v;
   p->lightVP = villageLightProjection(p->look.sunDirection);
 }
+void Gpu::setProfile(const StyleProfile &v) { p->profile=v; }
 void Gpu::setLook(const Look &l) {
   if (dot(p->look.sunDirection - l.sunDirection,
           p->look.sunDirection - l.sunDirection) > .000001f) {
@@ -1004,6 +1016,11 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
   uniformMatrix(p->mesh, "lightNormalMatrix", transpose(inverse(p->lightVP)));
   bool smoothAir = p->style.mode == 2 && p->style.smoothAir;
   bool smoothLight = p->style.mode == 2 && p->style.smoothLight;
+  uniformInt(p->mesh,"profileActive",p->profile.active&&p->style.highlights);
+  uniformFloat(p->mesh,"groundHarmony",p->profile.groundHarmony);
+  uniformFloat(p->mesh,"groundAnchor",p->profile.groundAnchor);uniformFloat(p->mesh,"groundContrast",p->profile.groundContrast);
+  uniformFloat(p->mesh,"profileLow",p->profile.lowTone);uniformFloat(p->mesh,"profileMid",p->profile.midTone);
+  for(int f=0;f<6;f++){auto v=p->profile.grades[f];auto name="familyGrade["+std::to_string(f)+"]";gl::Uniform3f(gl::GetUniformLocation(p->mesh,name.c_str()),v.x,v.y,v.z);}
   uniformInt(p->mesh, "artStyle", p->style.mode);
   uniformInt(p->mesh, "studyMode", p->study);
   uniformInt(p->mesh, "smoothLighting", smoothLight);
@@ -1052,7 +1069,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
   distances.fill(INFINITY);
   int count = 0;
   for (auto &c :
-       (p->integration.wordlineContacts ? p->wordlineContacts : p->contacts)) {
+       (p->profile.active?p->emaceContacts:p->integration.wordlineContacts ? p->wordlineContacts : p->contacts)) {
     float dx = c[0] - camera.position.x, dz = c[1] - camera.position.z,
           d = dx * dx + dz * dz;
     if (d > 1600)
@@ -1080,6 +1097,9 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     auto &i = world.instances[index];
     auto &part = p->models[i.model][partIndex];
     auto &mat = p->materials[part.material];
+    const auto &model=world.models[i.model];
+    int family=model.rig?-1:model.id.starts_with("EA_TREE")||model.id.starts_with("EA_BUSH")||model.id.starts_with("EA_REED")?1:model.id.starts_with("EA_ROCK")?4:model.id.starts_with("EA_PATH")||model.id=="EA_COBBLE"||model.id.starts_with("HG_PATH")?3:model.id=="EA_GROUND"||model.id.starts_with("HG_GROUND")||model.id.starts_with("HG_GREEN")||model.id.starts_with("EA_GREEN")?5:model.id.starts_with("EA_GREEN")||model.id.starts_with("HG_GREEN")||model.id=="EA_MOSS"?0:2;
+    uniformInt(p->mesh,"profileFamily",family);
     gl::Uniform1i(p->receivesLoc, p->policies[i.model].receives);
     gl::Uniform1f(p->sunTintLoc, p->policies[i.model].sunTint);
     gl::Uniform1f(p->shadowFloorLoc, p->policies[i.model].shadowFloor);
@@ -1151,6 +1171,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
         draw(index, j);
     }
   }
+  if(p->grassRenderer)p->grassRenderer->setProfile(p->profile,p->style.highlights);
   if (p->grassRenderer && p->grass && p->coverage != 1 && p->coverage != 4) {
     stats.grass = p->grassRenderer->draw(
         *p->grass, effective, vp, p->look, p->lightVP, p->shadowDepth,
@@ -1288,6 +1309,11 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
                                                 : p->post;
   gl::UseProgram(postProgram);
   const auto &integration = p->integration;
+  uniformInt(postProgram,"profileActive",p->profile.active);
+  uniformInt(postProgram,"profileInk",p->profile.inkMode);
+  uniformInt(postProgram,"majorWidth",p->profile.majorWidth);
+  gl::Uniform4fv(gl::GetUniformLocation(postProgram,"profileInkStrength"),1,p->profile.ink.data());
+  uniformFloat(postProgram,"profileHighlight",p->profile.highlight);uniformFloat(postProgram,"profileCeiling",p->profile.ceiling);
   uniformInt(postProgram, "edgeMode", integration.edges);
   uniformInt(postProgram, "highlightMask", integration.highlightMask);
   uniformInt(postProgram, "edgeMask", integration.edgeMask);
@@ -1317,9 +1343,9 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
               ? p->filteredAir
               : p->shaftImage);
   uniformInt(postProgram, "outline",
-             mode == 2 && outline && p->style.diagnostic == 0);
+             mode == 2 && outline && p->style.diagnostic == 0 && p->profile.inkMode!=0);
   uniformInt(postProgram, "refined", p->style.outlines);
-  uniformInt(postProgram, "highlights", p->style.highlights);
+  uniformInt(postProgram, "highlights", p->style.highlights&&p->profile.inkMode!=0);
   uniformInt(postProgram, "cozy", p->look.cozy);
   uniformInt(postProgram, "sceneColor", 0);
   uniformInt(postProgram, "sceneNormal", 1);

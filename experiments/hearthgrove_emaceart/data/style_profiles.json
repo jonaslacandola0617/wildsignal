@@ -1,0 +1,181 @@
+{
+  "revision": 1,
+  "families": [
+    "grass_green_cover",
+    "trees_bushes",
+    "wood_roof",
+    "path_soil",
+    "stone",
+    "ground"
+  ],
+  "presets": {
+    "balanced": {
+      "grades": [
+        [
+          0.055,
+          1.02,
+          0.88
+        ],
+        [
+          0.065,
+          1.06,
+          0.9
+        ],
+        [
+          0.0,
+          1.08,
+          0.96
+        ],
+        [
+          -0.008,
+          0.83,
+          0.91
+        ],
+        [
+          -0.015,
+          0.72,
+          0.86
+        ],
+        [
+          0.13,
+          0.76,
+          0.89
+        ]
+      ],
+      "low_tone": 0.09,
+      "mid_tone": 0.43,
+      "ink": [
+        0.46,
+        0.22,
+        0.1,
+        0.28
+      ],
+      "highlight_strength": 0.2,
+      "highlight_ceiling": 0.82,
+      "major_width": 1,
+      "sun_color": [
+        1.15,
+        1.12,
+        1.02
+      ],
+      "ambient_sky": [
+        0.17,
+        0.23,
+        0.3
+      ],
+      "ambient_ground": [
+        0.14,
+        0.18,
+        0.22
+      ],
+      "sky_top": [
+        0.35,
+        0.59,
+        0.77
+      ],
+      "sky_horizon": [
+        0.7,
+        0.8,
+        0.81
+      ],
+      "haze_color": [
+        0.57,
+        0.7,
+        0.66
+      ],
+      "exposure": 1.02,
+      "band_softness": 0.018,
+      "contact_strength": 0.22,
+      "haze_start": 32,
+      "haze_end": 105,
+      "haze_strength": 0.08,
+      "ground_value_anchor": 0.64,
+      "ground_contrast": 0.2,
+      "ground_harmony": 0.78
+    },
+    "rich": {
+      "grades": [
+        [
+          0.065,
+          1.12,
+          0.86
+        ],
+        [
+          0.075,
+          1.15,
+          0.88
+        ],
+        [
+          0.0,
+          1.16,
+          0.98
+        ],
+        [
+          -0.008,
+          0.9,
+          0.88
+        ],
+        [
+          -0.015,
+          0.8,
+          0.86
+        ],
+        [
+          0.14,
+          0.82,
+          0.87
+        ]
+      ],
+      "low_tone": 0.065,
+      "mid_tone": 0.36,
+      "ink": [
+        0.64,
+        0.27,
+        0.12,
+        0.34
+      ],
+      "highlight_strength": 0.27,
+      "highlight_ceiling": 0.82,
+      "major_width": 2,
+      "sun_color": [
+        1.15,
+        1.12,
+        1.02
+      ],
+      "ambient_sky": [
+        0.17,
+        0.23,
+        0.3
+      ],
+      "ambient_ground": [
+        0.14,
+        0.18,
+        0.22
+      ],
+      "sky_top": [
+        0.35,
+        0.59,
+        0.77
+      ],
+      "sky_horizon": [
+        0.7,
+        0.8,
+        0.81
+      ],
+      "haze_color": [
+        0.57,
+        0.7,
+        0.66
+      ],
+      "exposure": 1.02,
+      "band_softness": 0.018,
+      "contact_strength": 0.22,
+      "haze_start": 32,
+      "haze_end": 105,
+      "haze_strength": 0.08,
+      "ground_value_anchor": 0.64,
+      "ground_contrast": 0.2,
+      "ground_harmony": 0.65
+    }
+  }
+}

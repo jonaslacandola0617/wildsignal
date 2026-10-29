@@ -48,6 +48,9 @@ std::uint64_t memory(bool peak = false) {
 struct Options {
   std::filesystem::path assets = "assets", save = "saves/hearthgrove_emaceart.json",
                         out = "runs/play", replay;
+  std::string preset="balanced",ink="balanced";std::filesystem::path styleSettings;
+  bool contacts=true;
+  int hudMode=1;bool shadowSet=false,shaftSet=false,hazeSet=false;
   bool sourceTextures = false, legacyFollow = false, legacyGrass = false,
        pixelMaterials = true, debugFollow = false;
   int w = 480, frames = 0, every = 0, cap = 30, density = 2, pose = -1,
@@ -55,10 +58,10 @@ struct Options {
   bool allow = false, hidden = false, house = true, benchmark = false,
        fresh = false, original = false;
   std::string pacing = "precise";
-  bool shafts = true, haze = true;
+  bool shafts = false, haze = false;
   std::string quality = "medium";
   float shaftStrength = 1.5f;
-  bool shadows = true, forceLegacyGrass = false, requireAuthored = false,
+  bool shadows = false, forceLegacyGrass = false, requireAuthored = false,
        fragmentReceiver = true, cacheProbe = false;
   int receiveGrass = -1, diagnostic = 0, scaleFamily = 0, canopyMask = -1;
 };
@@ -87,7 +90,7 @@ Options options(int argc, char **argv) {
              "0|30|60 --benchmark --pose 0..8 --frames N --capture-every "
              "N\n--save FILE --new-game --output DIR --allow-software --hidden "
              "--replay FILE --followers trail|legacy --grass-layout "
-             "continuous|legacy\n--worldstyle source|pixel --debug-follow\n";
+             "continuous|legacy\n--worldstyle source|pixel --debug-follow\n--style-preset baseline|balanced|rich --ink off|balanced|bold --style-settings FILE --hud off|compact|debug (F2 toggles) --contacts on|off\n";
       std::cout << "Source EmaceArt: --grass-family auto|source "
                    "--grass-scale mixed (original uniform source scale)\n"
                    "--shadow on|off --grass-cast off --grass-receive on|off "
@@ -99,13 +102,18 @@ Options options(int argc, char **argv) {
       std::exit(0);
     } else if (a == "--assets")
       o.assets = value();
+    else if(a=="--contacts"){auto v=value();if(v!="on"&&v!="off")throw std::runtime_error("contacts on|off");o.contacts=v=="on";}
+    else if(a=="--style-preset"){o.preset=value();if(o.preset!="baseline"&&o.preset!="balanced"&&o.preset!="rich")throw std::runtime_error("style-preset baseline|balanced|rich");}
+    else if(a=="--style-settings")o.styleSettings=value();
+    else if(a=="--ink"){o.ink=value();if(o.ink!="off"&&o.ink!="balanced"&&o.ink!="bold")throw std::runtime_error("ink off|balanced|bold");}
+    else if(a=="--hud"){auto v=value();if(v!="off"&&v!="compact"&&v!="debug")throw std::runtime_error("hud off|compact|debug");o.hudMode=v=="off"?0:v=="compact"?1:2;}
     else if(a=="--shaft-strength") {
       auto v=value();std::size_t used=0;o.shaftStrength=std::stof(v,&used);
       if(used!=v.size()||!std::isfinite(o.shaftStrength)||o.shaftStrength<0||o.shaftStrength>3)throw std::runtime_error("shaft-strength 0..3");
     }
     else if (a == "--shafts" || a == "--haze") {
       auto v=value();if(v!="on"&&v!="off")throw std::runtime_error("effect on|off");
-      (a=="--shafts"?o.shafts:o.haze)=v=="on";
+      (a=="--shafts"?o.shafts:o.haze)=v=="on";if(a=="--shafts")o.shaftSet=true;else o.hazeSet=true;
     } else if(a=="--quality") {
       o.quality=value();if(o.quality!="low"&&o.quality!="medium"&&o.quality!="high")throw std::runtime_error("quality low|medium|high");
     }
@@ -186,7 +194,7 @@ Options options(int argc, char **argv) {
       auto v = value();
       if (v != "on" && v != "off")
         throw std::runtime_error("shadow on|off");
-      o.shadows = v == "on";
+      o.shadows = v == "on";o.shadowSet=true;
     } else if (a == "--grass-receive") {
       auto v = value();
       if (v != "on" && v != "off")
@@ -254,6 +262,7 @@ Options options(int argc, char **argv) {
   }
   if (o.cacheProbe && !o.benchmark)
     throw std::runtime_error("shadow-cache-probe requires --benchmark");
+  if(o.preset=="baseline"){if(!o.shadowSet)o.shadows=true;if(!o.shaftSet)o.shafts=true;if(!o.hazeSet)o.haze=true;}
   return o;
 }
 struct Screen {
@@ -472,7 +481,7 @@ int main(int argc, char **argv) {
       mat.architecture=m.id=="EA_HOUSE"||m.id=="EA_SHED"||m.id=="EA_HOVEL"||m.id.starts_with("EA_FENCE")||m.id=="EA_BENCH"||m.id=="EA_BARREL";
       mat.foliage=m.id.starts_with("EA_TREE_")||m.id.starts_with("EA_BUSH_")||m.id.starts_with("EA_REED_");
       mat.leafy=mat.foliage;
-      mat.ground=m.id=="EA_GROUND"||m.id.starts_with("EA_GREEN_")||m.id.starts_with("EA_PATH_")||m.id=="EA_COBBLE"||m.id=="EA_MOSS";
+      mat.ground=(m.id=="EA_GROUND"||m.id.starts_with("HG_GROUND")||m.id.starts_with("HG_GREEN")||m.id.starts_with("HG_PATH"))||m.id.starts_with("EA_GREEN_")||m.id.starts_with("EA_PATH_")||m.id=="EA_COBBLE"||m.id=="EA_MOSS";
       mat.studyKind=mat.ground?4:mat.architecture?1:mat.foliage?2:3;
     }
     std::vector<std::size_t> actors;
@@ -517,7 +526,15 @@ int main(int argc, char **argv) {
       throw std::runtime_error(SDL_GetError());
     SDL_GL_SetSwapInterval(0);
     p3::Gpu gpu(world, o.allow);
-    auto look = p3::Look::load(o.assets / "look.json");
+    auto baselineLook = p3::Look::load(o.assets / "look.json");
+    auto profile=p3::StyleProfile::load(o.styleSettings.empty()?o.assets/"style_profiles.json":o.styleSettings,o.preset,baselineLook);
+    profile.inkMode=o.ink=="off"?0:o.ink=="bold"?2:1;
+    if(profile.active)profile.majorWidth=o.ink=="bold"?2:1;
+    gpu.setProfile(profile);
+    auto look=profile.look;
+    if(!o.contacts)look.contactStrength=0;
+    log<<"style_preset="<<o.preset<<"\nink_preset="<<o.ink<<"\n";
+
     float authoredHaze=look.hazeStrength;
     if(!o.haze)look.hazeStrength=0;
     gpu.setLook(look);
@@ -707,6 +724,7 @@ int main(int argc, char **argv) {
               followers.reset(game);
               game.message = l.message;
               event(frame, l.recovered ? "recover" : "load");
+            } else if(e.key.key==SDLK_F2){o.hudMode=(o.hudMode+1)%3;event(frame,"hud_toggle");
             } else if (e.key.key == SDLK_F3) {
               o.debugFollow = !o.debugFollow;
             } else if(e.key.key==SDLK_V) {
@@ -938,7 +956,13 @@ int main(int argc, char **argv) {
         hud.push_back(message.substr(0, 74));
         message = message.size() > 74 ? message.substr(74) : "";
       }
-      if (!o.coverage)
+      if(o.hudMode==1){std::vector<std::string> compact;
+        compact.push_back("PETALYN "+std::to_string(game.state.hp)+"/30 / PARTY "+std::to_string(game.state.recruited?2:1));
+        if(paused)compact.push_back("PAUSED / ENTER RESUME / Q SAVE AND QUIT");
+        else if(game.phase!=game::Phase::Explore)compact.push_back("WILD "+std::to_string(game.enemyHp)+"/24 / 1 ATTACK 2 DEFEND 3 BEFRIEND / ENTER");
+        else compact.push_back(game.state.recruited?"EXPLORE / F5 SAVE / F2 HUD":game.state.visited?"E ENCOUNTER / F5 SAVE / F2 HUD":"E COTTAGE REST / F5 SAVE / F2 HUD");
+        if(!game.message.empty())compact.push_back(game.message.substr(0,68));hud=std::move(compact);}
+      if (!o.coverage&&o.hudMode!=0)
         gpu.hud(hud, ow, oh);
       auto hudEnd = Clock::now();
       if (o.every && frame % o.every == 0) {
