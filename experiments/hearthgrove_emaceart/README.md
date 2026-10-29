@@ -40,3 +40,9 @@ The old glow remains a control. Streaks depend on shadows and are disabled when 
 The original complete building is reused three times; no new interiors, NPCs, quests, creature art or gameplay systems. All EmaceArt environment source art and owner grass originals are preserved. The custom EmaceArt license allows game use but prohibits standalone asset-library redistribution. Keep the integrated review private.
 
 Run BENCHMARK_EFFECTS.cmd for bounded matched OFF/glow/streak measurements at 480 and 640. Report application/API timings, frame pacing and RAM separately from displayed FPS. Mesa software results do not certify Intel UHD, Android, Win7 or final artistic approval. Stop for owner visual and hardware review; no merges.
+
+## Thicker edges review
+
+The default toon view now uses two-native-pixel outlines and sun-facing convex edge highlights, previously one pixel. Source textures, geometry, lighting and grass suppression are unchanged. This is a bounded second depth/normal sampling ring in the existing post pass; it adds no framebuffer or texture allocation. Foliage keeps its lighter ink and only outer-mass highlights. Ground and individual grass blades remain excluded.
+
+Use `THIN_EDGES_COMPARE.cmd` for the previous one-pixel width at otherwise identical sparse EmaceArt settings. Individual controls: `--outline-width 1|2 --highlight-width 1|2`. Width is measured at the internal render resolution before nearest-neighbor presentation. Source-material mode still disables both effects. The two-pixel reach can emphasize small overlapping leaves at distance; it is a review setting, not final style approval.

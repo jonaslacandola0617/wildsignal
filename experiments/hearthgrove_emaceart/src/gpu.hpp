@@ -37,6 +37,7 @@ struct Gpu {
               materialsOriginal = 0, cpuGeometryReleased = 0;
   Gpu(World &, bool allowSoftware);
   void setIntegration(const Integration &);
+  void setEdgeWidths(int outlinePixels, int highlightPixels);
   void setSurfacePolicy(std::size_t model, const SurfacePolicy &);
   void setGrass(MeshClumps *, const std::filesystem::path &,
                 const std::filesystem::path &);

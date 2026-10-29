@@ -51,6 +51,7 @@ struct Options {
   bool ownerGrass = false, sunStreaks = true;
   bool sourceTextures = false, legacyFollow = false, legacyGrass = false,
        pixelMaterials = true, debugFollow = false;
+  int outlineWidth = 2, highlightWidth = 2;
   int w = 480, frames = 0, every = 0, cap = 30, density = 1, pose = -1,
       coverage = 0;
   bool allow = false, hidden = false, house = true, benchmark = false,
@@ -96,11 +97,13 @@ Options options(int argc, char **argv) {
                    "--diagnostic lit|albedo|visibility --canopy-shadow "
                    "solid\n"
                    "--shadow-cache-probe (isolated technical test only)\n"
-                   "--shafts on|off --haze on|off --quality low|medium|high --shaft-strength 0..3\n--grass-style owner|emaceart --shaft-profile glow|streaks\n";
+                   "--shafts on|off --haze on|off --quality low|medium|high --shaft-strength 0..3\n--grass-style owner|emaceart --shaft-profile glow|streaks\n--outline-width 1|2 --highlight-width 1|2 (native pixels; default 2)\n";
       std::exit(0);
     } else if (a == "--assets")
       o.assets = value();
     else if(a=="--grass-style") {auto v=value();if(v!="owner"&&v!="emaceart")throw std::runtime_error("grass-style owner|emaceart");o.ownerGrass=v=="owner";}
+    else if(a=="--outline-width") o.outlineWidth=integer(value(),1,2);
+    else if(a=="--highlight-width") o.highlightWidth=integer(value(),1,2);
     else if(a=="--shaft-profile") {auto v=value();if(v!="glow"&&v!="streaks")throw std::runtime_error("shaft-profile glow|streaks");o.sunStreaks=v=="streaks";}
     else if(a=="--shaft-strength") {
       auto v=value();std::size_t used=0;o.shaftStrength=std::stof(v,&used);
@@ -545,6 +548,7 @@ int main(int argc, char **argv) {
     integration.edges = 3;
     integration.stableShadow = true;
     gpu.setIntegration(integration);
+    gpu.setEdgeWidths(o.outlineWidth, o.highlightWidth);
     gpu.setShaftProfile(o.sunStreaks);
     if(std::filesystem::is_regular_file(o.assets/"sun_shafts.json")) {
       auto cfg=ws::parseJson(p3::readText(o.assets/"sun_shafts.json"));
@@ -565,7 +569,8 @@ int main(int argc, char **argv) {
       gpu.setEffects(effects);
     };
     integration.boundedAir=true;
-    gpu.setIntegration(integration);updateEffects();
+    gpu.setIntegration(integration);
+    gpu.setEdgeWidths(o.outlineWidth, o.highlightWidth);updateEffects();
     for(std::size_t i=0;i<world.models.size();++i) {
       bool ground=!world.models[i].materials.empty()&&world.models[i].materials[0].ground;
       gpu.setSurfacePolicy(i,{!ground,true,1,0,false});
@@ -588,6 +593,9 @@ int main(int argc, char **argv) {
         << (grass.ownerPalette ? "OWNER_R2_LIGHT_GREEN" : "EMACEART_SOURCE_ONLY")
         << "\ngrass_receive=" << grass.receiveShadows
         << "\ngrass_cast=0\nshadow_enabled=" << o.shadows
+        << "\ngrass_density=" << o.density
+        << "\noutline_width_native_px=" << o.outlineWidth
+        << "\nhighlight_width_native_px=" << o.highlightWidth
         << "\nshaft_profile=" << (o.sunStreaks?"streaks":"glow")
         << "\nshafts=" << o.shafts << "\nshaft_strength=" << o.shaftStrength << "\nhaze=" << o.haze << "\nquality=" << o.quality
         << "\nreceiver=" << (o.fragmentReceiver ? "fragment" : "root")

@@ -251,6 +251,7 @@ struct Gpu::Impl {
   Effects effects;
   Style style;
   Integration integration;
+  int outlineWidth = 2, highlightWidth = 2;
   GLuint edgePost = 0;
   int study = 0;
   PixelCameraMode cameraMode = PixelCameraMode::Off;
@@ -668,6 +669,12 @@ void Gpu::setSurfacePolicy(std::size_t model, const SurfacePolicy &v) {
 static Mat villageLightProjection(Vec sun) {
   Mat extent=Mat::identity();extent.v[0]=extent.v[5]=25.f/43.f;
   return extent*lightProjection(sun);
+}
+void Gpu::setEdgeWidths(int outlinePixels, int highlightPixels) {
+  if (outlinePixels < 1 || outlinePixels > 2 || highlightPixels < 1 || highlightPixels > 2)
+    throw std::runtime_error("edge widths must be 1 or 2 native pixels");
+  p->outlineWidth = outlinePixels;
+  p->highlightWidth = highlightPixels;
 }
 void Gpu::setIntegration(const Integration &v) {
   v.validate();
@@ -1300,6 +1307,8 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
   gl::UseProgram(postProgram);
   const auto &integration = p->integration;
   uniformInt(postProgram, "edgeMode", integration.edges);
+  uniformInt(postProgram, "outlineWidth", p->outlineWidth);
+  uniformInt(postProgram, "highlightWidth", p->highlightWidth);
   uniformInt(postProgram, "highlightMask", integration.highlightMask);
   uniformInt(postProgram, "edgeMask", integration.edgeMask);
   uniformInt(postProgram, "edgeShadowEnabled",
