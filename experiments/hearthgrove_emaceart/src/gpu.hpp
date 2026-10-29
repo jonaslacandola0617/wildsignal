@@ -3,6 +3,7 @@
 #include "core.hpp"
 #include "integration.hpp"
 #include "look.hpp"
+#include "style_profile.hpp"
 #include "mesh_clumps.hpp"
 #include "pixel_camera.hpp"
 #include "style.hpp"
@@ -44,6 +45,7 @@ struct Gpu {
                    const std::filesystem::path &);
   void hud(const std::vector<std::string> &, int, int);
   void setLook(const Look &);
+  void setProfile(const StyleProfile &);
   void setStyle(const Style &);
   void setStudy(int, PixelCameraMode, float referenceDepth);
   void saveDiagnostics(const std::filesystem::path &);

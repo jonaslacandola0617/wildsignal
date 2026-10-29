@@ -1,7 +1,7 @@
 name: Hearthgrove EmaceArt playable validation
 on:
   push:
-    branches: [feat/hearthgrove-emaceart-complete]
+    branches: [feat/hearthgrove-emaceart-complete, feat/hearthgrove-emaceart-style-terrain-r1]
     paths: ['experiments/hearthgrove_emaceart/**', '.github/workflows/hearthgrove_emaceart.yml']
   workflow_dispatch:
 permissions:

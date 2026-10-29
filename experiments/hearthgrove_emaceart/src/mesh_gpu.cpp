@@ -1,5 +1,6 @@
 #include "mesh_gpu.hpp"
 #include "atmosphere_shaders.hpp"
+#include "style_profile_glsl.hpp"
 #include <SDL3/SDL.h>
 #define GL_GLEXT_PROTOTYPES 1
 #include <SDL3/SDL_opengl.h>
@@ -54,17 +55,19 @@ uniform sampler2D pixelGround;
 uniform vec3 sunDirection,sunColor,ambientSky,ambientGround,eye,hazeColor;
 uniform float exposure,bandSoftness,bias,normalUpBias,ambientLift,hazeStart,hazeEnd,hazeStrength;
 uniform int mode,bands,smoothLight,shadowMode,diagnostic;
+// PROFILE
 // VISIBILITY
 layout(location=0)out vec4 color;layout(location=1)out vec4 normals;
 void main(){
  vec3 n=normalize(worldNormal),litNormal=normalize(mix(n,rootNormal,normalUpBias));
  vec3 sd=normalize(sunDirection);float sun=max(0.,dot(litNormal,sd));
- if(mode!=0&&bands!=0&&smoothLight==0){float s=max(.001,bandSoftness);sun=.12+.4*smoothstep(.20-s,.20+s,sun)+.48*smoothstep(.58-s,.58+s,sun);}
+ if(mode!=0&&bands!=0&&smoothLight==0){float s=max(.001,bandSoftness);sun=profileBand(sun,s);}
  vec3 albedo=texture(pixelGround,uv).rgb*colour.rgb;
+ albedo=profileColor(albedo,0);
  float visibility=shadowMode!=0?stableReceiver(worldPosition,vec3(0,1,0),bias*.000015):1.;
  vec3 ambient=mix(ambientGround,ambientSky,clamp(litNormal.y*.5+.5,0.,1.));
  vec3 light=ambient+sunColor*sun*visibility;
- vec3 lit=max(vec3(0),albedo*mix(light,vec3(1),ambientLift)*exposure);lit=lit/(1.+lit*.18);
+ vec3 lit=max(vec3(0),albedo*mix(light,vec3(1),profileActive!=0?min(ambientLift,.08):ambientLift)*exposure);lit=lit/(1.+lit*.18);
  vec3 display=pow(clamp(lit,0.,1.),vec3(1./2.2));
  float haze=smoothstep(hazeStart,hazeEnd,length(worldPosition-eye))*hazeStrength;
  display=mix(display,hazeColor,haze);
@@ -130,6 +133,7 @@ struct MeshRenderer::Impl {
   std::array<Vec, 6> ramp{};
   std::array<GLint, 12> families{};
   std::size_t bytes = 0, capacity = 0;
+  StyleProfile profile;bool toon=true;
   std::map<std::string_view, GLint> locations;
   ~Impl() {
     for (auto &p : parts) {
@@ -148,6 +152,7 @@ MeshRenderer::MeshRenderer(const MeshClumps &m) {
   p->parts.resize(m.models.size());
   p->capacity = m.all.size();
   std::string fragment(fs);
+  auto profileAt=fragment.find("// PROFILE");fragment.replace(profileAt,10,profileGLSL);
   auto at = fragment.find("// VISIBILITY");
   fragment.replace(at, 13, visibilityGLSL);
   p->shader = program(vs, fragment.c_str());
@@ -239,6 +244,7 @@ MeshRenderer::MeshRenderer(const MeshClumps &m) {
   mg::BindVertexArray(0);
 }
 MeshRenderer::~MeshRenderer() = default;
+void MeshRenderer::setProfile(const StyleProfile &v,bool toon){p->profile=v;p->toon=toon;}
 void MeshRenderer::setPixelSurface(unsigned ground, unsigned groups,
                                    const std::array<Vec, 6> &ramp) {
   p->pixelGround = ground;
@@ -273,6 +279,10 @@ MeshVisibility MeshRenderer::draw(MeshClumps &m, const Camera &camera,
   auto s = m.select(camera, Frustum(vp), height);
   if (s.visible) {
     mg::UseProgram(p->shader);
+    mg::Uniform1i(mg::GetUniformLocation(p->shader,"profileActive"),p->profile.active&&p->toon);
+    mg::Uniform1f(mg::GetUniformLocation(p->shader,"profileLow"),p->profile.lowTone);mg::Uniform1f(mg::GetUniformLocation(p->shader,"profileMid"),p->profile.midTone);
+    for(int f=0;f<6;f++){auto v=p->profile.grades[f];auto name="familyGrade["+std::to_string(f)+"]";mg::Uniform3f(mg::GetUniformLocation(p->shader,name.c_str()),v.x,v.y,v.z);}
+
     auto loc = [&](const char *n) { return p->locations.at(n); };
     auto matrix = [&](const char *n, const Mat &v) {
       mg::UniformMatrix4fv(loc(n), 1, GL_FALSE, v.data());

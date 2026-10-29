@@ -1,5 +1,6 @@
 #pragma once
 #include "look.hpp"
+#include "style_profile.hpp"
 #include "mesh_clumps.hpp"
 #include <memory>
 namespace p3 {
@@ -16,6 +17,7 @@ public:
                       bool soft, float bias, int mode, bool bands, bool smooth,
                       int height);
   std::size_t bytes() const;
+  void setProfile(const StyleProfile &,bool toon);
   void setPixelSurface(unsigned ground, unsigned groups,
                        const std::array<Vec, 6> &);
 };
