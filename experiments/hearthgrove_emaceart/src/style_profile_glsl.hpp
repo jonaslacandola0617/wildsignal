@@ -17,7 +17,7 @@ vec3 profileColor(vec3 linearColor,int family){
   if(terrain)family=0;
   if(family==1&&!green)return linearColor;
   if(family==0&&!green)return linearColor;
-  vec3 g=familyGrade[clamp(family,0,5)];h.x=fract(h.x+g.x);h.y=clamp(h.y*g.y,0.,.94);h.z=clamp(h.z*g.z,0.,1.);
+  vec3 g=familyGrade[clamp(family,0,5)];h.x=fract(h.x+g.x);h.y=clamp(h.y*g.y,0.,family==2||family==4?.9:.94);h.z=clamp(h.z*g.z,0.,family==2||family==4?.94:1.);
   return srgbDecode(hsvRGB(h));
  }
 

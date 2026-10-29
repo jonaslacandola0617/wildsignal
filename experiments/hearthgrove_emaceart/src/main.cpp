@@ -96,7 +96,7 @@ Options options(int argc, char **argv) {
                    "--grass-scale mixed (original uniform source scale)\n"
                    "--shadow on|off --grass-cast off --grass-receive on|off "
                    "--grass-receiver fragment\n"
-                   "--diagnostic lit|albedo|visibility --canopy-shadow "
+                   "--diagnostic lit|albedo|visibility|graded|families|self-shadow|highlights --canopy-shadow "
                    "solid\n"
                    "--shadow-cache-probe (isolated technical test only)\n"
                    "--shafts on|off --haze on|off --quality low|medium|high --shaft-strength 0..3\n";
@@ -740,6 +740,8 @@ int main(int argc, char **argv) {
             } else if(e.key.key==SDLK_F2){o.hudMode=(o.hudMode+1)%3;event(frame,"hud_toggle");
             } else if (e.key.key == SDLK_F3) {
               o.debugFollow = !o.debugFollow;
+            } else if(e.key.key==SDLK_J){o.edgeHighlights=!o.edgeHighlights;style.highlights=!o.original&&o.edgeHighlights;gpu.setStyle(style);game.message=o.edgeHighlights?"SUN EDGE HIGHLIGHTS ON / J TO COMPARE":"SUN EDGE HIGHLIGHTS OFF / J TO COMPARE";event(frame,o.edgeHighlights?"highlights_on":"highlights_off");
+            } else if(e.key.key==SDLK_K){o.edgeOutlines=!o.edgeOutlines;style.outlines=!o.original&&o.edgeOutlines;gpu.setStyle(style);game.message=o.edgeOutlines?"OUTLINES ON / K TO COMPARE":"OUTLINES OFF / K TO COMPARE";event(frame,o.edgeOutlines?"outlines_on":"outlines_off");
             } else if(e.key.key==SDLK_V) {
               o.shafts=!o.shafts;updateEffects();event(frame,"shafts_toggle");
             } else if(e.key.key==SDLK_O) {
