@@ -48,6 +48,7 @@ struct Gpu {
   void setStudy(int, PixelCameraMode, float referenceDepth);
   void saveDiagnostics(const std::filesystem::path &);
   void setShaftProfile(bool streaks);
+  void setSunBeams(const std::vector<std::array<float,4>>&);
   void setEffects(const Effects &);
   std::size_t effectBytes() const;
   ~Gpu();

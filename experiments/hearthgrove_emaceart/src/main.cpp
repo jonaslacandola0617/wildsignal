@@ -85,7 +85,7 @@ Options options(int argc, char **argv) {
              "--resolution 480|640|1280 "
              "--grass-density off|low|medium|high\n--buildings on|off "
              "--render-mode original|toon --pacing precise|legacy|off\n--cap "
-             "0|30|60 --benchmark --pose 0..8 --frames N --capture-every "
+             "0|30|60 --benchmark --pose 0..15 --frames N --capture-every "
              "N\n--save FILE --new-game --output DIR --allow-software --hidden "
              "--replay FILE --followers trail|legacy --grass-layout "
              "continuous|legacy\n--worldstyle source|pixel --debug-follow\n";
@@ -168,7 +168,7 @@ Options options(int argc, char **argv) {
       else
         throw std::runtime_error("coveragemeadow|geometry|combined");
     } else if (a == "--pose")
-      o.pose = integer(value(), 0, 8);
+      o.pose = integer(value(), 0, 15);
     else if (a == "--grass-family") {
       auto v = value();
       if (v != "auto" && v != "source")
@@ -546,6 +546,14 @@ int main(int argc, char **argv) {
     integration.stableShadow = true;
     gpu.setIntegration(integration);
     gpu.setShaftProfile(o.sunStreaks);
+    if(std::filesystem::is_regular_file(o.assets/"sun_shafts.json")) {
+      auto cfg=ws::parseJson(p3::readText(o.assets/"sun_shafts.json"));
+      if(cfg.at("revision").number()!=1)throw std::runtime_error("sun shaft config revision");
+      std::vector<std::array<float,4>> beams;
+      for(auto &e:cfg.at("beams").array()){auto v=vector3(e.at("position"));beams.push_back({v.x,v.y,v.z,float(e.at("radius").number())});}
+      gpu.setSunBeams(beams);
+      log<<"sun_beam_accents="<<beams.size()<<"\n";
+    }
     p3::Effects effects;
     auto updateEffects=[&] {
       effects.shadow=o.shadows?p3::Shadow::Cached:p3::Shadow::Off;

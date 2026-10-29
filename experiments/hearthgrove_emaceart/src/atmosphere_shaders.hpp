@@ -52,6 +52,7 @@ static constexpr const char *shaftsFS = R"GLSL(#version 330 core
 in vec2 uv;out vec4 color;
 uniform sampler2D sceneDepth;uniform mat4 inverseVP;uniform vec3 eye,sunDirection;
 uniform sampler2DShadow smoothShadow;uniform int smoothAtmosphere,boundedAir,sunStreaks;uniform vec2 airGrid;
+uniform int beamCount,occlusionReady;uniform vec4 beamCenters[8];
 uniform vec2 sunUV;uniform float sunOnScreen,strength;uniform int method,steps;
 // VISIBILITY
 float linearDepth(float z){return .2*350./(350.1-(z*2.-1.)*349.9);}
@@ -75,6 +76,7 @@ void main(){float raw=texture(sceneDepth,uv).r;
   }
  }
  float depth=linearDepth(raw);vec3 result=vec3(0);
+ if(sunStreaks!=0&&occlusionReady==0){color=vec4(0,0,0,min(depth,30.)/350.);return;}
  if(method==1){
   // Explicit screen-space alternative: samples visible sky occlusion only.
   // Zero on opaque geometry: cannot impersonate world-space in-front scattering.
@@ -101,13 +103,37 @@ void main(){float raw=texture(sceneDepth,uv).r;
      if(sunStreaks!=0){
        // Isolate actual lit channels adjacent to canopy/architecture shadows.
        // World-space sun-perpendicular taps: stable under camera motion.
-       vec3 side=normalize(cross(sunDirection,vec3(0,1,0)))*.8;
+       vec3 side=normalize(cross(sunDirection,abs(sunDirection.y)>.98?vec3(0,0,1):vec3(0,1,0)))*.8;
        float neighbor=.5*(airVisibility(p+side)+airVisibility(p-side));
        float channel=smoothstep(.08,.65,1.-neighbor);
        density=exp(-abs(p.y-3.5)*.20)*smoothstep(.05,.65,p.y)*(1.-smoothstep(24.,34.,length(p.xz)))*(1.-smoothstep(8.,12.,p.y));
        integral+=visibility*channel*density*exp(-t*.025)*ds*weight;
      }else integral+=visibility*density*exp(-t*.035)*ds*weight;
     }
+   }
+   if(sunStreaks!=0&&beamCount>0){
+    // Deliberate lighting accents at real sunlit canopy gaps. Analytic ray /
+    // cylinder intervals keep narrow shafts stable with only3shadow taps each.
+    // No light-card mesh, texture, screen overlay or material blur.
+    vec3 sd=normalize(sunDirection);vec3 rp=ray-sd*dot(ray,sd);float aa=dot(rp,rp);
+    float accents=0.;
+    for(int b=0;b<8;b++){if(b>=beamCount)break;
+      vec3 q=eye-beamCenters[b].xyz;q-=sd*dot(q,sd);float rr=beamCenters[b].w*beamCenters[b].w;
+      float t0=.2,t1=end;
+      if(aa<.00001){if(dot(q,q)>=rr)continue;}else{
+        float center=-dot(q,rp)/aa;float d2=dot(q+rp*center,q+rp*center);if(d2>=rr)continue;
+        float halfLength=sqrt(max(0.,(rr-d2)/aa));t0=max(.2,center-halfLength);t1=min(end,center+halfLength);
+      }
+      if(t1<=t0)continue;
+      for(int j=0;j<3;j++){
+        float offset=j==0?.112701665:j==1?.5:.887298335;float weight=j==1?.444444444:.277777778;
+        float t=mix(t0,t1,offset);vec3 p=eye+ray*t;vec3 v=p-beamCenters[b].xyz;v-=sd*dot(v,sd);
+        float profile=1.-smoothstep(rr*.08,rr,dot(v,v));
+        float density=smoothstep(.05,.7,p.y)*(1.-smoothstep(7.,11.,p.y))*smoothstep(.3,1.2,t);
+        accents+=airVisibility(p)*profile*density*exp(-t*.025)*(t1-t0)*weight;
+      }
+    }
+    integral=integral*.04+accents;
    }
    phase=sunStreaks!=0?.5+.5*pow(max(0.,dot(ray,normalize(sunDirection))),4.):.12+.88*pow(max(0.,dot(ray,normalize(sunDirection))),6.);
   }else{
@@ -122,7 +148,8 @@ void main(){float raw=texture(sceneDepth,uv).r;
    float locality=.08+.92*clamp((1.-neighbor)*2.,0.,1.);
    integral+=visibility*locality*density*exp(-t*.035)*ds;}
   }
-  result=vec3(1.,.78,.43)*integral*phase*(sunStreaks!=0?.55:boundedAir!=0?.12:.20)*strength;
+  result=vec3(1.,.78,.43)*integral*phase*(sunStreaks!=0?(beamCount>0?1.35:.55):boundedAir!=0?.12:.20)*strength;
+  if(sunStreaks!=0){float limit=beamCount>0?.85:.28;result=limit*(1.-exp(-max(result,vec3(0))/limit));}
  }
  color=vec4(result,(method==2?min(depth,30.):depth)/350.);}
 )GLSL";

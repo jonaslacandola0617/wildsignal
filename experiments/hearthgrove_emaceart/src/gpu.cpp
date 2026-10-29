@@ -752,6 +752,12 @@ void Gpu::saveDiagnostics(const std::filesystem::path &dir) {
   v << '\n';
 }
 void Gpu::setShaftProfile(bool streaks) { p->sunStreaks=streaks; }
+void Gpu::setSunBeams(const std::vector<std::array<float,4>>& beams) {
+  if(beams.size()>8)throw std::runtime_error("sun beam budget");
+  for(const auto &b:beams)if(!finite({b[0],b[1],b[2]})||std::abs(b[0])>48||std::abs(b[2])>48||b[1]<-3||b[1]>12||!std::isfinite(b[3])||b[3]<.15f||b[3]>1.2f)throw std::runtime_error("sun beam bounds");
+  gl::UseProgram(p->shaftProgram);gl::Uniform1i(gl::GetUniformLocation(p->shaftProgram,"beamCount"),int(beams.size()));
+  for(std::size_t i=0;i<beams.size();++i){auto &b=beams[i];auto name="beamCenters["+std::to_string(i)+"]";gl::Uniform4fv(gl::GetUniformLocation(p->shaftProgram,name.c_str()),1,b.data());}
+}
 void Gpu::setEffects(const Effects &e) {
   e.validate();
   if (p->effects.shadowSize != e.shadowSize) {
@@ -1229,6 +1235,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
                smoothAir || p->integration.boundedAir);
     uniformInt(p->shaftProgram, "boundedAir", p->integration.boundedAir);
     uniformInt(p->shaftProgram, "sunStreaks", p->sunStreaks);
+    uniformInt(p->shaftProgram, "occlusionReady", p->effects.shadow!=Shadow::Off&&p->shadowDepth!=0);
     gl::Uniform2f(gl::GetUniformLocation(p->shaftProgram, "airGrid"), float(sw),
                   float(sh));
     uniformInt(p->shaftProgram, "smoothShadow", 5);
