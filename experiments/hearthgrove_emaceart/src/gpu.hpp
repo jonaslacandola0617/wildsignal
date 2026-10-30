@@ -7,6 +7,7 @@
 #include "mesh_clumps.hpp"
 #include "pixel_camera.hpp"
 #include "style.hpp"
+#include "tree_study.hpp"
 #include <memory>
 struct SDL_Window;
 namespace p3 {
@@ -14,6 +15,7 @@ struct GpuStats {
   MeshVisibility grass;
   double cpuSubmitMs = 0, gpuMs = -1;
   std::size_t draws = 0, shadowDraws = 0, shadowTriangles = 0;
+  std::size_t geometryTriangles = 0, treeLeafCards = 0;
   double shadowCpuMs = 0, shaftCpuMs = 0;
   std::size_t treeCasterDraws = 0, rockCasterDraws = 0, buildingCasterDraws = 0;
 };
@@ -36,7 +38,8 @@ struct Gpu {
   std::size_t textureBytes = 0, textureMipBytes = 0, bufferBytes = 0,
               texturesLoaded = 0, styledTextureBytes = 0, materialsUnique = 0,
               materialsOriginal = 0, cpuGeometryReleased = 0;
-  Gpu(World &, bool allowSoftware);
+  Gpu(World &, bool allowSoftware, const TreeStudy *treeStudy = nullptr);
+  void setTreeTreatment(int);
   void setIntegration(const Integration &);
   void setSurfacePolicy(std::size_t model, const SurfacePolicy &);
   void setGrass(MeshClumps *, const std::filesystem::path &,
