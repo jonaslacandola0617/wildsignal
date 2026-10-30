@@ -176,7 +176,7 @@ if(ground!=0&&textured!=0&&studyKind!=4){
 }
 vec3 sourceHSV=rgbHSV(srgbEncode(clamp(a.rgb,0.,1.)));
 bool greenTerrain=ground!=0&&sourceHSV.x>=.18&&sourceHSV.x<=.46&&sourceHSV.y>=.12;
-if(treeCards!=0&&plainLeaves==0){float value=dot(a.rgb,vec3(.2126,.7152,.0722))/treeLeafMean;a.rgb=treeCanopyColor*clamp(value,.83,1.13);}
+if(treeCards!=0&&plainLeaves==0&&treeTreatment!=4){float value=dot(a.rgb,vec3(.2126,.7152,.0722))/treeLeafMean;a.rgb=treeCanopyColor*clamp(value,.83,1.13);}
 vec3 originalAlbedo=a.rgb;
 a.rgb=profileColor(a.rgb,profileFamily);
 if(profileActive!=0&&greenTerrain&&meadowPatchOn!=0)a.rgb=meadowSurface(originalAlbedo,worldPosition.xz);
@@ -190,7 +190,7 @@ else if(profileActive!=0&&profileGreenOnly!=0&&greenTerrain&&groundGreenVariatio
  h.z=clamp(h.z*(1.+groundGreenVariation*(-.10+.28*zone)),0.,1.);
  a.rgb=srgbDecode(hsvRGB(h));
 }
-if(diagnostic==7){color=vec4(srgbEncode(clamp(a.rgb,0.,1.)),1);normals=vec4(n*.5+.5,treeCards!=0?.20:1.);return;}
+if(diagnostic==7){color=vec4(srgbEncode(clamp(a.rgb,0.,1.)),1);normals=vec4(n*.5+.5,(treeCards!=0||(treeLeaf&&treeTreatment==4))?.20:1.);return;}
 float sun=max(0.,dot(shadeNormal,normalize(sunDirection)));
 if(mode!=0&&bands!=0&&smoothLighting==0){float soft=max(.001,bandSoftness);sun=profileBand(sun,soft);}
 if(smoothLighting!=0&&leafy!=0)sun=max(0.,(dot(shadeNormal,normalize(sunDirection))+.2)/1.2);
