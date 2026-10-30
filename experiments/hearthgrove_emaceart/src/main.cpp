@@ -60,7 +60,7 @@ struct Options {
        fresh = false, original = false;
   std::string pacing = "precise";
   bool shafts = true, haze = true;
-  bool grassLod=true,meadowPatches=true;
+  bool grassLod=true,meadowPatches=true,boundedAir=true;
   std::string quality = "medium";
   float shaftStrength = 1.5f;
   bool shadows = true, forceLegacyGrass = false, requireAuthored = false,
@@ -87,7 +87,7 @@ Options options(int argc, char **argv) {
       std::cout
           << "HEARTHGROVE EMACEART complete playable village\n--assets DIR "
              "--resolution 480|640|1280 "
-             "--grass-density off|low|medium|high\n--grass-lod on|off --meadow-patches on|off\n--buildings on|off "
+             "--grass-density off|low|medium|high\n--grass-lod on|off --meadow-patches on|off --air-proof bounded|legacy\n--buildings on|off "
              "--render-mode original|toon --pacing precise|legacy|off\n--cap "
              "0|30|60 --benchmark --pose 0..15 --frames N --capture-every "
              "N\n--save FILE --new-game --output DIR --allow-software --hidden "
@@ -106,6 +106,7 @@ Options options(int argc, char **argv) {
       o.assets = value();
     else if(a=="--shadow-policy"){auto v=value();if(v!="clean"&&v!="legacy")throw std::runtime_error("shadow-policy clean|legacy");o.cleanShadow=v=="clean";}
     else if(a=="--highlights"||a=="--outlines"||a=="--vegetation-edges"){auto v=value();if(v!="on"&&v!="off")throw std::runtime_error("edges on|off");(a=="--highlights"?o.edgeHighlights:a=="--outlines"?o.edgeOutlines:o.vegetationEdges)=v=="on";}
+    else if(a=="--air-proof"){auto v=value();if(v!="legacy"&&v!="bounded")throw std::runtime_error("air-proof legacy|bounded");o.boundedAir=v=="bounded";}
     else if(a=="--grass-lod"||a=="--meadow-patches"){auto v=value();if(v!="on"&&v!="off")throw std::runtime_error("grass controls on|off");(a=="--grass-lod"?o.grassLod:o.meadowPatches)=v=="on";}
     else if(a=="--contacts"){auto v=value();if(v!="on"&&v!="off")throw std::runtime_error("contacts on|off");o.contacts=v=="on";}
     else if(a=="--style-preset"){o.preset=value();if(o.preset!="baseline"&&o.preset!="balanced"&&o.preset!="rich")throw std::runtime_error("style-preset baseline|balanced|rich");}
@@ -574,7 +575,7 @@ int main(int argc, char **argv) {
     gpu.setStudy(1,p3::PixelCameraMode::Off,10);
     p3::Integration integration;
     integration.edges = 3;integration.edgeMask=o.diagnostic==10;
-    integration.stableShadow = true;
+    integration.stableShadow = true;integration.boundedAir=o.boundedAir;
     gpu.setIntegration(integration);
     p3::Effects effects;
     auto updateEffects=[&] {
@@ -629,7 +630,7 @@ int main(int argc, char **argv) {
               "second_state,player_yaw,grass_total,grass_culled,grass_shadow_"
               "draws,grass_shadow_triangles,tree_caster_draws,rock_caster_"
               "draws,building_caster_draws,shadow_cache_invalidations,shadow_"
-              "cpu_ms,internal_width,internal_height,grass_density,grass_lod,grass_lod0,grass_lod1,grass_lod2,meadow_patches,shadow_enabled,shafts_enabled,haze_enabled,source_mode,quality,shadow_size,shaft_steps,shaft_divisor\n";
+              "cpu_ms,internal_width,internal_height,grass_density,grass_lod,grass_lod0,grass_lod1,grass_lod2,meadow_patches,shadow_enabled,shafts_enabled,haze_enabled,source_mode,quality,shadow_size,shaft_steps,shaft_divisor,air_proof,atmosphere_width,atmosphere_height\n";
     timers << "frame,gpu_elapsed_ms\n";
     events << "frame,event,phase,hp,enemy_hp,recruited,x,z\n";
     auto event = [&](int f, const std::string &name) {
@@ -1049,6 +1050,8 @@ int main(int argc, char **argv) {
              << ',' << stats.grass.lodCount[0] << ',' << stats.grass.lodCount[1] << ',' << stats.grass.lodCount[2]
              << ',' << grass.patches.enabled << ',' << o.shadows << ',' << o.shafts << ',' << o.haze << ',' << o.original
              << ',' << o.quality << ',' << effects.shadowSize << ',' << effects.steps << ',' << effects.divisor
+             << ',' << (o.boundedAir?"bounded":"legacy") << ',' << (o.shafts?(o.boundedAir?o.w/effects.divisor:style.atmosphereWidth):0)
+             << ',' << (o.shafts?(o.boundedAir?(o.w*9/16)/effects.divisor:style.atmosphereWidth*9/16):0)
              << '\n';
       lastSwap = swapped;
       if (frame % 120 == 0) {
