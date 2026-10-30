@@ -9,6 +9,7 @@
 #include "style_profile_glsl.hpp"
 #include "meadow_patch_glsl.hpp"
 #include "sunbeam_glsl.hpp"
+#include "tree_study_glsl.hpp"
 #include <SDL3/SDL.h>
 #define GL_GLEXT_PROTOTYPES 1
 #include <SDL3/SDL_opengl.h>
@@ -30,7 +31,7 @@ namespace gl {
   F(CreateShader) F(ShaderSource) F(CompileShader) F(GetShaderiv) F(GetShaderInfoLog) F(DeleteShader) F(CreateProgram) F(AttachShader) F(LinkProgram) F(GetProgramiv) F(GetProgramInfoLog) F(DeleteProgram) F(UseProgram) \
   F(GetUniformLocation) F(UniformMatrix4fv) F(Uniform4fv) F(Uniform1i) F(Uniform1f) F(Uniform2f) F(Uniform3f) \
   F(GenFramebuffers) F(DeleteFramebuffers) F(BindFramebuffer) F(FramebufferTexture2D) F(CheckFramebufferStatus) F(DrawBuffers) F(ReadBuffer) F(ReadPixels) \
-  F(Scissor) F(Viewport) F(ClearColor) F(Clear) F(ClearBufferfv) F(ClearBufferuiv) F(Enable) F(Disable) F(DepthMask) F(DepthFunc) F(BlendFunc) F(CullFace) F(DrawElements) F(DrawArrays) F(BlitFramebuffer) \
+  F(VertexAttribDivisor) F(DrawElementsInstanced) F(Scissor) F(Viewport) F(ClearColor) F(Clear) F(ClearBufferfv) F(ClearBufferuiv) F(Enable) F(Disable) F(DepthMask) F(DepthFunc) F(BlendFunc) F(CullFace) F(DrawElements) F(DrawArrays) F(BlitFramebuffer) \
   F(GenSamplers) F(DeleteSamplers) F(BindSampler) F(SamplerParameteri) F(PolygonMode) F(GetQueryiv) F(GenQueries) F(DeleteQueries) F(BeginQuery) F(EndQuery) F(GetQueryObjectiv) F(GetQueryObjectui64v) F(Finish)
 // clang-format on
 #define DECL(n) static decltype(&::gl##n) n;
@@ -135,16 +136,24 @@ uniform int pixelMaterial;uniform int artStyle,diagnostic,sampling,vertexTint,ki
 uniform int receiveShadows,patchStudy;uniform float surfaceSunTint,surfaceShadowFloor;uniform sampler2D patchIDs;
 uniform int shadowMode;uniform sampler2D groundShadow;
 // PROFILE
+// TREE
 // MEADOW
 // VISIBILITY
 float hash2(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 float field(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash2(i),hash2(i+vec2(1,0)),f.x),mix(hash2(i+vec2(0,1)),hash2(i+vec2(1,1)),f.x),f.y);}
 layout(location=0) out vec4 color;layout(location=1) out vec4 normals;layout(location=2)out uint sceneOwner;uniform int drawOwnerID;
 void main(){sceneOwner=uint(drawOwnerID);vec4 a=factor*(vertexTint!=0?tint:vec4(1));if(textured!=0)a*=(sampling==1?textureLod(albedo,uv,0.):texture(albedo,uv));if(alphaMode==1&&a.a<cutoff)discard;
-vec3 n=normalize(worldNormal);if(!gl_FrontFacing)n=-n;
+// Preserve the licensed alpha silhouette; plain mode never uses texture RGB,
+// vertex color or per-card tint for its material base.
+if(treeCards!=0&&plainLeaves!=0)a.rgb=treeCanopyColor;
+vec3 n=normalize(worldNormal);if(!gl_FrontFacing&&treeCards==0)n=-n;
+vec3 treeSource=rgbHSV(srgbEncode(clamp(a.rgb,0.,1.)));
+bool treeLeaf=treeTreatment>0&&(treeCards!=0||(treeSource.x>=.18&&treeSource.x<=.46&&treeSource.y>=.12));
+if(treeLeaf&&(treeTreatment==1||treeTreatment==4))n=canopyNormal(treeLocalPosition);
+if(treeLeaf&&treeTreatment==4)a.rgb=treeCanopyColor;
 // Derivatives give actual planar triangle lighting in BASE without rewriting
-// the original mesh normals. TOON/normal outlines retain authored normals.
-vec3 shadeNormal=n; // A/B share the original supplied normals; no flat diagnostic bias.
+// the original mesh normals. The optional tree shader supplies volume normals.
+vec3 shadeNormal=n; // Original mode keeps the supplied normals unchanged.
 if(dot(shadeNormal,n)<0)shadeNormal=-shadeNormal;
 if(coverage>0){float value=ground!=0&&designated(worldPosition.xz)&&(coverage!=4||length(worldPosition.xz-eye.xz)<=5.)?((coverage==1||coverage==4)?1.:coverage==3?step(.5,texture(leafCoverage,uv).r):0.):0.;color=vec4(vec3(value),1);normals=vec4(n*.5+.5,1);return;}
 if(diagnostic==1){color=vec4(pow(clamp(a.rgb,0.,1.),vec3(1./2.2)),1);normals=vec4(n*.5+.5,1);return;}
@@ -167,6 +176,7 @@ if(ground!=0&&textured!=0&&studyKind!=4){
 }
 vec3 sourceHSV=rgbHSV(srgbEncode(clamp(a.rgb,0.,1.)));
 bool greenTerrain=ground!=0&&sourceHSV.x>=.18&&sourceHSV.x<=.46&&sourceHSV.y>=.12;
+if(treeCards!=0&&plainLeaves==0&&treeTreatment!=4){float value=dot(a.rgb,vec3(.2126,.7152,.0722))/treeLeafMean;a.rgb=treeCanopyColor*clamp(value,.83,1.13);}
 vec3 originalAlbedo=a.rgb;
 a.rgb=profileColor(a.rgb,profileFamily);
 if(profileActive!=0&&greenTerrain&&meadowPatchOn!=0)a.rgb=meadowSurface(originalAlbedo,worldPosition.xz);
@@ -180,7 +190,7 @@ else if(profileActive!=0&&profileGreenOnly!=0&&greenTerrain&&groundGreenVariatio
  h.z=clamp(h.z*(1.+groundGreenVariation*(-.10+.28*zone)),0.,1.);
  a.rgb=srgbDecode(hsvRGB(h));
 }
-if(diagnostic==7){color=vec4(srgbEncode(clamp(a.rgb,0.,1.)),1);normals=vec4(n*.5+.5,1);return;}
+if(diagnostic==7){color=vec4(srgbEncode(clamp(a.rgb,0.,1.)),1);normals=vec4(n*.5+.5,(treeCards!=0||(treeLeaf&&treeTreatment==4))?.20:1.);return;}
 float sun=max(0.,dot(shadeNormal,normalize(sunDirection)));
 if(mode!=0&&bands!=0&&smoothLighting==0){float soft=max(.001,bandSoftness);sun=profileBand(sun,soft);}
 if(smoothLighting!=0&&leafy!=0)sun=max(0.,(dot(shadeNormal,normalize(sunDirection))+.2)/1.2);
@@ -204,6 +214,27 @@ if(ground!=0&&contactStrength>0.){
  if(wordlineContacts!=0)light=max(vec3(0),light-ambient*occlusion*.45*mix(.35,1.,visibility));
  else light=mix(light,ambient*vec3(.65,.8,1.),occlusion);
 }
+if(treeLeaf){
+ // Shade the foliage volume coherently, not each card's physical orientation.
+ float d=dot(shadeNormal,normalize(sunDirection));
+ if(treeTreatment==1){
+  // Existing licensed leaf silhouettes break up the toon boundaries in
+  // object space. Original triangles and silhouette remain unchanged.
+  vec2 q=treeLocalPosition.xy*.95+treeLocalPosition.z*vec2(.21,.37);
+  float leaf=texture(treeLeafDetail,fract(q)).a;
+  d+=(leaf-.5)*.23;
+  float value=dot(a.rgb,vec3(.2126,.7152,.0722))/max(.01,dot(profileColor(treeCanopyColor,profileFamily),vec3(.2126,.7152,.0722)));
+  a.rgb=profileColor(treeCanopyColor,profileFamily)*clamp(value,.93,1.07);
+ }
+ float tone=.26+.36*smoothstep(.08,.15,d)+.38*smoothstep(.58,.66,d);
+ vec3 fill=mix(ambientGround,ambientSky,clamp(shadeNormal.y*.5+.5,0.,1.));
+ if((treeCards!=0&&plainLeaves!=0)||treeTreatment==4){
+  // Three deliberate form tones, with one shared ambient fill. Gradients in
+  // the source image cannot become painted gradients across individual leaves.
+  tone=d<.12?.26:d<.62?.62:1.;fill=mix(ambientGround,ambientSky,.7);
+ }
+ light=fill+direct*tone*mix(.22,1.,visibility);
+}
 vec3 lit=max(vec3(0),a.rgb*light*exposure+emission);
 lit=lit/(1.+lit*.18);
 vec3 display=pow(clamp(lit,0.,1.),vec3(1./2.2));
@@ -215,6 +246,7 @@ color=vec4(mix(display,hazeColor,haze),alphaMode==2?a.a:1.);
 float category=ground!=0?.05:foliage!=0?.15:architecture!=0?.30+float(kind)*.09:.85;
 if(studyMode>0)category=studyKind==1?.4:studyKind==2?.15:studyKind==4?.05:.85;
 if(profileActive!=0&&profileFamily==4)category=.27;
+if(treeCards!=0||(treeLeaf&&treeTreatment==4))category=.20;
 normals=vec4(n*.5+.5,artStyle==0?(foliage!=0?.5:1.):category);}
 
 )GLSL";
@@ -256,6 +288,8 @@ struct Gpu::Impl {
     GLsizei count = 0;
     std::size_t material = 0;
     std::string group;
+    bool borrowedVbo=false;
+    GLsizei instances=0;
   };
   struct Draw {
     std::size_t instance, part;
@@ -267,6 +301,10 @@ struct Gpu::Impl {
     int frame = -1;
   };
   std::vector<std::vector<Part>> models;
+  std::unique_ptr<TreeStudy> tree;
+  std::vector<Part> treeParts, rimParts;
+  GLuint treeInstanceBuffer=0, rimInstanceBuffer=0;
+  int treeMode=0;bool plainLeaves=true;
   std::map<std::filesystem::path, GLuint> textures;
   std::vector<Draw> blends;
   std::vector<Material> materials;
@@ -320,6 +358,9 @@ struct Gpu::Impl {
         gl::DeleteBuffers(1, &p.vbo);
         gl::DeleteBuffers(1, &p.ebo);
       }
+    for(auto &part:treeParts){gl::DeleteVertexArrays(1,&part.vao);if(!part.borrowedVbo)gl::DeleteBuffers(1,&part.vbo);gl::DeleteBuffers(1,&part.ebo);}
+    for(auto &part:rimParts){gl::DeleteVertexArrays(1,&part.vao);gl::DeleteBuffers(1,&part.vbo);gl::DeleteBuffers(1,&part.ebo);}
+    gl::DeleteBuffers(1,&treeInstanceBuffer);gl::DeleteBuffers(1,&rimInstanceBuffer);
     for (auto &[p, id] : textures)
       gl::DeleteTextures(1, &id);
     gl::DeleteSamplers(1, &linearSampler);
@@ -393,7 +434,7 @@ struct Gpu::Impl {
     check("targets");
   }
 };
-Gpu::Gpu(World &world, bool allowSoftware) {
+Gpu::Gpu(World &world, bool allowSoftware, const TreeStudy *treeStudy) {
   styleMaterialsReady = world.styleMaterialsReady;
   gl::load();
   auto string = [](GLenum x) {
@@ -435,13 +476,20 @@ Gpu::Gpu(World &world, bool allowSoftware) {
   };
   const bool hasSkins = std::any_of(world.models.begin(), world.models.end(),
                                     [](const auto &m) { return bool(m.rig); });
+  auto vertexWithTree=[](const char *src,bool surface){
+    std::string text(src);auto at=text.find("void main");text.insert(at,std::string(treeVertexGLSL)+(surface?"out vec3 treeLocalPosition;\n":""));
+    if(surface)text.insert(text.rfind('}'),"treeLocalPosition=position;if(treeCards!=0){vec4 leaf=leafPosition(position,model);worldPosition=leaf.xyz;worldNormal=mat3(model)*leafShadeNormal.xyz;treeLocalPosition=leafCenterHeight.xyz;uv=treeBillboard==2?mix(treeLeafUV.xy,treeLeafUV.zw,texcoord):texcoord;tint=vec4(1);gl_Position=viewProjection*leaf;}");
+    else text.insert(text.rfind('}'),"if(treeCards!=0)gl_Position=lightVP*leafPosition(position,model);");
+    return text;
+  };
+  auto visibleVertex=vertexWithTree(hasSkins?meshVS:staticMeshVS,true);
   p->mesh =
-      program(hasSkins ? meshVS : staticMeshVS, ([&]{auto text=visibility(meshFS);auto at=text.find("// PROFILE");text.replace(at,10,profileGLSL);at=text.find("// MEADOW");text.replace(at,9,std::string(sunbeamGLSL)+meadowPatchGLSL);return text;}()).c_str());
+      program(visibleVertex.c_str(), ([&]{auto text=visibility(meshFS);auto at=text.find("// TREE");text.replace(at,7,treeSurfaceGLSL);at=text.find("// PROFILE");text.replace(at,10,profileGLSL);at=text.find("// MEADOW");text.replace(at,9,std::string(sunbeamGLSL)+meadowPatchGLSL);return text;}()).c_str());
   gl::GenSamplers(1, &p->linearSampler);
   gl::SamplerParameteri(p->linearSampler, GL_TEXTURE_MIN_FILTER,
                         GL_LINEAR_MIPMAP_LINEAR);
   gl::SamplerParameteri(p->linearSampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  std::string casterVS(hasSkins ? shadowVS : staticShadowVS);
+  std::string casterVS=vertexWithTree(hasSkins ? shadowVS : staticShadowVS,false);
   casterVS.insert(casterVS.find("void main"), "out vec2 canopyUV;\n");
   casterVS.insert(casterVS.rfind('}'),
                   "canopyUV=gl_Position.xy/gl_Position.w*.5+.5;");
@@ -587,6 +635,41 @@ Gpu::Gpu(World &world, bool allowSoftware) {
           5, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex),
           reinterpret_cast<void *>(offsetof(Vertex, weights)));
     }
+  }
+  if(treeStudy){
+    p->tree=std::make_unique<TreeStudy>(*treeStudy);
+    auto texture=treeStudy->texture;auto image=loadImage(texture);
+    if(image.w>2048||image.h>2048||textureBytes+image.rgba.size()>256*1024*1024)throw std::runtime_error("tree leaf texture budget");
+    if(p->textures.count(texture))throw std::runtime_error("tree study requires separate licensed leaf texture");
+    GLuint id=0;gl::GenTextures(1,&id);gl::BindTexture(GL_TEXTURE_2D,id);
+    gl::TexImage2D(GL_TEXTURE_2D,0,GL_SRGB8_ALPHA8,image.w,image.h,0,GL_RGBA,GL_UNSIGNED_BYTE,image.rgba.data());
+    gl::TexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST_MIPMAP_NEAREST);gl::TexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
+    gl::TexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);gl::TexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);gl::GenerateMipmap(GL_TEXTURE_2D);
+    p->textures.emplace(texture,id);textureBytes+=image.rgba.size();texturesLoaded++;
+    for(int w=image.w,h=image.h;;w=std::max(1,w/2),h=std::max(1,h/2)){textureMipBytes+=std::size_t(w)*h*4;if(w==1&&h==1)break;}
+    auto attributes=[](){
+      for(int a=0;a<6;a++){int sizes[]={3,3,2,4,4,4};std::size_t offsets[]={offsetof(Vertex,p),offsetof(Vertex,n),offsetof(Vertex,u),offsetof(Vertex,color),offsetof(Vertex,joints),offsetof(Vertex,weights)};gl::EnableVertexAttribArray(a);gl::VertexAttribPointer(a,sizes[a],GL_FLOAT,GL_FALSE,sizeof(Vertex),reinterpret_cast<void*>(offsets[a]));}
+    };
+    for(std::size_t i=0;i<treeStudy->trunk.size();i++){
+      const auto &indices=treeStudy->trunk[i];if(indices.empty())continue;
+      Impl::Part part=p->models[treeStudy->model][i];part.vao=part.ebo=0;part.borrowedVbo=true;part.count=GLsizei(indices.size());
+      gl::GenVertexArrays(1,&part.vao);gl::BindVertexArray(part.vao);gl::BindBuffer(GL_ARRAY_BUFFER,part.vbo);attributes();
+      gl::GenBuffers(1,&part.ebo);gl::BindBuffer(GL_ELEMENT_ARRAY_BUFFER,part.ebo);gl::BufferData(GL_ELEMENT_ARRAY_BUFFER,GLsizeiptr(indices.size()*4),indices.data(),GL_STATIC_DRAW);bufferBytes+=indices.size()*4;p->treeParts.push_back(part);
+    }
+    Material leaf;leaf.name="EXPERIMENT_LICENSED_LEAF_CUTOUT";leaf.texture=texture;leaf.doubleSided=true;leaf.foliage=leaf.leafy=true;leaf.studyKind=2;leaf.alpha=Alpha::Mask;leaf.cutoff=.35f;leaf.wrapS=leaf.wrapT=GL_CLAMP_TO_EDGE;
+    const auto leafMaterial=p->materials.size();p->materials.push_back(leaf);
+    auto uploadCards=[&](const std::vector<TreeCard> &cards,GLuint &instanceBuffer){
+    Impl::Part part;part.material=leafMaterial;part.instances=GLsizei(cards.size());part.count=6;
+    std::array<Vertex,4> quad{};for(int i=0;i<4;i++){quad[i].p={i&1?.5f:-.5f,i&2?.5f:-.5f,0};quad[i].n={0,0,1};quad[i].u=i&1?1.f:0.f;quad[i].v=i&2?0.f:1.f;}
+    std::array<std::uint32_t,6> indices{0,1,2,2,1,3};
+    gl::GenVertexArrays(1,&part.vao);gl::BindVertexArray(part.vao);gl::GenBuffers(1,&part.vbo);gl::BindBuffer(GL_ARRAY_BUFFER,part.vbo);gl::BufferData(GL_ARRAY_BUFFER,sizeof(quad),quad.data(),GL_STATIC_DRAW);attributes();
+    gl::GenBuffers(1,&part.ebo);gl::BindBuffer(GL_ELEMENT_ARRAY_BUFFER,part.ebo);gl::BufferData(GL_ELEMENT_ARRAY_BUFFER,sizeof(indices),indices.data(),GL_STATIC_DRAW);
+    gl::GenBuffers(1,&instanceBuffer);gl::BindBuffer(GL_ARRAY_BUFFER,instanceBuffer);gl::BufferData(GL_ARRAY_BUFFER,GLsizeiptr(cards.size()*sizeof(TreeCard)),cards.data(),GL_STATIC_DRAW);
+    for(int i=0;i<4;i++){gl::EnableVertexAttribArray(6+i);gl::VertexAttribPointer(6+i,4,GL_FLOAT,GL_FALSE,sizeof(TreeCard),reinterpret_cast<void*>(std::size_t(i)*sizeof(std::array<float,4>)));gl::VertexAttribDivisor(6+i,1);}
+    bufferBytes+=sizeof(quad)+sizeof(indices)+cards.size()*sizeof(TreeCard);return part;
+    };
+    p->treeParts.push_back(uploadCards(treeStudy->cards,p->treeInstanceBuffer));
+    if(!treeStudy->rimCards.empty())p->rimParts.push_back(uploadCards(treeStudy->rimCards,p->rimInstanceBuffer));
   }
   GLint counterBits = 0;
   gl::GetQueryiv(GL_TIME_ELAPSED, GL_QUERY_COUNTER_BITS, &counterBits);
@@ -741,6 +824,13 @@ void Gpu::setDiagnosticView(int v){if(v<0||v>11||v==8)throw std::runtime_error("
 void Gpu::setSourceView(bool v){p->sourceView=v;}
 void Gpu::setShadowClean(bool v){p->shadowClean=v;}
 void Gpu::setTerrainRelief(float v){if(!std::isfinite(v)||v<.75f||v>1)throw std::runtime_error("terrain instance relief range");p->terrainRelief=v;}
+void Gpu::setPlainLeaves(bool value){p->plainLeaves=value;}
+void Gpu::setTreeTreatment(int mode){
+ if(mode<0||mode>4||(!p->tree&&mode!=0))throw std::runtime_error("tree treatment requires verified private study");
+ if(mode==4&&!p->tree->attached)throw std::runtime_error("hybrid requires verified branch-rooted leaf attachment data");
+ if((p->treeMode==2||p->treeMode==3)!=(mode==2||mode==3)){p->shadowValid=p->groundValid=false;shadowCacheInvalidations++;}
+ p->treeMode=mode;
+}
 void Gpu::setProfile(const StyleProfile &v) { p->profile=v; }
 void Gpu::setLook(const Look &l) {
   if (dot(p->look.sunDirection - l.sunDirection,
@@ -994,7 +1084,10 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
           continue;
         uniformInt(p->shadowProgram,"shadowCasterID",int(&instance-world.instances.data())+1);
         uniformMatrix(p->shadowProgram, "model", instance.matrix);
-        for (auto &part : p->models[instance.model]) {
+        const bool targetTree=p->tree&&std::size_t(&instance-world.instances.data())==p->tree->target;
+        auto &shadowParts=targetTree&&(p->treeMode==2||p->treeMode==3)?p->treeParts:p->models[instance.model];
+        for (auto &part : shadowParts) {
+          uniformInt(p->shadowProgram,"treeCards",part.instances>0);uniformInt(p->shadowProgram,"treeBillboard",0);
           auto &mat = p->materials[part.material];
           if (p->integration.stableShadow && p->style.casters == 3 &&
               part.group.find("roof") == part.group.npos)
@@ -1021,7 +1114,8 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
             gl::TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, mat.wrapT);
           }
           gl::BindVertexArray(part.vao);
-          gl::DrawElements(GL_TRIANGLES, part.count, GL_UNSIGNED_INT, nullptr);
+          if(part.instances>0)gl::DrawElementsInstanced(GL_TRIANGLES,part.count,GL_UNSIGNED_INT,nullptr,part.instances);
+          else gl::DrawElements(GL_TRIANGLES, part.count, GL_UNSIGNED_INT, nullptr);
           stats.draws++;
           stats.shadowDraws++;
           const auto &id = world.models[instance.model].id;
@@ -1035,7 +1129,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
               id.starts_with("Door") || id.starts_with("Corner_") ||
               id == "Prop_Chimney")
             stats.buildingCasterDraws++;
-          stats.shadowTriangles += std::size_t(part.count) / 3;
+          stats.shadowTriangles += std::size_t(part.count) / 3*std::size_t(std::max(1,part.instances));
         }
       }
       p->shadowValid = true;
@@ -1181,11 +1275,16 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
   gl::ActiveTexture(GL_TEXTURE0);
   p->blends.clear();
   std::size_t currentMaterial = std::numeric_limits<std::size_t>::max();
-  auto draw = [&](std::size_t index, std::size_t partIndex) {
+  auto draw = [&](std::size_t index, const Impl::Part &part) {
     auto &i = world.instances[index];
-    auto &part = p->models[i.model][partIndex];
     auto &mat = p->materials[part.material];
     const auto &model=world.models[i.model];
+    bool targetTree=p->tree&&index==p->tree->target;
+    uniformInt(p->mesh,"plainLeaves",p->plainLeaves);
+    uniformInt(p->mesh,"treeTreatment",targetTree&&!p->sourceView?p->treeMode:0);uniformInt(p->mesh,"treeCards",part.instances>0);uniformInt(p->mesh,"treeBillboard",part.instances>0?(p->treeMode==4?2:p->treeMode==3?1:0):0);
+    if(targetTree){gl::Uniform4fv(gl::GetUniformLocation(p->mesh,"treeLeafUV"),1,p->tree->leafUV.data());gl::Uniform2f(gl::GetUniformLocation(p->mesh,"treeLeafBase"),p->tree->leafBase[0],p->tree->leafBase[1]);gl::Uniform3f(gl::GetUniformLocation(p->mesh,"treeCanopyColor"),p->tree->canopyColor.x,p->tree->canopyColor.y,p->tree->canopyColor.z);uniformFloat(p->mesh,"treeLeafMean",p->tree->leafMean);uniformInt(p->mesh,"treeGroupCount",int(p->tree->centers.size()));gl::Uniform4fv(gl::GetUniformLocation(p->mesh,"treeCenters"),GLsizei(p->tree->centers.size()),p->tree->centers.front().data());gl::Uniform4fv(gl::GetUniformLocation(p->mesh,"treeRadii"),GLsizei(p->tree->radii.size()),p->tree->radii.front().data());uniformInt(p->mesh,"treeLeafDetail",6);bind(6,p->textures.at(p->tree->texture));gl::BindSampler(6,0);
+     auto right=direction(inverse(effective.view()),{1,0,0}),up=direction(inverse(effective.view()),{0,1,0});gl::Uniform3f(gl::GetUniformLocation(p->mesh,"treeCameraRight"),right.x,right.y,right.z);gl::Uniform3f(gl::GetUniformLocation(p->mesh,"treeCameraUp"),up.x,up.y,up.z);gl::ActiveTexture(GL_TEXTURE0);
+    }
     int family=model.rig?-1:model.id.starts_with("EA_TREE")||model.id.starts_with("EA_BUSH")||model.id.starts_with("EA_REED")?1:model.id.starts_with("EA_ROCK")?4:model.id.starts_with("EA_PATH")||model.id=="EA_COBBLE"||model.id.starts_with("HG_PATH")?3:model.id=="EA_GROUND"||model.id.starts_with("HG_GROUND")||model.id.starts_with("HG_GREEN")||model.id.starts_with("EA_GREEN")?5:model.id.starts_with("EA_GREEN")||model.id.starts_with("HG_GREEN")||model.id=="EA_MOSS"?0:2;
     uniformInt(p->mesh,"profileFamily",family);
     uniformInt(p->mesh,"drawOwnerID",int(index)+1);uniformInt(p->mesh,"receiverOwner",int(index)+1);
@@ -1247,22 +1346,27 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
       }
     }
     gl::BindVertexArray(part.vao);
-    gl::DrawElements(GL_TRIANGLES, part.count, GL_UNSIGNED_INT, nullptr);
-    stats.draws++;
+    if(part.instances>0){gl::DrawElementsInstanced(GL_TRIANGLES,part.count,GL_UNSIGNED_INT,nullptr,part.instances);stats.treeLeafCards+=std::size_t(part.instances);}
+    else gl::DrawElements(GL_TRIANGLES, part.count, GL_UNSIGNED_INT, nullptr);
+    stats.geometryTriangles+=std::size_t(part.count)/3*std::size_t(std::max(1,part.instances));stats.draws++;
   };
   if (p->diagnosticView == 6)
     gl::PolygonMode(GL_FRONT_AND_BACK, GL_LINE);
   for (auto index : visible) {
     auto &i = world.instances[index];
-    auto &parts = p->models[i.model];
+    auto &parts = p->tree&&index==p->tree->target&&(p->treeMode==2||p->treeMode==3)?p->treeParts:p->models[i.model];
     for (std::size_t j = 0; j < parts.size(); j++) {
       if (p->materials[parts[j].material].alpha == Alpha::Blend) {
         Vec center = (i.bounds.lo + i.bounds.hi) * .5f;
         auto delta = center - effective.position;
         p->blends.push_back({index, j, dot(delta, delta)});
       } else
-        draw(index, j);
+        draw(index, parts[j]);
     }
+    // E retains every original source triangle and adds only sparse leaf rims.
+    // Its cast pass deliberately uses the untouched solid canopy, not cards.
+    if(p->tree&&index==p->tree->target&&p->treeMode==4)
+      for(const auto &part:p->rimParts)draw(index,part);
   }
   if(p->grassRenderer)p->grassRenderer->setProfile(p->profile,!p->sourceView);
   if (p->grassRenderer && p->grass && p->coverage != 1 && p->coverage != 4) {
@@ -1289,7 +1393,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
   gl::BlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   gl::DepthMask(GL_FALSE);
   for (auto &d : p->blends)
-    draw(d.instance, d.part);
+    draw(d.instance,p->models[world.instances[d.instance].model][d.part]);
   gl::DepthMask(GL_TRUE);
   gl::Disable(GL_BLEND);
   gl::Disable(GL_CULL_FACE);

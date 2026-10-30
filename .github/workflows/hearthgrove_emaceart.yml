@@ -1,7 +1,7 @@
 name: Hearthgrove EmaceArt playable validation
 on:
   push:
-    branches: [feat/hearthgrove-emaceart-complete, feat/hearthgrove-emaceart-style-terrain-r1, feat/hearthgrove-balanced-foliage-shadow-r2, feat/hearthgrove-single-play-shining-rims-r3, feat/hearthgrove-reference-grass-dense, feat/hearthgrove-grass-lod-color-patches, feat/hearthgrove-sunlit-meadow-shafts, feat/hearthgrove-shaped-rays-three-greens]
+    branches: [feat/hearthgrove-emaceart-complete, feat/hearthgrove-emaceart-style-terrain-r1, feat/hearthgrove-balanced-foliage-shadow-r2, feat/hearthgrove-single-play-shining-rims-r3, feat/hearthgrove-reference-grass-dense, feat/hearthgrove-grass-lod-color-patches, feat/hearthgrove-sunlit-meadow-shafts, feat/hearthgrove-shaped-rays-three-greens, feat/hearthgrove-tree-leaf-options]
     paths: ['experiments/hearthgrove_emaceart/**', '.github/workflows/hearthgrove_emaceart.yml']
   workflow_dispatch:
 permissions:

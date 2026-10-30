@@ -22,6 +22,7 @@ void main(){ivec2 size=textureSize(sceneColor,0),p=clamp(ivec2(gl_FragCoord.xy),
  if(cozy!=0&&raw>=.99999)c=mix(skyHorizon,skyTop,smoothstep(.1,.92,uv.y));
  vec4 enc=texelFetch(sceneNormal,p,0);vec3 n=normalize(enc.rgb*2.-1.);
  bool arch=enc.a>.35&&enc.a<.5,leaf=enc.a>.1&&enc.a<.22,ground=enc.a<.1;
+ bool clusteredLeaf=enc.a>.18&&enc.a<.22;
  bool stone=enc.a>.24&&enc.a<.29,grass=enc.a>.60&&enc.a<.70;
  float silhouette=0.,crease=0.,shine=0.;
  if(raw<.99999&&!ground&&(edgeMask!=0||(edgeMode==3&&outline!=0)||(edgeMode>=2&&highlights!=0))){
@@ -36,7 +37,11 @@ void main(){ivec2 size=textureSize(sceneColor,0),p=clamp(ivec2(gl_FragCoord.xy),
    vec4 other=texelFetch(sceneNormal,q,0);vec3 qn=normalize(other.rgb*2.-1.);
    vec3 delta=position((vec2(q)+.5)/vec2(size),qr)-here;float agreement=dot(n,qn);
    bool samePlane=qr<.99999&&agreement>.98&&abs(dot(n,delta))<tol;
+   bool sameOwner=texelFetch(sceneOwners,p,0).r==texelFetch(sceneOwners,q,0).r;
    bool outside=!samePlane&&qd-d>max(.045,d*.014);
+   // Clustered leaf cards belong to one tree volume. Suppress inter-card
+   // strokes/rims rather than turning every overlapping leaf into white noise.
+   if(clusteredLeaf&&sameOwner)outside=false;
    if(outside)silhouette=max(silhouette,radius==2?1.-smoothstep(18.,28.,d):1.);
    bool near=abs(qd-d)<max(.09,pw*3.);
    bool otherArch=other.a>.35&&other.a<.5;
