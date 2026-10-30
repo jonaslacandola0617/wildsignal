@@ -8,6 +8,24 @@ MeshClumps::MeshClumps(const std::filesystem::path &r,
  auto cfg = ws::parseJson(readText(r / "vegetation.json"));
  if (cfg.at("revision").number()!=2 || !std::get<bool>(cfg.at("source_materials").value))
    throw std::runtime_error("source vegetation revision");
+ const auto &fields=std::get<ws::Json::Object>(cfg.value);
+ if(auto it=fields.find("asset_family");it!=fields.end()) {
+   assetFamily=it->second.string();
+   if(assetFamily.empty()||assetFamily.size()>80||assetFamily.find_first_not_of("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_")!=std::string::npos)
+     throw std::runtime_error("grass asset family identifier");
+ }
+ if(auto it=fields.find("align_to_surface");it!=fields.end()) alignToSurface=std::get<bool>(it->second.value);
+ if(auto it=fields.find("instance_color_grades");it!=fields.end()) {
+   const auto &grades=it->second.array();
+   if(grades.size()!=3) throw std::runtime_error("three grass color grades required");
+   for(std::size_t i=0;i<3;i++) {
+     const auto &g=grades[i].array();
+     if(g.size()!=3) throw std::runtime_error("grass grade RGB required");
+     Vec v{float(g[0].number()),float(g[1].number()),float(g[2].number())};
+     if(!finite(v)||std::min({v.x,v.y,v.z})<.25f||std::max({v.x,v.y,v.z})>2.f) throw std::runtime_error("grass grade range");
+     instanceGrades[i]=v;
+   }
+ }
  authored=receiveShadows=true;
  normalUpBias=float(cfg.at("normal_up_bias").number());
  ambientLift=float(cfg.at("ambient_lift").number());
@@ -34,11 +52,29 @@ MeshClumps::MeshClumps(const std::filesystem::path &r,
      Vec pos{float(p[0].number()),float(p[1].number()),float(p[2].number())},normal{float(n[0].number()),float(n[1].number()),float(n[2].number())};
      if(!finite(pos)||std::abs(pos.x)>48||std::abs(pos.z)>48||std::abs(pos.y)>3||!finite(normal)||dot(normal,normal)<.9f||dot(normal,normal)>1.1f) throw std::runtime_error("source grass bounds");
      auto mat=transform(pos,yaw,scale);
-     all.push_back({mat,{1,normal.x,normal.y,normal.z}});
+     if(alignToSurface) {
+       normal=normalized(normal);
+       if(normal.y<.65f) throw std::runtime_error("grass surface slope");
+       Vec forward{std::sin(yaw),0,std::cos(yaw)};
+       forward=normalized(forward-normal*dot(forward,normal));
+       const Vec right=cross(normal,forward);
+       const Vec axes[]{right,normal,forward};
+       for(int c=0;c<3;c++){mat.v[c*4]=axes[c].x*scale;mat.v[c*4+1]=axes[c].y*scale;mat.v[c*4+2]=axes[c].z*scale;}
+     }
+     int colorVariant=1;
+     const auto &row=std::get<ws::Json::Object>(e.value);
+     if(auto it=row.find("color_variant");it!=row.end()) {
+       double n=it->second.number();
+       if(!std::isfinite(n)||n!=std::floor(n)||n<0||n>2) throw std::runtime_error("grass color variant");
+       colorVariant=int(n);
+     }
+     all.push_back({mat,{float(colorVariant),normal.x,normal.y,normal.z}});
      variants.push_back(int(v)); bounds.push_back(transformed(models[int(v)].bounds,mat));
    }
  }
  if(all.empty()) throw std::runtime_error("empty grass placement");
+ if(auto it=fields.find("expected_instances");it!=fields.end())
+   if(it->second.number()!=double(all.size())) throw std::runtime_error("grass placement count differs from manifest");
  batches.resize(models.size());
  std::vector<std::size_t> capacities(models.size());
  for(int v:variants) capacities[v]++;

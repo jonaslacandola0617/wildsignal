@@ -27,6 +27,9 @@ struct MeshClumps {
   std::array<Vec, 12> familyRamp{};
   std::filesystem::path groundMap, patchMap;
   std::filesystem::path sourcePalette;
+  std::string assetFamily = "EMACEART_SOURCE_ONLY";
+  std::array<Vec, 3> instanceGrades{Vec{1,1,1}, Vec{1,1,1}, Vec{1,1,1}};
+  bool alignToSurface = false;
   float normalUpBias = .5f, ambientLift = .25f;
   bool authored = false, receiveShadows = false, fragmentReceiver = false;
   int diagnostic = 0;

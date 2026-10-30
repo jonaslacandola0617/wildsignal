@@ -604,7 +604,7 @@ int main(int argc, char **argv) {
         << "\ngrass_layout=" << (o.legacyGrass ? "legacy" : "continuous")
         << "\nworldstyle=" << (o.pixelMaterials ? "pixel" : "source") << "\n";
     log << "grass_family="
-        << (grass.authored ? "EMACEART_SOURCE_ONLY" : "LEGACY_CONTROL")
+        << (grass.authored ? grass.assetFamily : "LEGACY_CONTROL")
         << "\ngrass_receive=" << grass.receiveShadows
         << "\ngrass_cast=0\nshadow_enabled=" << o.shadows
         << "\nshafts=" << o.shafts << "\nshaft_strength=" << o.shaftStrength << "\nhaze=" << o.haze << "\nquality=" << o.quality

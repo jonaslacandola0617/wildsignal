@@ -162,7 +162,19 @@ if(ground!=0&&textured!=0&&studyKind!=4){
  float broad=field(worldPosition.xz*.38),small=field(worldPosition.xz*2.6);
  a.rgb=mix(g0,g1,.12+.42*broad+.12*small);
 }
+vec3 sourceHSV=rgbHSV(srgbEncode(clamp(a.rgb,0.,1.)));
+bool greenTerrain=ground!=0&&sourceHSV.x>=.18&&sourceHSV.x<=.46&&sourceHSV.y>=.12;
 a.rgb=profileColor(a.rgb,profileFamily);
+if(profileActive!=0&&profileGreenOnly!=0&&greenTerrain&&groundGreenVariation>0.){
+ // Broad, world-anchored variation affects only original green texels.
+ // Brown soil and all non-ground materials bypass this operation.
+ float zone=field(worldPosition.xz*.16),detail=field(worldPosition.xz*.47+vec2(17.1,8.3));
+ vec3 h=rgbHSV(srgbEncode(clamp(a.rgb,0.,1.)));
+ h.x+=groundGreenVariation*(.012*(zone-.5));
+ h.y=clamp(h.y*(1.+groundGreenVariation*(.04+.08*detail)),0.,.94);
+ h.z=clamp(h.z*(1.+groundGreenVariation*(-.10+.28*zone)),0.,1.);
+ a.rgb=srgbDecode(hsvRGB(h));
+}
 if(diagnostic==7){color=vec4(srgbEncode(clamp(a.rgb,0.,1.)),1);normals=vec4(n*.5+.5,1);return;}
 float sun=max(0.,dot(shadeNormal,normalize(sunDirection)));
 if(mode!=0&&bands!=0&&smoothLighting==0){float soft=max(.001,bandSoftness);sun=profileBand(sun,soft);}
@@ -664,10 +676,27 @@ void Gpu::setGrass(MeshClumps *m, const std::filesystem::path &ground,
   p->grassRenderer = std::make_unique<MeshRenderer>(*m);
   bufferBytes += p->grassRenderer->bytes();
   (void)ground;(void)groups;
-  // Borrow the exact original palette from the existing material texture pool.
-  // Grass and environment share ownership, mip policy, and unchanged source pixels.
+  // Share resident kit palettes, or load the approved clump's own texture once.
+  // The pool owns both cases; source pixels and nearest sampling are unchanged.
   auto found=p->textures.find(m->sourcePalette);
-  if(found==p->textures.end()) throw std::runtime_error("source palette must already be resident");
+  if(found==p->textures.end()) {
+    const auto image=loadImage(m->sourcePalette);
+    if(textureBytes+image.rgba.size()>256*1024*1024)throw std::runtime_error("texture budget");
+    GLuint id=0;gl::GenTextures(1,&id);
+    gl::BindTexture(GL_TEXTURE_2D,id);
+    gl::TexImage2D(GL_TEXTURE_2D,0,GL_SRGB8_ALPHA8,image.w,image.h,0,GL_RGBA,GL_UNSIGNED_BYTE,image.rgba.data());
+    gl::TexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST_MIPMAP_NEAREST);
+    gl::TexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
+    gl::TexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
+    gl::TexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
+    gl::GenerateMipmap(GL_TEXTURE_2D);
+    found=p->textures.emplace(m->sourcePalette,id).first;
+    textureBytes+=image.rgba.size();texturesLoaded++;
+    for(int w=image.w,h=image.h;;w=std::max(1,w/2),h=std::max(1,h/2)) {
+      textureMipBytes+=std::size_t(w)*h*4;
+      if(w==1&&h==1)break;
+    }
+  }
   p->grassGround=found->second;p->grassGroundBorrowed=true;
   p->grassRenderer->setPixelSurface(p->grassGround,0,{});
 }
@@ -1040,6 +1069,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
   uniformInt(p->mesh,"shadowClean",p->shadowClean);uniformInt(p->mesh,"shadowOwners",9);bind(9,p->shadowOwners);gl::BindSampler(9,0);
   uniformInt(p->mesh,"profileActive",p->profile.active&&!p->sourceView);
   uniformFloat(p->mesh,"groundHarmony",p->profile.groundHarmony);
+  uniformFloat(p->mesh,"groundGreenVariation",p->profile.groundGreenVariation);
   uniformFloat(p->mesh,"groundAnchor",p->profile.groundAnchor);uniformFloat(p->mesh,"groundContrast",p->profile.groundContrast);
   uniformFloat(p->mesh,"profileLow",p->profile.lowTone);uniformFloat(p->mesh,"profileMid",p->profile.midTone);
   for(int f=0;f<6;f++){auto v=p->profile.grades[f];auto name="familyGrade["+std::to_string(f)+"]";gl::Uniform3f(gl::GetUniformLocation(p->mesh,name.c_str()),v.x,v.y,v.z);}

@@ -47,10 +47,12 @@ layout(location=2)in vec2 texcoord;layout(location=3)in vec4 vertexColour;
 layout(location=4)in mat4 instance;layout(location=8)in vec4 tint;
 uniform mat4 VP;out vec3 worldPosition,worldNormal;out vec2 uv;out vec4 colour;
 flat out vec3 rootNormal;
-void main(){vec4 p=instance*vec4(position,1);worldPosition=p.xyz;worldNormal=mat3(instance)*normal;uv=texcoord;colour=vertexColour;rootNormal=normalize(tint.gba);gl_Position=VP*p;}
+flat out int colorVariant;
+void main(){vec4 p=instance*vec4(position,1);worldPosition=p.xyz;worldNormal=mat3(instance)*normal;uv=texcoord;colour=vertexColour;rootNormal=normalize(tint.gba);colorVariant=int(tint.r);gl_Position=VP*p;}
 )GLSL";
 static const char *fs = R"GLSL(#version 330 core
 in vec3 worldPosition,worldNormal;in vec2 uv;in vec4 colour;flat in vec3 rootNormal;
+flat in int colorVariant;uniform vec3 instanceGrades[3];
 uniform sampler2D pixelGround;
 uniform vec3 sunDirection,sunColor,ambientSky,ambientGround,eye,hazeColor;
 uniform float exposure,bandSoftness,bias,normalUpBias,ambientLift,hazeStart,hazeEnd,hazeStrength;
@@ -65,6 +67,7 @@ void main(){
  if(mode!=0&&bands!=0&&smoothLight==0){float s=max(.001,bandSoftness);sun=profileBand(sun,s);}
  vec3 albedo=texture(pixelGround,uv).rgb*colour.rgb;
  albedo=profileColor(albedo,0);
+ albedo*=instanceGrades[clamp(colorVariant,0,2)];
  float visibility=shadowMode!=0?stableReceiver(worldPosition,vec3(0,1,0),bias*.000015):1.;
  vec3 ambient=mix(ambientGround,ambientSky,clamp(litNormal.y*.5+.5,0.,1.));
  vec3 light=ambient+sunColor*sun*visibility;
@@ -294,6 +297,7 @@ MeshVisibility MeshRenderer::draw(MeshClumps &m, const Camera &camera,
     auto vec = [&](const char *n, Vec v) {
       mg::Uniform3f(loc(n), v.x, v.y, v.z);
     };
+    for(int i=0;i<3;i++){auto v=m.instanceGrades[i];auto name="instanceGrades["+std::to_string(i)+"]";mg::Uniform3f(mg::GetUniformLocation(p->shader,name.c_str()),v.x,v.y,v.z);}
     auto integer = [&](const char *n, int v) { mg::Uniform1i(loc(n), v); };
     integer("coverage", m.coverage);
     integer("pixelSurface", p->pixelGround ? 1 : 0);
