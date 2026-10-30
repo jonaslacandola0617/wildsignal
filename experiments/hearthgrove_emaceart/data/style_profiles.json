@@ -1,5 +1,5 @@
 {
-  "revision": 2,
+  "revision": 3,
   "families": [
     "grass_green_cover",
     "trees_bushes",
@@ -94,11 +94,13 @@
       "ground_harmony": 0,
       "grass_ink_strength": 0.26,
       "organic_highlights": [
-        0.16,
-        0.13,
-        0.18
+        0.42,
+        0.38,
+        0.46
       ],
-      "organic_highlight_ceiling": 0.95
+      "organic_highlight_ceiling": 0.99,
+      "rim_saturation": 1.35,
+      "architecture_rim": 0.3
     },
     "rich": {
       "grades": [
@@ -185,11 +187,13 @@
       "ground_harmony": 0,
       "grass_ink_strength": 0.26,
       "organic_highlights": [
-        0.16,
-        0.13,
-        0.18
+        0.42,
+        0.38,
+        0.46
       ],
-      "organic_highlight_ceiling": 0.95
+      "organic_highlight_ceiling": 0.99,
+      "rim_saturation": 1.35,
+      "architecture_rim": 0.3
     }
   }
 }

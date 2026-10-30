@@ -62,7 +62,7 @@ struct Options {
   bool shafts = false, haze = false;
   std::string quality = "medium";
   float shaftStrength = 1.5f;
-  bool shadows = false, forceLegacyGrass = false, requireAuthored = false,
+  bool shadows = true, forceLegacyGrass = false, requireAuthored = false,
        fragmentReceiver = true, cacheProbe = false;
   int receiveGrass = -1, diagnostic = 0, scaleFamily = 0, canopyMask = -1;
 };
@@ -547,6 +547,7 @@ int main(int argc, char **argv) {
     auto look=profile.look;
     if(!o.contacts)look.contactStrength=0;
     log<<"style_preset="<<o.preset<<"\nink_preset="<<o.ink<<"\n";
+    log<<"luminous_rims="<<profile.luminousRims<<"\nrim_saturation="<<profile.rimSaturation<<"\n";
 
     float authoredHaze=look.hazeStrength;
     if(!o.haze)look.hazeStrength=0;

@@ -1339,6 +1339,9 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
   const auto &integration = p->integration;
   uniformInt(postProgram,"profileActive",p->profile.active);
   uniformInt(postProgram,"profileGreenOnly",p->profile.greenOnly);
+  uniformInt(postProgram,"luminousRims",p->profile.luminousRims);
+  uniformFloat(postProgram,"rimSaturation",p->profile.rimSaturation);
+  uniformFloat(postProgram,"architectureRim",p->profile.architectureRim);
   uniformInt(postProgram,"organicEdges",p->profile.organicEdges);
   uniformFloat(postProgram,"grassInk",p->profile.grassInk);uniformFloat(postProgram,"organicCeiling",p->profile.organicCeiling);
   gl::Uniform3f(gl::GetUniformLocation(postProgram,"organicHighlights"),p->profile.organicHighlights.x,p->profile.organicHighlights.y,p->profile.organicHighlights.z);

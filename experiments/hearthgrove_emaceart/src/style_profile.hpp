@@ -4,6 +4,7 @@
 namespace p3 {
 // Versioned numeric render settings only; no palette pixels or licensed data.
 struct StyleProfile {
+ bool luminousRims=false;float rimSaturation=1.25f,architectureRim=.30f;
  bool greenOnly=false,organicEdges=true;float grassInk=.26f,organicCeiling=.95f;Vec organicHighlights{.16f,.13f,.18f};
  bool active=false; int inkMode=1,majorWidth=1;
  std::array<Vec,6> grades{}; std::array<float,4> ink{};
@@ -13,11 +14,12 @@ struct StyleProfile {
  static StyleProfile load(const std::filesystem::path &path,const std::string &name,const Look &baseline) {
   StyleProfile s;s.look=baseline;if(name=="baseline")return s;
   if(name!="balanced"&&name!="rich")throw std::runtime_error("unknown style preset");
-  auto doc=ws::parseJson(readText(path));if(doc.at("revision").number()!=1&&doc.at("revision").number()!=2)throw std::runtime_error("style settings revision");
-  auto &v=doc.at("presets").at(name);s.active=true;s.greenOnly=doc.at("revision").number()==2;
+  auto doc=ws::parseJson(readText(path));auto revision=doc.at("revision").number();if(revision!=1&&revision!=2&&revision!=3)throw std::runtime_error("style settings revision");
+  auto &v=doc.at("presets").at(name);s.active=true;s.greenOnly=revision>=2;s.luminousRims=revision==3;
   auto scalar=[&](const ws::Json& x,float lo,float hi){float n=float(x.number());if(!std::isfinite(n)||n<lo||n>hi)throw std::runtime_error("style setting range");return n;};
   auto vector=[&](const ws::Json& a,float lo,float hi){auto &x=a.array();if(x.size()!=3)throw std::runtime_error("style vector size");return Vec{scalar(x[0],lo,hi),scalar(x[1],lo,hi),scalar(x[2],lo,hi)};};
-  if(s.greenOnly){s.grassInk=scalar(v.at("grass_ink_strength"),0,.5f);s.organicCeiling=scalar(v.at("organic_highlight_ceiling"),.8f,.98f);s.organicHighlights=vector(v.at("organic_highlights"),0,.3f);}
+  if(s.greenOnly){s.grassInk=scalar(v.at("grass_ink_strength"),0,.5f);s.organicCeiling=scalar(v.at("organic_highlight_ceiling"),.8f,s.luminousRims?1.f:.98f);s.organicHighlights=vector(v.at("organic_highlights"),0,s.luminousRims?.65f:.3f);}
+  if(s.luminousRims){s.rimSaturation=scalar(v.at("rim_saturation"),1.f,1.6f);s.architectureRim=scalar(v.at("architecture_rim"),0,.5f);}
   auto &grades=v.at("grades").array();if(grades.size()!=6)throw std::runtime_error("six style families required");
   for(int i=0;i<6;i++){s.grades[i]=vector(grades[i],-.5f,1.5f);if(s.grades[i].y<.2f||s.grades[i].z<.2f)throw std::runtime_error("style saturation/value");}
   auto &ink=v.at("ink").array();if(ink.size()!=4)throw std::runtime_error("style ink size");for(int i=0;i<4;i++)s.ink[i]=scalar(ink[i],0,1);
