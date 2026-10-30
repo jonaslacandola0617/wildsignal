@@ -6,7 +6,8 @@
 namespace p3 {
 // Numeric regional weights, never a diffuse/source-art replacement.
 struct MeadowPatches {
- bool enabled=false,lightDriven=false;
+ bool enabled=false,lightDriven=false,beamDriven=false;
+ int beamCount=0;std::array<std::array<float,4>,4> apertures{};std::array<Vec,3> beamColors{};
  std::array<Vec,3> lightColors{}; // lit / base / shadow, linear RGB
  int width=0,height=0;
  std::array<float,4> world{}; // minimum XZ, inverse world dimensions
@@ -31,6 +32,18 @@ struct MeadowPatches {
    if(ramp.size()!=3)throw std::runtime_error("meadow lighting three colors");
    for(int k=0;k<3;k++){const auto &c=ramp[k].array();if(c.size()!=3)throw std::runtime_error("meadow lighting RGB");Vec v{float(c[0].number()),float(c[1].number()),float(c[2].number())};if(!finite(v)||std::min({v.x,v.y,v.z})<0||std::max({v.x,v.y,v.z})>1)throw std::runtime_error("meadow lighting color range");lightColors[k]=v;}
    lightDriven=true;
+  }
+  beamCount=0;beamDriven=false;
+  if(std::get<ws::Json::Object>(cfg.value).count("sun_beams")){
+   if(!lightDriven)throw std::runtime_error("sun beams require lighting palette");
+   const auto &beams=cfg.at("sun_beams");const auto &list=beams.at("apertures").array();
+   if(list.empty()||list.size()>4)throw std::runtime_error("sun beam count1..4");
+   for(const auto &b:list){const auto &c=b.at("center_xz").array(),&r=b.at("radii_xz").array();if(c.size()!=2||r.size()!=2)throw std::runtime_error("sun beam coordinates");
+    for(int k=0;k<2;k++){float x=float(c[k].number()),radius=float(r[k].number());if(!std::isfinite(x)||std::abs(x)>64||!std::isfinite(radius)||radius<.5||radius>12)throw std::runtime_error("sun beam bounds");apertures[beamCount][k]=x;apertures[beamCount][k+2]=radius;}beamCount++;
+   }
+   const auto &ramp=beams.at("colors_linear").array();if(ramp.size()!=3)throw std::runtime_error("sun beam three colors");
+   for(int k=0;k<3;k++){const auto &c=ramp[k].array();if(c.size()!=3)throw std::runtime_error("sun beam RGB");Vec v{float(c[0].number()),float(c[1].number()),float(c[2].number())};if(!finite(v)||std::min({v.x,v.y,v.z})<0||std::max({v.x,v.y,v.z})>1)throw std::runtime_error("sun beam color range");beamColors[k]=v;}
+   beamDriven=true;
   }
   enabled=true;
  }

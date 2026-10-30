@@ -60,6 +60,7 @@ struct Options {
        fresh = false, original = false;
   std::string pacing = "precise";
   bool shafts = true, haze = true;
+  int meadowResponse=2;bool grassOutlines=false;
   bool grassLod=true,meadowPatches=true,boundedAir=true,meadowLighting=true,definedShafts=true;
   std::string quality = "medium";
   float shaftStrength = 1.5f;
@@ -87,7 +88,7 @@ Options options(int argc, char **argv) {
       std::cout
           << "HEARTHGROVE EMACEART complete playable village\n--assets DIR "
              "--resolution 480|640|1280 "
-             "--grass-density off|low|medium|high\n--grass-lod on|off --meadow-patches on|off --air-proof bounded|legacy\n--meadow-lighting on|off --shaft-profile soft|defined\n--buildings on|off "
+             "--grass-density off|low|medium|high\n--grass-lod on|off --meadow-patches on|off --air-proof bounded|legacy\n--meadow-lighting on|off --meadow-response beam|sun|regional --grass-outlines on|off --shaft-profile soft|defined\n--buildings on|off "
              "--render-mode original|toon --pacing precise|legacy|off\n--cap "
              "0|30|60 --benchmark --pose 0..15 --frames N --capture-every "
              "N\n--save FILE --new-game --output DIR --allow-software --hidden "
@@ -97,7 +98,7 @@ Options options(int argc, char **argv) {
                    "--grass-scale mixed (original uniform source scale)\n"
                    "--shadow on|off --grass-cast off --grass-receive on|off "
                    "--grass-receiver fragment\n"
-                   "--diagnostic lit|albedo|visibility|graded|families|self-shadow|highlights --canopy-shadow "
+                   "--diagnostic lit|albedo|visibility|graded|families|self-shadow|highlights|beam --canopy-shadow "
                    "solid\n"
                    "--shadow-cache-probe (isolated technical test only)\n"
                    "--shafts on|off --haze on|off --quality low|medium|high --shaft-strength 0..3\n";
@@ -109,6 +110,8 @@ Options options(int argc, char **argv) {
     else if(a=="--air-proof"){auto v=value();if(v!="legacy"&&v!="bounded")throw std::runtime_error("air-proof legacy|bounded");o.boundedAir=v=="bounded";}
     else if(a=="--grass-lod"||a=="--meadow-patches"){auto v=value();if(v!="on"&&v!="off")throw std::runtime_error("grass controls on|off");(a=="--grass-lod"?o.grassLod:o.meadowPatches)=v=="on";}
     else if(a=="--meadow-lighting"){auto v=value();if(v!="on"&&v!="off")throw std::runtime_error("meadow-lighting on|off");o.meadowLighting=v=="on";}
+    else if(a=="--meadow-response"){auto v=value();if(v!="beam"&&v!="sun"&&v!="regional")throw std::runtime_error("meadow-response beam|sun|regional");o.meadowResponse=v=="beam"?2:v=="sun"?1:0;}
+    else if(a=="--grass-outlines"){auto v=value();if(v!="on"&&v!="off")throw std::runtime_error("grass-outlines on|off");o.grassOutlines=v=="on";}
     else if(a=="--shaft-profile"){auto v=value();if(v!="soft"&&v!="defined")throw std::runtime_error("shaft-profile soft|defined");o.definedShafts=v=="defined";}
     else if(a=="--contacts"){auto v=value();if(v!="on"&&v!="off")throw std::runtime_error("contacts on|off");o.contacts=v=="on";}
     else if(a=="--style-preset"){o.preset=value();if(o.preset!="baseline"&&o.preset!="balanced"&&o.preset!="rich")throw std::runtime_error("style-preset baseline|balanced|rich");}
@@ -229,6 +232,7 @@ Options options(int argc, char **argv) {
       else if(v=="self-shadow")o.diagnostic=9;
       else if(v=="families")o.diagnostic=5;
       else if(v=="highlights")o.diagnostic=10;
+      else if(v=="beam")o.diagnostic=11;
       else
         throw std::runtime_error("diagnostic lit|albedo|visibility|patch|graded|self-shadow");
     } else if (a == "--shadow-cache-probe")
@@ -521,7 +525,10 @@ int main(int argc, char **argv) {
     grass.fragmentReceiver = o.fragmentReceiver;
     grass.diagnostic = o.diagnostic;
     grass.density = o.density;
-    bool hasLightingRamp=grass.patches.lightDriven;grass.patches.lightDriven=hasLightingRamp&&o.meadowLighting;
+    bool hasLightingRamp=grass.patches.lightDriven,hasBeams=grass.patches.beamCount>0;
+    if(!o.meadowLighting)o.meadowResponse=0;
+    if(o.meadowResponse==2&&!hasBeams)o.meadowResponse=1;
+    auto setMeadowResponse=[&]{grass.patches.lightDriven=hasLightingRamp&&o.meadowResponse!=0;grass.patches.beamDriven=hasBeams&&o.meadowResponse==2;};setMeadowResponse();
     grass.options.lod=o.grassLod;grass.patches.enabled=grass.patches.enabled&&o.meadowPatches;
     Screen screen;
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS))
@@ -547,6 +554,7 @@ int main(int argc, char **argv) {
     log<<"terrain_instance_y_scale="<<relief<<"\nshadow_policy="<<(o.cleanShadow?"clean_object_external":"legacy_full_self")<<"\n";
     auto baselineLook = p3::Look::load(o.assets / "look.json");
     auto profile=p3::StyleProfile::load(o.styleSettings.empty()?o.assets/"style_profiles.json":o.styleSettings,o.preset,baselineLook);
+    float authoredGrassInk=profile.grassInk;if(!o.grassOutlines)profile.grassInk=0;
     profile.organicEdges=o.vegetationEdges;
     profile.inkMode=o.ink=="off"?0:o.ink=="bold"?2:1;
     if(profile.active)profile.majorWidth=o.ink=="bold"?2:1;
@@ -585,7 +593,9 @@ int main(int argc, char **argv) {
       effects.shadow=o.shadows?p3::Shadow::Cached:p3::Shadow::Off;
       effects.shadowSize=o.quality=="low"?512:1024;
       effects.shafts=o.shafts?p3::Shafts::Volume:p3::Shafts::Off;
-      effects.divisor=4;effects.steps=o.quality=="high"?12:8;
+      bool beam=grass.patches.lightDriven&&grass.patches.beamDriven;
+      effects.divisor=beam&&o.quality!="low"?2:4;
+      effects.steps=beam?(o.quality=="low"?8:o.quality=="medium"?12:16):(o.quality=="high"?12:8);
       effects.shaftStrength=o.shaftStrength;
       effects.automatic=false; // explicit comparison controls never silently change
       gpu.setEffects(effects);
@@ -614,6 +624,7 @@ int main(int argc, char **argv) {
     log << "grass_family="
         << (grass.authored ? grass.assetFamily : "LEGACY_CONTROL")
         << "\ngrass_receive=" << grass.receiveShadows
+        << "\nmeadow_response=" << o.meadowResponse << "\nbeam_count=" << grass.patches.beamCount << "\ngrass_outlines=" << o.grassOutlines
         << "\nmeadow_lighting=" << grass.patches.lightDriven << "\nshaft_profile=" << (o.definedShafts?"defined":"soft")
         << "\ngrass_lod=" << grass.options.lod << "\nmeadow_patches=" << grass.patches.enabled
         << "\nshaft_method=shadow_map_volume\ngrass_cast=0\nshadow_enabled=" << o.shadows
@@ -635,7 +646,7 @@ int main(int argc, char **argv) {
               "second_state,player_yaw,grass_total,grass_culled,grass_shadow_"
               "draws,grass_shadow_triangles,tree_caster_draws,rock_caster_"
               "draws,building_caster_draws,shadow_cache_invalidations,shadow_"
-              "cpu_ms,internal_width,internal_height,grass_density,grass_lod,grass_lod0,grass_lod1,grass_lod2,meadow_patches,shadow_enabled,shafts_enabled,haze_enabled,source_mode,quality,shadow_size,shaft_steps,shaft_divisor,air_proof,atmosphere_width,atmosphere_height,meadow_lighting,defined_shafts\n";
+              "cpu_ms,internal_width,internal_height,grass_density,grass_lod,grass_lod0,grass_lod1,grass_lod2,meadow_patches,shadow_enabled,shafts_enabled,haze_enabled,source_mode,quality,shadow_size,shaft_steps,shaft_divisor,air_proof,atmosphere_width,atmosphere_height,meadow_lighting,defined_shafts,meadow_response,grass_outlines,beam_count\n";
     timers << "frame,gpu_elapsed_ms\n";
     events << "frame,event,phase,hp,enemy_hp,recruited,x,z\n";
     auto event = [&](int f, const std::string &name) {
@@ -764,7 +775,8 @@ int main(int argc, char **argv) {
             } else if(e.key.key==SDLK_L) {
               o.quality=o.quality=="low"?"medium":o.quality=="medium"?"high":"low";updateEffects();event(frame,"quality_toggle");
             } else if(e.key.key==SDLK_B){grass.options.lod=!grass.options.lod;event(frame,"grass_lod_toggle");
-            } else if(e.key.key==SDLK_U){grass.patches.lightDriven=hasLightingRamp&&!grass.patches.lightDriven;event(frame,"meadow_lighting_toggle");
+            } else if(e.key.key==SDLK_U){o.meadowResponse=(o.meadowResponse+1)%(hasBeams?3:2);setMeadowResponse();updateEffects();event(frame,"meadow_response_toggle");
+            } else if(e.key.key==SDLK_I){o.grassOutlines=!o.grassOutlines;profile.grassInk=o.grassOutlines?authoredGrassInk:0;gpu.setProfile(profile);event(frame,"grass_outline_toggle");
             } else if(e.key.key==SDLK_N){o.definedShafts=!o.definedShafts;gpu.setDefinedShafts(o.definedShafts);event(frame,"shaft_profile_toggle");
             } else if(e.key.key==SDLK_P){if(!grass.patches.weights.empty())grass.patches.enabled=!grass.patches.enabled;event(frame,"meadow_patches_toggle");
             } else if (e.key.key == SDLK_G) {
@@ -974,7 +986,7 @@ int main(int argc, char **argv) {
           hud.push_back("BEFRIEND: WILD HP12 OR LESS + DEFEND AT LEAST ONCE");
       }
       hud.push_back(std::string("O SHADOW ")+(o.shadows?"ON":"OFF")+" / V SHAFTS "+(o.shafts?"ON":"OFF")+" / H HAZE "+(o.haze?"ON":"OFF")+" / L "+o.quality);
-      hud.push_back(std::string("U COLORS ")+(grass.patches.lightDriven?"LIGHT-DRIVEN":"REGIONAL")+" / N SHAFT "+(o.definedShafts?"DEFINED":"SOFT")+" / B GRASS LOD");
+      hud.push_back(std::string("U COLORS ")+(grass.patches.beamDriven?"BEAM":grass.patches.lightDriven?"SUN":"REGIONAL")+" / N SHAFT "+(o.definedShafts?"DEFINED":"SOFT")+" / B GRASS LOD");
       if (o.debugFollow)
         hud.push_back(std::string("FOLLOW ") +
                       game::followName(game.follower.state) + " / SECOND " +
@@ -1060,7 +1072,7 @@ int main(int argc, char **argv) {
              << ',' << o.quality << ',' << effects.shadowSize << ',' << effects.steps << ',' << effects.divisor
              << ',' << (o.boundedAir?"bounded":"legacy") << ',' << (o.shafts?(o.boundedAir?o.w/effects.divisor:style.atmosphereWidth):0)
              << ',' << (o.shafts?(o.boundedAir?(o.w*9/16)/effects.divisor:style.atmosphereWidth*9/16):0)
-             << ',' << grass.patches.lightDriven << ',' << o.definedShafts << '\n';
+             << ',' << grass.patches.lightDriven << ',' << o.definedShafts << ',' << o.meadowResponse << ',' << o.grassOutlines << ',' << grass.patches.beamCount << '\n';
       lastSwap = swapped;
       if (frame % 120 == 0) {
         frames.flush();

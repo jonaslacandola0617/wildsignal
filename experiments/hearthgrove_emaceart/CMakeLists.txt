@@ -33,7 +33,7 @@ if(PIXEL3D_BUILD_GL)
  # Owner review has ONE playable entrypoint. Retain historical comparison
  # launchers in source, without installing a matrix of runnable variants.
  install(FILES launchers/PLAY_GAME.cmd DESTINATION .)
- install(FILES README.md README_OWNER_REVIEW.md DESTINATION .)
+ install(FILES README.md README_OWNER_REVIEW.md README_SHAPED_RAYS.md DESTINATION .)
 endif()
 set(GAMELOOP_ASSETS "" CACHE PATH "Private validated GAMELOOP runtime directory")
 if(BUILD_TESTING)

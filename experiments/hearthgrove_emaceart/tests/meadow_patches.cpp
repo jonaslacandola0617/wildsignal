@@ -18,6 +18,19 @@ int main(){try{
  rampTest("[[0.4,0.8,0.1],[0.1,0.4,0.01],[0.01,1.1,0.03]]",false);
  rampTest("[[0.4,0.8,0.1],[0.1,0.4,0.01],[0.01,-0.1,0.03]]",false);
  rampTest("[[0.4,0.8,0.1],[0.1,0.4,0.01],[0.01,0.1]]",false);
+
+ // Bounded numeric light apertures are optional; no image or geometry asset.
+ auto beamTest=[&](std::string apertures,std::string colors,bool accept,bool palette=true){auto object=base;if(palette)object["lighting_colors_linear"]=ws::parseJson("[[0.4,0.8,0.1],[0.1,0.4,0.01],[0.01,0.1,0.03]]");object["sun_beams"]=ws::parseJson("{\"apertures\":"+apertures+",\"colors_linear\":"+colors+"}");ws::Json c;c.value=object;bool ok=true;try{p3::MeadowPatches p;p.load(root,c);if(!p.beamDriven||p.beamCount<1||p.apertures[0][0]!=3)throw std::runtime_error("beam configuration missing");}catch(...){ok=false;}if(ok!=accept)throw std::runtime_error("beam validation");};
+ std::string opening=R"({"center_xz":[3,4],"radii_xz":[2,3]})",colors="[[0.4,0.8,0.1],[0.1,0.4,0.01],[0.01,0.1,0.03]]";
+ beamTest("["+opening+"]",colors,true);
+ beamTest("[]",colors,false);
+ beamTest("["+opening+","+opening+","+opening+","+opening+","+opening+"]",colors,false);
+ beamTest(R"([{"center_xz":[3,4],"radii_xz":[0,3]}])",colors,false);
+ beamTest(R"([{"center_xz":[3,4],"radii_xz":[2,13]}])",colors,false);
+ beamTest(R"([{"center_xz":[3,400],"radii_xz":[2,3]}])",colors,false);
+ beamTest(R"([{"center_xz":[3],"radii_xz":[2,3]}])",colors,false);
+ beamTest("["+opening+"]","[[0,0,0],[0,0,0],[0,1.1,0]]",false);
+ beamTest("["+opening+"]",colors,false,false);
  auto reject=[&]{write();bool failed=false;try{p3::MeadowPatches p;p.load(root,cfg);}catch(...){failed=true;}if(!failed)throw std::runtime_error("corrupt regional weights accepted");};
  bytes[12]=0;reject();bytes[12]=char(255);bytes[0]='X';reject();bytes[0]='W';bytes.pop_back();reject();
  std::filesystem::remove_all(root);std::cout<<"PASS valid numeric regional weights and bad sums/header/truncation fail closed\n";return 0;

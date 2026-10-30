@@ -2,6 +2,7 @@
 #include "atmosphere_shaders.hpp"
 #include "style_profile_glsl.hpp"
 #include "meadow_patch_glsl.hpp"
+#include "sunbeam_glsl.hpp"
 #include <SDL3/SDL.h>
 #define GL_GLEXT_PROTOTYPES 1
 #include <SDL3/SDL_opengl.h>
@@ -69,17 +70,19 @@ void main(){
  if(mode!=0&&bands!=0&&smoothLight==0){float s=max(.001,bandSoftness);sun=profileBand(sun,s);}
  vec3 albedo=texture(pixelGround,uv).rgb*colour.rgb;vec3 originalAlbedo=albedo;
  albedo=meadowPatchOn!=0?meadowSurface(albedo,worldPosition.xz):profileColor(albedo,0)*instanceGrades[clamp(colorVariant,0,2)];
+ if(meadowBeamOn!=0&&meadowPatchOn!=0){albedo=beamColors[1];originalAlbedo=albedo;}
  float visibility=shadowMode!=0?stableReceiver(worldPosition,vec3(0,1,0),bias*.000015):1.;
  vec3 ambient=mix(ambientGround,ambientSky,clamp(litNormal.y*.5+.5,0.,1.));
  vec3 light=ambient+sunColor*sun*visibility;
  vec3 lit=max(vec3(0),albedo*mix(light,vec3(1),profileActive!=0?min(ambientLift,.08):ambientLift)*exposure);lit=lit/(1.+lit*.18);
  vec3 display=pow(clamp(lit,0.,1.),vec3(1./2.2));
- if(meadowPatchOn!=0&&meadowLightingOn!=0)display=meadowLit(originalAlbedo,max(0.,dot(litNormal,sd)),visibility,sunColor,exposure);
+ if(meadowPatchOn!=0&&meadowLightingOn!=0)display=meadowBeamOn!=0?meadowBeamLit(originalAlbedo,worldPosition,max(0.,dot(normalize(rootNormal),sd)),visibility,sunColor,exposure,true):meadowLit(originalAlbedo,max(0.,dot(litNormal,sd)),visibility,sunColor,exposure);
  float haze=smoothstep(hazeStart,hazeEnd,length(worldPosition-eye))*hazeStrength;
  display=mix(display,hazeColor,haze);
  if(diagnostic==9)display=vec3(0);
  if(diagnostic==7)display=srgbEncode(clamp(albedo,0.,1.));
  if(diagnostic==1)display=pow(clamp(albedo,0.,1.),vec3(1./2.2));if(diagnostic==4)display=vec3(visibility);
+ if(diagnostic==11){float b=beamField(worldPosition);display=vec3(b,visibility,b*visibility);}
  color=vec4(display,1);normals=vec4(n*.5+.5,profileGreenOnly!=0?.65:.025);
 }
 )GLSL";
@@ -161,7 +164,7 @@ MeshRenderer::MeshRenderer(const MeshClumps &m) {
   p->capacity = m.all.size();
   std::string fragment(fs);
   auto profileAt=fragment.find("// PROFILE");fragment.replace(profileAt,10,profileGLSL);
-  auto meadowAt=fragment.find("// MEADOW");fragment.replace(meadowAt,9,meadowPatchGLSL);
+  auto meadowAt=fragment.find("// MEADOW");fragment.replace(meadowAt,9,std::string(sunbeamGLSL)+meadowPatchGLSL);
   auto at = fragment.find("// VISIBILITY");
   fragment.replace(at, 13, visibilityGLSL);
   p->shader = program(vs, fragment.c_str());
@@ -300,6 +303,10 @@ MeshVisibility MeshRenderer::draw(MeshClumps &m, const Camera &camera,
     auto vec = [&](const char *n, Vec v) {
       mg::Uniform3f(loc(n), v.x, v.y, v.z);
     };
+    mg::Uniform1i(mg::GetUniformLocation(p->shader,"meadowBeamOn"),m.patches.enabled&&m.patches.lightDriven&&m.patches.beamDriven&&p->toon);
+    mg::Uniform1i(mg::GetUniformLocation(p->shader,"beamCount"),m.patches.beamCount);
+    mg::Uniform4fv(mg::GetUniformLocation(p->shader,"beamApertures[0]"),4,m.patches.apertures[0].data());
+    for(int i=0;i<3;i++){auto c=m.patches.beamColors[i];auto name="beamColors["+std::to_string(i)+"]";mg::Uniform3f(mg::GetUniformLocation(p->shader,name.c_str()),c.x,c.y,c.z);}
     mg::Uniform1i(mg::GetUniformLocation(p->shader,"meadowLightingOn"),m.patches.enabled&&m.patches.lightDriven&&p->toon);
     mg::Uniform1i(mg::GetUniformLocation(p->shader,"meadowPatchOn"),m.patches.enabled&&p->toon);
     mg::Uniform1i(mg::GetUniformLocation(p->shader,"meadowPatches"),7);

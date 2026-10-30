@@ -74,6 +74,7 @@ in vec2 uv;out vec4 color;
 uniform sampler2D sceneDepth;uniform mat4 inverseVP;uniform vec3 eye,sunDirection;
 uniform sampler2DShadow smoothShadow;uniform int smoothAtmosphere,boundedAir,definedShafts;uniform vec2 airGrid;
 uniform vec2 sunUV;uniform float sunOnScreen,strength;uniform int method,steps;
+// SUNBEAM
 // VISIBILITY
 float linearDepth(float z){return .2*350./(350.1-(z*2.-1.)*349.9);}
 vec3 position(vec2 q,float z){vec4 h=inverseVP*vec4(q*2.-1.,z*2.-1.,1);return h.xyz/h.w;}
@@ -106,9 +107,20 @@ void main(){float raw=texture(sceneDepth,uv).r;
    result=vec3(1.,.78,.43)*sum/24.*radial*.75*sunOnScreen*strength;}
  }else{
   vec3 endpoint=position(uv,raw);vec3 ray=normalize(endpoint-eye);
-  float end=min(length(endpoint-eye)-.12,16.);float ds=max(0.,end-.2)/float(steps);
+  float end=min(length(endpoint-eye)-.12,meadowBeamOn!=0?32.:16.);float ds=max(0.,end-.2)/float(steps);
   float integral=0.,potential=0.;float phase=.35+.65*pow(max(0.,dot(ray,normalize(sunDirection))),4.);
-  if(boundedAir!=0){
+  if(boundedAir!=0&&meadowBeamOn!=0){
+   for(int i=0;i<16;i++){if(i>=steps)break;
+    for(int j=0;j<3;j++){
+     float offset=j==0?.112701665:j==1?.5:.887298335;
+     float weight=j==1?.444444444:.277777778;
+     float t=.2+(float(i)+offset)*ds;vec3 p=eye+ray*t;
+     float density=smoothstep(.05,.7,p.y)*(1.-smoothstep(10.,16.,p.y));
+     integral+=beamField(p)*airVisibility(p)*density*exp(-t*.018)*ds*weight;
+    }
+   }
+   phase=.55+.45*pow(max(0.,dot(ray,normalize(sunDirection))),4.);
+  }else if(boundedAir!=0){
    // Three longitudinal quadrature samples replace the inherited three
    // center/transverse taps. Same shadow-query budget; less slice banding,
    // without the old locality-weighted cloud patches. No temporal noise.
@@ -139,7 +151,7 @@ void main(){float raw=texture(sceneDepth,uv).r;
   // Retain longitudinal quadrature: sparse midpoint rays produced slice bands.
   if(boundedAir!=0&&definedShafts!=0&&potential>.0001)
    integral=potential*mix(integral/potential,smoothstep(.18,.92,integral/potential),.55);
-  result=vec3(1.,.78,.43)*integral*phase*(boundedAir!=0?(definedShafts!=0?.14:.12):.20)*strength;
+  result=(meadowBeamOn!=0?vec3(1.,.96,.72):vec3(1.,.78,.43))*integral*phase*(boundedAir!=0?(definedShafts!=0?.14:.12):.20)*strength;
  }
  color=vec4(result,(method==2?min(depth,30.):depth)/350.);}
 )GLSL";
