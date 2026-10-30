@@ -51,7 +51,7 @@ struct Options {
                         out = "runs/play", replay;
   std::string preset="balanced",ink="balanced";std::filesystem::path styleSettings;
   bool contacts=true,edgeHighlights=true,edgeOutlines=true,vegetationEdges=true,cleanShadow=true;
-  bool treeEnabled=false,treeScene=false;int treeMode=0;
+  bool treeEnabled=false,treeScene=false,leafPlain=true;int treeMode=0;
   int hudMode=1;bool shadowSet=false,shaftSet=false,hazeSet=false;
   bool sourceTextures = false, legacyFollow = false, legacyGrass = false,
        pixelMaterials = true, debugFollow = false;
@@ -103,12 +103,13 @@ Options options(int argc, char **argv) {
                    "solid\n"
                    "--shadow-cache-probe (isolated technical test only)\n"
                    "--shafts on|off --haze on|off --quality low|medium|high --shaft-strength 0..3\n";
-      std::cout<<"--tree-scene --tree-study original|shader|clusters|billboards (T cycles same-camera options)\n";
+      std::cout<<"--tree-scene --tree-study original|shader|clusters|billboards --leaf-color plain|source (T tree options, M leaf color)\n";
       std::exit(0);
     } else if (a == "--assets")
       o.assets = value();
     else if(a=="--shadow-policy"){auto v=value();if(v!="clean"&&v!="legacy")throw std::runtime_error("shadow-policy clean|legacy");o.cleanShadow=v=="clean";}
     else if(a=="--tree-study"){auto v=value();if(v!="original"&&v!="shader"&&v!="clusters"&&v!="billboards")throw std::runtime_error("tree-study original|shader|clusters|billboards");o.treeEnabled=true;o.treeMode=v=="original"?0:v=="shader"?1:v=="clusters"?2:3;}
+    else if(a=="--leaf-color"){auto v=value();if(v!="plain"&&v!="source")throw std::runtime_error("leaf-color plain|source");o.leafPlain=v=="plain";}
     else if(a=="--tree-scene"){o.treeScene=true;o.treeEnabled=true;}
     else if(a=="--highlights"||a=="--outlines"||a=="--vegetation-edges"){auto v=value();if(v!="on"&&v!="off")throw std::runtime_error("edges on|off");(a=="--highlights"?o.edgeHighlights:a=="--outlines"?o.edgeOutlines:o.vegetationEdges)=v=="on";}
     else if(a=="--air-proof"){auto v=value();if(v!="legacy"&&v!="bounded")throw std::runtime_error("air-proof legacy|bounded");o.boundedAir=v=="bounded";}
@@ -559,7 +560,7 @@ int main(int argc, char **argv) {
     if (!screen.context || !SDL_GL_MakeCurrent(screen.window, screen.context))
       throw std::runtime_error(SDL_GetError());
     SDL_GL_SetSwapInterval(0);
-    p3::Gpu gpu(world, o.allow,tree.get());gpu.setTreeTreatment(o.treeMode);gpu.setTerrainRelief(relief);gpu.setDiagnosticView(o.diagnostic);gpu.setShadowClean(o.cleanShadow);gpu.setSourceView(o.original);
+    p3::Gpu gpu(world, o.allow,tree.get());gpu.setTreeTreatment(o.treeMode);gpu.setPlainLeaves(o.leafPlain);gpu.setTerrainRelief(relief);gpu.setDiagnosticView(o.diagnostic);gpu.setShadowClean(o.cleanShadow);gpu.setSourceView(o.original);
     log<<"terrain_instance_y_scale="<<relief<<"\nshadow_policy="<<(o.cleanShadow?"clean_object_external":"legacy_full_self")<<"\n";
     auto baselineLook = p3::Look::load(o.assets / "look.json");
     auto profile=p3::StyleProfile::load(o.styleSettings.empty()?o.assets/"style_profiles.json":o.styleSettings,o.preset,baselineLook);
@@ -570,6 +571,7 @@ int main(int argc, char **argv) {
     gpu.setProfile(profile);
     auto look=profile.look;
     if(!o.contacts)look.contactStrength=0;
+    log<<"leaf_color="<<(o.leafPlain?"plain":"source")<<"\n";
     log<<"tree_study="<<o.treeEnabled<<"\ntree_mode="<<p3::treeModeName(o.treeMode)<<"\ntree_cards="<<(tree?tree->cards.size():0)<<"\n";
     log<<"style_preset="<<o.preset<<"\nink_preset="<<o.ink<<"\n";
     log<<"luminous_rims="<<profile.luminousRims<<"\nrim_saturation="<<profile.rimSaturation<<"\n";
@@ -655,7 +657,7 @@ int main(int argc, char **argv) {
               "second_state,player_yaw,grass_total,grass_culled,grass_shadow_"
               "draws,grass_shadow_triangles,tree_caster_draws,rock_caster_"
               "draws,building_caster_draws,shadow_cache_invalidations,shadow_"
-              "cpu_ms,internal_width,internal_height,grass_density,grass_lod,grass_lod0,grass_lod1,grass_lod2,meadow_patches,shadow_enabled,shafts_enabled,haze_enabled,source_mode,quality,shadow_size,shaft_steps,shaft_divisor,air_proof,atmosphere_width,atmosphere_height,meadow_lighting,defined_shafts,meadow_response,grass_outlines,beam_count,tree_mode,tree_leaf_cards\n";
+              "cpu_ms,internal_width,internal_height,grass_density,grass_lod,grass_lod0,grass_lod1,grass_lod2,meadow_patches,shadow_enabled,shafts_enabled,haze_enabled,source_mode,quality,shadow_size,shaft_steps,shaft_divisor,air_proof,atmosphere_width,atmosphere_height,meadow_lighting,defined_shafts,meadow_response,grass_outlines,beam_count,tree_mode,tree_leaf_cards,plain_leaves\n";
     timers << "frame,gpu_elapsed_ms\n";
     events << "frame,event,phase,hp,enemy_hp,recruited,x,z\n";
     auto event = [&](int f, const std::string &name) {
@@ -772,6 +774,7 @@ int main(int argc, char **argv) {
             } else if(e.key.key==SDLK_F2){o.hudMode=(o.hudMode+1)%3;event(frame,"hud_toggle");
             } else if (e.key.key == SDLK_F3) {
               o.debugFollow = !o.debugFollow;
+            } else if(e.key.key==SDLK_M&&tree){o.leafPlain=!o.leafPlain;gpu.setPlainLeaves(o.leafPlain);game.message=o.leafPlain?"LEAF BASE PLAIN / ALPHA + TOON LIGHT RETAINED":"LEAF BASE SOURCE TEXTURE / M COMPARE";event(frame,"leaf_color_toggle");
             } else if(e.key.key==SDLK_T&&tree){o.treeMode=(o.treeMode+1)%4;gpu.setTreeTreatment(o.treeMode);game.message=std::string("TREE ")+p3::treeModeName(o.treeMode)+" / T COMPARE";event(frame,"tree_treatment_toggle");
             } else if(e.key.key==SDLK_J){o.edgeHighlights=!o.edgeHighlights;style.highlights=!o.original&&o.edgeHighlights;gpu.setStyle(style);game.message=o.edgeHighlights?"SUN EDGE HIGHLIGHTS ON / J TO COMPARE":"SUN EDGE HIGHLIGHTS OFF / J TO COMPARE";event(frame,o.edgeHighlights?"highlights_on":"highlights_off");
             } else if(e.key.key==SDLK_K){o.edgeOutlines=!o.edgeOutlines;style.outlines=!o.original&&o.edgeOutlines;gpu.setStyle(style);game.message=o.edgeOutlines?"OUTLINES ON / K TO COMPARE":"OUTLINES OFF / K TO COMPARE";event(frame,o.edgeOutlines?"outlines_on":"outlines_off");
@@ -1016,7 +1019,7 @@ int main(int argc, char **argv) {
         else if(game.phase!=game::Phase::Explore)compact.push_back("WILD "+std::to_string(game.enemyHp)+"/24 / 1 ATTACK 2 DEFEND 3 BEFRIEND / ENTER");
         else compact.push_back(game.state.recruited?"EXPLORE / F5 SAVE / F2 HUD":game.state.visited?"E ENCOUNTER / F5 SAVE / F2 HUD":"E COTTAGE REST / F5 SAVE / F2 HUD");
         if(!game.message.empty())compact.push_back(game.message.substr(0,68));hud=std::move(compact);}
-      if(tree)hud.push_back(std::string("T TREE ")+p3::treeModeName(o.treeMode));
+      if(tree)hud.push_back(std::string("T TREE ")+p3::treeModeName(o.treeMode)+" / M "+(o.leafPlain?"PLAIN":"SOURCE"));
       if (!o.coverage&&o.hudMode!=0)
         gpu.hud(hud, ow, oh);
       auto hudEnd = Clock::now();
@@ -1084,7 +1087,7 @@ int main(int argc, char **argv) {
              << ',' << o.quality << ',' << effects.shadowSize << ',' << effects.steps << ',' << effects.divisor
              << ',' << (o.boundedAir?"bounded":"legacy") << ',' << (o.shafts?(o.boundedAir?o.w/effects.divisor:style.atmosphereWidth):0)
              << ',' << (o.shafts?(o.boundedAir?(o.w*9/16)/effects.divisor:style.atmosphereWidth*9/16):0)
-             << ',' << grass.patches.lightDriven << ',' << o.definedShafts << ',' << o.meadowResponse << ',' << o.grassOutlines << ',' << grass.patches.beamCount << ',' << o.treeMode << ',' << stats.treeLeafCards << '\n';
+             << ',' << grass.patches.lightDriven << ',' << o.definedShafts << ',' << o.meadowResponse << ',' << o.grassOutlines << ',' << grass.patches.beamCount << ',' << o.treeMode << ',' << stats.treeLeafCards << ',' << o.leafPlain << '\n';
       lastSwap = swapped;
       if (frame % 120 == 0) {
         frames.flush();

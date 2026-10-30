@@ -143,6 +143,9 @@ float hash2(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 float field(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash2(i),hash2(i+vec2(1,0)),f.x),mix(hash2(i+vec2(0,1)),hash2(i+vec2(1,1)),f.x),f.y);}
 layout(location=0) out vec4 color;layout(location=1) out vec4 normals;layout(location=2)out uint sceneOwner;uniform int drawOwnerID;
 void main(){sceneOwner=uint(drawOwnerID);vec4 a=factor*(vertexTint!=0?tint:vec4(1));if(textured!=0)a*=(sampling==1?textureLod(albedo,uv,0.):texture(albedo,uv));if(alphaMode==1&&a.a<cutoff)discard;
+// Preserve the licensed alpha silhouette; plain mode never uses texture RGB,
+// vertex color or per-card tint for its material base.
+if(treeCards!=0&&plainLeaves!=0)a.rgb=treeCanopyColor;
 vec3 n=normalize(worldNormal);if(!gl_FrontFacing&&treeCards==0)n=-n;
 vec3 treeSource=rgbHSV(srgbEncode(clamp(a.rgb,0.,1.)));
 bool treeLeaf=treeTreatment>0&&(treeCards!=0||(treeSource.x>=.18&&treeSource.x<=.46&&treeSource.y>=.12));
@@ -172,7 +175,7 @@ if(ground!=0&&textured!=0&&studyKind!=4){
 }
 vec3 sourceHSV=rgbHSV(srgbEncode(clamp(a.rgb,0.,1.)));
 bool greenTerrain=ground!=0&&sourceHSV.x>=.18&&sourceHSV.x<=.46&&sourceHSV.y>=.12;
-if(treeCards!=0){float value=dot(a.rgb,vec3(.2126,.7152,.0722))/treeLeafMean;a.rgb=treeCanopyColor*clamp(value,.83,1.13);}
+if(treeCards!=0&&plainLeaves==0){float value=dot(a.rgb,vec3(.2126,.7152,.0722))/treeLeafMean;a.rgb=treeCanopyColor*clamp(value,.83,1.13);}
 vec3 originalAlbedo=a.rgb;
 a.rgb=profileColor(a.rgb,profileFamily);
 if(profileActive!=0&&greenTerrain&&meadowPatchOn!=0)a.rgb=meadowSurface(originalAlbedo,worldPosition.xz);
@@ -186,7 +189,7 @@ else if(profileActive!=0&&profileGreenOnly!=0&&greenTerrain&&groundGreenVariatio
  h.z=clamp(h.z*(1.+groundGreenVariation*(-.10+.28*zone)),0.,1.);
  a.rgb=srgbDecode(hsvRGB(h));
 }
-if(diagnostic==7){color=vec4(srgbEncode(clamp(a.rgb,0.,1.)),1);normals=vec4(n*.5+.5,1);return;}
+if(diagnostic==7){color=vec4(srgbEncode(clamp(a.rgb,0.,1.)),1);normals=vec4(n*.5+.5,treeCards!=0?.20:1.);return;}
 float sun=max(0.,dot(shadeNormal,normalize(sunDirection)));
 if(mode!=0&&bands!=0&&smoothLighting==0){float soft=max(.001,bandSoftness);sun=profileBand(sun,soft);}
 if(smoothLighting!=0&&leafy!=0)sun=max(0.,(dot(shadeNormal,normalize(sunDirection))+.2)/1.2);
@@ -224,6 +227,11 @@ if(treeLeaf){
  }
  float tone=.26+.36*smoothstep(.08,.15,d)+.38*smoothstep(.58,.66,d);
  vec3 fill=mix(ambientGround,ambientSky,clamp(shadeNormal.y*.5+.5,0.,1.));
+ if(treeCards!=0&&plainLeaves!=0){
+  // Three deliberate form tones, with one shared ambient fill. Gradients in
+  // the source image cannot become painted gradients across individual leaves.
+  tone=d<.12?.26:d<.62?.62:1.;fill=mix(ambientGround,ambientSky,.7);
+ }
  light=fill+direct*tone*mix(.22,1.,visibility);
 }
 vec3 lit=max(vec3(0),a.rgb*light*exposure+emission);
@@ -295,7 +303,7 @@ struct Gpu::Impl {
   std::unique_ptr<TreeStudy> tree;
   std::vector<Part> treeParts;
   GLuint treeInstanceBuffer=0;
-  int treeMode=0;
+  int treeMode=0;bool plainLeaves=true;
   std::map<std::filesystem::path, GLuint> textures;
   std::vector<Draw> blends;
   std::vector<Material> materials;
@@ -809,6 +817,7 @@ void Gpu::setDiagnosticView(int v){if(v<0||v>11||v==8)throw std::runtime_error("
 void Gpu::setSourceView(bool v){p->sourceView=v;}
 void Gpu::setShadowClean(bool v){p->shadowClean=v;}
 void Gpu::setTerrainRelief(float v){if(!std::isfinite(v)||v<.75f||v>1)throw std::runtime_error("terrain instance relief range");p->terrainRelief=v;}
+void Gpu::setPlainLeaves(bool value){p->plainLeaves=value;}
 void Gpu::setTreeTreatment(int mode){
  if(mode<0||mode>3||(!p->tree&&mode!=0))throw std::runtime_error("tree treatment requires verified private study");
  if((p->treeMode>=2)!=(mode>=2)){p->shadowValid=p->groundValid=false;shadowCacheInvalidations++;}
@@ -1263,6 +1272,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     auto &mat = p->materials[part.material];
     const auto &model=world.models[i.model];
     bool targetTree=p->tree&&index==p->tree->target;
+    uniformInt(p->mesh,"plainLeaves",p->plainLeaves);
     uniformInt(p->mesh,"treeTreatment",targetTree&&!p->sourceView?p->treeMode:0);uniformInt(p->mesh,"treeCards",part.instances>0);uniformInt(p->mesh,"treeBillboard",part.instances>0&&p->treeMode==3);
     if(targetTree){gl::Uniform3f(gl::GetUniformLocation(p->mesh,"treeCanopyColor"),p->tree->canopyColor.x,p->tree->canopyColor.y,p->tree->canopyColor.z);uniformFloat(p->mesh,"treeLeafMean",p->tree->leafMean);uniformInt(p->mesh,"treeGroupCount",int(p->tree->centers.size()));gl::Uniform4fv(gl::GetUniformLocation(p->mesh,"treeCenters"),GLsizei(p->tree->centers.size()),p->tree->centers.front().data());gl::Uniform4fv(gl::GetUniformLocation(p->mesh,"treeRadii"),GLsizei(p->tree->radii.size()),p->tree->radii.front().data());uniformInt(p->mesh,"treeLeafDetail",6);bind(6,p->textures.at(p->tree->texture));gl::BindSampler(6,0);
      auto right=direction(inverse(effective.view()),{1,0,0}),up=direction(inverse(effective.view()),{0,1,0});gl::Uniform3f(gl::GetUniformLocation(p->mesh,"treeCameraRight"),right.x,right.y,right.z);gl::Uniform3f(gl::GetUniformLocation(p->mesh,"treeCameraUp"),up.x,up.y,up.z);gl::ActiveTexture(GL_TEXTURE0);

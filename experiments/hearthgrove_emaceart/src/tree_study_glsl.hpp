@@ -19,7 +19,7 @@ vec4 leafPosition(vec3 corner,mat4 transform){
 }
 )GLSL";
 static constexpr const char *treeSurfaceGLSL=R"GLSL(
-uniform int treeTreatment,treeGroupCount,treeCards;
+uniform int treeTreatment,treeGroupCount,treeCards,plainLeaves;
 uniform vec4 treeCenters[16],treeRadii[16];
 uniform mat4 model;
 uniform sampler2D treeLeafDetail;

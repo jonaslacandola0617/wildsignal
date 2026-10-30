@@ -1,3 +1,5 @@
+> Owner follow-up: leaf cards default to a plain uniform base, ignoring source RGB/tint; the licensed alpha silhouette, three toon form tones, shadows and edge highlights remain. **M** / `--leaf-color plain|source` compares the previous textured material. The review launcher starts in D. Current private grass/green-terrain palette is standard **#16a34a**, concentrated **#a3e635**, shadow **#14532d**; brown texels are excluded. Previous review details below are historical.
+
 # Single-tree owner visual comparison
 
 Experimental branch based on `0e3eaa1`. Previous shadow-map god rays remain

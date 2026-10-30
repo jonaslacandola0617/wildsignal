@@ -72,3 +72,29 @@ results["verified"] = ["four distinct options", "actual submitted triangle accou
                        "geometry-switch cache invalidation", "zero grass caster draws"]
 (root / "RESULTS.json").write_text(json.dumps(results, indent=2))
 print("PASS actual GL tree modes, triangle counts, cutout/proxy shadows, camera stability, live controls and grass casts OFF")
+
+# Plain leaves keep alpha/geometry/shadows while ignoring painted RGB gradients.
+from PIL import Image
+import numpy as np
+plain_out, _ = run('plain_leaf_base', 'billboards', extra=['--leaf-color','plain','--diagnostic','graded'])
+source_out, _ = run('source_leaf_base', 'billboards', extra=['--leaf-color','source','--diagnostic','graded'])
+a = np.array(Image.open(plain_out/'final_world.ppm'))
+b = np.array(Image.open(source_out/'final_world.ppm'))
+normal_a = np.frombuffer((plain_out/'normal_rgba.u8').read_bytes(),np.uint8).reshape(a.shape[0],a.shape[1],4)
+normal_b = np.frombuffer((source_out/'normal_rgba.u8').read_bytes(),np.uint8).reshape(b.shape[0],b.shape[1],4)
+mask = normal_a[:,:,3] == 51
+assert mask.sum() > 100
+assert np.array_equal(mask, normal_b[:,:,3] == 51), 'plain color changed alpha silhouette'
+plain_colors = np.unique(a[mask],axis=0)
+source_colors = np.unique(b[mask],axis=0)
+assert len(plain_colors)==1 and len(source_colors)>1, (len(plain_colors),len(source_colors))
+assert np.array_equal(a[~mask],b[~mask]), 'plain leaf material changed trunk/terrain/other objects'
+pa,_ = run('plain_leaf_shadow','billboards',extra=['--leaf-color','plain','--diagnostic','visibility'])
+pb,_ = run('source_leaf_shadow','billboards',extra=['--leaf-color','source','--diagnostic','visibility'])
+assert (pa/'raw_shadow_depth.pfm').read_bytes()==(pb/'raw_shadow_depth.pfm').read_bytes()
+replay.write_text('2 down M\n3 up M\n5 down M\n6 up M\n')
+_,frames = run('live_material_toggle','billboards',extra=['--frames','8','--replay',str(replay)])
+assert [frames[i]['plain_leaves'] for i in [0,2,5]]==['1','0','1']
+results['plain_leaf_validation']={'visible_leaf_fragments':int(mask.sum()),'plain_base_RGB':plain_colors.tolist(),'plain_unique_base_colors':len(plain_colors),'source_unique_base_colors':len(source_colors),'identical_alpha_mask':True,'identical_shadow_map':True,'nonleaf_base_pixels_unchanged':True,'M_toggle_verified':True}
+(root/'RESULTS.json').write_text(json.dumps(results,indent=2))
+print('PASS plain leaf base: one RGB, identical alpha/shadows, unchanged non-leaf pixels, live M control')

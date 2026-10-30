@@ -40,6 +40,7 @@ struct Gpu {
               materialsOriginal = 0, cpuGeometryReleased = 0;
   Gpu(World &, bool allowSoftware, const TreeStudy *treeStudy = nullptr);
   void setTreeTreatment(int);
+  void setPlainLeaves(bool);
   void setIntegration(const Integration &);
   void setSurfacePolicy(std::size_t model, const SurfacePolicy &);
   void setGrass(MeshClumps *, const std::filesystem::path &,
