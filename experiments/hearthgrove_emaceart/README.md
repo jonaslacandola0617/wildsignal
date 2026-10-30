@@ -1,3 +1,7 @@
+# Current state: previous god rays, latest grass
+
+See [README_SHAPED_RAYS.md](README_SHAPED_RAYS.md) for current defaults and controls. The new package uses one PLAY_GAME.cmd, previous shadow-based god rays, plain-color grass, grass outlines OFF and grass highlights ON. Prior R3 notes below are historical; current dense placements and full effects follow the latest review manifest.
+
 # Hearthgrove — one playable review
 
 Extract the complete private Windows ZIP into a new folder and run **PLAY_GAME.cmd**. There is one launcher and one finished default look: BALANCED cottage/materials, much brighter saturated sun-facing edge highlights, selective outlines, corrected object shadows, original kit terrain at85% relief and the existing sparse EmaceArt grass. No comparison commands or extra runnable variants are installed.

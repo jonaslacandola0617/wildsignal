@@ -17,6 +17,15 @@ vec3 meadowLit(vec3 originalColor,float incidence,float visibility,vec3 radiance
  float tone=clamp(dot(originalColor,vec3(.2126,.7152,.0722))/.20,.91,1.05);
  return srgbEncode(clamp(ramp*tone,0.,1.));
 }
+// No authored grass color multiplier: only the light field changes its color.
+vec3 meadowBeamLit(vec3 originalColor,vec3 world,float incidence,float visibility,vec3 radiance,float exposureValue,bool grass){
+ float energy=max(0.,dot(radiance,vec3(.2126,.7152,.0722))*exposureValue);
+ float strong=beamField(world)*smoothstep(.15,.55,incidence)*smoothstep(.1,1.,energy);
+ vec3 lit=mix(beamColors[1],beamColors[0],strong);
+ vec3 ramp=mix(beamColors[2],lit,smoothstep(.05,.95,visibility));
+ float tone=grass?1.:clamp(dot(originalColor,vec3(.2126,.7152,.0722))/.20,.94,1.04);
+ return srgbEncode(clamp(ramp*tone,0.,1.));
+}
 vec3 meadowColor(vec2 worldXZ){
  vec2 q=clamp((worldXZ-meadowWorld.xy)*meadowWorld.zw,vec2(0),vec2(1));
  vec3 weights=texture(meadowPatches,q).rgb;

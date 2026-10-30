@@ -8,6 +8,7 @@
 #include "style_shaders.hpp"
 #include "style_profile_glsl.hpp"
 #include "meadow_patch_glsl.hpp"
+#include "sunbeam_glsl.hpp"
 #include <SDL3/SDL.h>
 #define GL_GLEXT_PROTOTYPES 1
 #include <SDL3/SDL_opengl.h>
@@ -207,7 +208,8 @@ vec3 lit=max(vec3(0),a.rgb*light*exposure+emission);
 lit=lit/(1.+lit*.18);
 vec3 display=pow(clamp(lit,0.,1.),vec3(1./2.2));
 if(profileActive!=0&&greenTerrain&&meadowPatchOn!=0&&meadowLightingOn!=0)
- display=meadowLit(originalAlbedo,max(0.,dot(shadeNormal,normalize(sunDirection))),visibility,direct,exposure);
+ display=meadowBeamOn!=0?meadowBeamLit(originalAlbedo,worldPosition,max(0.,dot(shadeNormal,normalize(sunDirection))),visibility,direct,exposure,false):meadowLit(originalAlbedo,max(0.,dot(shadeNormal,normalize(sunDirection))),visibility,direct,exposure);
+if(diagnostic==11){float b=greenTerrain?beamField(worldPosition):0.;color=vec4(b,greenTerrain?visibility:0.,b*visibility,1);normals=vec4(n*.5+.5,ground!=0?.05:.85);return;}
 float haze=smoothstep(hazeStart,hazeEnd,length(worldPosition-eye))*hazeStrength;
 color=vec4(mix(display,hazeColor,haze),alphaMode==2?a.a:1.);
 float category=ground!=0?.05:foliage!=0?.15:architecture!=0?.30+float(kind)*.09:.85;
@@ -285,7 +287,7 @@ struct Gpu::Impl {
   GLuint studyPost = 0, presentProgram = 0;
   GLuint linearSampler = 0, compareSampler = 0;
   GLuint artPost = 0, airFilter = 0, filteredAir = 0, filteredFbo = 0;
-  Mat lightVP;
+  Mat lightVP,lastVP;
   bool shadowValid = false, groundValid = false;
   int mapSize = 0, shaftW = 0, shaftH = 0;
   GLuint shadowProgram = 0, bakeProgram = 0, shaftProgram = 0;
@@ -434,7 +436,7 @@ Gpu::Gpu(World &world, bool allowSoftware) {
   const bool hasSkins = std::any_of(world.models.begin(), world.models.end(),
                                     [](const auto &m) { return bool(m.rig); });
   p->mesh =
-      program(hasSkins ? meshVS : staticMeshVS, ([&]{auto text=visibility(meshFS);auto at=text.find("// PROFILE");text.replace(at,10,profileGLSL);at=text.find("// MEADOW");text.replace(at,9,meadowPatchGLSL);return text;}()).c_str());
+      program(hasSkins ? meshVS : staticMeshVS, ([&]{auto text=visibility(meshFS);auto at=text.find("// PROFILE");text.replace(at,10,profileGLSL);at=text.find("// MEADOW");text.replace(at,9,std::string(sunbeamGLSL)+meadowPatchGLSL);return text;}()).c_str());
   gl::GenSamplers(1, &p->linearSampler);
   gl::SamplerParameteri(p->linearSampler, GL_TEXTURE_MIN_FILTER,
                         GL_LINEAR_MIPMAP_LINEAR);
@@ -735,7 +737,7 @@ void Gpu::setIntegration(const Integration &v) {
   p->integration = v;
   p->lightVP = villageLightProjection(p->look.sunDirection);
 }
-void Gpu::setDiagnosticView(int v){if(v<0||v>10||v==8)throw std::runtime_error("diagnostic view range");p->diagnosticView=v;}
+void Gpu::setDiagnosticView(int v){if(v<0||v>11||v==8)throw std::runtime_error("diagnostic view range");p->diagnosticView=v;}
 void Gpu::setSourceView(bool v){p->sourceView=v;}
 void Gpu::setShadowClean(bool v){p->shadowClean=v;}
 void Gpu::setTerrainRelief(float v){if(!std::isfinite(v)||v<.75f||v>1)throw std::runtime_error("terrain instance relief range");p->terrainRelief=v;}
@@ -804,6 +806,10 @@ void Gpu::saveObjectIDs(const std::filesystem::path &dir){
  gl::BindFramebuffer(GL_READ_FRAMEBUFFER,p->fbo);gl::ReadBuffer(GL_COLOR_ATTACHMENT2);gl::PixelStorei(GL_PACK_ALIGNMENT,1);
  gl::ReadPixels(0,0,p->w,p->h,GL_RED_INTEGER,GL_UNSIGNED_SHORT,data.data());
  std::ofstream file(dir/"owner_ids.u16",std::ios::binary);file.write(reinterpret_cast<char*>(data.data()),std::streamsize(data.size()*sizeof(std::uint16_t)));
+ // Diagnostic-only readback proves world-space light masks across cameras.
+ std::vector<float> depth(std::size_t(p->w)*p->h);gl::ReadPixels(0,0,p->w,p->h,GL_DEPTH_COMPONENT,GL_FLOAT,depth.data());
+ std::ofstream df(dir/"scene_depth.f32",std::ios::binary);df.write(reinterpret_cast<char*>(depth.data()),std::streamsize(depth.size()*sizeof(float)));
+ auto inv=inverse(p->lastVP);std::ofstream mf(dir/"inverse_vp.f32",std::ios::binary);mf.write(reinterpret_cast<const char*>(inv.data()),16*sizeof(float));
  auto normal=capture(true);std::ofstream nf(dir/"normal_rgba.u8",std::ios::binary);nf.write(reinterpret_cast<char*>(normal.rgba.data()),std::streamsize(normal.rgba.size()));
  std::ofstream(dir/"owner_dimensions.txt")<<p->w<<' '<<p->h<<" bottom_up little_endian\n";check("object ID readback");
 }
@@ -870,6 +876,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
   Camera effective = sampled.render;
   auto vp =
       perspective(60 * pi / 180, static_cast<float>(w) / h) * effective.view();
+  p->lastVP=vp;
   auto uniformMatrix = [&](GLuint prog, const char *name, const Mat &m) {
     gl::UniformMatrix4fv(gl::GetUniformLocation(prog, name), 1, GL_FALSE,
                          m.data());
@@ -1087,10 +1094,14 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
   uniformFloat(p->mesh,"groundHarmony",p->profile.groundHarmony);
   uniformFloat(p->mesh,"groundGreenVariation",p->profile.groundGreenVariation);
   bool patchOn=p->grass&&p->grass->patches.enabled&&!p->sourceView;
+  uniformInt(p->mesh,"meadowBeamOn",patchOn&&p->grass->patches.lightDriven&&p->grass->patches.beamDriven);
   uniformInt(p->mesh,"meadowLightingOn",patchOn&&p->grass->patches.lightDriven);
   uniformInt(p->mesh,"meadowPatchOn",patchOn);uniformInt(p->mesh,"meadowPatches",12);bind(12,p->grassGroups);gl::BindSampler(12,0);
   if(p->grass&&!p->grass->patches.weights.empty()) {
     auto &patch=p->grass->patches;
+    uniformInt(p->mesh,"beamCount",patch.beamCount);
+    gl::Uniform4fv(gl::GetUniformLocation(p->mesh,"beamApertures[0]"),4,patch.apertures[0].data());
+    for(int i=0;i<3;i++){auto v=patch.beamColors[i];auto name="beamColors["+std::to_string(i)+"]";gl::Uniform3f(gl::GetUniformLocation(p->mesh,name.c_str()),v.x,v.y,v.z);}
     gl::Uniform4fv(gl::GetUniformLocation(p->mesh,"meadowWorld"),1,patch.world.data());
     for(int i=0;i<3;i++){auto c=patch.lightColors[i];auto uniform="meadowLightColors["+std::to_string(i)+"]";gl::Uniform3f(gl::GetUniformLocation(p->mesh,uniform.c_str()),c.x,c.y,c.z);auto v=patch.colors[i];auto name="meadowColors["+std::to_string(i)+"]";gl::Uniform3f(gl::GetUniformLocation(p->mesh,name.c_str()),v.x,v.y,v.z);}
   }
