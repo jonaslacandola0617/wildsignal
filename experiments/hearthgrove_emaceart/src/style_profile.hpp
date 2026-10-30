@@ -9,6 +9,7 @@ struct StyleProfile {
  bool active=false; int inkMode=1,majorWidth=1;
  std::array<Vec,6> grades{}; std::array<float,4> ink{};
  float groundAnchor=.64f,groundContrast=.20f,groundHarmony=.78f;
+ float groundGreenVariation=0;
  float lowTone=.12f,midTone=.52f,highlight=.2f,ceiling=.82f;
  Look look;
  static StyleProfile load(const std::filesystem::path &path,const std::string &name,const Look &baseline) {
@@ -17,6 +18,8 @@ struct StyleProfile {
   auto doc=ws::parseJson(readText(path));auto revision=doc.at("revision").number();if(revision!=1&&revision!=2&&revision!=3)throw std::runtime_error("style settings revision");
   auto &v=doc.at("presets").at(name);s.active=true;s.greenOnly=revision>=2;s.luminousRims=revision==3;
   auto scalar=[&](const ws::Json& x,float lo,float hi){float n=float(x.number());if(!std::isfinite(n)||n<lo||n>hi)throw std::runtime_error("style setting range");return n;};
+  const auto &fields=std::get<ws::Json::Object>(v.value);
+  if(auto it=fields.find("ground_green_variation");it!=fields.end())s.groundGreenVariation=scalar(it->second,0,1);
   auto vector=[&](const ws::Json& a,float lo,float hi){auto &x=a.array();if(x.size()!=3)throw std::runtime_error("style vector size");return Vec{scalar(x[0],lo,hi),scalar(x[1],lo,hi),scalar(x[2],lo,hi)};};
   if(s.greenOnly){s.grassInk=scalar(v.at("grass_ink_strength"),0,.5f);s.organicCeiling=scalar(v.at("organic_highlight_ceiling"),.8f,s.luminousRims?1.f:.98f);s.organicHighlights=vector(v.at("organic_highlights"),0,s.luminousRims?.65f:.3f);}
   if(s.luminousRims){s.rimSaturation=scalar(v.at("rim_saturation"),1.f,1.6f);s.architectureRim=scalar(v.at("architecture_rim"),0,.5f);}
