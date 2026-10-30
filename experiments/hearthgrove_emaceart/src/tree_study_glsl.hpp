@@ -9,8 +9,18 @@ layout(location=8) in vec4 leafUpRoll;
 layout(location=9) in vec4 leafShadeNormal;
 uniform int treeCards,treeBillboard;
 uniform vec3 treeCameraRight,treeCameraUp;
+uniform vec4 treeLeafUV;uniform vec2 treeLeafBase;
 vec4 leafPosition(vec3 corner,mat4 transform){
  vec4 center=transform*vec4(leafCenterHeight.xyz,1.);
+ if(treeBillboard==2){
+  // Root and growth axis are fixed in world space. Only the plane's width
+  // turns toward the viewer, never the leaf's base-to-tip direction.
+  float s=length(transform[0].xyz);vec3 up=normalize(mat3(transform)*leafUpRoll.xyz);
+  vec3 viewNormal=normalize(cross(treeCameraRight,treeCameraUp)),right=cross(up,viewNormal);
+  if(dot(right,right)<.00001)right=treeCameraRight-up*dot(treeCameraRight,up);
+  right=normalize(right);
+  return center+vec4((right*(corner.x+.5-treeLeafBase.x)*leafRightWidth.w+up*(corner.y-.5+treeLeafBase.y)*leafCenterHeight.w)*s,0.);
+ }
  if(treeBillboard!=0){float s=length(transform[0].xyz),c=cos(leafUpRoll.w),v=sin(leafUpRoll.w);
   vec3 right=treeCameraRight*c+treeCameraUp*v,up=treeCameraUp*c-treeCameraRight*v;
   return center+vec4((right*corner.x*leafRightWidth.w+up*corner.y*leafCenterHeight.w)*s,0.);

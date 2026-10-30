@@ -1,3 +1,26 @@
+## Corrected E: branch-guided, base-pivoted leaves
+
+E now requires verified private leaf_attachment data in tree_study.json. It
+keeps the original solid canopy, but replaces the random-roll rim placement with
+paired outward leaf sprays placed on exposed original canopy vertices and guided
+by the original branch geometry. The rounded texture base is the world-space
+pivot; the long axis points away from the branch spine. Only the width axis may
+turn toward the camera. Root and tip directions do not orbit as the view turns.
+There are no newly modeled twigs; the leaf roots are embedded in the existing
+solid foliage. The source tree meshes and leaf image are unchanged.
+
+A UV subrectangle excludes a neighboring leaf fragment accidentally included in
+the earlier crop. It reads the same image without repainting or generating a new
+texture. Plain foliage colors, solid-canopy cast shadow, standard #65a30d grass,
+#a3e635 focused light and #14532d shadows are preserved. A/B/C/D remain historical
+controls. E from the previous review remains in Git history and private captures.
+
+The previous E description below is historical. The current private attachment
+binary and calibrated UV/base metadata are required; a missing dependency fails
+with a specific message rather than silently restoring random leaf placement.
+
+---
+
 ## Owner follow-up: E solid canopy with small silhouette leaves
 
 `--tree-study hybrid` (E in the live T cycle) keeps the entire original source

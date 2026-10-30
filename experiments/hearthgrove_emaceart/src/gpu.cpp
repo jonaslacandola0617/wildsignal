@@ -478,7 +478,7 @@ Gpu::Gpu(World &world, bool allowSoftware, const TreeStudy *treeStudy) {
                                     [](const auto &m) { return bool(m.rig); });
   auto vertexWithTree=[](const char *src,bool surface){
     std::string text(src);auto at=text.find("void main");text.insert(at,std::string(treeVertexGLSL)+(surface?"out vec3 treeLocalPosition;\n":""));
-    if(surface)text.insert(text.rfind('}'),"treeLocalPosition=position;if(treeCards!=0){vec4 leaf=leafPosition(position,model);worldPosition=leaf.xyz;worldNormal=mat3(model)*leafShadeNormal.xyz;treeLocalPosition=leafCenterHeight.xyz;uv=texcoord;tint=vec4(1);gl_Position=viewProjection*leaf;}");
+    if(surface)text.insert(text.rfind('}'),"treeLocalPosition=position;if(treeCards!=0){vec4 leaf=leafPosition(position,model);worldPosition=leaf.xyz;worldNormal=mat3(model)*leafShadeNormal.xyz;treeLocalPosition=leafCenterHeight.xyz;uv=treeBillboard==2?mix(treeLeafUV.xy,treeLeafUV.zw,texcoord):texcoord;tint=vec4(1);gl_Position=viewProjection*leaf;}");
     else text.insert(text.rfind('}'),"if(treeCards!=0)gl_Position=lightVP*leafPosition(position,model);");
     return text;
   };
@@ -827,6 +827,7 @@ void Gpu::setTerrainRelief(float v){if(!std::isfinite(v)||v<.75f||v>1)throw std:
 void Gpu::setPlainLeaves(bool value){p->plainLeaves=value;}
 void Gpu::setTreeTreatment(int mode){
  if(mode<0||mode>4||(!p->tree&&mode!=0))throw std::runtime_error("tree treatment requires verified private study");
+ if(mode==4&&!p->tree->attached)throw std::runtime_error("hybrid requires verified branch-rooted leaf attachment data");
  if((p->treeMode==2||p->treeMode==3)!=(mode==2||mode==3)){p->shadowValid=p->groundValid=false;shadowCacheInvalidations++;}
  p->treeMode=mode;
 }
@@ -1280,8 +1281,8 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     const auto &model=world.models[i.model];
     bool targetTree=p->tree&&index==p->tree->target;
     uniformInt(p->mesh,"plainLeaves",p->plainLeaves);
-    uniformInt(p->mesh,"treeTreatment",targetTree&&!p->sourceView?p->treeMode:0);uniformInt(p->mesh,"treeCards",part.instances>0);uniformInt(p->mesh,"treeBillboard",part.instances>0&&(p->treeMode==3||p->treeMode==4));
-    if(targetTree){gl::Uniform3f(gl::GetUniformLocation(p->mesh,"treeCanopyColor"),p->tree->canopyColor.x,p->tree->canopyColor.y,p->tree->canopyColor.z);uniformFloat(p->mesh,"treeLeafMean",p->tree->leafMean);uniformInt(p->mesh,"treeGroupCount",int(p->tree->centers.size()));gl::Uniform4fv(gl::GetUniformLocation(p->mesh,"treeCenters"),GLsizei(p->tree->centers.size()),p->tree->centers.front().data());gl::Uniform4fv(gl::GetUniformLocation(p->mesh,"treeRadii"),GLsizei(p->tree->radii.size()),p->tree->radii.front().data());uniformInt(p->mesh,"treeLeafDetail",6);bind(6,p->textures.at(p->tree->texture));gl::BindSampler(6,0);
+    uniformInt(p->mesh,"treeTreatment",targetTree&&!p->sourceView?p->treeMode:0);uniformInt(p->mesh,"treeCards",part.instances>0);uniformInt(p->mesh,"treeBillboard",part.instances>0?(p->treeMode==4?2:p->treeMode==3?1:0):0);
+    if(targetTree){gl::Uniform4fv(gl::GetUniformLocation(p->mesh,"treeLeafUV"),1,p->tree->leafUV.data());gl::Uniform2f(gl::GetUniformLocation(p->mesh,"treeLeafBase"),p->tree->leafBase[0],p->tree->leafBase[1]);gl::Uniform3f(gl::GetUniformLocation(p->mesh,"treeCanopyColor"),p->tree->canopyColor.x,p->tree->canopyColor.y,p->tree->canopyColor.z);uniformFloat(p->mesh,"treeLeafMean",p->tree->leafMean);uniformInt(p->mesh,"treeGroupCount",int(p->tree->centers.size()));gl::Uniform4fv(gl::GetUniformLocation(p->mesh,"treeCenters"),GLsizei(p->tree->centers.size()),p->tree->centers.front().data());gl::Uniform4fv(gl::GetUniformLocation(p->mesh,"treeRadii"),GLsizei(p->tree->radii.size()),p->tree->radii.front().data());uniformInt(p->mesh,"treeLeafDetail",6);bind(6,p->textures.at(p->tree->texture));gl::BindSampler(6,0);
      auto right=direction(inverse(effective.view()),{1,0,0}),up=direction(inverse(effective.view()),{0,1,0});gl::Uniform3f(gl::GetUniformLocation(p->mesh,"treeCameraRight"),right.x,right.y,right.z);gl::Uniform3f(gl::GetUniformLocation(p->mesh,"treeCameraUp"),up.x,up.y,up.z);gl::ActiveTexture(GL_TEXTURE0);
     }
     int family=model.rig?-1:model.id.starts_with("EA_TREE")||model.id.starts_with("EA_BUSH")||model.id.starts_with("EA_REED")?1:model.id.starts_with("EA_ROCK")?4:model.id.starts_with("EA_PATH")||model.id=="EA_COBBLE"||model.id.starts_with("HG_PATH")?3:model.id=="EA_GROUND"||model.id.starts_with("HG_GROUND")||model.id.starts_with("HG_GREEN")||model.id.starts_with("EA_GREEN")?5:model.id.starts_with("EA_GREEN")||model.id.starts_with("HG_GREEN")||model.id=="EA_MOSS"?0:2;
