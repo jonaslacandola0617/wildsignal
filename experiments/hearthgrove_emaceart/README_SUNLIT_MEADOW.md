@@ -1,0 +1,15 @@
+# Sunlit meadow and defined, soft-edged shafts
+
+This owner-requested experiment adds a lighting-driven vegetation/green-terrain ramp, preserving original source texels, UVs, models, terrain relief, placement, gameplay, saves and optimized LODs. It is a separate branch from the preceding50/30/20 regional-patch pass.
+
+The private vegetation manifest optionally supplies `meadow_patches.lighting_colors_linear`: three finite RGB triples for sunlit/base/shadow. The review pack uses owner sRGB colors#a3e635/#65a30d/#166534, converted to linear. Shadow green uses the lighter of the two proposed dark greens to retain readable detail. Same function shades grass and original green terrain, guarded by original source-texel green classification and ground material. Brown and non-ground assets never enter that ramp. Existing source value detail remains restrained.
+
+The ramp follows actual directional sun incidence, intensity/exposure and shadow visibility, not projected screen-space beam brightness. Scattering in air is not an additional surface light. The current renderer has directional sunlight plus ambient fill; local point/spot-light response is not implemented. Hex colors are palette anchors before haze, highlights, display quantization and scattering, not a promise that every final pixel equals an exact hex. Lighting determines coverage; the prior50/30/20 spatial ratio is preserved only in regional comparison mode.
+
+The defined shaft profile uses smooth contrast on integrated shadow-map visibility to clarify lit channels. It keeps the bounded medium24-shadow-query budget, with world-space deterministic longitudinal quadrature samples, no drawn beam cards/rectangles. Five-tap depth/radiance-aware reconstruction favours the center instead of the preceding broad9-tap blur; full-resolution material/normal buffers are not blurred. Narrow shafts remain constrained by shadow-map resolution, quarter-size atmosphere and8steps. Light must actually pass through visible occluder gaps; this cannot guarantee reference-like rays from every camera. Legacy soft appearance remains selectable.
+
+ONE `PLAY_GAME.cmd`: R480/640; V shafts; H haze; O shadows; J/K highlights/outlines; G density; P regional system; **U lighting-driven versus regional colors**; **N defined versus previous soft shafts**; **B mesh LOD**; L atmosphere quality; F source/toon; F2 HUD; F3 follower debug; F5/F9 save/load. Movement/interactions/combat unchanged. The earlier duplicate L binding was corrected to B for LOD.
+
+CLI: `--meadow-lighting on|off`, `--shaft-profile defined|soft`. Explicit `--air-proof bounded|legacy` now reaches the integration configuration instead of being overwritten. Earlier flags and telemetry columns remain; new columns append `meadow_lighting,defined_shafts`. Keep grass cast shadows OFF.
+
+Compile via existing CMake/SDL3 instructions. Windows CI code artifact excludes private assets; only private review ZIP is complete. Actual measurements/captures and untested hardware are documented in the private delivery. No owner visual approval or Intel UHD performance is inferred from software renders or tests. No merges.

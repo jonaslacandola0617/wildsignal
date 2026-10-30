@@ -6,7 +6,8 @@
 namespace p3 {
 // Numeric regional weights, never a diffuse/source-art replacement.
 struct MeadowPatches {
- bool enabled=false;
+ bool enabled=false,lightDriven=false;
+ std::array<Vec,3> lightColors{}; // lit / base / shadow, linear RGB
  int width=0,height=0;
  std::array<float,4> world{}; // minimum XZ, inverse world dimensions
  std::array<Vec,3> colors{}; // linear light/standard/teal albedos
@@ -24,6 +25,13 @@ struct MeadowPatches {
   for(int k=0;k<2;k++){float m=float(minimum[k].number()),s=float(size[k].number());if(!std::isfinite(m)||std::abs(m)>128||!std::isfinite(s)||s<1||s>256)throw std::runtime_error("meadow world range");world[k]=m;world[k+2]=1/s;}
   const auto &palette=cfg.at("colors_linear").array();if(palette.size()!=3)throw std::runtime_error("meadow three colors");
   for(int k=0;k<3;k++){const auto &c=palette[k].array();if(c.size()!=3)throw std::runtime_error("meadow RGB");Vec v{float(c[0].number()),float(c[1].number()),float(c[2].number())};if(!finite(v)||std::min({v.x,v.y,v.z})<0||std::max({v.x,v.y,v.z})>1)throw std::runtime_error("meadow color range");colors[k]=v;}
+  lightDriven=false;
+  if(std::get<ws::Json::Object>(cfg.value).count("lighting_colors_linear")) {
+   const auto &ramp=cfg.at("lighting_colors_linear").array();
+   if(ramp.size()!=3)throw std::runtime_error("meadow lighting three colors");
+   for(int k=0;k<3;k++){const auto &c=ramp[k].array();if(c.size()!=3)throw std::runtime_error("meadow lighting RGB");Vec v{float(c[0].number()),float(c[1].number()),float(c[2].number())};if(!finite(v)||std::min({v.x,v.y,v.z})<0||std::max({v.x,v.y,v.z})>1)throw std::runtime_error("meadow lighting color range");lightColors[k]=v;}
+   lightDriven=true;
+  }
   enabled=true;
  }
 };

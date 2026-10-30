@@ -60,7 +60,7 @@ struct Options {
        fresh = false, original = false;
   std::string pacing = "precise";
   bool shafts = true, haze = true;
-  bool grassLod=true,meadowPatches=true,boundedAir=true;
+  bool grassLod=true,meadowPatches=true,boundedAir=true,meadowLighting=true,definedShafts=true;
   std::string quality = "medium";
   float shaftStrength = 1.5f;
   bool shadows = true, forceLegacyGrass = false, requireAuthored = false,
@@ -87,7 +87,7 @@ Options options(int argc, char **argv) {
       std::cout
           << "HEARTHGROVE EMACEART complete playable village\n--assets DIR "
              "--resolution 480|640|1280 "
-             "--grass-density off|low|medium|high\n--grass-lod on|off --meadow-patches on|off --air-proof bounded|legacy\n--buildings on|off "
+             "--grass-density off|low|medium|high\n--grass-lod on|off --meadow-patches on|off --air-proof bounded|legacy\n--meadow-lighting on|off --shaft-profile soft|defined\n--buildings on|off "
              "--render-mode original|toon --pacing precise|legacy|off\n--cap "
              "0|30|60 --benchmark --pose 0..15 --frames N --capture-every "
              "N\n--save FILE --new-game --output DIR --allow-software --hidden "
@@ -108,6 +108,8 @@ Options options(int argc, char **argv) {
     else if(a=="--highlights"||a=="--outlines"||a=="--vegetation-edges"){auto v=value();if(v!="on"&&v!="off")throw std::runtime_error("edges on|off");(a=="--highlights"?o.edgeHighlights:a=="--outlines"?o.edgeOutlines:o.vegetationEdges)=v=="on";}
     else if(a=="--air-proof"){auto v=value();if(v!="legacy"&&v!="bounded")throw std::runtime_error("air-proof legacy|bounded");o.boundedAir=v=="bounded";}
     else if(a=="--grass-lod"||a=="--meadow-patches"){auto v=value();if(v!="on"&&v!="off")throw std::runtime_error("grass controls on|off");(a=="--grass-lod"?o.grassLod:o.meadowPatches)=v=="on";}
+    else if(a=="--meadow-lighting"){auto v=value();if(v!="on"&&v!="off")throw std::runtime_error("meadow-lighting on|off");o.meadowLighting=v=="on";}
+    else if(a=="--shaft-profile"){auto v=value();if(v!="soft"&&v!="defined")throw std::runtime_error("shaft-profile soft|defined");o.definedShafts=v=="defined";}
     else if(a=="--contacts"){auto v=value();if(v!="on"&&v!="off")throw std::runtime_error("contacts on|off");o.contacts=v=="on";}
     else if(a=="--style-preset"){o.preset=value();if(o.preset!="baseline"&&o.preset!="balanced"&&o.preset!="rich")throw std::runtime_error("style-preset baseline|balanced|rich");}
     else if(a=="--style-settings")o.styleSettings=value();
@@ -519,6 +521,7 @@ int main(int argc, char **argv) {
     grass.fragmentReceiver = o.fragmentReceiver;
     grass.diagnostic = o.diagnostic;
     grass.density = o.density;
+    bool hasLightingRamp=grass.patches.lightDriven;grass.patches.lightDriven=hasLightingRamp&&o.meadowLighting;
     grass.options.lod=o.grassLod;grass.patches.enabled=grass.patches.enabled&&o.meadowPatches;
     Screen screen;
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS))
@@ -587,7 +590,8 @@ int main(int argc, char **argv) {
       effects.automatic=false; // explicit comparison controls never silently change
       gpu.setEffects(effects);
     };
-    integration.boundedAir=true;
+    integration.boundedAir=o.boundedAir;
+    gpu.setDefinedShafts(o.definedShafts);
     gpu.setIntegration(integration);updateEffects();
     for(std::size_t i=0;i<world.models.size();++i) {
       bool ground=!world.models[i].materials.empty()&&world.models[i].materials[0].ground;
@@ -610,6 +614,7 @@ int main(int argc, char **argv) {
     log << "grass_family="
         << (grass.authored ? grass.assetFamily : "LEGACY_CONTROL")
         << "\ngrass_receive=" << grass.receiveShadows
+        << "\nmeadow_lighting=" << grass.patches.lightDriven << "\nshaft_profile=" << (o.definedShafts?"defined":"soft")
         << "\ngrass_lod=" << grass.options.lod << "\nmeadow_patches=" << grass.patches.enabled
         << "\nshaft_method=shadow_map_volume\ngrass_cast=0\nshadow_enabled=" << o.shadows
         << "\nshafts=" << o.shafts << "\nshaft_strength=" << o.shaftStrength << "\nhaze=" << o.haze << "\nquality=" << o.quality
@@ -630,7 +635,7 @@ int main(int argc, char **argv) {
               "second_state,player_yaw,grass_total,grass_culled,grass_shadow_"
               "draws,grass_shadow_triangles,tree_caster_draws,rock_caster_"
               "draws,building_caster_draws,shadow_cache_invalidations,shadow_"
-              "cpu_ms,internal_width,internal_height,grass_density,grass_lod,grass_lod0,grass_lod1,grass_lod2,meadow_patches,shadow_enabled,shafts_enabled,haze_enabled,source_mode,quality,shadow_size,shaft_steps,shaft_divisor,air_proof,atmosphere_width,atmosphere_height\n";
+              "cpu_ms,internal_width,internal_height,grass_density,grass_lod,grass_lod0,grass_lod1,grass_lod2,meadow_patches,shadow_enabled,shafts_enabled,haze_enabled,source_mode,quality,shadow_size,shaft_steps,shaft_divisor,air_proof,atmosphere_width,atmosphere_height,meadow_lighting,defined_shafts\n";
     timers << "frame,gpu_elapsed_ms\n";
     events << "frame,event,phase,hp,enemy_hp,recruited,x,z\n";
     auto event = [&](int f, const std::string &name) {
@@ -758,7 +763,9 @@ int main(int argc, char **argv) {
               o.original=!o.original;style.highlights=!o.original&&o.edgeHighlights;style.outlines=!o.original&&o.edgeOutlines;gpu.setSourceView(o.original);gpu.setStyle(style);event(frame,"source_toon_toggle");
             } else if(e.key.key==SDLK_L) {
               o.quality=o.quality=="low"?"medium":o.quality=="medium"?"high":"low";updateEffects();event(frame,"quality_toggle");
-            } else if(e.key.key==SDLK_L){grass.options.lod=!grass.options.lod;event(frame,"grass_lod_toggle");
+            } else if(e.key.key==SDLK_B){grass.options.lod=!grass.options.lod;event(frame,"grass_lod_toggle");
+            } else if(e.key.key==SDLK_U){grass.patches.lightDriven=hasLightingRamp&&!grass.patches.lightDriven;event(frame,"meadow_lighting_toggle");
+            } else if(e.key.key==SDLK_N){o.definedShafts=!o.definedShafts;gpu.setDefinedShafts(o.definedShafts);event(frame,"shaft_profile_toggle");
             } else if(e.key.key==SDLK_P){if(!grass.patches.weights.empty())grass.patches.enabled=!grass.patches.enabled;event(frame,"meadow_patches_toggle");
             } else if (e.key.key == SDLK_G) {
               grass.density = (grass.density + 1) % 4;
@@ -967,6 +974,7 @@ int main(int argc, char **argv) {
           hud.push_back("BEFRIEND: WILD HP12 OR LESS + DEFEND AT LEAST ONCE");
       }
       hud.push_back(std::string("O SHADOW ")+(o.shadows?"ON":"OFF")+" / V SHAFTS "+(o.shafts?"ON":"OFF")+" / H HAZE "+(o.haze?"ON":"OFF")+" / L "+o.quality);
+      hud.push_back(std::string("U COLORS ")+(grass.patches.lightDriven?"LIGHT-DRIVEN":"REGIONAL")+" / N SHAFT "+(o.definedShafts?"DEFINED":"SOFT")+" / B GRASS LOD");
       if (o.debugFollow)
         hud.push_back(std::string("FOLLOW ") +
                       game::followName(game.follower.state) + " / SECOND " +
@@ -1052,7 +1060,7 @@ int main(int argc, char **argv) {
              << ',' << o.quality << ',' << effects.shadowSize << ',' << effects.steps << ',' << effects.divisor
              << ',' << (o.boundedAir?"bounded":"legacy") << ',' << (o.shafts?(o.boundedAir?o.w/effects.divisor:style.atmosphereWidth):0)
              << ',' << (o.shafts?(o.boundedAir?(o.w*9/16)/effects.divisor:style.atmosphereWidth*9/16):0)
-             << '\n';
+             << ',' << grass.patches.lightDriven << ',' << o.definedShafts << '\n';
       lastSwap = swapped;
       if (frame % 120 == 0) {
         frames.flush();

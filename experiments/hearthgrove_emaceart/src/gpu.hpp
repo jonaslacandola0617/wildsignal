@@ -56,6 +56,7 @@ struct Gpu {
   void saveObjectIDs(const std::filesystem::path &);
   std::size_t ownershipBytes() const;
   void setEffects(const Effects &);
+  void setDefinedShafts(bool);
   std::size_t effectBytes() const;
   ~Gpu();
   Gpu(const Gpu &) = delete;

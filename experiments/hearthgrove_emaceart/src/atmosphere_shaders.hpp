@@ -72,7 +72,7 @@ void main(){vec3 world=vec3((uv.x-.5)*48.,-.039,(uv.y-.5)*48.);color=vec4(sunlig
 static constexpr const char *shaftsFS = R"GLSL(#version 330 core
 in vec2 uv;out vec4 color;
 uniform sampler2D sceneDepth;uniform mat4 inverseVP;uniform vec3 eye,sunDirection;
-uniform sampler2DShadow smoothShadow;uniform int smoothAtmosphere,boundedAir;uniform vec2 airGrid;
+uniform sampler2DShadow smoothShadow;uniform int smoothAtmosphere,boundedAir,definedShafts;uniform vec2 airGrid;
 uniform vec2 sunUV;uniform float sunOnScreen,strength;uniform int method,steps;
 // VISIBILITY
 float linearDepth(float z){return .2*350./(350.1-(z*2.-1.)*349.9);}
@@ -107,7 +107,7 @@ void main(){float raw=texture(sceneDepth,uv).r;
  }else{
   vec3 endpoint=position(uv,raw);vec3 ray=normalize(endpoint-eye);
   float end=min(length(endpoint-eye)-.12,16.);float ds=max(0.,end-.2)/float(steps);
-  float integral=0.;float phase=.35+.65*pow(max(0.,dot(ray,normalize(sunDirection))),4.);
+  float integral=0.,potential=0.;float phase=.35+.65*pow(max(0.,dot(ray,normalize(sunDirection))),4.);
   if(boundedAir!=0){
    // Three longitudinal quadrature samples replace the inherited three
    // center/transverse taps. Same shadow-query budget; less slice banding,
@@ -118,7 +118,8 @@ void main(){float raw=texture(sceneDepth,uv).r;
      float weight=j==1?.444444444:.277777778;
      float t=.2+(float(i)+offset)*ds;vec3 p=eye+ray*t;
      float density=exp(-abs(p.y-2.8)*.35)*smoothstep(.05,.65,p.y)*(1.-smoothstep(24.,34.,length(p.xz)))*(1.-smoothstep(4.5,7.,p.y));
-     integral+=airVisibility(p)*density*exp(-t*.035)*ds*weight;
+     float amount=density*exp(-t*.035)*ds*weight;
+     integral+=airVisibility(p)*amount;potential+=amount;
     }
    }
    phase=.12+.88*pow(max(0.,dot(ray,normalize(sunDirection))),6.);
@@ -134,8 +135,26 @@ void main(){float raw=texture(sceneDepth,uv).r;
    float locality=.08+.92*clamp((1.-neighbor)*2.,0.,1.);
    integral+=visibility*locality*density*exp(-t*.035)*ds;}
   }
-  result=vec3(1.,.78,.43)*integral*phase*(boundedAir!=0?.12:.20)*strength;
+  // Smooth contrast on integrated visibility, never a per-sample hard mask.
+  // Retain longitudinal quadrature: sparse midpoint rays produced slice bands.
+  if(boundedAir!=0&&definedShafts!=0&&potential>.0001)
+   integral=potential*mix(integral/potential,smoothstep(.18,.92,integral/potential),.55);
+  result=vec3(1.,.78,.43)*integral*phase*(boundedAir!=0?(definedShafts!=0?.14:.12):.20)*strength;
  }
  color=vec4(result,(method==2?min(depth,30.):depth)/350.);}
+)GLSL";
+// Depth- and radiance-aware atmosphere filtering only. The defined profile
+// favours the center and excludes diagonal blur: soft borders, readable body.
+static constexpr const char *meadowAirFilterFS=R"GLSL(#version 330 core
+in vec2 uv;out vec4 color;uniform sampler2D shaftImage;uniform int definedShafts;
+void main(){ivec2 size=textureSize(shaftImage,0),p=clamp(ivec2(gl_FragCoord.xy),ivec2(0),size-1);vec4 center=texelFetch(shaftImage,p,0);float depth=center.a*350.;vec3 sum=vec3(0);float total=0.;
+ for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){
+  if(definedShafts!=0&&abs(x)+abs(y)>1)continue;
+  vec4 n=texelFetch(shaftImage,clamp(p+ivec2(x,y),ivec2(0),size-1),0);
+  float w=definedShafts!=0?(x==0&&y==0?8.:1.):float((2-abs(x))*(2-abs(y)));
+  float gap=abs(n.a-center.a)*350.;w*=1.-smoothstep(max(.12,depth*.02),max(.25,depth*.05),gap);
+  if(definedShafts!=0)w*=1.-.75*smoothstep(.025,.15,length(n.rgb-center.rgb));
+  sum+=n.rgb*w;total+=w;
+ }color=vec4(sum/max(.001,total),center.a);}
 )GLSL";
 } // namespace p3
