@@ -1,6 +1,7 @@
 #include "mesh_gpu.hpp"
 #include "atmosphere_shaders.hpp"
 #include "style_profile_glsl.hpp"
+#include "meadow_patch_glsl.hpp"
 #include <SDL3/SDL.h>
 #define GL_GLEXT_PROTOTYPES 1
 #include <SDL3/SDL_opengl.h>
@@ -25,7 +26,7 @@ namespace mg {
               F(DeleteShader) F(CreateProgram) F(AttachShader) F(LinkProgram)  \
                   F(GetProgramiv) F(GetProgramInfoLog) F(DeleteProgram)        \
                       F(UseProgram) F(GetUniformLocation) F(UniformMatrix4fv)  \
-                          F(Uniform3f) F(Uniform1i) F(Uniform1f) F(Enable)     \
+                              F(Uniform3f) F(Uniform4fv) F(Uniform1i) F(Uniform1f) F(Enable)     \
                               F(Disable) F(DepthMask) F(DepthFunc) F(CullFace) \
                                   F(ActiveTexture) F(BindTexture)              \
                                       F(BindSampler)
@@ -58,6 +59,7 @@ uniform vec3 sunDirection,sunColor,ambientSky,ambientGround,eye,hazeColor;
 uniform float exposure,bandSoftness,bias,normalUpBias,ambientLift,hazeStart,hazeEnd,hazeStrength;
 uniform int mode,bands,smoothLight,shadowMode,diagnostic;
 // PROFILE
+// MEADOW
 // VISIBILITY
 layout(location=0)out vec4 color;layout(location=1)out vec4 normals;layout(location=2)out uint sceneOwner;
 void main(){
@@ -66,8 +68,7 @@ void main(){
  vec3 sd=normalize(sunDirection);float sun=max(0.,dot(litNormal,sd));
  if(mode!=0&&bands!=0&&smoothLight==0){float s=max(.001,bandSoftness);sun=profileBand(sun,s);}
  vec3 albedo=texture(pixelGround,uv).rgb*colour.rgb;
- albedo=profileColor(albedo,0);
- albedo*=instanceGrades[clamp(colorVariant,0,2)];
+ albedo=meadowPatchOn!=0?meadowSurface(albedo,worldPosition.xz):profileColor(albedo,0)*instanceGrades[clamp(colorVariant,0,2)];
  float visibility=shadowMode!=0?stableReceiver(worldPosition,vec3(0,1,0),bias*.000015):1.;
  vec3 ambient=mix(ambientGround,ambientSky,clamp(litNormal.y*.5+.5,0.,1.));
  vec3 light=ambient+sunColor*sun*visibility;
@@ -159,6 +160,7 @@ MeshRenderer::MeshRenderer(const MeshClumps &m) {
   p->capacity = m.all.size();
   std::string fragment(fs);
   auto profileAt=fragment.find("// PROFILE");fragment.replace(profileAt,10,profileGLSL);
+  auto meadowAt=fragment.find("// MEADOW");fragment.replace(meadowAt,9,meadowPatchGLSL);
   auto at = fragment.find("// VISIBILITY");
   fragment.replace(at, 13, visibilityGLSL);
   p->shader = program(vs, fragment.c_str());
@@ -208,8 +210,7 @@ MeshRenderer::MeshRenderer(const MeshClumps &m) {
                                       m.authored ? 0 : m.all.size());
   if (m.authored)
     for (int variant : m.variants) {
-      capacities[variant]++;
-      capacities[m.farVariants[variant]]++;
+      for(int level=0;level<3;level++)if(level==0||m.lodModels[variant][level]!=m.lodModels[variant][level-1])capacities[m.lodModels[variant][level]]++;
     }
   for (std::size_t tier = 0; tier < m.models.size(); tier++) {
     if (m.models[tier].parts.empty())
@@ -263,6 +264,7 @@ static void submit(GLuint vao, GLuint stream, GLsizei indices,
                    std::size_t capacity) {
   if (data.empty())
     return;
+  if(data.size()>capacity)throw std::runtime_error("grass instance stream capacity");
   mg::BindVertexArray(vao);
   mg::BindBuffer(GL_ARRAY_BUFFER, stream);
   mg::BufferData(GL_ARRAY_BUFFER, capacity * sizeof(MeshTransform), nullptr,
@@ -297,6 +299,10 @@ MeshVisibility MeshRenderer::draw(MeshClumps &m, const Camera &camera,
     auto vec = [&](const char *n, Vec v) {
       mg::Uniform3f(loc(n), v.x, v.y, v.z);
     };
+    mg::Uniform1i(mg::GetUniformLocation(p->shader,"meadowPatchOn"),m.patches.enabled&&p->toon);
+    mg::Uniform1i(mg::GetUniformLocation(p->shader,"meadowPatches"),7);
+    mg::Uniform4fv(mg::GetUniformLocation(p->shader,"meadowWorld"),1,m.patches.world.data());
+    for(int i=0;i<3;i++){auto v=m.patches.colors[i];auto name="meadowColors["+std::to_string(i)+"]";mg::Uniform3f(mg::GetUniformLocation(p->shader,name.c_str()),v.x,v.y,v.z);}
     for(int i=0;i<3;i++){auto v=m.instanceGrades[i];auto name="instanceGrades["+std::to_string(i)+"]";mg::Uniform3f(mg::GetUniformLocation(p->shader,name.c_str()),v.x,v.y,v.z);}
     auto integer = [&](const char *n, int v) { mg::Uniform1i(loc(n), v); };
     integer("coverage", m.coverage);
