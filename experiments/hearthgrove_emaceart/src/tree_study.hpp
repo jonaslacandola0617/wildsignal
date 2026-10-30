@@ -17,7 +17,7 @@ struct TreeStudy {
   std::filesystem::path texture;
   std::vector<std::array<float,4>> centers, radii;
   std::vector<std::vector<std::uint32_t>> trunk;
-  std::vector<TreeCard> cards;
+  std::vector<TreeCard> cards, rimCards;
   Box localBounds;
   Vec canopyColor;float leafMean=1;
   std::size_t canopyTriangles=0;
@@ -62,8 +62,31 @@ struct TreeStudy {
       t.cards.push_back({{c.x,c.y,c.z,h},{right.x,right.y,right.z,w},{up.x,up.y,up.z,roll},{n.x,n.y,n.z,0}});
       float radius=.5f*std::hypot(w,h);t.localBounds.add(c-Vec{radius,radius,radius});t.localBounds.add(c+Vec{radius,radius,radius});
     }
+    // Reuse existing licensed leaf placements; do not synthesize artwork or
+    // modify the source canopy. Reject anchors buried inside neighboring
+    // canopy volumes, then retain a sparse, deterministic set of small leaves.
+    for(const auto &card:t.cards){
+      Vec c{card.centerHeight[0],card.centerHeight[1],card.centerHeight[2]};
+      float nearest=1e20f;
+      for(std::size_t g=0;g<t.centers.size();g++){
+        const auto &o=t.centers[g],&r=t.radii[g];
+        Vec q{(c.x-o[0])/r[0],(c.y-o[1])/r[1],(c.z-o[2])/r[2]};
+        nearest=std::min(nearest,dot(q,q));
+      }
+      if(nearest<.60f)continue;
+      bool close=false;for(const auto &kept:t.rimCards){Vec d=c-Vec{kept.centerHeight[0],kept.centerHeight[1],kept.centerHeight[2]};if(dot(d,d)<.40f*.40f){close=true;break;}}
+      if(close)continue;
+      TreeCard small=card;small.centerHeight[3]*=.55f;small.rightWidth[3]*=.55f;
+      // Let the small leaf protrude beyond, rather than disappear inside, the
+      // original solid surface. No camera-dependent anchor or random motion.
+      for(int k=0;k<3;k++)small.centerHeight[k]+=.12f*small.shadeNormal[k];
+      Vec shifted{small.centerHeight[0],small.centerHeight[1],small.centerHeight[2]};
+      float radius=.5f*std::hypot(small.rightWidth[3],small.centerHeight[3]);
+      t.localBounds.add(shifted-Vec{radius,radius,radius});t.localBounds.add(shifted+Vec{radius,radius,radius});
+      t.rimCards.push_back(small);
+    }
     t.localBounds.add(source.bounds);return t;
   }
 };
-inline const char *treeModeName(int mode){return mode==0?"A ORIGINAL":mode==1?"B SHADER":mode==2?"C FIXED LEAVES":"D BILLBOARD LEAVES";}
+inline const char *treeModeName(int mode){return mode==0?"A ORIGINAL":mode==1?"B SHADER":mode==2?"C FIXED LEAVES":mode==3?"D BILLBOARD LEAVES":"E SOLID + SMALL LEAVES";}
 }

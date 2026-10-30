@@ -149,7 +149,8 @@ if(treeCards!=0&&plainLeaves!=0)a.rgb=treeCanopyColor;
 vec3 n=normalize(worldNormal);if(!gl_FrontFacing&&treeCards==0)n=-n;
 vec3 treeSource=rgbHSV(srgbEncode(clamp(a.rgb,0.,1.)));
 bool treeLeaf=treeTreatment>0&&(treeCards!=0||(treeSource.x>=.18&&treeSource.x<=.46&&treeSource.y>=.12));
-if(treeLeaf&&treeTreatment==1)n=canopyNormal(treeLocalPosition);
+if(treeLeaf&&(treeTreatment==1||treeTreatment==4))n=canopyNormal(treeLocalPosition);
+if(treeLeaf&&treeTreatment==4)a.rgb=treeCanopyColor;
 // Derivatives give actual planar triangle lighting in BASE without rewriting
 // the original mesh normals. The optional tree shader supplies volume normals.
 vec3 shadeNormal=n; // Original mode keeps the supplied normals unchanged.
@@ -227,7 +228,7 @@ if(treeLeaf){
  }
  float tone=.26+.36*smoothstep(.08,.15,d)+.38*smoothstep(.58,.66,d);
  vec3 fill=mix(ambientGround,ambientSky,clamp(shadeNormal.y*.5+.5,0.,1.));
- if(treeCards!=0&&plainLeaves!=0){
+ if((treeCards!=0&&plainLeaves!=0)||treeTreatment==4){
   // Three deliberate form tones, with one shared ambient fill. Gradients in
   // the source image cannot become painted gradients across individual leaves.
   tone=d<.12?.26:d<.62?.62:1.;fill=mix(ambientGround,ambientSky,.7);
@@ -245,7 +246,7 @@ color=vec4(mix(display,hazeColor,haze),alphaMode==2?a.a:1.);
 float category=ground!=0?.05:foliage!=0?.15:architecture!=0?.30+float(kind)*.09:.85;
 if(studyMode>0)category=studyKind==1?.4:studyKind==2?.15:studyKind==4?.05:.85;
 if(profileActive!=0&&profileFamily==4)category=.27;
-if(treeCards!=0)category=.20;
+if(treeCards!=0||(treeLeaf&&treeTreatment==4))category=.20;
 normals=vec4(n*.5+.5,artStyle==0?(foliage!=0?.5:1.):category);}
 
 )GLSL";
@@ -301,8 +302,8 @@ struct Gpu::Impl {
   };
   std::vector<std::vector<Part>> models;
   std::unique_ptr<TreeStudy> tree;
-  std::vector<Part> treeParts;
-  GLuint treeInstanceBuffer=0;
+  std::vector<Part> treeParts, rimParts;
+  GLuint treeInstanceBuffer=0, rimInstanceBuffer=0;
   int treeMode=0;bool plainLeaves=true;
   std::map<std::filesystem::path, GLuint> textures;
   std::vector<Draw> blends;
@@ -358,7 +359,8 @@ struct Gpu::Impl {
         gl::DeleteBuffers(1, &p.ebo);
       }
     for(auto &part:treeParts){gl::DeleteVertexArrays(1,&part.vao);if(!part.borrowedVbo)gl::DeleteBuffers(1,&part.vbo);gl::DeleteBuffers(1,&part.ebo);}
-    gl::DeleteBuffers(1,&treeInstanceBuffer);
+    for(auto &part:rimParts){gl::DeleteVertexArrays(1,&part.vao);gl::DeleteBuffers(1,&part.vbo);gl::DeleteBuffers(1,&part.ebo);}
+    gl::DeleteBuffers(1,&treeInstanceBuffer);gl::DeleteBuffers(1,&rimInstanceBuffer);
     for (auto &[p, id] : textures)
       gl::DeleteTextures(1, &id);
     gl::DeleteSamplers(1, &linearSampler);
@@ -655,14 +657,19 @@ Gpu::Gpu(World &world, bool allowSoftware, const TreeStudy *treeStudy) {
       gl::GenBuffers(1,&part.ebo);gl::BindBuffer(GL_ELEMENT_ARRAY_BUFFER,part.ebo);gl::BufferData(GL_ELEMENT_ARRAY_BUFFER,GLsizeiptr(indices.size()*4),indices.data(),GL_STATIC_DRAW);bufferBytes+=indices.size()*4;p->treeParts.push_back(part);
     }
     Material leaf;leaf.name="EXPERIMENT_LICENSED_LEAF_CUTOUT";leaf.texture=texture;leaf.doubleSided=true;leaf.foliage=leaf.leafy=true;leaf.studyKind=2;leaf.alpha=Alpha::Mask;leaf.cutoff=.35f;leaf.wrapS=leaf.wrapT=GL_CLAMP_TO_EDGE;
-    Impl::Part part;part.material=p->materials.size();p->materials.push_back(leaf);part.instances=GLsizei(treeStudy->cards.size());part.count=6;
+    const auto leafMaterial=p->materials.size();p->materials.push_back(leaf);
+    auto uploadCards=[&](const std::vector<TreeCard> &cards,GLuint &instanceBuffer){
+    Impl::Part part;part.material=leafMaterial;part.instances=GLsizei(cards.size());part.count=6;
     std::array<Vertex,4> quad{};for(int i=0;i<4;i++){quad[i].p={i&1?.5f:-.5f,i&2?.5f:-.5f,0};quad[i].n={0,0,1};quad[i].u=i&1?1.f:0.f;quad[i].v=i&2?0.f:1.f;}
     std::array<std::uint32_t,6> indices{0,1,2,2,1,3};
     gl::GenVertexArrays(1,&part.vao);gl::BindVertexArray(part.vao);gl::GenBuffers(1,&part.vbo);gl::BindBuffer(GL_ARRAY_BUFFER,part.vbo);gl::BufferData(GL_ARRAY_BUFFER,sizeof(quad),quad.data(),GL_STATIC_DRAW);attributes();
     gl::GenBuffers(1,&part.ebo);gl::BindBuffer(GL_ELEMENT_ARRAY_BUFFER,part.ebo);gl::BufferData(GL_ELEMENT_ARRAY_BUFFER,sizeof(indices),indices.data(),GL_STATIC_DRAW);
-    gl::GenBuffers(1,&p->treeInstanceBuffer);gl::BindBuffer(GL_ARRAY_BUFFER,p->treeInstanceBuffer);gl::BufferData(GL_ARRAY_BUFFER,GLsizeiptr(treeStudy->cards.size()*sizeof(TreeCard)),treeStudy->cards.data(),GL_STATIC_DRAW);
+    gl::GenBuffers(1,&instanceBuffer);gl::BindBuffer(GL_ARRAY_BUFFER,instanceBuffer);gl::BufferData(GL_ARRAY_BUFFER,GLsizeiptr(cards.size()*sizeof(TreeCard)),cards.data(),GL_STATIC_DRAW);
     for(int i=0;i<4;i++){gl::EnableVertexAttribArray(6+i);gl::VertexAttribPointer(6+i,4,GL_FLOAT,GL_FALSE,sizeof(TreeCard),reinterpret_cast<void*>(std::size_t(i)*sizeof(std::array<float,4>)));gl::VertexAttribDivisor(6+i,1);}
-    bufferBytes+=sizeof(quad)+sizeof(indices)+treeStudy->cards.size()*sizeof(TreeCard);p->treeParts.push_back(part);
+    bufferBytes+=sizeof(quad)+sizeof(indices)+cards.size()*sizeof(TreeCard);return part;
+    };
+    p->treeParts.push_back(uploadCards(treeStudy->cards,p->treeInstanceBuffer));
+    if(!treeStudy->rimCards.empty())p->rimParts.push_back(uploadCards(treeStudy->rimCards,p->rimInstanceBuffer));
   }
   GLint counterBits = 0;
   gl::GetQueryiv(GL_TIME_ELAPSED, GL_QUERY_COUNTER_BITS, &counterBits);
@@ -819,8 +826,8 @@ void Gpu::setShadowClean(bool v){p->shadowClean=v;}
 void Gpu::setTerrainRelief(float v){if(!std::isfinite(v)||v<.75f||v>1)throw std::runtime_error("terrain instance relief range");p->terrainRelief=v;}
 void Gpu::setPlainLeaves(bool value){p->plainLeaves=value;}
 void Gpu::setTreeTreatment(int mode){
- if(mode<0||mode>3||(!p->tree&&mode!=0))throw std::runtime_error("tree treatment requires verified private study");
- if((p->treeMode>=2)!=(mode>=2)){p->shadowValid=p->groundValid=false;shadowCacheInvalidations++;}
+ if(mode<0||mode>4||(!p->tree&&mode!=0))throw std::runtime_error("tree treatment requires verified private study");
+ if((p->treeMode==2||p->treeMode==3)!=(mode==2||mode==3)){p->shadowValid=p->groundValid=false;shadowCacheInvalidations++;}
  p->treeMode=mode;
 }
 void Gpu::setProfile(const StyleProfile &v) { p->profile=v; }
@@ -1077,7 +1084,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
         uniformInt(p->shadowProgram,"shadowCasterID",int(&instance-world.instances.data())+1);
         uniformMatrix(p->shadowProgram, "model", instance.matrix);
         const bool targetTree=p->tree&&std::size_t(&instance-world.instances.data())==p->tree->target;
-        auto &shadowParts=targetTree&&p->treeMode>=2?p->treeParts:p->models[instance.model];
+        auto &shadowParts=targetTree&&(p->treeMode==2||p->treeMode==3)?p->treeParts:p->models[instance.model];
         for (auto &part : shadowParts) {
           uniformInt(p->shadowProgram,"treeCards",part.instances>0);uniformInt(p->shadowProgram,"treeBillboard",0);
           auto &mat = p->materials[part.material];
@@ -1273,7 +1280,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     const auto &model=world.models[i.model];
     bool targetTree=p->tree&&index==p->tree->target;
     uniformInt(p->mesh,"plainLeaves",p->plainLeaves);
-    uniformInt(p->mesh,"treeTreatment",targetTree&&!p->sourceView?p->treeMode:0);uniformInt(p->mesh,"treeCards",part.instances>0);uniformInt(p->mesh,"treeBillboard",part.instances>0&&p->treeMode==3);
+    uniformInt(p->mesh,"treeTreatment",targetTree&&!p->sourceView?p->treeMode:0);uniformInt(p->mesh,"treeCards",part.instances>0);uniformInt(p->mesh,"treeBillboard",part.instances>0&&(p->treeMode==3||p->treeMode==4));
     if(targetTree){gl::Uniform3f(gl::GetUniformLocation(p->mesh,"treeCanopyColor"),p->tree->canopyColor.x,p->tree->canopyColor.y,p->tree->canopyColor.z);uniformFloat(p->mesh,"treeLeafMean",p->tree->leafMean);uniformInt(p->mesh,"treeGroupCount",int(p->tree->centers.size()));gl::Uniform4fv(gl::GetUniformLocation(p->mesh,"treeCenters"),GLsizei(p->tree->centers.size()),p->tree->centers.front().data());gl::Uniform4fv(gl::GetUniformLocation(p->mesh,"treeRadii"),GLsizei(p->tree->radii.size()),p->tree->radii.front().data());uniformInt(p->mesh,"treeLeafDetail",6);bind(6,p->textures.at(p->tree->texture));gl::BindSampler(6,0);
      auto right=direction(inverse(effective.view()),{1,0,0}),up=direction(inverse(effective.view()),{0,1,0});gl::Uniform3f(gl::GetUniformLocation(p->mesh,"treeCameraRight"),right.x,right.y,right.z);gl::Uniform3f(gl::GetUniformLocation(p->mesh,"treeCameraUp"),up.x,up.y,up.z);gl::ActiveTexture(GL_TEXTURE0);
     }
@@ -1346,7 +1353,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     gl::PolygonMode(GL_FRONT_AND_BACK, GL_LINE);
   for (auto index : visible) {
     auto &i = world.instances[index];
-    auto &parts = p->tree&&index==p->tree->target&&p->treeMode>=2?p->treeParts:p->models[i.model];
+    auto &parts = p->tree&&index==p->tree->target&&(p->treeMode==2||p->treeMode==3)?p->treeParts:p->models[i.model];
     for (std::size_t j = 0; j < parts.size(); j++) {
       if (p->materials[parts[j].material].alpha == Alpha::Blend) {
         Vec center = (i.bounds.lo + i.bounds.hi) * .5f;
@@ -1355,6 +1362,10 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
       } else
         draw(index, parts[j]);
     }
+    // E retains every original source triangle and adds only sparse leaf rims.
+    // Its cast pass deliberately uses the untouched solid canopy, not cards.
+    if(p->tree&&index==p->tree->target&&p->treeMode==4)
+      for(const auto &part:p->rimParts)draw(index,part);
   }
   if(p->grassRenderer)p->grassRenderer->setProfile(p->profile,!p->sourceView);
   if (p->grassRenderer && p->grass && p->coverage != 1 && p->coverage != 4) {

@@ -32,7 +32,7 @@ def run(name, mode, pose=0, extra=()):
     results[name] = {"command": cmd, "last_frame": frames[-1]}
     return out, frames
 
-for mode in ("original", "shader", "clusters", "billboards"):
+for mode in ("original", "shader", "clusters", "billboards", "hybrid"):
     run(mode, mode)
 original = (root / "original/final_world.ppm").read_bytes()
 shader = (root / "shader/final_world.ppm").read_bytes()
@@ -50,23 +50,24 @@ assert int(c["triangles"]) - int(a["triangles"]) == cards * 2 - (source_count - 
 assert int(results["shader"]["last_frame"]["triangles"]) == int(a["triangles"])
 
 maps = {}
-for mode in ("original", "shader", "clusters", "billboards"):
+for mode in ("original", "shader", "clusters", "billboards", "hybrid"):
     out, _ = run(mode + "_shadow", mode, extra=["--diagnostic", "visibility"])
     maps[mode] = (out / "raw_shadow_depth.pfm").read_bytes()
 assert maps["original"] == maps["shader"], "shader-only mode changed cast geometry"
 assert maps["clusters"] == maps["billboards"], "documented fixed shadow proxy changed"
+assert maps["hybrid"] == maps["original"], "solid hybrid must retain original shadow caster"
 assert maps["clusters"] != maps["original"], "cutout cards need genuine different shadows"
 out, _ = run("clusters_reverse_shadow", "clusters", 2, ["--diagnostic", "visibility"])
 assert maps["clusters"] == (out / "raw_shadow_depth.pfm").read_bytes(), "camera changed fixed world shadows"
 
 replay = root / "toggle.txt"
-replay.write_text("2 down T\n3 up T\n5 down T\n6 up T\n8 down T\n9 up T\n11 down T\n12 up T\n")
-out, frames = run("live_toggle", "original", extra=["--frames", "14", "--replay", str(replay)])
-assert [frames[f]["tree_mode"] for f in (0, 2, 5, 8, 11)] == ["0", "1", "2", "3", "0"]
+replay.write_text("2 down T\n3 up T\n5 down T\n6 up T\n8 down T\n9 up T\n11 down T\n12 up T\n14 down T\n15 up T\n")
+out, frames = run("live_toggle", "original", extra=["--frames", "17", "--replay", str(replay)])
+assert [frames[f]["tree_mode"] for f in (0, 2, 5, 8, 11, 14)] == ["0", "1", "2", "3", "4", "0"]
 assert len({(f["player_x"], f["player_z"], f["player_yaw"]) for f in frames}) == 1
 assert frames[5]["shadow_cache_invalidations"] == frames[8]["shadow_cache_invalidations"]
 assert int(frames[11]["shadow_cache_invalidations"]) > int(frames[8]["shadow_cache_invalidations"])
-results["verified"] = ["four distinct options", "actual submitted triangle accounting",
+results["verified"] = ["five live options", "actual submitted triangle accounting",
                        "unchanged shader-only cast geometry", "camera-stable fixed cutout shadows",
                        "explicit fixed shadow proxy for billboards", "live T switching without camera movement",
                        "geometry-switch cache invalidation", "zero grass caster draws"]
@@ -98,3 +99,22 @@ assert [frames[i]['plain_leaves'] for i in [0,2,5]]==['1','0','1']
 results['plain_leaf_validation']={'visible_leaf_fragments':int(mask.sum()),'plain_base_RGB':plain_colors.tolist(),'plain_unique_base_colors':len(plain_colors),'source_unique_base_colors':len(source_colors),'identical_alpha_mask':True,'identical_shadow_map':True,'nonleaf_base_pixels_unchanged':True,'M_toggle_verified':True}
 (root/'RESULTS.json').write_text(json.dumps(results,indent=2))
 print('PASS plain leaf base: one RGB, identical alpha/shadows, unchanged non-leaf pixels, live M control')
+
+# Hybrid retains the complete solid source canopy, with fewer/smaller leaves.
+e=results['hybrid']['last_frame']
+assert 0 < int(e['tree_leaf_cards']) < cards/2
+assert int(e['triangles'])-int(results['original']['last_frame']['triangles']) == 2*int(e['tree_leaf_cards'])
+assert int(e['draws']) == int(results['original']['last_frame']['draws'])+1
+out,_=run('hybrid_reverse_shadow','hybrid',2,['--diagnostic','visibility'])
+assert maps['original']==(out/'raw_shadow_depth.pfm').read_bytes()
+p,_=run('hybrid_plain_base','hybrid',extra=['--diagnostic','graded','--leaf-color','plain'])
+s,_=run('hybrid_source_toggle','hybrid',extra=['--diagnostic','graded','--leaf-color','source'])
+assert (p/'final_world.ppm').read_bytes()==(s/'final_world.ppm').read_bytes(),'hybrid color must remain plain even if source leaf control is selected'
+im=np.array(Image.open(p/'final_world.ppm'))
+normal=np.frombuffer((p/'normal_rgba.u8').read_bytes(),np.uint8).reshape(im.shape[0],im.shape[1],4)
+leaf=normal[:,:,3]==51
+assert leaf.sum()>100
+assert len(np.unique(im[leaf],axis=0))==1,'hybrid solid and card leaf bases must match'
+results['hybrid_validation']={'cards':int(e['tree_leaf_cards']),'full_leaf_cards':cards,'solid_source_and_card_base_RGB':np.unique(im[leaf],axis=0).tolist(),'source_shadow_map_identical':True,'camera_independent_shadow':True,'added_visible_draws':1,'original_triangle_count_retained':True,'source_color_toggle_cannot_reintroduce_gradients':True}
+(root/'RESULTS.json').write_text(json.dumps(results,indent=2))
+print('PASS hybrid: full solid canopy retained, sparse leaves, one shared base, stable original cast shadows')

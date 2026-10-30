@@ -21,6 +21,21 @@ int main(int argc,char **argv){try{
  check(edit("leaf.png","../leaf.png"),false);check(edit("[1,1,1]","[1,0,1]"),false);check(edit("[[0]]","[[0,0]]"),false);check(edit("[[0]]","[[0,1]]"),false);check(edit("[[0]]","[[2]]"),false);check(edit("selected","missing"),false);check(edit("SOURCE_TREE","wrong"),false);
  writeCards(.4f,1,2);check(valid,false);writeCards(.4f,0);check(valid,false);writeCards(std::numeric_limits<float>::quiet_NaN(),1);check(valid,false);writeCards(3,1);check(valid,false);writeCards(.4f,1);check(valid,true);
  require(world.models[0].parts[0].indices==p.indices,"source indices changed");
- if(argc==2){auto a=std::filesystem::path(argv[1]);auto w=World::load(a/"pack.json",a/"tree_scene.json",false);auto before=w.cpuGeometryBytes();auto t=TreeStudy::load(a,w);require(t.cards.size()>100&&t.centers.size()>1,"actual source canopy groups/cards");require(w.cpuGeometryBytes()==before,"private source mutation");std::cout<<"actual licensed source: "<<t.cards.size()<<" cards / "<<t.centers.size()<<" canopy groups\n";}
+ if(argc==2){auto a=std::filesystem::path(argv[1]);auto w=World::load(a/"pack.json",a/"tree_scene.json",false);auto before=w.cpuGeometryBytes();auto t=TreeStudy::load(a,w);require(t.cards.size()>100&&t.centers.size()>1,"actual source canopy groups/cards");require(w.cpuGeometryBytes()==before,"private source mutation");
+  require(!t.rimCards.empty()&&t.rimCards.size()<t.cards.size()/2,"sparse silhouette subset");
+  auto again=TreeStudy::load(a,w);require(t.rimCards.size()==again.rimCards.size(),"stable rim placement");
+  for(std::size_t n=0;n<t.rimCards.size();n++){
+    const auto &leaf=t.rimCards[n];const auto &repeat=again.rimCards[n];
+    require(leaf.centerHeight==repeat.centerHeight&&leaf.rightWidth==repeat.rightWidth,"deterministic leaf transforms");
+    bool original=false;for(const auto &full:t.cards){
+      Vec delta{leaf.centerHeight[0]-full.centerHeight[0],leaf.centerHeight[1]-full.centerHeight[1],leaf.centerHeight[2]-full.centerHeight[2]};
+      Vec expected{full.shadeNormal[0]*.12f,full.shadeNormal[1]*.12f,full.shadeNormal[2]*.12f};
+      if(dot(delta-expected,delta-expected)<1e-9f&&std::abs(leaf.centerHeight[3]-full.centerHeight[3]*.55f)<1e-6f&&std::abs(leaf.rightWidth[3]-full.rightWidth[3]*.55f)<1e-6f){original=true;break;}
+    }
+    require(original,"rim leaf must reuse a smaller original placement");
+    Vec c{leaf.centerHeight[0],leaf.centerHeight[1],leaf.centerHeight[2]};float radius=.5f*std::hypot(leaf.centerHeight[3],leaf.rightWidth[3]);
+    require(t.localBounds.lo.x<=c.x-radius&&t.localBounds.hi.x>=c.x+radius&&t.localBounds.lo.y<=c.y-radius&&t.localBounds.hi.y>=c.y+radius&&t.localBounds.lo.z<=c.z-radius&&t.localBounds.hi.z>=c.z+radius,"all billboard orientations inside culling bounds");
+  }
+  std::cout<<"sparse rim subset: "<<t.rimCards.size()<<" smaller leaves / source tree unchanged\n";std::cout<<"actual licensed source: "<<t.cards.size()<<" cards / "<<t.centers.size()<<" canopy groups\n";}
  std::filesystem::remove_all(root);std::cout<<"tree selection, dependency, binary, bounds and source-preservation tests passed\n";return 0;
 }catch(const std::exception&e){std::cerr<<e.what()<<'\n';return 1;}}

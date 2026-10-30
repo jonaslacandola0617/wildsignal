@@ -103,12 +103,12 @@ Options options(int argc, char **argv) {
                    "solid\n"
                    "--shadow-cache-probe (isolated technical test only)\n"
                    "--shafts on|off --haze on|off --quality low|medium|high --shaft-strength 0..3\n";
-      std::cout<<"--tree-scene --tree-study original|shader|clusters|billboards --leaf-color plain|source (T tree options, M leaf color)\n";
+      std::cout<<"--tree-scene --tree-study original|shader|clusters|billboards|hybrid --leaf-color plain|source (T tree options, M leaf color)\n";
       std::exit(0);
     } else if (a == "--assets")
       o.assets = value();
     else if(a=="--shadow-policy"){auto v=value();if(v!="clean"&&v!="legacy")throw std::runtime_error("shadow-policy clean|legacy");o.cleanShadow=v=="clean";}
-    else if(a=="--tree-study"){auto v=value();if(v!="original"&&v!="shader"&&v!="clusters"&&v!="billboards")throw std::runtime_error("tree-study original|shader|clusters|billboards");o.treeEnabled=true;o.treeMode=v=="original"?0:v=="shader"?1:v=="clusters"?2:3;}
+    else if(a=="--tree-study"){auto v=value();if(v!="original"&&v!="shader"&&v!="clusters"&&v!="billboards"&&v!="hybrid")throw std::runtime_error("tree-study original|shader|clusters|billboards|hybrid");o.treeEnabled=true;o.treeMode=v=="original"?0:v=="shader"?1:v=="clusters"?2:v=="billboards"?3:4;}
     else if(a=="--leaf-color"){auto v=value();if(v!="plain"&&v!="source")throw std::runtime_error("leaf-color plain|source");o.leafPlain=v=="plain";}
     else if(a=="--tree-scene"){o.treeScene=true;o.treeEnabled=true;}
     else if(a=="--highlights"||a=="--outlines"||a=="--vegetation-edges"){auto v=value();if(v!="on"&&v!="off")throw std::runtime_error("edges on|off");(a=="--highlights"?o.edgeHighlights:a=="--outlines"?o.edgeOutlines:o.vegetationEdges)=v=="on";}
@@ -572,7 +572,7 @@ int main(int argc, char **argv) {
     auto look=profile.look;
     if(!o.contacts)look.contactStrength=0;
     log<<"leaf_color="<<(o.leafPlain?"plain":"source")<<"\n";
-    log<<"tree_study="<<o.treeEnabled<<"\ntree_mode="<<p3::treeModeName(o.treeMode)<<"\ntree_cards="<<(tree?tree->cards.size():0)<<"\n";
+    log<<"tree_study="<<o.treeEnabled<<"\ntree_mode="<<p3::treeModeName(o.treeMode)<<"\ntree_cards="<<(tree?tree->cards.size():0)<<"\ntree_rim_cards="<<(tree?tree->rimCards.size():0)<<"\n";
     log<<"style_preset="<<o.preset<<"\nink_preset="<<o.ink<<"\n";
     log<<"luminous_rims="<<profile.luminousRims<<"\nrim_saturation="<<profile.rimSaturation<<"\n";
 
@@ -775,7 +775,7 @@ int main(int argc, char **argv) {
             } else if (e.key.key == SDLK_F3) {
               o.debugFollow = !o.debugFollow;
             } else if(e.key.key==SDLK_M&&tree){o.leafPlain=!o.leafPlain;gpu.setPlainLeaves(o.leafPlain);game.message=o.leafPlain?"LEAF BASE PLAIN / ALPHA + TOON LIGHT RETAINED":"LEAF BASE SOURCE TEXTURE / M COMPARE";event(frame,"leaf_color_toggle");
-            } else if(e.key.key==SDLK_T&&tree){o.treeMode=(o.treeMode+1)%4;gpu.setTreeTreatment(o.treeMode);game.message=std::string("TREE ")+p3::treeModeName(o.treeMode)+" / T COMPARE";event(frame,"tree_treatment_toggle");
+            } else if(e.key.key==SDLK_T&&tree){o.treeMode=(o.treeMode+1)%5;gpu.setTreeTreatment(o.treeMode);game.message=std::string("TREE ")+p3::treeModeName(o.treeMode)+" / T COMPARE";event(frame,"tree_treatment_toggle");
             } else if(e.key.key==SDLK_J){o.edgeHighlights=!o.edgeHighlights;style.highlights=!o.original&&o.edgeHighlights;gpu.setStyle(style);game.message=o.edgeHighlights?"SUN EDGE HIGHLIGHTS ON / J TO COMPARE":"SUN EDGE HIGHLIGHTS OFF / J TO COMPARE";event(frame,o.edgeHighlights?"highlights_on":"highlights_off");
             } else if(e.key.key==SDLK_K){o.edgeOutlines=!o.edgeOutlines;style.outlines=!o.original&&o.edgeOutlines;gpu.setStyle(style);game.message=o.edgeOutlines?"OUTLINES ON / K TO COMPARE":"OUTLINES OFF / K TO COMPARE";event(frame,o.edgeOutlines?"outlines_on":"outlines_off");
             } else if(e.key.key==SDLK_V) {
@@ -1019,7 +1019,7 @@ int main(int argc, char **argv) {
         else if(game.phase!=game::Phase::Explore)compact.push_back("WILD "+std::to_string(game.enemyHp)+"/24 / 1 ATTACK 2 DEFEND 3 BEFRIEND / ENTER");
         else compact.push_back(game.state.recruited?"EXPLORE / F5 SAVE / F2 HUD":game.state.visited?"E ENCOUNTER / F5 SAVE / F2 HUD":"E COTTAGE REST / F5 SAVE / F2 HUD");
         if(!game.message.empty())compact.push_back(game.message.substr(0,68));hud=std::move(compact);}
-      if(tree)hud.push_back(std::string("T TREE ")+p3::treeModeName(o.treeMode)+" / M "+(o.leafPlain?"PLAIN":"SOURCE"));
+      if(tree)hud.push_back(std::string("T TREE ")+p3::treeModeName(o.treeMode)+" / M "+(o.treeMode==4?"PLAIN LOCKED":o.leafPlain?"PLAIN":"SOURCE"));
       if (!o.coverage&&o.hudMode!=0)
         gpu.hud(hud, ow, oh);
       auto hudEnd = Clock::now();

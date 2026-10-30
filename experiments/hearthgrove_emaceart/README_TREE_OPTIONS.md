@@ -1,3 +1,23 @@
+## Owner follow-up: E solid canopy with small silhouette leaves
+
+`--tree-study hybrid` (E in the live T cycle) keeps the entire original source
+canopy and trunk. It adds a sparse subset of existing licensed cutout leaves at
+55% of the earlier card dimensions, slightly offset from exposed canopy surfaces.
+No new texture artwork, mesh file or procedural painted image is created.
+The visible cards face the camera, retain fixed world anchors and use the same
+plain base color and three-step volume lighting as the solid foliage. Internal
+same-tree card contours are suppressed. E always uses plain leaf bases; M still
+compares plain/source materials in C/D. The source trunk is unaffected.
+
+The original solid tree supplies E's cast shadow. Small protruding leaves do not
+cast separate shadows, so fine visible/shadow silhouettes intentionally differ.
+A/B/C/D remain available unchanged through T. One PLAY_GAME.cmd starts E. The
+standard grass/green-terrain color is restored to #65a30d, with #a3e635 focused
+sunlight and #14532d shadows. Grass, gameplay, terrain, and earlier god rays are
+preserved. This is a one-tree visual proof, not a village-wide change or approval.
+
+---
+
 > Owner follow-up: leaf cards default to a plain uniform base, ignoring source RGB/tint; the licensed alpha silhouette, three toon form tones, shadows and edge highlights remain. **M** / `--leaf-color plain|source` compares the previous textured material. The review launcher starts in D. Current private grass/green-terrain palette is standard **#16a34a**, concentrated **#a3e635**, shadow **#14532d**; brown texels are excluded. Previous review details below are historical.
 
 # Single-tree owner visual comparison
