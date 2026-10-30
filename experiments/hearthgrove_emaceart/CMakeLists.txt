@@ -30,7 +30,9 @@ if(PIXEL3D_BUILD_GL)
  endif()
  target_compile_definitions(wildsignal_hearthgrove_emaceart PRIVATE PIXEL3D_SOURCE_ID="${SOURCE_ID}")
  install(TARGETS wildsignal_hearthgrove_emaceart RUNTIME DESTINATION .)
- install(DIRECTORY launchers/ DESTINATION .)
+ # Owner review has ONE playable entrypoint. Retain historical comparison
+ # launchers in source, without installing a matrix of runnable variants.
+ install(FILES launchers/PLAY_GAME.cmd DESTINATION .)
  install(FILES README.md README_OWNER_REVIEW.md DESTINATION .)
 endif()
 set(GAMELOOP_ASSETS "" CACHE PATH "Private validated GAMELOOP runtime directory")

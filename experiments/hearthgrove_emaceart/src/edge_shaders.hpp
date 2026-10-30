@@ -10,6 +10,7 @@ uniform int outline,shaftEnabled,shaftMethod,highlights,refined,cozy;
 uniform int edgeMode,highlightMask,edgeMask,edgeShadowEnabled;
 uniform int profileActive,profileInk,majorWidth,profileGreenOnly,organicEdges;uniform float grassInk,organicCeiling;uniform vec3 organicHighlights;uniform vec4 profileInkStrength;uniform float profileHighlight,profileCeiling;
 uniform float architectureStrength,foliageStrength,sunThreshold;
+uniform int luminousRims;uniform float rimSaturation,architectureRim;
 uniform vec3 highlightColor,skyTop,skyHorizon,sunDirection,cameraRight,cameraUp;
 uniform mat4 inverseVP;
 float linearDepth(float z){return .2*350./(350.1-(z*2.-1.)*349.9);}
@@ -56,7 +57,13 @@ void main(){ivec2 size=textureSize(sceneColor,0),p=clamp(ivec2(gl_FragCoord.xy),
  if(edgeMask!=0){color=vec4(shine*(arch?vec3(1.,.25,.05):leaf?vec3(.15,1.,.1):vec3(0)),1);return;}
  if(edgeMode==3&&outline!=0&&refined!=0){float ink=leaf?silhouette*.14:max(silhouette*.48,crease*.27);if(profileActive!=0)ink=profileInk==0?0.:max(silhouette*(leaf?(organicEdges!=0?profileInkStrength.z:0.):grass?(organicEdges!=0?grassInk:0.):stone?profileInkStrength.w:profileInkStrength.x),crease*profileInkStrength.y)*(1.-smoothstep(24.,48.,d));c=mix(c,c*vec3(.38,.36,.32),ink);}
  if((edgeMode==2||edgeMode==3)&&highlights!=0){float amount=shine*(leaf?foliageStrength:architectureStrength);if(profileActive!=0){amount=shine*(stone?profileHighlight*.45:profileHighlight);if(profileInk==0)amount=0.;
- if(profileGreenOnly!=0&&(leaf||grass||stone)){float boost=stone?organicHighlights.z:leaf?organicHighlights.x:organicHighlights.y;if((leaf||grass)&&organicEdges==0)boost=0.;if(profileInk==0)boost=0.;c+=min(max(vec3(0),vec3(organicCeiling)-c),highlightColor*boost)*shine;}
+ if(profileGreenOnly!=0&&(leaf||grass||stone)){float boost=stone?organicHighlights.z:leaf?organicHighlights.x:organicHighlights.y;if((leaf||grass)&&organicEdges==0)boost=0.;if(profileInk==0)boost=0.;
+ // Keep the surface hue in the edge light. White addition desaturates green
+ // foliage and hides the rim against the bright ground. This affects ONLY
+ // the existing sun-facing contour/convex mask, never the whole material.
+ vec3 tint=highlightColor;if(luminousRims!=0){vec3 hue=c/max(.02,max(c.r,max(c.g,c.b)));tint=clamp(mix(vec3(1),hue,rimSaturation)*vec3(1,.98,.66),0.,1.);}
+ c+=min(max(vec3(0),vec3(organicCeiling)-c),tint*boost)*shine;}
+ else if(luminousRims!=0&&arch){vec3 hue=c/max(.02,max(c.r,max(c.g,c.b)));vec3 tint=clamp(mix(vec3(1),hue,rimSaturation)*vec3(1,.98,.72),0.,1.);c+=min(max(vec3(0),vec3(.99)-c),tint*architectureRim)*shine;}
  else c+=max(vec3(0),vec3(profileCeiling)-c)*highlightColor*amount;}else c+=(1.-c)*highlightColor*amount*(.45+.55*max(c.r,max(c.g,c.b)));}
  // Only radiance is reconstructed; material color and pixel edges stay sharp.
  if(shaftEnabled!=0)c=1.-(1.-c)*exp(-rays(d));
