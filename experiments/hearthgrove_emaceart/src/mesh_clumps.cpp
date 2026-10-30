@@ -9,6 +9,7 @@ MeshClumps::MeshClumps(const std::filesystem::path &r,
  if (cfg.at("revision").number()!=2 || !std::get<bool>(cfg.at("source_materials").value))
    throw std::runtime_error("source vegetation revision");
  const auto &fields=std::get<ws::Json::Object>(cfg.value);
+ if(auto it=fields.find("meadow_patches");it!=fields.end())patches.load(r,it->second);
  if(auto it=fields.find("asset_family");it!=fields.end()) {
    assetFamily=it->second.string();
    if(assetFamily.empty()||assetFamily.size()>80||assetFamily.find_first_not_of("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_")!=std::string::npos)
@@ -37,9 +38,23 @@ MeshClumps::MeshClumps(const std::filesystem::path &r,
    if(m.parts.size()!=1||m.materials.size()!=1||m.materials[0].alpha!=Alpha::Opaque||m.materials[0].texture.empty()) throw std::runtime_error("one opaque textured source primitive required");
    if(sourcePalette.empty()) sourcePalette=m.materials[0].texture;
    if(sourcePalette!=m.materials[0].texture) throw std::runtime_error("source grass must share verified palette");
-   farVariants.push_back(int(models.size()-1));
+   int index=int(models.size()-1);lodModels.push_back({index,index,index});
  }
  if(models.empty()) throw std::runtime_error("missing source grass");
+ if(auto it=fields.find("lod_paths");it!=fields.end()) {
+   if(models.size()!=1||it->second.array().size()!=2)throw std::runtime_error("single grass family requires two LOD paths");
+   const auto &distances=cfg.at("lod_distances").array();
+   if(distances.size()!=2)throw std::runtime_error("two grass LOD distances");
+   for(int k=0;k<2;k++){float d=float(distances[k].number());if(!std::isfinite(d)||d<1||d>16)throw std::runtime_error("grass LOD range");lodDistances[k]=d;}
+   if(lodDistances[1]-lodDistances[0]<1)throw std::runtime_error("ordered grass LOD distances");
+   for(int k=0;k<2;k++) {
+     auto model=Model::load(safePath(r,it->second.array()[k].string()));
+     if(model.parts.size()!=1||model.materials.size()!=1||model.materials[0].alpha!=Alpha::Opaque||model.materials[0].texture!=sourcePalette)throw std::runtime_error("LOD must share opaque source material");
+     if(model.triangles()>=models.back().triangles())throw std::runtime_error("grass LOD triangle order");
+     models.push_back(std::move(model));lodModels[0][k+1]=int(models.size()-1);
+   }
+   hasLods=true;
+ }
  if(cfg.at("instance_files").array().size()>96) throw std::runtime_error("grass chunk budget");
  for(auto &file:cfg.at("instance_files").array()) {
    auto rows=ws::parseJson(readText(safePath(r,file.string())));
@@ -48,7 +63,7 @@ MeshClumps::MeshClumps(const std::filesystem::path &r,
      auto &p=e.at("position").array(); auto &n=e.at("normal").array();
      double v=e.at("variant").number();
      float scale=float(e.at("scale").number()), yaw=float(e.at("yaw").number());
-     if(p.size()!=3||n.size()!=3||v!=std::floor(v)||v<0||v>=models.size()||!std::isfinite(scale)||scale<.2f||scale>1.5f||!std::isfinite(yaw)) throw std::runtime_error("source grass transform");
+     if(p.size()!=3||n.size()!=3||v!=std::floor(v)||v<0||v>=lodModels.size()||!std::isfinite(scale)||scale<.2f||scale>1.5f||!std::isfinite(yaw)) throw std::runtime_error("source grass transform");
      Vec pos{float(p[0].number()),float(p[1].number()),float(p[2].number())},normal{float(n[0].number()),float(n[1].number()),float(n[2].number())};
      if(!finite(pos)||std::abs(pos.x)>48||std::abs(pos.z)>48||std::abs(pos.y)>3||!finite(normal)||dot(normal,normal)<.9f||dot(normal,normal)>1.1f) throw std::runtime_error("source grass bounds");
      auto mat=transform(pos,yaw,scale);
@@ -77,7 +92,8 @@ MeshClumps::MeshClumps(const std::filesystem::path &r,
    if(it->second.number()!=double(all.size())) throw std::runtime_error("grass placement count differs from manifest");
  batches.resize(models.size());
  std::vector<std::size_t> capacities(models.size());
- for(int v:variants) capacities[v]++;
+ lodState.assign(all.size(),255);
+ for(int v:variants)for(int level=0;level<3;level++)if(level==0||lodModels[v][level]!=lodModels[v][level-1])capacities[lodModels[v][level]]++;
  for(std::size_t i=0;i<batches.size();++i) batches[i].reserve(capacities[i]);
 }
 MeshVisibility MeshClumps::select(const Camera &camera,const Frustum &f,int height) {
@@ -89,7 +105,17 @@ MeshVisibility MeshClumps::select(const Camera &camera,const Frustum &f,int heig
    float limit=density==1?12.f:18.f;
    float projected=height*(bounds[i].hi.y-bounds[i].lo.y)/std::max(distance,.5f);
    if(distance>limit||(options.cull&&!f.visible(bounds[i],.05f))||(options.lod&&projected<2.0f)){s.culled++;continue;}
-   batches[variants[i]].push_back(all[i]); s.visible++;s.nearCount++;
+   int level=0;
+   if(options.lod&&hasLods) {
+     // Deterministic staggered bands and hysteresis avoid a synchronized ring
+     // or rapid toggling while strafing across a boundary. No density thinning.
+     float offset=(float((i*2654435761u)&1023)/1023.f-.5f)*.50f;
+     level=lodState[i]==255?(distance<lodDistances[0]+offset?0:distance<lodDistances[1]+offset?1:2):int(lodState[i]);
+     while(level<2&&distance>lodDistances[level]+offset+.35f)level++;
+     while(level>0&&distance<lodDistances[level-1]+offset-.35f)level--;
+     lodState[i]=static_cast<unsigned char>(level);
+   }
+   batches[lodModels[variants[i]][level]].push_back(all[i]);s.visible++;s.lodCount[level]++;if(level==0)s.nearCount++;else s.farCount++;
  }
  return s;
 }

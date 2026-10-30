@@ -7,6 +7,7 @@
 #include "study_shaders.hpp"
 #include "style_shaders.hpp"
 #include "style_profile_glsl.hpp"
+#include "meadow_patch_glsl.hpp"
 #include <SDL3/SDL.h>
 #define GL_GLEXT_PROTOTYPES 1
 #include <SDL3/SDL_opengl.h>
@@ -133,6 +134,7 @@ uniform int pixelMaterial;uniform int artStyle,diagnostic,sampling,vertexTint,ki
 uniform int receiveShadows,patchStudy;uniform float surfaceSunTint,surfaceShadowFloor;uniform sampler2D patchIDs;
 uniform int shadowMode;uniform sampler2D groundShadow;
 // PROFILE
+// MEADOW
 // VISIBILITY
 float hash2(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 float field(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash2(i),hash2(i+vec2(1,0)),f.x),mix(hash2(i+vec2(0,1)),hash2(i+vec2(1,1)),f.x),f.y);}
@@ -164,8 +166,10 @@ if(ground!=0&&textured!=0&&studyKind!=4){
 }
 vec3 sourceHSV=rgbHSV(srgbEncode(clamp(a.rgb,0.,1.)));
 bool greenTerrain=ground!=0&&sourceHSV.x>=.18&&sourceHSV.x<=.46&&sourceHSV.y>=.12;
+vec3 originalAlbedo=a.rgb;
 a.rgb=profileColor(a.rgb,profileFamily);
-if(profileActive!=0&&profileGreenOnly!=0&&greenTerrain&&groundGreenVariation>0.){
+if(profileActive!=0&&greenTerrain&&meadowPatchOn!=0)a.rgb=meadowSurface(originalAlbedo,worldPosition.xz);
+else if(profileActive!=0&&profileGreenOnly!=0&&greenTerrain&&groundGreenVariation>0.){
  // Broad, world-anchored variation affects only original green texels.
  // Brown soil and all non-ground materials bypass this operation.
  float zone=field(worldPosition.xz*.16),detail=field(worldPosition.xz*.47+vec2(17.1,8.3));
@@ -427,7 +431,7 @@ Gpu::Gpu(World &world, bool allowSoftware) {
   const bool hasSkins = std::any_of(world.models.begin(), world.models.end(),
                                     [](const auto &m) { return bool(m.rig); });
   p->mesh =
-      program(hasSkins ? meshVS : staticMeshVS, ([&]{auto text=visibility(meshFS);auto at=text.find("// PROFILE");text.replace(at,10,profileGLSL);return text;}()).c_str());
+      program(hasSkins ? meshVS : staticMeshVS, ([&]{auto text=visibility(meshFS);auto at=text.find("// PROFILE");text.replace(at,10,profileGLSL);at=text.find("// MEADOW");text.replace(at,9,meadowPatchGLSL);return text;}()).c_str());
   gl::GenSamplers(1, &p->linearSampler);
   gl::SamplerParameteri(p->linearSampler, GL_TEXTURE_MIN_FILTER,
                         GL_LINEAR_MIPMAP_LINEAR);
@@ -698,7 +702,15 @@ void Gpu::setGrass(MeshClumps *m, const std::filesystem::path &ground,
     }
   }
   p->grassGround=found->second;p->grassGroundBorrowed=true;
-  p->grassRenderer->setPixelSurface(p->grassGround,0,{});
+  if(!m->patches.weights.empty()) {
+    gl::DeleteTextures(1,&p->grassGroups);gl::GenTextures(1,&p->grassGroups);
+    gl::BindTexture(GL_TEXTURE_2D,p->grassGroups);
+    gl::TexImage2D(GL_TEXTURE_2D,0,GL_RGBA8,m->patches.width,m->patches.height,0,GL_RGBA,GL_UNSIGNED_BYTE,m->patches.weights.data());
+    gl::TexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);gl::TexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+    gl::TexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);gl::TexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
+    textureBytes+=m->patches.weights.size();textureMipBytes+=m->patches.weights.size();texturesLoaded++;
+  }
+  p->grassRenderer->setPixelSurface(p->grassGround,p->grassGroups,{});
 }
 void Gpu::setSurfacePolicy(std::size_t model, const SurfacePolicy &v) {
   if (model >= p->policies.size() || !std::isfinite(v.sunTint) ||
@@ -1070,6 +1082,13 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
   uniformInt(p->mesh,"profileActive",p->profile.active&&!p->sourceView);
   uniformFloat(p->mesh,"groundHarmony",p->profile.groundHarmony);
   uniformFloat(p->mesh,"groundGreenVariation",p->profile.groundGreenVariation);
+  bool patchOn=p->grass&&p->grass->patches.enabled&&!p->sourceView;
+  uniformInt(p->mesh,"meadowPatchOn",patchOn);uniformInt(p->mesh,"meadowPatches",12);bind(12,p->grassGroups);gl::BindSampler(12,0);
+  if(p->grass&&!p->grass->patches.weights.empty()) {
+    auto &patch=p->grass->patches;
+    gl::Uniform4fv(gl::GetUniformLocation(p->mesh,"meadowWorld"),1,patch.world.data());
+    for(int i=0;i<3;i++){auto v=patch.colors[i];auto name="meadowColors["+std::to_string(i)+"]";gl::Uniform3f(gl::GetUniformLocation(p->mesh,name.c_str()),v.x,v.y,v.z);}
+  }
   uniformFloat(p->mesh,"groundAnchor",p->profile.groundAnchor);uniformFloat(p->mesh,"groundContrast",p->profile.groundContrast);
   uniformFloat(p->mesh,"profileLow",p->profile.lowTone);uniformFloat(p->mesh,"profileMid",p->profile.midTone);
   for(int f=0;f<6;f++){auto v=p->profile.grades[f];auto name="familyGrade["+std::to_string(f)+"]";gl::Uniform3f(gl::GetUniformLocation(p->mesh,name.c_str()),v.x,v.y,v.z);}

@@ -1,6 +1,7 @@
 #pragma once
 #include "core.hpp"
 #include "game.hpp"
+#include "meadow_patches.hpp"
 namespace p3 {
 struct MeshOptions {
   int profile = 2;
@@ -14,6 +15,7 @@ struct MeshVisibility {
   std::size_t total = 0, visible = 0, nearCount = 0, farCount = 0, culled = 0,
               draws = 0, triangles = 0, shadowDraws = 0, shadowTriangles = 0;
   double cpuMs = 0;
+  std::array<std::size_t,3> lodCount{};
 };
 struct MeshClumps {
   MeshOptions options;
@@ -23,7 +25,11 @@ struct MeshClumps {
   std::vector<int> variants;
   std::vector<Box> bounds;
   std::vector<std::vector<MeshTransform>> batches;
-  std::vector<int> farVariants;
+  std::vector<std::array<int,3>> lodModels;
+  std::vector<unsigned char> lodState;
+  std::array<float,2> lodDistances{3,7};
+  bool hasLods=false;
+  MeadowPatches patches;
   std::array<Vec, 12> familyRamp{};
   std::filesystem::path groundMap, patchMap;
   std::filesystem::path sourcePalette;

@@ -8,7 +8,7 @@ int main(int argc,char**argv){try{
  game::configureWorld(float(cfg.at("world_half_extent").number()),root/"terrain_height.bin",float(cfg.at("ground_spacing").number()));
  p3::MeshClumps m(root,{});
  const auto vegetation=ws::parseJson(p3::readText(root/"vegetation.json"));
- if(m.models.size()!=vegetation.at("models").array().size()||m.all.size()!=std::size_t(vegetation.at("expected_instances").number()))throw std::runtime_error("verified source inventory changed");
+ if(m.lodModels.size()!=vegetation.at("models").array().size()||m.all.size()!=std::size_t(vegetation.at("expected_instances").number()))throw std::runtime_error("verified source inventory changed");
  for(auto &model:m.models){bool uv=false;for(auto &v:model.parts[0].vertices)uv|=v.u!=0||v.v!=0;if(!uv)throw std::runtime_error("source UV lost");}
  if(m.alignToSurface)for(const auto &i:m.all){
    const auto up=p3::normalized(p3::direction(i.matrix,{0,1,0}));
@@ -20,6 +20,15 @@ int main(int argc,char**argv){try{
  std::size_t last=0;
  for(int d=0;d<=3;d++){m.density=d;auto v=m.select(c,f,270);if(d==0&&v.visible)throw std::runtime_error("grass off");if(v.visible<last)throw std::runtime_error("density nesting");last=v.visible;if(v.shadowDraws||v.shadowTriangles)throw std::runtime_error("grass casts shadows");}
  if(!last)throw std::runtime_error("source grass invisible");
+ if(m.hasLods) {
+   m.options.lod=false;auto full=m.select(c,f,270);std::size_t before=0;
+   for(std::size_t i=0;i<m.batches.size();i++)before+=m.batches[i].size()*m.models[i].triangles();
+   m.options.lod=true;auto reduced=m.select(c,f,270);std::size_t after=0;
+   for(std::size_t i=0;i<m.batches.size();i++)after+=m.batches[i].size()*m.models[i].triangles();
+   if(full.visible!=reduced.visible||after>=before*.65||reduced.lodCount[1]+reduced.lodCount[2]==0)throw std::runtime_error("LOD must retain dense coverage and materially reduce triangles");
+   auto same=m.select(c,f,270);if(same.lodCount!=reduced.lodCount)throw std::runtime_error("stationary LOD unstable");
+   if(m.all.size()!=std::size_t(vegetation.at("expected_instances").number()))throw std::runtime_error("LOD removed roots");
+ }
  std::cout<<"PASS actual source UVs, verified transforms, nested density, culling and zero grass shadow draws\n";
  return 0;
  }catch(const std::exception&e){std::cerr<<e.what()<<'\n';return 1;}}

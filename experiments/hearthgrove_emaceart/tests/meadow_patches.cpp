@@ -1,0 +1,14 @@
+#include "meadow_patches.hpp"
+#include <fstream>
+#include <iostream>
+int main(){try{
+ auto root=std::filesystem::temp_directory_path()/"wildsignal-meadow-weight-validation";std::filesystem::create_directories(root);
+ auto cfg=ws::parseJson(R"({"path":"weights.bin","world_min":[-30,-30],"world_size":[60,60],"colors_linear":[[0.3,0.7,0.1],[0.1,0.4,0.05],[0.05,0.3,0.2]]})");
+ std::string bytes="WSP1";for(int v:{2,2})for(int i=0;i<4;i++)bytes+=char((v>>(i*8))&255);
+ for(int k=0;k<4;k++){bytes+=char(k==0?255:0);bytes+=char(k==1?255:0);bytes+=char(k>1?255:0);bytes+=char(255);}
+ auto write=[&]{std::ofstream f(root/"weights.bin",std::ios::binary);f.write(bytes.data(),bytes.size());};write();
+ p3::MeadowPatches valid;valid.load(root,cfg);if(!valid.enabled||valid.width!=2||valid.height!=2||valid.weights.size()!=16)throw std::runtime_error("valid control data rejected");
+ auto reject=[&]{write();bool failed=false;try{p3::MeadowPatches p;p.load(root,cfg);}catch(...){failed=true;}if(!failed)throw std::runtime_error("corrupt regional weights accepted");};
+ bytes[12]=0;reject();bytes[12]=char(255);bytes[0]='X';reject();bytes[0]='W';bytes.pop_back();reject();
+ std::filesystem::remove_all(root);std::cout<<"PASS valid numeric regional weights and bad sums/header/truncation fail closed\n";return 0;
+ }catch(const std::exception&e){std::cerr<<e.what()<<'\n';return 1;}}
