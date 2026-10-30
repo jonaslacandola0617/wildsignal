@@ -206,6 +206,8 @@ if(ground!=0&&contactStrength>0.){
 vec3 lit=max(vec3(0),a.rgb*light*exposure+emission);
 lit=lit/(1.+lit*.18);
 vec3 display=pow(clamp(lit,0.,1.),vec3(1./2.2));
+if(profileActive!=0&&greenTerrain&&meadowPatchOn!=0&&meadowLightingOn!=0)
+ display=meadowLit(originalAlbedo,max(0.,dot(shadeNormal,normalize(sunDirection))),visibility,direct,exposure);
 float haze=smoothstep(hazeStart,hazeEnd,length(worldPosition-eye))*hazeStrength;
 color=vec4(mix(display,hazeColor,haze),alphaMode==2?a.a:1.);
 float category=ground!=0?.05:foliage!=0?.15:architecture!=0?.30+float(kind)*.09:.85;
@@ -273,6 +275,7 @@ struct Gpu::Impl {
   Effects effects;
   Style style;
   StyleProfile profile;
+  bool definedShafts=false;
   bool sourceView=false,shadowClean=true;float terrainRelief=1;int diagnosticView=0;
   Integration integration;
   GLuint edgePost = 0;
@@ -448,7 +451,7 @@ Gpu::Gpu(World &world, bool allowSoftware) {
   p->studyPost = program(postVS, studyPostFS);
   p->edgePost = program(postVS, visibility(edgePostFS).c_str());
   p->presentProgram = program(postVS, compensatedPresentFS);
-  p->airFilter = program(postVS, airFilterFS);
+  p->airFilter = program(postVS, meadowAirFilterFS);
   gl::GenSamplers(1, &p->compareSampler);
   gl::SamplerParameteri(p->compareSampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   gl::SamplerParameteri(p->compareSampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -820,6 +823,7 @@ void Gpu::saveDiagnostics(const std::filesystem::path &dir) {
     v << n << ' ';
   v << '\n';
 }
+void Gpu::setDefinedShafts(bool enabled){p->definedShafts=enabled;}
 void Gpu::setEffects(const Effects &e) {
   e.validate();
   if (p->effects.shadowSize != e.shadowSize) {
@@ -1083,11 +1087,12 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
   uniformFloat(p->mesh,"groundHarmony",p->profile.groundHarmony);
   uniformFloat(p->mesh,"groundGreenVariation",p->profile.groundGreenVariation);
   bool patchOn=p->grass&&p->grass->patches.enabled&&!p->sourceView;
+  uniformInt(p->mesh,"meadowLightingOn",patchOn&&p->grass->patches.lightDriven);
   uniformInt(p->mesh,"meadowPatchOn",patchOn);uniformInt(p->mesh,"meadowPatches",12);bind(12,p->grassGroups);gl::BindSampler(12,0);
   if(p->grass&&!p->grass->patches.weights.empty()) {
     auto &patch=p->grass->patches;
     gl::Uniform4fv(gl::GetUniformLocation(p->mesh,"meadowWorld"),1,patch.world.data());
-    for(int i=0;i<3;i++){auto v=patch.colors[i];auto name="meadowColors["+std::to_string(i)+"]";gl::Uniform3f(gl::GetUniformLocation(p->mesh,name.c_str()),v.x,v.y,v.z);}
+    for(int i=0;i<3;i++){auto c=patch.lightColors[i];auto uniform="meadowLightColors["+std::to_string(i)+"]";gl::Uniform3f(gl::GetUniformLocation(p->mesh,uniform.c_str()),c.x,c.y,c.z);auto v=patch.colors[i];auto name="meadowColors["+std::to_string(i)+"]";gl::Uniform3f(gl::GetUniformLocation(p->mesh,name.c_str()),v.x,v.y,v.z);}
   }
   uniformFloat(p->mesh,"groundAnchor",p->profile.groundAnchor);uniformFloat(p->mesh,"groundContrast",p->profile.groundContrast);
   uniformFloat(p->mesh,"profileLow",p->profile.lowTone);uniformFloat(p->mesh,"profileMid",p->profile.midTone);
@@ -1319,6 +1324,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     uniformInt(p->shaftProgram, "shadowDepth", 3);
     uniformInt(p->shaftProgram, "softShadow", 0);
     uniformInt(p->shaftProgram, "method", int(p->effects.shafts));
+    uniformInt(p->shaftProgram,"definedShafts",p->definedShafts);
     uniformInt(p->shaftProgram, "steps", p->effects.steps);
     uniformInt(p->shaftProgram, "smoothAtmosphere",
                smoothAir || p->integration.boundedAir);
@@ -1373,6 +1379,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     gl::UseProgram(p->airFilter);
     bind(3, p->shaftImage);
     uniformInt(p->airFilter, "shaftImage", 3);
+    uniformInt(p->airFilter,"definedShafts",p->definedShafts);
     gl::BindVertexArray(p->emptyVAO);
     gl::DrawArrays(GL_TRIANGLES, 0, 3);
     stats.draws++;

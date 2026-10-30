@@ -67,13 +67,14 @@ void main(){
  vec3 n=normalize(worldNormal),litNormal=normalize(mix(n,rootNormal,normalUpBias));
  vec3 sd=normalize(sunDirection);float sun=max(0.,dot(litNormal,sd));
  if(mode!=0&&bands!=0&&smoothLight==0){float s=max(.001,bandSoftness);sun=profileBand(sun,s);}
- vec3 albedo=texture(pixelGround,uv).rgb*colour.rgb;
+ vec3 albedo=texture(pixelGround,uv).rgb*colour.rgb;vec3 originalAlbedo=albedo;
  albedo=meadowPatchOn!=0?meadowSurface(albedo,worldPosition.xz):profileColor(albedo,0)*instanceGrades[clamp(colorVariant,0,2)];
  float visibility=shadowMode!=0?stableReceiver(worldPosition,vec3(0,1,0),bias*.000015):1.;
  vec3 ambient=mix(ambientGround,ambientSky,clamp(litNormal.y*.5+.5,0.,1.));
  vec3 light=ambient+sunColor*sun*visibility;
  vec3 lit=max(vec3(0),albedo*mix(light,vec3(1),profileActive!=0?min(ambientLift,.08):ambientLift)*exposure);lit=lit/(1.+lit*.18);
  vec3 display=pow(clamp(lit,0.,1.),vec3(1./2.2));
+ if(meadowPatchOn!=0&&meadowLightingOn!=0)display=meadowLit(originalAlbedo,max(0.,dot(litNormal,sd)),visibility,sunColor,exposure);
  float haze=smoothstep(hazeStart,hazeEnd,length(worldPosition-eye))*hazeStrength;
  display=mix(display,hazeColor,haze);
  if(diagnostic==9)display=vec3(0);
@@ -299,10 +300,11 @@ MeshVisibility MeshRenderer::draw(MeshClumps &m, const Camera &camera,
     auto vec = [&](const char *n, Vec v) {
       mg::Uniform3f(loc(n), v.x, v.y, v.z);
     };
+    mg::Uniform1i(mg::GetUniformLocation(p->shader,"meadowLightingOn"),m.patches.enabled&&m.patches.lightDriven&&p->toon);
     mg::Uniform1i(mg::GetUniformLocation(p->shader,"meadowPatchOn"),m.patches.enabled&&p->toon);
     mg::Uniform1i(mg::GetUniformLocation(p->shader,"meadowPatches"),7);
     mg::Uniform4fv(mg::GetUniformLocation(p->shader,"meadowWorld"),1,m.patches.world.data());
-    for(int i=0;i<3;i++){auto v=m.patches.colors[i];auto name="meadowColors["+std::to_string(i)+"]";mg::Uniform3f(mg::GetUniformLocation(p->shader,name.c_str()),v.x,v.y,v.z);}
+    for(int i=0;i<3;i++){auto c=m.patches.lightColors[i];auto uniform="meadowLightColors["+std::to_string(i)+"]";mg::Uniform3f(mg::GetUniformLocation(p->shader,uniform.c_str()),c.x,c.y,c.z);auto v=m.patches.colors[i];auto name="meadowColors["+std::to_string(i)+"]";mg::Uniform3f(mg::GetUniformLocation(p->shader,name.c_str()),v.x,v.y,v.z);}
     for(int i=0;i<3;i++){auto v=m.instanceGrades[i];auto name="instanceGrades["+std::to_string(i)+"]";mg::Uniform3f(mg::GetUniformLocation(p->shader,name.c_str()),v.x,v.y,v.z);}
     auto integer = [&](const char *n, int v) { mg::Uniform1i(loc(n), v); };
     integer("coverage", m.coverage);
