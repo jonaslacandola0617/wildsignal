@@ -1,5 +1,7 @@
 # Shaped rays and three readable greens
 
+> Owner follow-up: god rays are reverted to the preceding shadow-map volume and its previous quarter-size/8-step medium budget. Current grass base/color response, grass outlines OFF, highlights ON and all private assets remain unchanged. No new review package requested; visual work is paused. The shaped-air experiment described below is historical and retained in Git history.
+
 Owner request: visibly separated diagonal soft-edged shafts, plain-color grass material, no grass outlines, retained grass edge highlights, and#a3e635 only under concentrated beam light/#65a30d normal light/#1a2e05 shadow.
 
 This is an **art-directed focused-sunlight rig**, not a claim that the sparse existing canopy naturally creates the supplied reference. The private manifest adds up to4 numeric soft elliptical sunlight apertures. A single GLSL `beamField(worldPosition)` projects along the real sun direction onto a fixed worldY0 plane; all grass, green terrain and ray-integrated air use exactly that field. Real shadow-map visibility blocks it, and ray integration stops before visible geometry. Beams have a broad body and continuous feather; no ray cards, rectangles, replacement textures or meshes are generated. Same field illuminates the real terrain height, so its footprint is not a camera-following screen overlay.

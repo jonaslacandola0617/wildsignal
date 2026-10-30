@@ -447,7 +447,7 @@ Gpu::Gpu(World &world, bool allowSoftware) {
                   "canopyUV=gl_Position.xy/gl_Position.w*.5+.5;");
   p->shadowProgram = program(casterVS.c_str(), canopyShadowFS);
   p->bakeProgram = program(postVS, visibility(groundFS).c_str());
-  p->shaftProgram = program(postVS, ([&]{auto text=visibility(shaftsFS);auto at=text.find("// SUNBEAM");text.replace(at,10,sunbeamGLSL);return text;}()).c_str());
+  p->shaftProgram = program(postVS, visibility(shaftsFS).c_str());
   p->post = program(postVS, postFS);
   p->artPost = program(postVS, artPostFS);
   p->studyPost = program(postVS, studyPostFS);
@@ -1336,9 +1336,6 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     uniformInt(p->shaftProgram, "softShadow", 0);
     uniformInt(p->shaftProgram, "method", int(p->effects.shafts));
     uniformInt(p->shaftProgram,"definedShafts",p->definedShafts);
-    bool beamOn=p->grass&&p->grass->patches.enabled&&p->grass->patches.lightDriven&&p->grass->patches.beamDriven&&!p->sourceView;
-    uniformInt(p->shaftProgram,"meadowBeamOn",beamOn);
-    if(beamOn){auto &b=p->grass->patches;uniformInt(p->shaftProgram,"beamCount",b.beamCount);gl::Uniform4fv(gl::GetUniformLocation(p->shaftProgram,"beamApertures[0]"),4,b.apertures[0].data());}
     uniformInt(p->shaftProgram, "steps", p->effects.steps);
     uniformInt(p->shaftProgram, "smoothAtmosphere",
                smoothAir || p->integration.boundedAir);

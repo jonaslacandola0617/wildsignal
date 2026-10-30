@@ -593,9 +593,8 @@ int main(int argc, char **argv) {
       effects.shadow=o.shadows?p3::Shadow::Cached:p3::Shadow::Off;
       effects.shadowSize=o.quality=="low"?512:1024;
       effects.shafts=o.shafts?p3::Shafts::Volume:p3::Shafts::Off;
-      bool beam=grass.patches.lightDriven&&grass.patches.beamDriven;
-      effects.divisor=beam&&o.quality!="low"?2:4;
-      effects.steps=beam?(o.quality=="low"?8:o.quality=="medium"?12:16):(o.quality=="high"?12:8);
+      // Owner requested the previous god-ray renderer; grass styling is independent.
+      effects.divisor=4;effects.steps=o.quality=="high"?12:8;
       effects.shaftStrength=o.shaftStrength;
       effects.automatic=false; // explicit comparison controls never silently change
       gpu.setEffects(effects);

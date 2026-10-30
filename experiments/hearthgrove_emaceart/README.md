@@ -1,6 +1,6 @@
-# Current review: shaped sunlight and three greens
+# Current state: previous god rays, latest grass
 
-See [README_SHAPED_RAYS.md](README_SHAPED_RAYS.md) for current defaults and controls. The new package uses one PLAY_GAME.cmd, focused ray volumes, plain-color grass, grass outlines OFF and grass highlights ON. Prior R3 notes below are historical; current dense placements and full effects follow the latest review manifest.
+See [README_SHAPED_RAYS.md](README_SHAPED_RAYS.md) for current defaults and controls. The new package uses one PLAY_GAME.cmd, previous shadow-based god rays, plain-color grass, grass outlines OFF and grass highlights ON. Prior R3 notes below are historical; current dense placements and full effects follow the latest review manifest.
 
 # Hearthgrove — one playable review
 
