@@ -3,6 +3,7 @@
 #include "style_profile_glsl.hpp"
 #include "meadow_patch_glsl.hpp"
 #include "sunbeam_glsl.hpp"
+#include "pilot_glsl.hpp"
 #include <SDL3/SDL.h>
 #define GL_GLEXT_PROTOTYPES 1
 #include <SDL3/SDL_opengl.h>
@@ -47,14 +48,24 @@ static const char *vs = R"GLSL(#version 330 core
 layout(location=0)in vec3 position;layout(location=1)in vec3 normal;
 layout(location=2)in vec2 texcoord;layout(location=3)in vec4 vertexColour;
 layout(location=4)in mat4 instance;layout(location=8)in vec4 tint;
-uniform mat4 VP;out vec3 worldPosition,worldNormal;out vec2 uv;out vec4 colour;
+uniform mat4 VP;uniform int pilotOn,pilotTuft3d;uniform float pilotTime,pilotWide,pilotHigh;uniform vec3 pilotRight;out vec3 worldPosition,worldNormal;out vec2 uv;out vec4 colour;flat out vec3 pilotRoot;
 flat out vec3 rootNormal;
 flat out int colorVariant;
-void main(){vec4 p=instance*vec4(position,1);worldPosition=p.xyz;worldNormal=mat3(instance)*normal;uv=texcoord;colour=vertexColour;rootNormal=normalize(tint.gba);colorVariant=int(tint.r);gl_Position=VP*p;}
+void main(){vec4 p=instance*vec4(position,1);pilotRoot=instance[3].xyz;
+ // A flat tuft standing at its root, turned toward the camera around world up.
+ if(pilotOn!=0&&pilotTuft3d==0){float s=length(instance[0].xyz);p=vec4(pilotRoot+pilotRight*position.x*s+vec3(0,position.y*s,0),1);p.xz+=position.y*s*vec2(.16,.10)*sin(pilotTime*1.7+dot(pilotRoot.xz,vec2(.8,.55)));}
+ if(pilotOn!=0&&pilotTuft3d!=0)p.xz+=position.y*position.y*vec2(.22,.14)*sin(pilotTime*1.7+dot(pilotRoot.xz,vec2(.8,.55)));
+ worldPosition=p.xyz;worldNormal=mat3(instance)*normal;uv=texcoord;colour=vertexColour;rootNormal=normalize(tint.gba);colorVariant=int(tint.r);gl_Position=VP*p;
+ // Same whole-pixel sprite placement as the leaf cards; wind shears the top in pixel steps.
+ if(pilotOn!=0&&pilotTuft3d==0){vec2 res=vec2(pilotWide,pilotHigh);vec4 h=VP*vec4(pilotRoot,1),t=VP*vec4(pilotRoot+vec3(0,1.*length(instance[0].xyz),0),1);
+  float tall=max(2.,floor(abs(t.y/t.w-h.y/h.w)*.5*res.y+.5)),wide=floor(tall*1.1+.5),up=position.y;
+  float sway=floor(sin(pilotTime*1.7+dot(pilotRoot.xz,vec2(.8,.55)))*tall*.14+.5);
+  vec2 q=floor((h.xy/h.w*.5+.5)*res);q=vec2(q.x-floor(wide*.5)+(position.x/1.1+.5)*wide+up*sway,q.y+up*tall);
+  gl_Position=vec4((q/res*2.-1.)*h.w,h.z,h.w);}}
 )GLSL";
 static const char *fs = R"GLSL(#version 330 core
-in vec3 worldPosition,worldNormal;in vec2 uv;in vec4 colour;flat in vec3 rootNormal;
-flat in int colorVariant;uniform vec3 instanceGrades[3];
+in vec3 worldPosition,worldNormal;in vec2 uv;in vec4 colour;flat in vec3 rootNormal;flat in vec3 pilotRoot;
+flat in int colorVariant;uniform vec3 instanceGrades[3];uniform int pilotTuft3d;
 uniform sampler2D pixelGround;
 uniform vec3 sunDirection,sunColor,ambientSky,ambientGround,eye,hazeColor;
 uniform float exposure,bandSoftness,bias,normalUpBias,ambientLift,hazeStart,hazeEnd,hazeStrength;
@@ -62,9 +73,12 @@ uniform int mode,bands,smoothLight,shadowMode,diagnostic;
 // PROFILE
 // MEADOW
 // VISIBILITY
+// PILOT
 layout(location=0)out vec4 color;layout(location=1)out vec4 normals;layout(location=2)out uint sceneOwner;
 void main(){
  sceneOwner=uint(0);
+ vec4 pilotMask=pilotOn==0?vec4(1):pilotTuft3d!=0?vec4(.34+.4*colour.r,0,0,1):texture(pilotTiles,vec3(uv,6.+float(colorVariant&1)));
+ if(pilotMask.a<.5)discard;
  vec3 n=normalize(worldNormal),litNormal=normalize(mix(n,rootNormal,normalUpBias));
  vec3 sd=normalize(sunDirection);float sun=max(0.,dot(litNormal,sd));
  if(mode!=0&&bands!=0&&smoothLight==0){float s=max(.001,bandSoftness);sun=profileBand(sun,s);}
@@ -77,13 +91,19 @@ void main(){
  vec3 lit=max(vec3(0),albedo*mix(light,vec3(1),profileActive!=0?min(ambientLift,.08):ambientLift)*exposure);lit=lit/(1.+lit*.18);
  vec3 display=pow(clamp(lit,0.,1.),vec3(1./2.2));
  if(meadowPatchOn!=0&&meadowLightingOn!=0)display=meadowBeamOn!=0?meadowBeamLit(originalAlbedo,worldPosition,max(0.,dot(normalize(rootNormal),sd)),visibility,sunColor,exposure,true):meadowLit(originalAlbedo,max(0.,dot(litNormal,sd)),visibility,sunColor,exposure);
+ if(pilotOn!=0){
+  // Evenly lit from the root so a tuft melts into the ground around it.
+  vec3 sp=pilotSnap(pilotRoot,vec3(0,1,0));float v=shadowMode!=0?stableReceiver(sp,vec3(0,1,0),bias*.000015):1.;
+  float t=pilotGreenTone(max(0.,sd.y),v,sp.xz);if(pilotTuft3d==0)t+=(pilotMask.r-.5)*.7;
+  display=pilotRamp(0,t);
+ }
  float haze=smoothstep(hazeStart,hazeEnd,length(worldPosition-eye))*hazeStrength;
  display=mix(display,hazeColor,haze);
  if(diagnostic==9)display=vec3(0);
  if(diagnostic==7)display=srgbEncode(clamp(albedo,0.,1.));
  if(diagnostic==1)display=pow(clamp(albedo,0.,1.),vec3(1./2.2));if(diagnostic==4)display=vec3(visibility);
  if(diagnostic==11){float b=beamField(worldPosition);display=vec3(b,visibility,b*visibility);}
- color=vec4(display,1);normals=vec4(n*.5+.5,profileGreenOnly!=0?.65:.025);
+ color=vec4(display,1);normals=vec4(n*.5+.5,pilotOn!=0?.025:profileGreenOnly!=0?.65:.025);
 }
 )GLSL";
 static const char *meshShadowVS = R"GLSL(#version 330 core
@@ -134,6 +154,7 @@ static GLuint program(const char *v, const char *f) {
   }
 }
 struct MeshRenderer::Impl {
+  PilotLook pilot;
   struct Part {
     GLuint vao = 0, vertices = 0, indices = 0, stream = 0;
     GLsizei count = 0;
@@ -167,6 +188,7 @@ MeshRenderer::MeshRenderer(const MeshClumps &m) {
   auto meadowAt=fragment.find("// MEADOW");fragment.replace(meadowAt,9,std::string(sunbeamGLSL)+meadowPatchGLSL);
   auto at = fragment.find("// VISIBILITY");
   fragment.replace(at, 13, visibilityGLSL);
+  auto pilotAt=fragment.find("// PILOT");fragment.replace(pilotAt,8,pilotGLSL);
   p->shader = program(vs, fragment.c_str());
   p->shadow = program(meshShadowVS, meshShadowFS);
   for (const char *n : {"normalUpBias", "ambientLift", "eye", "hazeColor", "hazeStart", "hazeEnd", "hazeStrength", "coverage",
@@ -256,6 +278,7 @@ MeshRenderer::MeshRenderer(const MeshClumps &m) {
 }
 MeshRenderer::~MeshRenderer() = default;
 void MeshRenderer::setProfile(const StyleProfile &v,bool toon){p->profile=v;p->toon=toon;}
+void MeshRenderer::setPilot(const PilotLook &v){p->pilot=v;}
 void MeshRenderer::setPixelSurface(unsigned ground, unsigned groups,
                                    const std::array<Vec, 6> &ramp) {
   p->pixelGround = ground;
@@ -291,6 +314,15 @@ MeshVisibility MeshRenderer::draw(MeshClumps &m, const Camera &camera,
   auto s = m.select(camera, Frustum(vp), height);
   if (s.visible) {
     mg::UseProgram(p->shader);
+    mg::Uniform1i(mg::GetUniformLocation(p->shader,"pilotOn"),p->pilot.enabled&&p->toon);mg::Uniform1i(mg::GetUniformLocation(p->shader,"pilotTiles"),13);mg::Uniform1i(mg::GetUniformLocation(p->shader,"pilotTuft3d"),p->pilot.tuft3d);
+    if(p->pilot.enabled){
+      mg::Uniform3f(mg::GetUniformLocation(p->shader,"pilotRight"),p->pilot.right.x,p->pilot.right.y,p->pilot.right.z);
+      mg::Uniform1f(mg::GetUniformLocation(p->shader,"pilotWide"),p->pilot.wide);mg::Uniform1f(mg::GetUniformLocation(p->shader,"pilotHigh"),p->pilot.high);
+      mg::Uniform1f(mg::GetUniformLocation(p->shader,"pilotDensity"),p->pilot.density);mg::Uniform1f(mg::GetUniformLocation(p->shader,"pilotTime"),p->pilot.time);
+      mg::Uniform1f(mg::GetUniformLocation(p->shader,"pilotPoolStrength"),p->pilot.pools);mg::Uniform1f(mg::GetUniformLocation(p->shader,"pilotSweepStrength"),p->pilot.sweep);
+      for(int i=0;i<36;i++){auto c=p->pilot.ramps[i];auto name="pilotRamps["+std::to_string(i)+"]";mg::Uniform3f(mg::GetUniformLocation(p->shader,name.c_str()),c.x,c.y,c.z);}
+      for(int i=0;i<6;i++){auto name="pilotAmps["+std::to_string(i)+"]";mg::Uniform1f(mg::GetUniformLocation(p->shader,name.c_str()),p->pilot.amps[i]);}
+    }
     mg::Uniform1i(mg::GetUniformLocation(p->shader,"profileGreenOnly"),p->profile.greenOnly);
     mg::Uniform1i(mg::GetUniformLocation(p->shader,"profileActive"),p->profile.active&&p->toon);
     mg::Uniform1f(mg::GetUniformLocation(p->shader,"profileLow"),p->profile.lowTone);mg::Uniform1f(mg::GetUniformLocation(p->shader,"profileMid"),p->profile.midTone);

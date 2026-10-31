@@ -1,6 +1,7 @@
 # WILDSIGNAL — Battle & Balance Bible v0.1
 
-**Status: PROPOSED — requires game-design approval and playtesting.** Turn-based combat is CONFIRMED, detailed numerical rules are NOT. Date 2026-10-20.
+**Status: PROPOSED — requires game-design approval and playtesting.** Date 2026-10-20.
+**Update 2026-11-01:** the owner replaced turn-based combat with real-time fights (D-006, D-028). The turn order, command phases, four-move limit and timer rules below are superseded. Stats, damage, affinities, statuses and energy still apply; real-time rules live in `experiments/hearthgrove_emaceart/src/fight.cpp` and `data/fight_test.json` until this Bible is rewritten.
 **Source roster:** `FIRST_NINE_CREATURES_v0.1.json` (nine owner-art sprites, 18 working moves).
 **Test vectors:** `BATTLE_TEST_VECTORS_v0.1.json`; deterministic expected values are calculated and included.
 **Design principle:** Accessible mobile 1v1 tactics, expressive creature silhouettes, predictable results, no paid stat advantages, fully offline, with possible reuse on authoritative online server.

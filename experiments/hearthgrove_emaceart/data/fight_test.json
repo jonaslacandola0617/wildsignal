@@ -1,0 +1,36 @@
+{
+  "schema": "wildsignal-fight-test-v0",
+  "status": "PROPOSED - placeholder timings and slots for the owner's real-time fight test, not approved",
+  "note": "Slots 5 and 6 reuse existing library moves as placeholders until six-move kits are designed. Distances are millimetres, times milliseconds.",
+  "timing": {
+    "TAP": {"reach": "dash", "range": 2400, "size": 650, "windup": 620, "recover": 420, "cooldown": 1800},
+    "BRACE": {"reach": "self", "range": 0, "size": 0, "windup": 180, "recover": 260, "cooldown": 5000},
+    "SPROUT_DART": {"reach": "lane", "range": 6500, "size": 520, "windup": 650, "recover": 420, "cooldown": 3200},
+    "LANTERN_GROVE": {"reach": "self", "range": 0, "size": 0, "windup": 420, "recover": 420, "cooldown": 9000},
+    "ROOT_THREAD": {"reach": "lane", "range": 7000, "size": 560, "windup": 900, "recover": 520, "cooldown": 4800},
+    "SLIPSTREAM": {"reach": "lane", "range": 7000, "size": 560, "windup": 680, "recover": 420, "cooldown": 3400},
+    "MIST_HUSH": {"reach": "burst", "range": 6500, "size": 1500, "windup": 900, "recover": 520, "cooldown": 5200},
+    "QUICK_DART": {"reach": "dash", "range": 3600, "size": 620, "windup": 380, "recover": 380, "cooldown": 2800},
+    "CURRENT_SHIELD": {"reach": "self", "range": 0, "size": 0, "windup": 300, "recover": 320, "cooldown": 7000},
+    "CINDER_BEAT": {"reach": "self", "range": 0, "size": 0, "windup": 420, "recover": 320, "cooldown": 7000},
+    "EMBER_KNOCK": {"reach": "dash", "range": 3000, "size": 760, "windup": 760, "recover": 520, "cooldown": 3600},
+    "COAL_FLICK": {"reach": "burst", "range": 6000, "size": 1300, "windup": 860, "recover": 520, "cooldown": 5200},
+    "BURROW_BUMP": {"reach": "burst", "range": 5200, "size": 1650, "windup": 1100, "recover": 620, "cooldown": 4800},
+    "STONE_SHELL": {"reach": "self", "range": 0, "size": 0, "windup": 320, "recover": 380, "cooldown": 8000},
+    "SOFT_GLOW": {"reach": "lane", "range": 6500, "size": 620, "windup": 680, "recover": 420, "cooldown": 3400},
+    "ECHO_WISP": {"reach": "burst", "range": 6000, "size": 1500, "windup": 980, "recover": 520, "cooldown": 5000},
+    "MOSS_MEND": {"reach": "self", "range": 0, "size": 0, "windup": 620, "recover": 420, "cooldown": 10000},
+    "RESTORING_GLOW": {"reach": "self", "range": 0, "size": 0, "windup": 520, "recover": 420, "cooldown": 9000}
+  },
+  "slots": {
+    "WS-004": ["TAP", "SPROUT_DART", "LANTERN_GROVE", "ROOT_THREAD", "MOSS_MEND", "BRACE"],
+    "WS-008": ["TAP", "SLIPSTREAM", "MIST_HUSH", "QUICK_DART", "CURRENT_SHIELD", "BRACE"],
+    "WS-050": ["TAP", "EMBER_KNOCK", "CINDER_BEAT", "COAL_FLICK", "QUICK_DART", "BRACE"],
+    "WS-005": ["TAP", "QUICK_DART", "BRACE", "ROOT_THREAD", "BURROW_BUMP", "ECHO_WISP"],
+    "WS-021": ["TAP", "MIST_HUSH", "SLIPSTREAM", "CURRENT_SHIELD", "QUICK_DART", "BRACE"],
+    "WS-012": ["TAP", "SPROUT_DART", "MOSS_MEND", "ROOT_THREAD", "LANTERN_GROVE", "BRACE"],
+    "WS-001": ["TAP", "SOFT_GLOW", "QUICK_DART", "ECHO_WISP", "RESTORING_GLOW", "BRACE"],
+    "WS-024": ["TAP", "BURROW_BUMP", "STONE_SHELL", "BRACE", "QUICK_DART", "SOFT_GLOW"],
+    "WS-067": ["TAP", "SOFT_GLOW", "ECHO_WISP", "RESTORING_GLOW", "QUICK_DART", "BRACE"]
+  }
+}

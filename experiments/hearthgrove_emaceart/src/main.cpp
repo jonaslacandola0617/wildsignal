@@ -1,4 +1,5 @@
 #include "animation.hpp"
+#include "fight_scene.hpp"
 #include "followers.hpp"
 #include "game.hpp"
 #include "gpu.hpp"
@@ -49,7 +50,7 @@ std::uint64_t memory(bool peak = false) {
 struct Options {
   std::filesystem::path assets = "assets", save = "saves/hearthgrove_emaceart.json",
                         out = "runs/play", replay;
-  std::string preset="balanced",ink="balanced";std::filesystem::path styleSettings;
+  std::string preset="balanced",ink="balanced";std::filesystem::path styleSettings,pilot;float pilotTime=0;bool raisedCamera=false,stableCamera=false;int windowWidth=0;
   bool contacts=true,edgeHighlights=true,edgeOutlines=true,vegetationEdges=true,cleanShadow=true;
   bool treeEnabled=false,treeScene=false,leafPlain=true;int treeMode=0;
   int hudMode=1;bool shadowSet=false,shaftSet=false,hazeSet=false;
@@ -121,6 +122,11 @@ Options options(int argc, char **argv) {
     else if(a=="--contacts"){auto v=value();if(v!="on"&&v!="off")throw std::runtime_error("contacts on|off");o.contacts=v=="on";}
     else if(a=="--style-preset"){o.preset=value();if(o.preset!="baseline"&&o.preset!="balanced"&&o.preset!="rich")throw std::runtime_error("style-preset baseline|balanced|rich");}
     else if(a=="--style-settings")o.styleSettings=value();
+    else if(a=="--pilot")o.pilot=value();
+    else if(a=="--stable-camera")o.stableCamera=true;
+    else if(a=="--camera"){auto v=value();if(v!="first"&&v!="raised")throw std::runtime_error("camera first|raised");o.raisedCamera=v=="raised";}
+    else if(a=="--pilot-time")o.pilotTime=std::stof(value());
+    else if(a=="--window")o.windowWidth=integer(value(),640,3840);
     else if(a=="--ink"){o.ink=value();if(o.ink!="off"&&o.ink!="balanced"&&o.ink!="bold")throw std::runtime_error("ink off|balanced|bold");}
     else if(a=="--hud"){auto v=value();if(v!="off"&&v!="compact"&&v!="debug")throw std::runtime_error("hud off|compact|debug");o.hudMode=v=="off"?0:v=="compact"?1:2;}
     else if(a=="--shaft-strength") {
@@ -513,9 +519,16 @@ int main(int argc, char **argv) {
       mat.studyKind=mat.ground?4:mat.architecture?1:mat.foliage?2:3;
     }
     std::vector<std::size_t> actors;
+    std::size_t playerActor = world.instances.size();
     for (std::size_t i = 0; i < world.instances.size(); i++)
-      if (world.models[world.instances[i].model].rig)
-        actors.push_back(i);
+      if (world.models[world.instances[i].model].rig) {
+        if (world.models[world.instances[i].model].id == "WS0P_PLAYER")
+          playerActor = i;
+        else
+          actors.push_back(i);
+      }
+    p3::Vec playerLast{};
+    float playerFacing = 0, playerStride = 0;
     if (actors.size() != 2)
       throw std::runtime_error("two genuine skinned Petalyn actors required");
     auto &rig = world.models[world.instances[actors[0]].model].rig;
@@ -551,7 +564,7 @@ int main(int argc, char **argv) {
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
     screen.window =
         SDL_CreateWindow("WILDSIGNAL - Hearthgrove EmaceArt",
-                         o.hidden ? o.w : 1280, o.hidden ? o.w * 9 / 16 : 720,
+                         o.windowWidth ? o.windowWidth : o.hidden ? o.w : 1280, o.windowWidth ? o.windowWidth * 9 / 16 : o.hidden ? o.w * 9 / 16 : 720,
                          SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE |
                              (o.hidden ? SDL_WINDOW_HIDDEN : 0));
     if (!screen.window)
@@ -579,6 +592,58 @@ int main(int argc, char **argv) {
     float authoredHaze=look.hazeStrength;
     if(!o.haze)look.hazeStrength=0;
     gpu.setLook(look);
+    if(!o.pilot.empty()){
+      auto j=ws::parseJson(p3::readText(o.pilot));p3::PilotLook pilot;pilot.enabled=true;pilot.tiles=o.pilot.parent_path();
+      pilot.density=float(j.at("density").number());pilot.pools=float(j.at("pools").number());pilot.sweep=float(j.at("sweep").number());pilot.tuft3d=int(j.at("tuft3d").number());pilot.rays=float(j.at("rays").number());
+      auto colour=[](const std::string &h){auto v=std::stoul(h.substr(1),nullptr,16);return p3::Vec{float((v>>16)&255)/255.f,float((v>>8)&255)/255.f,float(v&255)/255.f};};
+      const char *names[]={"grass","soil","rock","leaf","bark"};
+      for(int f=0;f<5;f++){auto &r=j.at("ramps").at(names[f]).array();for(int i=0;i<6;i++)pilot.ramps[f*6+i]=colour(r.at(i).string());}
+      auto &amps=j.at("amps").array();for(int i=0;i<6;i++)pilot.amps[i]=float(amps.at(i).number());
+      pilot.lichen=colour(j.at("lichen").string());gpu.setPilot(pilot);
+    }
+    // Fight test: real-time rules, ground markers and pixel HUD, staged with existing creature models.
+    std::unique_ptr<p3::PixelUi> pixelUi;
+    std::unique_ptr<p3::FightScene> scene;
+    std::unique_ptr<p3::GroundMarks> groundMarks;
+    std::map<std::string, std::size_t> stageModels;
+    std::map<std::string, p3::Mat> stageHome;
+    p3::Vec wildSpot{.6f, 0, 3.4f};
+    bool stageSet = false;
+    float fightTurn = 0, fightZoom = 0;
+    p3::Vec fightFoe{};
+    std::vector<std::size_t> viewBlockers;
+    std::vector<std::pair<std::size_t, std::size_t>> viewFollowers; // Window, chimney or smoke, and its building.
+    std::vector<float> viewFades(world.instances.size(), 0.f);
+    if(!o.pilot.empty()){
+      pixelUi=std::make_unique<p3::PixelUi>(o.pilot.parent_path());
+      scene=std::make_unique<p3::FightScene>(o.pilot.parent_path());
+      groundMarks=std::make_unique<p3::GroundMarks>([](float x,float z){return game::terrain(x,z);});
+      gpu.setOverlay([&](const p3::Mat &m){groundMarks->draw(m);});
+      for(std::size_t i=0;i<world.instances.size();i++){
+        const auto &model=world.models[world.instances[i].model];
+        if(model.id=="WS004"||model.id=="WS005"||model.id=="WS008"){stageModels[model.id]=i;stageHome[model.id]=world.instances[i].matrix;}
+      }
+      // Anything tall enough to hide the Wayfinder can dissolve; ground, characters and building details cannot.
+      std::vector<std::size_t> details;
+      for(std::size_t i=0;i<world.instances.size();i++){
+        const auto &model=world.models[world.instances[i].model];const auto &b=world.instances[i].bounds;
+        if(model.id=="WSP_WINDOWS"||model.id=="PILOT_CHIMNEY"||model.id=="WSP_SMOKE"){details.push_back(i);continue;}
+        if(model.rig||model.id.starts_with("WS0")||model.materials.front().ground||model.id.starts_with("EA_GREEN")||model.id.starts_with("EA_PATH"))continue;
+        if(b.hi.y-b.lo.y>=.9f)viewBlockers.push_back(i);
+      }
+      for(auto i:details){
+        auto at=(world.instances[i].bounds.lo+world.instances[i].bounds.hi)*.5f;float best=1e9f;std::size_t home=i;
+        for(auto b:viewBlockers){
+          const auto &id=world.models[world.instances[b].model].id;
+          if(id!="EA_HOUSE"&&id!="EA_SHED"&&id!="EA_HOVEL")continue;
+          auto c=(world.instances[b].bounds.lo+world.instances[b].bounds.hi)*.5f;float d=std::hypot(c.x-at.x,c.z-at.z);
+          if(d<best)best=d,home=b;
+        }
+        if(home!=i)viewFollowers.emplace_back(i,home);
+      }
+      auto place=[&](const std::string &id,p3::Vec at,float yaw){auto &i=world.instances[stageModels.at(id)];float s=std::hypot(i.matrix.v[0],std::hypot(i.matrix.v[1],i.matrix.v[2]));at.y=game::terrain(at.x,at.z);i.matrix=p3::transform(at,yaw,s);i.bounds=p3::transformed(world.models[i.model].bounds,i.matrix);stageHome[id]=i.matrix;};
+      if(stageModels.count("WS005"))place("WS005",wildSpot,-.6f);
+    }
     p3::Style style;
     style.mode = 2;
     style.materials = false; // exact source pixels; no authored replacement material pass
@@ -595,7 +660,7 @@ int main(int argc, char **argv) {
       style.highlights = false;
     }
     gpu.setStyle(style);
-    gpu.setStudy(1,p3::PixelCameraMode::Off,10);
+    gpu.setStudy(1,o.stableCamera?p3::PixelCameraMode::Compensated:p3::PixelCameraMode::Off,12);
     p3::Integration integration;
     integration.edges = 3;integration.edgeMask=o.diagnostic==10;
     integration.stableShadow = true;integration.boundedAir=o.boundedAir;
@@ -722,7 +787,7 @@ int main(int argc, char **argv) {
           SDL_SetWindowRelativeMouseMode(screen.window, true);
         } else if (e.type == SDL_EVENT_MOUSE_MOTION &&
                    (relative || !o.replay.empty()) && !paused &&
-                   game.phase == game::Phase::Explore) {
+                   (game.phase == game::Phase::Explore || (scene && scene->active()))) {
           game.state.yaw = std::remainder(
               game.state.yaw + e.motion.xrel * .0025f, 2 * p3::pi);
           game.state.pitch = std::clamp(
@@ -738,6 +803,10 @@ int main(int argc, char **argv) {
             held[std::size_t(at)] = down;
           if (!down || e.key.repeat)
             continue;
+          if (scene && scene->active() && !paused && e.key.key != SDLK_ESCAPE) {
+            scene->key(int(e.key.key));
+            continue;
+          }
           if (e.key.key == SDLK_ESCAPE) {
             paused = !paused;
             relative = !paused;
@@ -776,6 +845,7 @@ int main(int argc, char **argv) {
               o.debugFollow = !o.debugFollow;
             } else if(e.key.key==SDLK_M&&tree){o.leafPlain=!o.leafPlain;gpu.setPlainLeaves(o.leafPlain);game.message=o.leafPlain?"LEAF BASE PLAIN / ALPHA + TOON LIGHT RETAINED":"LEAF BASE SOURCE TEXTURE / M COMPARE";event(frame,"leaf_color_toggle");
             } else if(e.key.key==SDLK_T&&tree){o.treeMode=(o.treeMode+1)%5;gpu.setTreeTreatment(o.treeMode);game.message=std::string("TREE ")+p3::treeModeName(o.treeMode)+" / T COMPARE";event(frame,"tree_treatment_toggle");
+            } else if(e.key.key==SDLK_C&&!o.pilot.empty()){o.raisedCamera=!o.raisedCamera;game.message=o.raisedCamera?"RAISED CAMERA":"FIRST PERSON";
             } else if(e.key.key==SDLK_J){o.edgeHighlights=!o.edgeHighlights;style.highlights=!o.original&&o.edgeHighlights;gpu.setStyle(style);game.message=o.edgeHighlights?"SUN EDGE HIGHLIGHTS ON / J TO COMPARE":"SUN EDGE HIGHLIGHTS OFF / J TO COMPARE";event(frame,o.edgeHighlights?"highlights_on":"highlights_off");
             } else if(e.key.key==SDLK_K){o.edgeOutlines=!o.edgeOutlines;style.outlines=!o.original&&o.edgeOutlines;gpu.setStyle(style);game.message=o.edgeOutlines?"OUTLINES ON / K TO COMPARE":"OUTLINES OFF / K TO COMPARE";event(frame,o.edgeOutlines?"outlines_on":"outlines_off");
             } else if(e.key.key==SDLK_V) {
@@ -809,8 +879,18 @@ int main(int argc, char **argv) {
                                        1.5f;
                               })) {
                 game.rest();
+                if (scene)
+                  scene->heal();
                 save();
                 event(frame, "cottage_rest");
+              } else if (scene && std::hypot(game.state.player.x - wildSpot.x, game.state.player.z - wildSpot.z) < 2.4f) {
+                std::vector<battle::Block> blocks;
+                for (const auto &s : game.solids)
+                  blocks.push_back({int(s.x * 1000), int(s.z * 1000), int(s.hx * 1000), int(s.hz * 1000)});
+                scene->start(game.state.player, wildSpot, blocks);
+                game.phase = game::Phase::Battle;
+                fightTurn = .7f;
+                event(frame, "fight_start");
               } else if (game.encounter()) {
                 attackTime = 10;
                 event(frame, "encounter");
@@ -887,9 +967,85 @@ int main(int argc, char **argv) {
       camera.position = game.state.player + p3::Vec{0, 1.65f, 0};
       camera.yaw = game.state.yaw;
       camera.pitch = game.state.pitch;
-      if (game.phase != game::Phase::Explore) {
+      if (o.raisedCamera && game.phase == game::Phase::Explore) {
+        float y = game.state.yaw;
+        camera.position = game.state.player + p3::Vec{-std::sin(y) * 8.5f, 5.5f, std::cos(y) * 8.5f};
+        camera.aim(game.state.player + p3::Vec{0, 1.5f, 0});
+      }
+      if (game.phase != game::Phase::Explore && !(scene && scene->active())) {
         camera.position = game.wild + p3::Vec{0, 1.25f, 3.0f};
         camera.aim(game.wild + p3::Vec{0, .9f, 0});
+      }
+      if (scene) {
+        int fightX = 0, fightZ = 0;
+        float ahead = float(held[0]) - float(held[1]), across = float(held[3]) - float(held[2]);
+        if (float n = std::hypot(ahead, across); n > 0 && !paused) {
+          float y = game.state.yaw;
+          ahead /= n;
+          across /= n;
+          fightX = int(std::lround((std::sin(y) * ahead + std::cos(y) * across) * 1000));
+          fightZ = int(std::lround((-std::cos(y) * ahead + std::sin(y) * across) * 1000));
+        }
+        if (!paused)
+          scene->update(dt, fightX, fightZ);
+        if (scene->active()) {
+          game.state.player = scene->youAt();
+          p3::Vec foe = scene->wildAt();
+          // The camera swings round to face the wild Signari, then the mouse keeps control.
+          if (fightTurn > 0) {
+            fightTurn = std::max(0.f, fightTurn - dt);
+            float want = std::atan2(foe.x - game.state.player.x, game.state.player.z - foe.z);
+            game.state.yaw += std::remainder(want - game.state.yaw, 2 * p3::pi) * std::min(1.f, dt * 7);
+          }
+          auto staged = std::array{scene->creature(true), scene->creature(false)};
+          for (auto &[id, home] : stageHome) {
+            auto &i = world.instances[stageModels[id]];
+            i.matrix = home;
+            if (id != staged[0].model && id != staged[1].model)
+              i.matrix.v[13] -= 40; // A resting party member waits out of sight.
+            i.bounds = p3::transformed(world.models[i.model].bounds, i.matrix);
+          }
+          for (const auto &s : staged) {
+            auto it = stageModels.find(s.model);
+            if (it == stageModels.end())
+              continue;
+            auto &i = world.instances[it->second];
+            const auto &home = stageHome[s.model];
+            i.matrix = p3::posed(s, std::hypot(home.v[0], std::hypot(home.v[1], home.v[2])));
+            i.bounds = p3::transformed(world.models[i.model].bounds, i.matrix);
+            i.bounds.lo = i.bounds.lo - p3::Vec{.6f, .6f, .6f};
+            i.bounds.hi = i.bounds.hi + p3::Vec{.6f, .6f, .6f};
+          }
+          fightFoe = foe;
+          stageSet = true;
+        } else if (stageSet) {
+          for (auto &[id, home] : stageHome) {
+            auto &i = world.instances[stageModels[id]];
+            i.matrix = home;
+            i.bounds = p3::transformed(world.models[i.model].bounds, i.matrix);
+          }
+          stageSet = false;
+          game.phase = game::Phase::Explore;
+          game.message = "";
+          if (scene->lost()) {
+            // Losing costs nothing: the Wayfinder wakes at the start with a rested party.
+            game.state.player = game.spawn;
+            scene->heal();
+          }
+        }
+        // The camera leans in when a fight starts and eases back out when it ends.
+        bool fighting = scene->active();
+        fightZoom += std::clamp(float(fighting) - fightZoom, -dt * 2.5f, dt * 2.5f);
+        if (fightZoom > 0 && (fighting || (o.raisedCamera && game.phase == game::Phase::Explore))) {
+          float k = fightZoom * fightZoom * (3 - 2 * fightZoom), y = game.state.yaw;
+          // It gives back a little distance when the wild Signari backs off, to keep both in frame.
+          float spread = std::hypot(fightFoe.x - game.state.player.x, fightFoe.z - game.state.player.z);
+          float reach = 6.4f + std::clamp(spread - 3, 0.f, 6.f) * .35f;
+          float arm = 8.5f + (reach - 8.5f) * k, rise = 5.5f + (reach * .68f - 5.5f) * k;
+          p3::Vec middle = game.state.player + (fightFoe - game.state.player) * (.35f * k);
+          camera.position = middle + p3::Vec{-std::sin(y) * arm, rise, std::cos(y) * arm};
+          camera.aim(middle + p3::Vec{0, 1.5f - .8f * k, 0});
+        }
       }
       if (o.benchmark) {
         if (o.pose >= 0)
@@ -935,14 +1091,14 @@ int main(int argc, char **argv) {
           yaw = game.second.yaw;
           clip = game.state.recruited && game.second.moving ? "Fly" : "Idle";
         }
-        if (game.phase != game::Phase::Explore) {
+        if (game.phase != game::Phase::Explore && !(scene && scene->active())) {
           position = j == 0 ? game.wild + p3::Vec{-.65f, 0, 1.05f} : game.wild;
           yaw = j == 0 ? p3::pi : 0;
           if (attackTime < 2 && game.phase == game::Phase::Battle &&
               (j != 0 || attackSelf))
             clip = "Attack";
         }
-        position.y = game::terrain(position.x, position.z) + .55f;
+        position.y = game::terrain(position.x, position.z) + (scene && scene->active() ? -40.f : .55f);
         i.matrix = p3::transform(position, yaw, 1);
         i.bounds = p3::transformed(world.models[i.model].bounds, i.matrix);
         i.bounds.lo = i.bounds.lo - p3::Vec{.3f, .3f, .3f};
@@ -951,9 +1107,85 @@ int main(int argc, char **argv) {
             clip, clip == "Attack" ? attackTime : animation + float(j) * .173f,
             clip != "Attack");
       }
+      if (playerActor < world.instances.size()) {
+        // The player model appears only in the raised view and turns toward its movement.
+        auto &i = world.instances[playerActor];
+        bool staged = scene && scene->active();
+        p3::Vec at = game.state.player;
+        float dx = at.x - playerLast.x, dz = at.z - playerLast.z;
+        bool moving = !staged && dx * dx + dz * dz > 1e-5f;
+        if (moving) {
+          playerFacing = std::atan2(dx, dz);
+          playerStride += std::sqrt(dx * dx + dz * dz) / 1.15f;
+        }
+        playerLast = at;
+        if (staged)
+          playerFacing = scene->youYaw();
+        at.y = game::terrain(at.x, at.z) + (o.raisedCamera || staged ? 0.f : -40.f);
+        p3::FightScene::Staged pose;
+        pose.at = at;
+        pose.yaw = playerFacing;
+        pose.pitch = staged ? scene->rollTurn() : 0;
+        i.matrix = p3::posed(pose, .66f);
+        i.bounds = p3::transformed(world.models[i.model].bounds, i.matrix);
+        i.bounds.lo = i.bounds.lo - p3::Vec{.4f, .4f, .4f};
+        i.bounds.hi = i.bounds.hi + p3::Vec{.4f, .4f, .4f};
+        if (staged) {
+          auto clip = scene->youClip();
+          bool loop = clip == "Idle" || clip == "Run" || clip == "Tuck";
+          i.palette = world.models[i.model].rig->sample(clip, loop ? animation : scene->clipTime(), loop);
+        } else
+          i.palette = world.models[i.model].rig->sample(moving ? "Walk" : "Idle", moving ? playerStride : animation, true);
+      }
       auto animateEnd = Clock::now();
       world.partition(3);
       auto vp = p3::perspective(p3::pi / 3, 16.f / 9) * camera.view();
+      if (scene) {
+        // In the raised view and in fights, whatever stands between the camera and the action dissolves in a pixel pattern.
+        bool fighting = scene->active(), dissolving = !o.benchmark && (fighting || o.raisedCamera);
+        std::vector<p3::Vec> watched{game.state.player + p3::Vec{0, .9f, 0}};
+        if (fighting) {
+          watched.push_back(scene->wildAt() + p3::Vec{0, .5f, 0});
+          watched.push_back(scene->creature(true).at + p3::Vec{0, .5f, 0});
+        }
+        auto crosses = [&](const p3::Box &b, p3::Vec from, p3::Vec to) {
+          float enter = 0, leave = 1;
+          for (auto [a, d, lo, hi] : {std::array{from.x, to.x - from.x, b.lo.x - .4f, b.hi.x + .4f}, std::array{from.y, to.y - from.y, b.lo.y, b.hi.y}, std::array{from.z, to.z - from.z, b.lo.z - .4f, b.hi.z + .4f}}) {
+            if (std::abs(d) < 1e-5f) {
+              if (a < lo || a > hi)
+                return false;
+              continue;
+            }
+            float t0 = (lo - a) / d, t1 = (hi - a) / d;
+            enter = std::max(enter, std::min(t0, t1));
+            leave = std::min(leave, std::max(t0, t1));
+          }
+          return enter <= leave;
+        };
+        for (auto index : viewBlockers) {
+          const auto &b = world.instances[index].bounds;
+          float want = 0;
+          if (dissolving) {
+            auto within = [&](float margin) {
+              return camera.position.x > b.lo.x - margin && camera.position.x < b.hi.x + margin && camera.position.y < b.hi.y + margin && camera.position.z > b.lo.z - margin && camera.position.z < b.hi.z + margin;
+            };
+            bool blocks = false;
+            for (auto at : watched)
+              blocks = blocks || crosses(b, camera.position, at);
+            want = within(1.5f) ? 1.f : blocks ? .8f : 0.f; // Beside the lens even a faint pattern would fill the frame.
+          }
+          auto &fade = viewFades[index];
+          fade += std::clamp(want - fade, -dt * 3.5f, dt * 3.5f);
+        }
+        for (auto [detail, home] : viewFollowers)
+          viewFades[detail] = viewFades[home];
+        gpu.setFades(viewFades);
+      }
+      if (groundMarks) {
+        groundMarks->clear();
+        auto eye = p3::inverse(camera.view());
+        scene->marks(*groundMarks, p3::direction(eye, {1, 0, 0}), p3::direction(eye, {0, 1, 0}));
+      }
       auto cullStart = Clock::now();
       auto counts = world.visible(p3::Frustum(vp), true, visible);
       auto cullEnd = Clock::now();
@@ -963,6 +1195,7 @@ int main(int argc, char **argv) {
         SDL_Delay(10);
         continue;
       }
+      gpu.setPilotTime(animation+o.pilotTime);
       auto stats =
           gpu.draw(world, visible, camera, o.w, o.w * 9 / 16, ow, oh,
                    o.original ? 0 : 2, !o.coverage, !o.original, false, frame);
@@ -1022,6 +1255,19 @@ int main(int argc, char **argv) {
       if(tree)hud.push_back(std::string("T TREE ")+p3::treeModeName(o.treeMode)+" / M "+(o.treeMode==4?"PLAIN LOCKED":o.leafPlain?"PLAIN":"SOURCE"));
       if (!o.coverage&&o.hudMode!=0)
         gpu.hud(hud, ow, oh);
+      if (pixelUi && scene) {
+        pixelUi->begin(ow, oh);
+        if (scene->active())
+          scene->draw(*pixelUi, [&](p3::Vec at) {
+            const float *m = vp.v.data();
+            float x = m[0] * at.x + m[4] * at.y + m[8] * at.z + m[12], y = m[1] * at.x + m[5] * at.y + m[9] * at.z + m[13],
+                  w = std::max(.01f, m[3] * at.x + m[7] * at.y + m[11] * at.z + m[15]);
+            return std::array<int, 2>{int((x / w + 1) * 320), int((1 - y / w) * 180)};
+          });
+        else if (game.phase == game::Phase::Explore && std::hypot(game.state.player.x - wildSpot.x, game.state.player.z - wildSpot.z) < 2.4f)
+          scene->prompt(*pixelUi, "[E] FACE THE WILD TUMBLETAIL");
+        pixelUi->end();
+      }
       auto hudEnd = Clock::now();
       if (o.every && frame % o.every == 0) {
         std::ostringstream name;

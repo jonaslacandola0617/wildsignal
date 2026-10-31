@@ -1,5 +1,6 @@
 #pragma once
 #include "look.hpp"
+#include "pilot_look.hpp"
 #include "style_profile.hpp"
 #include "mesh_clumps.hpp"
 #include <memory>
@@ -18,6 +19,7 @@ public:
                       int height);
   std::size_t bytes() const;
   void setProfile(const StyleProfile &,bool toon);
+  void setPilot(const PilotLook &);
   void setPixelSurface(unsigned ground, unsigned groups,
                        const std::array<Vec, 6> &);
 };

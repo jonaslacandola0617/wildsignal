@@ -27,7 +27,7 @@
 | D-003 | First-person retro pseudo-3D/2.5D appearance inspired by user's dungeon screenshot | CONFIRMED visual direction | renderer R&D, world geometry |
 | D-004 | Mood "Beautiful but mysterious": cute companions, lush nature, ruins and discovery | CONFIRMED | art and narrative |
 | D-005 | Persistent creature companions follow, respond and help exploration | CONFIRMED | sprite art, sim/navigation |
-| D-006 | Creature battles are turn-based; world exploration real-time | CONFIRMED | battle engine, UI |
+| D-006 | Creature battles are real-time: the player moves, dodges and commands a Signari that can also act alone, and wild Signari can attack the player (owner decision 2026-11-01 after playing the fight test; replaces turn-based) | CONFIRMED | battle engine, UI |
 | D-007 | C++ with lightweight libraries; user lacks local heavy game engine/high-end GPU | CONFIRMED tech constraints | architecture |
 | D-008 | Android/Google Play and Windows/Steam publishing targets | CONFIRMED target | CI, platform adapters, compliance |
 | D-009 | Full solo story progression playable offline; online multiplayer optional | CONFIRMED | save trust, UX, account boundaries |
@@ -47,7 +47,7 @@
 | D-025 | Original starter art mappings WS-004 Glintle/Flora, WS-008 Driftfin/Tide, WS-050 Brumlet/Ember | RECOMMENDED; original sprite art is confirmed | sprite animation, battle schema |
 | D-026 | First-nine species proposal, including Tumbletail/Puddlefin/Mossmelt/Signalit/Craglet/Hushflame | RECOMMENDED | roster approval, habitats |
 | D-027 | Trust-building Invite/Observe/Help/Friendly Spar instead of capture device | RECOMMENDED | core loop/progression |
-| D-028 | 3 carried creatures, 1 active 1v1, 4 moves, energy 0..8, integer formulas, basic statuses | RECOMMENDED | combat backend and battle UI |
+| D-028 | 1 active Signari fought in real time, player movement and dodging, 6 moves plus a general dodge command, 3 carried creatures, energy 0..8, integer formulas, basic statuses (numbers and kits still proposed) | RECOMMENDED | combat backend and battle UI |
 | D-029 | 3 local save slots; source sprite pivots and extra angles created conservatively | RECOMMENDED | save UX and art effort |
 | D-030 | Landscape-first on Android; controller support by commercial 1.0 | RECOMMENDED | controls/QA |
 | D-031 | Original NPCs Mara/Fen/Iri and Sol inscription (not full NPC in opening) | RECOMMENDED | quests, character art |
