@@ -198,7 +198,7 @@
       "id": "D-028",
       "status": "PROPOSED",
       "statusText": "RECOMMENDED",
-      "decision": "1 active Signari fought in real time, player movement and dodging, 6 moves plus a general dodge command, 3 carried creatures, energy 0..8, integer formulas, basic statuses (numbers and kits still proposed)",
+      "decision": "1 active Signari fought in real time, player movement and dodging, 6 commands per Signari (Tap and Dodge are general, plus 4 learned moves), 3 carried creatures, energy 0..8, integer formulas, basic statuses (numbers and kits still proposed)",
       "downstream": "combat backend and battle UI",
       "approvedAt": null,
       "source": "docs/planning/DECISION_REGISTER_v0.1.md"

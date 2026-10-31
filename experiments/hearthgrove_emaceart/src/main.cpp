@@ -60,7 +60,7 @@ struct Options {
   int w = 480, frames = 0, every = 0, cap = 30, density = 2, pose = -1,
       coverage = 0;
   bool allow = false, hidden = false, house = true, benchmark = false,
-       fresh = false, original = false;
+       fresh = false, calmFights = false, original = false;
   std::string pacing = "precise";
   bool shafts = true, haze = true;
   int meadowResponse=2;bool grassOutlines=false;
@@ -283,6 +283,8 @@ Options options(int argc, char **argv) {
       o.hidden = true;
     else if (a == "--benchmark")
       o.benchmark = true;
+    else if (a == "--calm-fights")
+      o.calmFights = true;
     else if (a == "--new-game")
       o.fresh = true;
     else
@@ -334,7 +336,8 @@ void push(const Replay &r) {
   SDL_Event e{};
   if (r.command == "down" || r.command == "up") {
     e.type = r.command == "down" ? SDL_EVENT_KEY_DOWN : SDL_EVENT_KEY_UP;
-    e.key.key = SDL_GetKeyFromName(r.arg.c_str());
+    // Key names may hold a space, such as "Left Shift".
+    e.key.key = SDL_GetKeyFromName((r.arg2.empty() ? r.arg : r.arg + " " + r.arg2).c_str());
     e.key.scancode = SDL_GetScancodeFromKey(e.key.key, nullptr);
     if (!e.key.key)
       throw std::runtime_error("unknown replay key");
@@ -618,6 +621,7 @@ int main(int argc, char **argv) {
     if(!o.pilot.empty()){
       pixelUi=std::make_unique<p3::PixelUi>(o.pilot.parent_path());
       scene=std::make_unique<p3::FightScene>(o.pilot.parent_path());
+      scene->startCalm(o.calmFights);
       auto bondFile=o.save;bondFile+=".bonds.json";
       wilds=std::make_unique<p3::WildScene>(o.pilot.parent_path(),scene->roster(),bondFile,o.fresh,game.state.player);
       groundMarks=std::make_unique<p3::GroundMarks>([](float x,float z){return game::terrain(x,z);});
@@ -754,6 +758,7 @@ int main(int argc, char **argv) {
     };
     bool run = true, paused = false, relative = true;
     std::array<bool, 4> held{};
+    bool sneaking = false;
     SDL_SetWindowRelativeMouseMode(screen.window, true);
     int frame = 0;
     float animation = 0, attackTime = 10;
@@ -805,6 +810,8 @@ int main(int argc, char **argv) {
                                          : -1;
           if (at >= 0)
             held[std::size_t(at)] = down;
+          if (e.key.key == SDLK_LSHIFT)
+            sneaking = down;
           if (!down || e.key.repeat)
             continue;
           if (scene && scene->active() && !paused && e.key.key != SDLK_ESCAPE) {
@@ -887,7 +894,7 @@ int main(int argc, char **argv) {
             } else if (e.key.key == SDLK_G) {
               grass.density = (grass.density + 1) % 4;
               event(frame, "grass_profile");
-            } else if (e.key.key == SDLK_R) {
+            } else if (e.key.key == SDLK_R && !wilds) { // R means reach out in the pilot corner.
               o.w = o.w == 480 ? 640 : 480;
               event(frame, "resolution");
             } else if (e.key.key == SDLK_E &&
@@ -950,8 +957,8 @@ int main(int argc, char **argv) {
           float y = game.state.yaw;
           game.state.player =
               game::move(game.state.player,
-                         {(std::sin(y) * f + std::cos(y) * side) * dt * 2.2f, 0,
-                          (-std::cos(y) * f + std::sin(y) * side) * dt * 2.2f},
+                         {(std::sin(y) * f + std::cos(y) * side) * dt * (sneaking ? .95f : 2.2f), 0,
+                          (-std::cos(y) * f + std::sin(y) * side) * dt * (sneaking ? .95f : 2.2f)},
                          game.solids);
         }
       }
@@ -1002,7 +1009,7 @@ int main(int argc, char **argv) {
         if (!paused) {
           scene->update(dt, fightX, fightZ);
           if (!scene->active())
-            wilds->update(dt, game.state.player, game.solids);
+            wilds->update(dt, game.state.player, sneaking, game.solids);
         }
         for (const auto &name : wilds->takeEvents())
           event(frame, name.c_str());
@@ -1041,7 +1048,7 @@ int main(int argc, char **argv) {
           stageSet = false;
           game.phase = game::Phase::Explore;
           game.message = "";
-          wilds->fightEnded(scene->won(), scene->teamHp());
+          wilds->fightEnded(scene->won(), scene->reached(), scene->left(), scene->teamHp());
           if (scene->lost()) {
             // Losing costs nothing: the Wayfinder wakes at the start with a rested party.
             game.state.player = game.spawn;
@@ -1277,18 +1284,19 @@ int main(int argc, char **argv) {
       if (!o.coverage&&o.hudMode!=0)
         gpu.hud(hud, ow, oh);
       if (pixelUi && scene) {
+        auto toCanvas = [&](p3::Vec at) {
+          const float *m = vp.v.data();
+          float x = m[0] * at.x + m[4] * at.y + m[8] * at.z + m[12], y = m[1] * at.x + m[5] * at.y + m[9] * at.z + m[13],
+                w = std::max(.01f, m[3] * at.x + m[7] * at.y + m[11] * at.z + m[15]);
+          return std::array<int, 2>{int((x / w + 1) * 320), int((1 - y / w) * 180)};
+        };
         pixelUi->begin(ow, oh);
         if (scene->active())
-          scene->draw(*pixelUi, [&](p3::Vec at) {
-            const float *m = vp.v.data();
-            float x = m[0] * at.x + m[4] * at.y + m[8] * at.z + m[12], y = m[1] * at.x + m[5] * at.y + m[9] * at.z + m[13],
-                  w = std::max(.01f, m[3] * at.x + m[7] * at.y + m[11] * at.z + m[15]);
-            return std::array<int, 2>{int((x / w + 1) * 320), int((1 - y / w) * 180)};
-          });
+          scene->draw(*pixelUi, toCanvas);
         else if (game.phase == game::Phase::Explore && atRest())
           scene->prompt(*pixelUi, "[E] REST AT THE COTTAGE");
         else if (game.phase == game::Phase::Explore)
-          wilds->draw(*pixelUi);
+          wilds->draw(*pixelUi, toCanvas);
         pixelUi->end();
       }
       auto hudEnd = Clock::now();

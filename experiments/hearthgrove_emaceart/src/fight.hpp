@@ -9,9 +9,11 @@
 // so the same seed and pad inputs replay identically and nothing here renders.
 namespace battle {
 constexpr int TicksPerSecond = 60;
-constexpr int MoveSlots = 6;
+// Tap and Dodge are general: every Signari has them. Slot 0 is Tap, then four learned moves.
+constexpr int LearnedMoves = 4, MoveSlots = LearnedMoves + 1;
 constexpr int FullComposure = 80;
 constexpr int RingRadius = 9500;
+constexpr int CalmSpirit = 30, ReachRange = 2600, ReachTicks = 72;
 struct Spot {
   int x = 0, z = 0;
   bool operator==(const Spot &) const = default;
@@ -23,6 +25,7 @@ enum class Reach { Dash, Lane, Burst, Self };
 struct Timing {
   Reach reach = Reach::Self;
   int range = 0, size = 0, windup = 0, recover = 0, cooldown = 0; // Times are ticks.
+  bool gentle = false; // Soothes more than it hurts.
 };
 struct FightData {
   std::vector<Timing> timing;                     // By move index.
@@ -33,11 +36,11 @@ FightData parseFight(std::string_view json, const Content &);
 // One tick of player input. Movement is per mille of full speed, already in world axes.
 struct Pad {
   int moveX = 0, moveZ = 0, command = -1;
-  bool roll = false, dodge = false, swap = false;
+  bool roll = false, dodge = false, swap = false, reach = false;
 };
 enum class Pose { Ready, Windup, Strike, Recover, Dodge, Hurt, Down };
 enum class Target { None, Mine, Wild, You };
-enum class Outcome { Ongoing, Won, Lost, Left };
+enum class Outcome { Ongoing, Won, Lost, Left, Reached };
 struct Strike {
   int move = -1, slot = -1, size = 0, total = 1, struck = 0;
   Reach reach = Reach::Self;
@@ -48,6 +51,7 @@ struct Fighter {
   int species = 0, level = 1, hp = 1, energy = 4, charge = 0;
   Stats stats;
   Pose pose = Pose::Ready;
+  int spirit = 100, spiritClock = 0;
   int poseTicks = 0, dodgeReady = 0, guard = 0, regen = 0, burn = 0, slow = 0, focus = 0, statusClock = 0, supports = 0;
   std::array<int, MoveSlots> ready{};
   Spot at, face{0, 1000}, drift, dodgeWay;
@@ -56,6 +60,7 @@ struct Fighter {
 };
 struct Wayfinder {
   Spot at, face{0, 1000}, drift, rollWay, push;
+  int reachTicks = 0, reachWait = 0;
   int composure = FullComposure, rollTicks = 0, rollReady = 0, hurtTicks = 0, safeTicks = 0, calmTicks = 0, slow = 0;
   bool moving = false;
 };
@@ -65,7 +70,7 @@ struct Marker {
   int size = 0, percent = 0;
   bool hostile = true;
 };
-enum class CueKind { Hit, Unsettled, Dodged, Healed, StatusOn, Faint, Swap, AimYou, AimMine, Command, Leaving, Returned };
+enum class CueKind { Hit, Unsettled, Dodged, Healed, StatusOn, Faint, Swap, AimYou, AimMine, Command, Leaving, Returned, Calmed, ReachStart, ReachBroken };
 struct Cue {
   CueKind kind = CueKind::Hit;
   Target target = Target::None;
@@ -81,6 +86,10 @@ public:
   void step(const Pad &);
   // Starts an attack at once; the AI uses the same path, and tests use it to stage exact cases.
   void strike(Target attacker, int slot, Target victim);
+  // Lowers the wild Signari's Spirit; gentle play and dodging call this.
+  void soothe(int points);
+  // True when the player could reach out from where they stand.
+  bool canReach() const;
   const Fighter &mine() const { return team[active]; }
   const Fighter &wild() const { return foe; }
   const Wayfinder &you() const { return player; }

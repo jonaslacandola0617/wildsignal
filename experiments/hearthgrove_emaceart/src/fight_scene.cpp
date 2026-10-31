@@ -72,8 +72,9 @@ void FightScene::start(const std::string &wildSpecies, int wildLevel, int wildHe
   encounters++;
   fight = std::make_unique<battle::Fight>(content, data, members, battle::Member{content.speciesIndex(wildSpecies), wildLevel, -1}, millimetres(you), millimetres(wild),
                                           std::uint32_t(0x51A7 + encounters), blocks, wildHealth);
+  if (calmStart) fight->soothe(75);
   running = true;
-  wasLost = wasWon = false;
+  wasLost = wasWon = wasReached = wasLeft = false;
   pending = {};
   queued = -1;
   spare = commandT = 0;
@@ -88,6 +89,8 @@ void FightScene::finish() {
     hp.push_back(k.hp);
   wasLost = fight->outcome() == battle::Outcome::Lost;
   wasWon = fight->outcome() == battle::Outcome::Won;
+  wasReached = fight->outcome() == battle::Outcome::Reached;
+  wasLeft = fight->outcome() == battle::Outcome::Left;
   running = false;
 }
 void FightScene::key(int k) {
@@ -96,7 +99,7 @@ void FightScene::key(int k) {
     if (k == SDLK_RETURN || k == SDLK_E) finish();
     return;
   }
-  if (k >= SDLK_1 && k <= SDLK_6) {
+  if (k >= SDLK_1 && k < SDLK_1 + battle::MoveSlots) {
     pending.command = int(k - SDLK_1);
     if (!fight->canUse(fight->mine(), pending.command)) say(fight->mine().ready[pending.command] > 0 ? "THAT MOVE IS STILL RECOVERING." : "NOT ENOUGH ENERGY.", 1);
   } else if (k == SDLK_SPACE) {
@@ -105,6 +108,9 @@ void FightScene::key(int k) {
     pending.dodge = true;
   } else if (k == SDLK_TAB || k == SDLK_P) {
     pending.swap = true;
+  } else if (k == SDLK_R) {
+    pending.reach = true;
+    if (!fight->canReach()) say(fight->wild().spirit > battle::CalmSpirit ? nameOf(fight->wild()) + " IS NOT CALM ENOUGH YET." : "GET CLOSER TO REACH OUT.", 1.2f);
   }
 }
 void FightScene::cues() {
@@ -152,6 +158,16 @@ void FightScene::cues() {
     case CueKind::Returned:
       say("BACK IN THE FIGHT.", 1);
       break;
+    case CueKind::Calmed:
+      say(nameOf(fight->wild()) + " IS CALM. GET CLOSE AND PRESS R.", 2.6f);
+      break;
+    case CueKind::ReachStart:
+      clipClock = 0;
+      say("HOLD STEADY...", float(battle::ReachTicks) / battle::TicksPerSecond);
+      break;
+    case CueKind::ReachBroken:
+      say("IT FLINCHED AWAY. TRY AGAIN SOON.", 1.6f);
+      break;
     }
   }
 }
@@ -195,6 +211,7 @@ float FightScene::rollTurn() const {
 std::string FightScene::youClip() const {
   const auto &y = fight->you();
   if (fight->outcome() == battle::Outcome::Lost) return "Down";
+  if (y.reachTicks > 0) return "Command";
   if (y.rollTicks > 0) return "Tuck";
   if (y.hurtTicks > 0) return "Hit";
   if (y.moving) return "Run";
@@ -242,6 +259,8 @@ FightScene::Staged FightScene::creature(bool mine) const {
 void FightScene::marks(GroundMarks &g, Vec right, Vec up) {
   if (!running) return;
   g.ring(metres(fight->centre()), float(battle::RingRadius) * .001f, .14f, Bound);
+  if (fight->wild().spirit <= battle::CalmSpirit && fight->outcome() == battle::Outcome::Ongoing)
+    g.ring(metres(fight->wild().at), float(battle::ReachRange) * .001f, .12f, Friendly);
   for (const auto &m : fight->markers()) {
     auto colour = m.hostile ? Danger : Friendly;
     float size = float(m.size) * .001f, fill = float(m.percent) * .01f;
@@ -259,7 +278,7 @@ void FightScene::marks(GroundMarks &g, Vec right, Vec up) {
 }
 
 void FightScene::plate(PixelUi &ui, const Fighter &k, int x, int y, int w, bool full) {
-  ui.panel("panel", x, y, w, full ? 58 : 44);
+  ui.panel("panel", x, y, w, full ? 58 : 56);
   ui.image("leaf", x + w - 13, y + 1);
   ui.text(nameOf(k), x + 12, y + 11, Ink);
   auto level = "LV " + std::to_string(k.level);
@@ -275,6 +294,12 @@ void FightScene::plate(PixelUi &ui, const Fighter &k, int x, int y, int w, bool 
     for (int i = 0; i < 8; i++)
       ui.image(i < k.energy ? "pip_on" : "pip_off", x + 28 + i * 9, y + 38);
     icon = x + 112;
+  }
+  if (!full) {
+    bool calm = k.spirit <= battle::CalmSpirit;
+    ui.text("SP", x + 12, y + 37, Ink);
+    ui.panel("bar", x + 28, y + 36, barW, 9);
+    if (k.spirit > 0) ui.fill(x + 31, y + 39, std::max(1, (barW - 6) * k.spirit / 100), 3, calm ? Gold : Calm);
   }
   int line = full ? y + 37 : y + 9;
   if (!full) icon = x + 82;
@@ -292,7 +317,7 @@ void FightScene::plate(PixelUi &ui, const Fighter &k, int x, int y, int w, bool 
 }
 void FightScene::moveBar(PixelUi &ui) {
   const auto &k = fight->mine();
-  const int w = 80, h = 36, y = 318, step = 82, left = 33;
+  const int w = 94, h = 36, y = 318, step = 96, left = 33;
   for (int i = 0; i < battle::MoveSlots; i++) {
     int id = fight->moveId(k, i), x = left + i * step;
     const auto &m = content.moves[id];
@@ -312,7 +337,7 @@ void FightScene::moveBar(PixelUi &ui) {
       ui.fill(x + 2, y + h - 2 - shade, w - 4, shade, {.08f, .06f, .05f, .5f});
     }
   }
-  int x = left + 6 * step;
+  int x = left + battle::MoveSlots * step;
   bool ready = k.dodgeReady == 0 && k.pose != Pose::Down;
   ui.panel(ready ? "button_on" : "button_off", x, y, w, h);
   ui.text("Q", x + 6, y + 6, ready ? Gold : Muted);
@@ -352,15 +377,21 @@ void FightScene::draw(PixelUi &ui, const Project &project) {
     ui.text(text, 218, 306, can ? Cream : Muted);
   }
   moveBar(ui);
-  std::string line = toastTime > 0 ? toast : hintTime > 0 ? "WASD MOVE   SPACE ROLL   1-6 MOVES   Q DODGE" : "";
+  std::string line = toastTime > 0 ? toast : hintTime > 0 ? "WASD MOVE   SPACE ROLL   1-5 MOVES   Q DODGE" : "";
+  if (fight->canReach() && fight->outcome() == battle::Outcome::Ongoing && you.reachTicks == 0) {
+    std::string text = "[R] REACH OUT";
+    int w = ui.width(text) + 28;
+    ui.panel("panel", 320 - w / 2, 286, w, 26);
+    ui.text(text, 320 - w / 2 + 14, 296, Ink);
+  }
   if (!line.empty()) {
     int w = ui.width(line) + 28;
     ui.panel("panel", 320 - w / 2 - 88, 12, w, 26);
     ui.text(line, 320 - w / 2 - 88 + 14, 22, Ink);
   }
   if (fight->outcome() != battle::Outcome::Ongoing) {
-    bool won = fight->outcome() == battle::Outcome::Won, left = fight->outcome() == battle::Outcome::Left;
-    std::string title = won ? "VICTORY" : left ? "SAFE AWAY" : "YOU NEED A REST";
+    bool won = fight->outcome() == battle::Outcome::Won, left = fight->outcome() == battle::Outcome::Left, reached = fight->outcome() == battle::Outcome::Reached;
+    std::string title = reached ? "IT TRUSTS YOU" : won ? "VICTORY" : left ? "SAFE AWAY" : "YOU NEED A REST";
     int w = std::max(ui.width(title, 2), ui.width("PRESS ENTER")) + 44;
     ui.panel("panel_dark", 320 - w / 2, 136, w, 62);
     ui.text(title, 320 - ui.width(title, 2) / 2, 150, Gold, 2);

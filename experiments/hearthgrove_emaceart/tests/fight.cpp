@@ -1,4 +1,5 @@
 #include "fight.hpp"
+#include <algorithm>
 #include <cstdio>
 #include <fstream>
 #include <sstream>
@@ -44,11 +45,16 @@ void untilReleased(Fight &f, Pad press, int pressAt) {
   run(f, 30);
 }
 
-void sixSlotsForEverySpecies(const Setup &s) {
+void everySpeciesHasTapAndFourLearnedMoves(const Setup &s) {
   check(s.data.slots.size() == s.content.species.size(), "slot table covers the roster");
-  for (const auto &row : s.data.slots)
-    for (int id : row)
-      check(id >= 0 && id < int(s.content.moves.size()), "slot names a real move");
+  int tap = s.content.moveIndex("TAP");
+  for (const auto &row : s.data.slots) {
+    check(row[0] == tap, "slot one is the general Tap");
+    for (int i = 1; i < MoveSlots; i++) {
+      check(row[i] >= 0 && row[i] < int(s.content.moves.size()), "slot names a real move");
+      check(row[i] != tap, "Tap is never a learned move");
+    }
+  }
 }
 void sameInputsReplayIdentically(const Setup &s) {
   auto play = [&] {
@@ -206,6 +212,127 @@ void reportPacing(const Setup &s) {
     std::printf("%s: won %d of %d, lost %d, average %d seconds\n", names[style], won, runs, lost, ticks / runs / TicksPerSecond);
   }
 }
+void reachOutNeedsACalmSignariAndCloseRange(const Setup &s) {
+  Pad reach;
+  reach.reach = true;
+  auto wild = s.make();
+  wild.step(reach);
+  check(wild.you().reachTicks == 0, "a wild-spirited Signari cannot be reached");
+  auto far = s.make();
+  far.soothe(80);
+  far.step(reach);
+  check(!far.canReach() && far.you().reachTicks == 0, "reaching out needs the player close");
+  Fight near(s.content, s.data, {{s.driftfin, 5, -1}}, {s.tumbletail, 3, -1}, {-1500, 0}, {0, 0}, 5);
+  near.soothe(80);
+  check(near.canReach(), "a calm Signari close by can be reached");
+  near.step(reach);
+  check(near.you().reachTicks > 0, "reaching out starts");
+  Pad away;
+  away.moveX = -1000;
+  auto start = near.you().at;
+  int ticks = 0;
+  while (near.outcome() == Outcome::Ongoing && near.you().reachTicks > 0 && ticks++ < ReachTicks + 4)
+    near.step(away);
+  check(near.outcome() == Outcome::Reached || near.you().reachTicks == 0, "the reach resolves");
+  check(near.you().at == start || near.you().composure < FullComposure, "the player holds still while reaching");
+}
+void aHitBreaksTheReach(const Setup &s) {
+  Fight f(s.content, s.data, {{s.driftfin, 5, -1}}, {s.tumbletail, 3, -1}, {-1500, 0}, {0, 0}, 5);
+  f.soothe(80);
+  f.strike(Target::Wild, slotOf(s, f.wild(), "TAP"), Target::You);
+  Pad reach;
+  reach.reach = true;
+  f.step(reach);
+  check(f.you().reachTicks > 0, "the reach starts during a windup");
+  run(f, 90);
+  check(f.outcome() == Outcome::Ongoing && f.you().reachTicks == 0 && f.you().composure < FullComposure, "getting hit breaks the reach with no dice involved");
+  f.step(reach);
+  check(f.you().reachTicks == 0, "a broken reach has to wait");
+}
+void gentlePlayLowersSpiritMoreThanForce(const Setup &s) {
+  // The wild Signari may step aside, so each move is tried until one attempt lands.
+  auto soothedBy = [&](const char *move) {
+    for (std::uint32_t seed = 1; seed < 60; seed++) {
+      auto f = s.make(seed);
+      f.strike(Target::Mine, slotOf(s, f.mine(), move), Target::Wild);
+      // Ticks are spent first so the wild Signari is moving when the move is aimed.
+      for (int i = 0; i < 30 + int(seed) && f.wild().hp == f.wild().stats.hp; i++)
+        f.step({});
+      f.strike(Target::Mine, slotOf(s, f.mine(), move), Target::Wild);
+      for (int i = 0; i < 110 && f.wild().hp == f.wild().stats.hp; i++)
+        f.step({});
+      if (f.wild().hp < f.wild().stats.hp) return 100 - f.wild().spirit;
+    }
+    return 0;
+  };
+  int gentle = soothedBy("MIST_HUSH"), hard = soothedBy("SLIPSTREAM");
+  check(gentle > 0 && hard > 0, "both moves land");
+  check(gentle > hard, "the gentle move soothes more");
+  auto roll = s.make();
+  roll.strike(Target::Wild, slotOf(s, roll.wild(), "BURROW_BUMP"), Target::You);
+  Pad press;
+  press.roll = true;
+  int windup = roll.wild().poseTicks;
+  untilReleased(roll, press, windup - 6);
+  check(roll.wild().spirit < 100, "dodging an attack soothes it");
+}
+void knockingItOutEndsTheChance(const Setup &s) {
+  Fight f(s.content, s.data, {{s.driftfin, 5, -1}}, {s.tumbletail, 3, -1}, {-1500, 0}, {0, 0}, 5);
+  f.soothe(80);
+  for (int i = 0; i < 9000 && f.outcome() == Outcome::Ongoing; i++) {
+    Pad p;
+    p.moveZ = i % 200 < 100 ? 900 : -900;
+    p.roll = i % 70 == 0;
+    p.command = i % 60 == 0 ? slotOf(s, f.mine(), "SLIPSTREAM") : -1;
+    f.step(p);
+  }
+  check(f.outcome() == Outcome::Won, "a knockout is a plain win, never a reach");
+}
+// Prints how a careful player and a rough one fare at reaching out; a pacing report, not a pass mark.
+void reportReaching(const Setup &s, int wild, int health, const char *wildName) {
+  const char *names[] = {"gentle moves, rolls, dodges", "strong moves only"};
+  for (int style = 0; style < 2; style++) {
+    int reached = 0, knocked = 0, lost = 0, ticks = 0, runs = 40;
+    for (int seed = 1; seed <= runs; seed++) {
+      Fight f(s.content, s.data, {{s.driftfin, 5, -1}, {s.glintle, 5, -1}}, {wild, 3, -1}, {-3000, 0}, {0, 0}, std::uint32_t(seed * 53), {}, health);
+      for (int i = 0; i < 18000 && f.outcome() == Outcome::Ongoing; i++) {
+        Pad p;
+        long dx = f.wild().at.x - f.you().at.x, dz = f.wild().at.z - f.you().at.z;
+        long far = dx * dx + dz * dz;
+        // Keeps close to the wild Signari, circling it, and reaches out as soon as it can.
+        int side = (i / 120 + seed) % 2 ? 1 : -1;
+        p.moveX = int(dz * side / 6);
+        p.moveZ = int(-dx * side / 6);
+        if (far > 4000000L) {
+          p.moveX += int(dx / 3);
+          p.moveZ += int(dz / 3);
+        }
+        p.moveX = std::max(-1000, std::min(1000, p.moveX));
+        p.moveZ = std::max(-1000, std::min(1000, p.moveZ));
+        for (const auto &m : f.markers())
+          if (m.hostile && m.percent > 62 && m.percent < 90) {
+            p.roll = true;
+            p.dodge = true;
+          }
+        if (style == 0) {
+          int slot = -1;
+          for (int k = 1; k < MoveSlots; k++)
+            if (s.data.timing[f.moveId(f.mine(), k)].gentle) slot = k;
+          if (slot >= 0 && i % 30 == 0) p.command = slot;
+          p.reach = true;
+        } else if (i % 30 == 0) {
+          p.command = 1;
+        }
+        f.step(p);
+      }
+      reached += f.outcome() == Outcome::Reached;
+      knocked += f.outcome() == Outcome::Won;
+      lost += f.outcome() == Outcome::Lost;
+      ticks += f.tick();
+    }
+    std::printf("%s, %s: reached %d of %d, knocked out %d, lost %d, average %d seconds\n", wildName, names[style], reached, runs, knocked, lost, ticks / runs / TicksPerSecond);
+  }
+}
 void leavingTheRingRetreats(const Setup &s) {
   auto f = s.make();
   Pad away;
@@ -252,7 +379,7 @@ int main(int argc, char **argv) {
     s.driftfin = s.content.speciesIndex("WS-008");
     s.glintle = s.content.speciesIndex("WS-004");
     s.tumbletail = s.content.speciesIndex("WS-005");
-    sixSlotsForEverySpecies(s);
+    everySpeciesHasTapAndFourLearnedMoves(s);
     sameInputsReplayIdentically(s);
     standingStillInAMarkerCostsComposure(s);
     aRollThroughTheImpactAvoidsIt(s);
@@ -267,7 +394,13 @@ int main(int argc, char **argv) {
     aFaintedSignariIsReplaced(s);
     swappingWorksAndWaits(s);
     blocksStopThePlayer(s);
+    reachOutNeedsACalmSignariAndCloseRange(s);
+    aHitBreaksTheReach(s);
+    gentlePlayLowersSpiritMoreThanForce(s);
+    knockingItOutEndsTheChance(s);
     reportPacing(s);
+    reportReaching(s, s.tumbletail, 240, "tumbletail");
+    reportReaching(s, s.content.speciesIndex("WS-012"), 150, "mossmelt");
   } catch (const std::exception &e) {
     std::printf("error: %s\n", e.what());
     return 2;

@@ -23,29 +23,49 @@ void eachActCountsOnce() {
   check(j.find("WS-005")->trust() == 1, "observe gives one trust");
   j.earn("WS-005", Act::Assist);
   check(j.find("WS-005")->trust() == 3, "assist gives two trust");
-  j.earn("WS-005", Act::Spar);
-  check(!j.earn("WS-005", Act::Spar), "repeat spars give nothing");
-  check(j.find("WS-005")->trust() == 4, "spar gives one trust");
+  j.earn("WS-005", Act::Reach);
+  check(!j.earn("WS-005", Act::Reach), "reaching out again gives nothing");
+  check(j.find("WS-005")->trust() == 5, "reaching out gives two trust");
 }
-void inviteNeedsThreeTrustAndNeverRolls() {
+void quietVisitsAreAllowedTwice() {
   auto j = starters();
-  check(!j.invite("WS-005", 3), "no trust, no invite");
-  j.earn("WS-005", Act::Observe);
-  j.earn("WS-005", Act::Spar);
-  check(!j.canInvite("WS-005") && j.find("WS-005")->trust() == 2, "two trust is not enough");
-  j.earn("WS-005", Act::Assist);
-  check(j.canInvite("WS-005"), "three trust opens the invite");
-  check(j.invite("WS-005", 3), "the invite always succeeds at the threshold");
-  check(j.party.size() == 3 && j.party[2].species == "WS-005" && j.party[2].level == 3, "the newcomer joins the party");
-  check(!j.invite("WS-005", 3) && j.party.size() == 3, "joining happens once");
-  check(!j.earn("WS-005", Act::Spar), "a joined creature earns no more wild trust");
+  check(j.keepCompany("WS-012") && j.keepCompany("WS-012"), "two quiet visits count");
+  check(!j.keepCompany("WS-012") && j.find("WS-012")->trust() == 2, "a third does not");
+}
+void inviteDependsOnTrustAndMoodNeverDice() {
+  auto j = starters();
+  check(j.refusal("WS-012", 5, false) == Refusal::NotEnoughTrust, "no trust gives a clear refusal");
+  j.earn("WS-012", Act::Observe);
+  j.earn("WS-012", Act::Assist);
+  check(j.refusal("WS-012", 5, false) == Refusal::NotEnoughTrust, "three trust is not enough for a shy Signari");
+  check(j.refusal("WS-012", 3, false) == Refusal::None, "three is enough for an easy one");
+  check(j.refusal("WS-012", 3, true) == Refusal::Frightened, "a frightened Signari refuses and says why");
+  check(!j.invite("WS-012", 3, 3, true), "a frightened Signari cannot be invited");
+  j.keepCompany("WS-012");
+  j.keepCompany("WS-012");
+  check(j.invite("WS-012", 3, 5, false), "the invite always works once its needs are met");
+  check(j.party.size() == 3 && j.party[2].species == "WS-012" && j.party[2].level == 3, "the newcomer joins the party");
+  check(!j.invite("WS-012", 3, 5, false) && j.party.size() == 3, "joining happens once");
+  check(j.refusal("WS-012", 5, false) == Refusal::AlreadyJoined, "a joined Signari cannot be invited again");
+  check(!j.earn("WS-012", Act::Reach), "a joined creature earns no more wild trust");
+}
+void wildSignariSettleWithTime() {
+  Wariness w;
+  check(!w.frightened(), "wild Signari start settled");
+  w.startle(10);
+  w.startle(4);
+  check(w.seconds() == 10, "a smaller scare never shortens a bigger one");
+  w.settle(9);
+  check(w.frightened(), "it stays frightened until time has passed");
+  w.settle(2);
+  check(!w.frightened() && w.seconds() == 0, "then it settles");
 }
 void aFullPartyNeverLosesAnyone() {
   auto j = starters();
   j.party.push_back({"WS-005", 3, -1});
   j.earn("WS-012", Act::Observe);
   j.earn("WS-012", Act::Assist);
-  check(j.invite("WS-012", 3), "a full party can still invite");
+  check(j.invite("WS-012", 3, 3, false), "a full party can still invite");
   check(j.party.size() == 3 && j.reserve.size() == 1 && j.reserve[0].species == "WS-012", "the newcomer waits in the reserve");
 }
 void restHealsEveryone() {
@@ -61,14 +81,22 @@ void saveKeepsEverything(const std::filesystem::path &folder) {
   j.party[1].hp = 17;
   j.earn("WS-005", Act::Observe);
   j.earn("WS-005", Act::Assist);
-  j.invite("WS-005", 3);
+  j.invite("WS-005", 3, 3, false);
   j.earn("WS-012", Act::Observe);
+  j.keepCompany("WS-012");
   save(file, j);
   auto r = load(file, starters());
   check(r.loaded && !r.recovered, "the save loads");
   check(r.journal.party.size() == 3 && r.journal.party[1].hp == 17, "party and health survive");
-  check(r.journal.find("WS-005")->joined && r.journal.find("WS-012")->trust() == 1, "trust survives");
+  check(r.journal.find("WS-005")->joined && r.journal.find("WS-012")->trust() == 2, "trust survives");
   check(!r.journal.earn("WS-012", Act::Observe), "a saved act still counts once");
+}
+void olderSavesStillLoad(const std::filesystem::path &folder) {
+  auto file = folder / "old.json";
+  std::ofstream(file, std::ios::binary | std::ios::trunc)
+      << "{\"version\":1,\"encounters\":[{\"species\":\"WS-005\",\"observed\":1,\"assisted\":0,\"sparred\":1,\"joined\":0}],\"party\":[{\"species\":\"WS-008\",\"level\":5,\"hp\":-1}],\"reserve\":[]}";
+  auto r = load(file, starters());
+  check(r.loaded && r.journal.find("WS-005")->reached && r.journal.find("WS-005")->trust() == 3, "a first-version save carries over");
 }
 void corruptSavesRecover(const std::filesystem::path &folder) {
   auto file = folder / "bad.json";
@@ -89,7 +117,7 @@ void corruptSavesRecover(const std::filesystem::path &folder) {
   check(!none.loaded && none.journal.party.size() == 2, "with no valid save the new-game party is used");
   auto again = folder / "dup.json";
   std::ofstream(again, std::ios::binary | std::ios::trunc)
-      << "{\"version\":1,\"encounters\":[],\"party\":[{\"species\":\"WS-008\",\"level\":5,\"hp\":-1},{\"species\":\"WS-008\",\"level\":5,\"hp\":-1}],\"reserve\":[]}";
+      << "{\"version\":2,\"encounters\":[],\"party\":[{\"species\":\"WS-008\",\"level\":5,\"hp\":-1},{\"species\":\"WS-008\",\"level\":5,\"hp\":-1}],\"reserve\":[]}";
   check(!load(again, starters()).loaded, "a duplicated Signari is rejected");
 }
 } // namespace
@@ -98,10 +126,13 @@ int main() {
   std::filesystem::remove_all(folder);
   std::filesystem::create_directories(folder);
   eachActCountsOnce();
-  inviteNeedsThreeTrustAndNeverRolls();
+  quietVisitsAreAllowedTwice();
+  inviteDependsOnTrustAndMoodNeverDice();
+  wildSignariSettleWithTime();
   aFullPartyNeverLosesAnyone();
   restHealsEveryone();
   saveKeepsEverything(folder);
+  olderSavesStillLoad(folder);
   corruptSavesRecover(folder);
   std::filesystem::remove_all(folder);
   std::printf(failures ? "%d bond checks failed\n" : "bond rules pass\n", failures);

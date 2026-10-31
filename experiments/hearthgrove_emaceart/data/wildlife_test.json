@@ -48,7 +48,19 @@
       "assistPrompt": "TIDY THE SCATTERED SEEDS",
       "assistHint": "TIDY THE SEEDS BY THE BENCH",
       "assisted": "TUMBLETAIL SEES WHAT YOU DID.",
-      "health": 240
+      "health": 240,
+      "trustNeeded": 3,
+      "startleRange": 4.0,
+      "startleSeconds": 9,
+      "watchSeconds": 4,
+      "tidySeconds": 1.2,
+      "watchWhileFeeding": true,
+      "company": false,
+      "temperament": "SKITTISH",
+      "sneakHint": "HOLD SHIFT TO SNEAK CLOSER",
+      "trustHint": "CALM IT IN A FRIENDLY FIGHT, THEN REACH OUT",
+      "companyPrompt": "",
+      "companyDone": ""
     },
     {
       "species": "WS-012",
@@ -96,7 +108,20 @@
       "assistPrompt": "CLEAR THE FALLEN DEBRIS",
       "assistHint": "CLEAR THE DEBRIS NEAR THE TREE",
       "assisted": "MOSSMELT RISES TO GREET YOU.",
-      "health": 150
+      "health": 150,
+      "trustNeeded": 5,
+      "startleRange": 2.0,
+      "startleSeconds": 14,
+      "watchSeconds": 7,
+      "tidySeconds": 3.0,
+      "watchWhileFeeding": false,
+      "company": true,
+      "temperament": "SHY",
+      "sneakHint": "",
+      "trustHint": "SIT WITH IT, OR REACH OUT IN A FIGHT",
+      "companyPrompt": "SIT WITH MOSSMELT",
+      "companyDone": "IT SETTLES BESIDE YOU. COME BACK AFTER A REST."
     }
-  ]
+  ],
+  "companySeconds": 12
 }

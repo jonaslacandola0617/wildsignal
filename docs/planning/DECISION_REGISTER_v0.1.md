@@ -47,7 +47,7 @@
 | D-025 | Original starter art mappings WS-004 Glintle/Flora, WS-008 Driftfin/Tide, WS-050 Brumlet/Ember | RECOMMENDED; original sprite art is confirmed | sprite animation, battle schema |
 | D-026 | First-nine species proposal, including Tumbletail/Puddlefin/Mossmelt/Signalit/Craglet/Hushflame | RECOMMENDED | roster approval, habitats |
 | D-027 | Trust-building Invite/Observe/Help/Friendly Spar instead of capture device | RECOMMENDED | core loop/progression |
-| D-028 | 1 active Signari fought in real time, player movement and dodging, 6 moves plus a general dodge command, 3 carried creatures, energy 0..8, integer formulas, basic statuses (numbers and kits still proposed) | RECOMMENDED | combat backend and battle UI |
+| D-028 | 1 active Signari fought in real time, player movement and dodging, 6 commands per Signari (Tap and Dodge are general, plus 4 learned moves), 3 carried creatures, energy 0..8, integer formulas, basic statuses (numbers and kits still proposed) | RECOMMENDED | combat backend and battle UI |
 | D-029 | 3 local save slots; source sprite pivots and extra angles created conservatively | RECOMMENDED | save UX and art effort |
 | D-030 | Landscape-first on Android; controller support by commercial 1.0 | RECOMMENDED | controls/QA |
 | D-031 | Original NPCs Mara/Fen/Iri and Sol inscription (not full NPC in opening) | RECOMMENDED | quests, character art |

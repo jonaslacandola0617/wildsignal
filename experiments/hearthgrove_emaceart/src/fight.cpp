@@ -12,6 +12,7 @@ constexpr int LeapSpeed = 7800 / TicksPerSecond, LeapTicks = 16, DodgeWait = 150
 constexpr int HeadSpeedDash = 12000 / TicksPerSecond, HeadSpeedLane = 14000 / TicksPerSecond;
 constexpr int EnergySeconds90 = 90, StatusTicks = 90, StatusHp = 3, GuardTicks = 180, FocusTicks = 360, SlowTicks = 240;
 constexpr int HitSafeTicks = 60, HurtTicks = 22, FlinchTicks = 12, CalmAfter = 240, CalmStep = 20, DownTicks = 45;
+constexpr int DodgeCalm = 10, GentleCalm = 12, HardCalm = 3, SpiritTicks = 90, ReachWait = 300;
 constexpr int SwapWait = 180, OrderLife = 300, AutoWait = 240, PushTicks = 16, LeaveTicks = 120;
 
 int root(std::int64_t v) {
@@ -75,10 +76,13 @@ FightData parseFight(std::string_view text, const Content &c) {
   const auto &slots = root.at("slots");
   for (std::size_t i = 0; i < c.species.size(); i++) {
     const auto &list = slots.at(c.species[i].id).array();
-    if (list.size() != MoveSlots) throw std::runtime_error("six move slots per species required");
-    for (int s = 0; s < MoveSlots; s++)
-      d.slots[i][s] = c.moveIndex(list[s].string());
+    if (list.size() != LearnedMoves) throw std::runtime_error("four learned moves per species required");
+    d.slots[i][0] = c.moveIndex("TAP");
+    for (int s = 0; s < LearnedMoves; s++)
+      d.slots[i][s + 1] = c.moveIndex(list[s].string());
   }
+  for (const auto &g : root.at("gentle").array())
+    d.timing[c.moveIndex(g.string())].gentle = true;
   return d;
 }
 
@@ -103,6 +107,12 @@ Fight::Fight(const Content &c, const FightData &d, std::vector<Member> party, Me
   foe.face = unit(wildAt, you);
 }
 
+void Fight::soothe(int points) {
+  bool wasCalm = foe.spirit <= CalmSpirit;
+  foe.spirit = std::max(0, foe.spirit - points);
+  if (!wasCalm && foe.spirit <= CalmSpirit) cues.push_back({CueKind::Calmed, Target::Wild, 0, foe.at});
+}
+bool Fight::canReach() const { return foe.hp > 0 && foe.spirit <= CalmSpirit && gap(player.at, foe.at) <= ReachRange; }
 int Fight::moveId(const Fighter &k, int slot) const { return data->slots[k.species][slot]; }
 bool Fight::canUse(const Fighter &k, int slot) const {
   if (slot < 0 || slot >= MoveSlots || k.ready[slot] > 0) return false;
@@ -161,6 +171,17 @@ void Fight::movePlayer(const Pad &pad) {
   if (p.push.x || p.push.z) {
     p.at = slide(p.at, {p.at.x + p.push.x, p.at.z + p.push.z}, PlayerRadius);
     if (p.hurtTicks <= HurtTicks - PushTicks) p.push = {};
+  }
+  if (pad.reach && canReach() && p.reachTicks == 0 && p.reachWait == 0 && p.rollTicks == 0 && p.hurtTicks == 0) {
+    p.reachTicks = ReachTicks;
+    p.reachWait = ReachWait;
+    cues.push_back({CueKind::ReachStart, Target::You, 0, p.at});
+  }
+  // Reaching out means standing open, so the player cannot move or roll until it ends.
+  if (p.reachTicks > 0) {
+    p.moving = false;
+    p.drift = {p.at.x - before.x, p.at.z - before.z};
+    return;
   }
   bool wants = pad.moveX || pad.moveZ;
   if (pad.roll && p.rollReady == 0 && p.hurtTicks == 0) {
@@ -255,13 +276,11 @@ void Fight::begin(Fighter &k, int slot, Target victim) {
   k.poseTicks = t.windup;
   if (t.reach != Reach::Self) {
     Spot aim = victim == Target::You ? player.at : victim == Target::Wild ? foe.at : mine().at;
-    if (!mineSide) {
-      // The wild Signari leads a moving target, so a straight run is not safe.
-      Spot drift = victim == Target::You ? player.drift : mine().drift;
-      int lead = t.reach == Reach::Burst ? t.windup * 6 / 10 : t.windup * 3 / 10;
-      Spot ahead{aim.x + drift.x * lead, aim.z + drift.z * lead};
-      aim = gap(aim, ahead) > 1800 ? along(aim, ahead, 1800) : ahead;
-    }
+    // Both sides lead a moving target, so a straight run is not safe and aimed moves can land.
+    Spot drift = victim == Target::You ? player.drift : victim == Target::Wild ? foe.drift : mine().drift;
+    int lead = t.reach == Reach::Burst ? t.windup * 6 / 10 : t.windup * 3 / 10;
+    Spot ahead{aim.x + drift.x * lead, aim.z + drift.z * lead};
+    aim = gap(aim, ahead) > 1800 ? along(aim, ahead, 1800) : ahead;
     if (t.reach == Reach::Burst) s.to = gap(k.at, aim) > t.range ? along(k.at, aim, t.range) : aim;
     else s.to = along(k.at, aim == k.at ? Spot{k.at.x + k.face.x, k.at.z + k.face.z} : aim, t.range);
     k.face = unit(k.at, s.to);
@@ -316,8 +335,12 @@ void Fight::reachCheck(Fighter &k, bool mineSide, const Spot &head, int size) {
     int bit = who == Target::You ? 1 : 2;
     if ((s.struck & bit) || gap(at, head) > size + BodyRadius) return;
     s.struck |= bit;
-    if (safe) cues.push_back({CueKind::Dodged, who, 0, at});
-    else land(k, who, s);
+    if (safe) {
+      cues.push_back({CueKind::Dodged, who, 0, at});
+      if (!mineSide && (who == Target::You ? player.rollTicks > 0 : mine().pose == Pose::Dodge)) soothe(DodgeCalm);
+    } else {
+      land(k, who, s);
+    }
   };
   if (mineSide) {
     touch(Target::Wild, foe.at, foe.pose == Pose::Dodge);
@@ -331,6 +354,10 @@ void Fight::land(Fighter &a, Target victim, const Strike &s) {
   if (m.accuracy < 10000 && int(rng.next() % 10000u) >= m.accuracy) return;
   if (victim == Target::You) {
     auto &p = player;
+    if (p.reachTicks > 0) {
+      p.reachTicks = 0;
+      cues.push_back({CueKind::ReachBroken, Target::You, 0, p.at});
+    }
     int loss = std::min(p.composure, std::max(10, m.power));
     p.composure -= loss;
     p.hurtTicks = HurtTicks;
@@ -354,6 +381,7 @@ void Fight::land(Fighter &a, Target victim, const Strike &s) {
   a.focus = 0;
   t.guard = 0;
   cues.push_back({CueKind::Hit, victim, applied, t.at});
+  if (victim == Target::Wild) soothe(data->timing[s.move].gentle ? GentleCalm : HardCalm);
   if (t.pose == Pose::Ready || t.pose == Pose::Recover) {
     t.pose = Pose::Hurt;
     t.poseTicks = FlinchTicks;
@@ -396,7 +424,8 @@ void Fight::driveMine() {
     return;
   }
   int slot = order;
-  if (slot < 0 && autoWait == 0 && canUse(k, 0)) slot = 0;
+  // Once the wild Signari is calm, it holds back so the moment is not spoiled.
+  if (slot < 0 && autoWait == 0 && canUse(k, 0) && foe.spirit > CalmSpirit) slot = 0;
   if (slot >= 0) {
     const auto &t = data->timing[moveId(k, slot)];
     if (t.reach == Reach::Self || gap(k.at, foe.at) <= t.range * 85 / 100) {
@@ -493,6 +522,7 @@ void Fight::driveWild() {
       begin(k, plan, planVictim);
       plan = -1;
       thinkWait = 30 + int(rng.next() % 40u);
+      if (k.spirit <= CalmSpirit) thinkWait *= 2; // A calmer Signari presses less often.
     } else {
       steer(k, at, speed(k));
     }
@@ -544,6 +574,8 @@ void Fight::tickPlayer() {
   auto &p = player;
   p.rollTicks = std::max(0, p.rollTicks - 1);
   p.rollReady = std::max(0, p.rollReady - 1);
+  p.reachWait = std::max(0, p.reachWait - 1);
+  if (p.reachTicks > 0 && --p.reachTicks == 0) result = Outcome::Reached;
   p.hurtTicks = std::max(0, p.hurtTicks - 1);
   p.safeTicks = std::max(0, p.safeTicks - 1);
   p.slow = std::max(0, p.slow - 1);
@@ -554,6 +586,7 @@ void Fight::tickPlayer() {
   outside = out ? outside + 1 : 0;
 }
 void Fight::checkEnd() {
+  if (result != Outcome::Ongoing) return;
   if (foe.hp <= 0) {
     foe.pose = Pose::Down;
     cues.push_back({CueKind::Faint, Target::Wild, 0, foe.at});
@@ -578,9 +611,9 @@ void Fight::step(const Pad &pad) {
   autoWait = std::max(0, autoWait - 1);
   movePlayer(pad);
   commandMine(pad);
+  Spot mineBefore = own().at, foeBefore = foe.at;
   for (Fighter *k : {&own(), &foe}) {
     bool side = k != &foe;
-    Spot before = k->at;
     if (k->pose == Pose::Dodge) {
       Spot next = slide(k->at, {k->at.x + k->dodgeWay.x * LeapSpeed / 1000, k->at.z + k->dodgeWay.z * LeapSpeed / 1000}, CreatureRadius);
       clampToRing(next);
@@ -601,7 +634,6 @@ void Fight::step(const Pad &pad) {
       }
       swapTo(int(next - team.begin()));
     }
-    k->drift = {k->at.x - before.x, k->at.z - before.z};
   }
   driveMine();
   driveWild();
@@ -612,8 +644,14 @@ void Fight::step(const Pad &pad) {
     own().at = slide(own().at, {own().at.x + apart.x * 30 / 1000, own().at.z + apart.z * 30 / 1000}, CreatureRadius);
     foe.at = slide(foe.at, {foe.at.x - apart.x * 30 / 1000, foe.at.z - apart.z * 30 / 1000}, CreatureRadius);
   }
+  own().drift = {own().at.x - mineBefore.x, own().at.z - mineBefore.z};
+  foe.drift = {foe.at.x - foeBefore.x, foe.at.z - foeBefore.z};
   tickFighter(own());
   tickFighter(foe);
+  if (foe.spirit < 100 && ++foe.spiritClock >= SpiritTicks) {
+    foe.spiritClock = 0;
+    foe.spirit++;
+  }
   tickPlayer();
   checkEnd();
 }
@@ -622,7 +660,7 @@ std::uint64_t Fight::digest() const {
   std::uint64_t h = 1469598103934665603ULL;
   auto mix = [&](std::int64_t v) { h = (h ^ std::uint64_t(v)) * 1099511628211ULL; };
   auto fighter = [&](const Fighter &k) {
-    for (int v : {k.hp, k.energy, k.charge, k.at.x, k.at.z, int(k.pose), k.poseTicks, k.dodgeReady, k.guard, k.regen, k.burn, k.slow, k.focus, k.strike.move, k.strike.to.x, k.strike.to.z})
+    for (int v : {k.spirit, k.hp, k.energy, k.charge, k.at.x, k.at.z, int(k.pose), k.poseTicks, k.dodgeReady, k.guard, k.regen, k.burn, k.slow, k.focus, k.strike.move, k.strike.to.x, k.strike.to.z})
       mix(v);
     for (int r : k.ready)
       mix(r);
@@ -630,7 +668,7 @@ std::uint64_t Fight::digest() const {
   for (const auto &k : team)
     fighter(k);
   fighter(foe);
-  for (int v : {player.at.x, player.at.z, player.composure, player.rollTicks, player.rollReady, player.hurtTicks, player.safeTicks, clock, active, int(result)})
+  for (int v : {player.reachTicks, player.reachWait, player.at.x, player.at.z, player.composure, player.rollTicks, player.rollReady, player.hurtTicks, player.safeTicks, clock, active, int(result)})
     mix(v);
   mix(rng.x);
   return h;

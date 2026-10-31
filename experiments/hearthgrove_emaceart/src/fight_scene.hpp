@@ -24,8 +24,12 @@ public:
   using Project = std::function<std::array<int, 2>(Vec)>;
   explicit FightScene(const std::filesystem::path &folder);
   bool active() const { return running; }
+  // Test aid: fights start with the wild Signari already calm.
+  void startCalm(bool yes) { calmStart = yes; }
   bool lost() const { return wasLost; }
   bool won() const { return wasWon; }
+  bool reached() const { return wasReached; }
+  bool left() const { return wasLeft; }
   const battle::Content &roster() const { return content; }
   // Health left per team member after the last fight, in team order.
   const std::vector<int> &teamHp() const { return hp; }
@@ -63,7 +67,7 @@ private:
   std::vector<Floater> floaters;
   std::vector<Puff> puffs;
   battle::Pad pending;
-  bool running = false, wasLost = false, wasWon = false;
+  bool calmStart = false, running = false, wasLost = false, wasWon = false, wasReached = false, wasLeft = false;
   int encounters = 0, queued = -1;
   float spare = 0, toastTime = 0, hintTime = 0, clock = 0, clipClock = 0, commandT = 0;
   std::string toast;
