@@ -10,6 +10,7 @@
 #include "meadow_patch_glsl.hpp"
 #include "sunbeam_glsl.hpp"
 #include "tree_study_glsl.hpp"
+#include "pilot_glsl.hpp"
 #include <SDL3/SDL.h>
 #define GL_GLEXT_PROTOTYPES 1
 #include <SDL3/SDL_opengl.h>
@@ -26,7 +27,7 @@ namespace gl {
 // clang-format off
 #define GL_FUNCTIONS(F) \
   F(GetString) F(GetIntegerv) F(GetError) \
-  F(GenTextures) F(DeleteTextures) F(BindTexture) F(TexImage2D) F(TexParameteri) F(GenerateMipmap) F(ActiveTexture) F(PixelStorei) \
+  F(GenTextures) F(DeleteTextures) F(BindTexture) F(TexImage2D) F(TexImage3D) F(TexSubImage3D) F(TexParameteri) F(GenerateMipmap) F(ActiveTexture) F(PixelStorei) \
   F(GenBuffers) F(DeleteBuffers) F(BindBuffer) F(BufferData) F(GenVertexArrays) F(DeleteVertexArrays) F(BindVertexArray) F(EnableVertexAttribArray) F(VertexAttribPointer) \
   F(CreateShader) F(ShaderSource) F(CompileShader) F(GetShaderiv) F(GetShaderInfoLog) F(DeleteShader) F(CreateProgram) F(AttachShader) F(LinkProgram) F(GetProgramiv) F(GetProgramInfoLog) F(DeleteProgram) F(UseProgram) \
   F(GetUniformLocation) F(UniformMatrix4fv) F(Uniform4fv) F(Uniform1i) F(Uniform1f) F(Uniform2f) F(Uniform3f) \
@@ -96,8 +97,8 @@ layout(location=1) in vec3 normal;
 layout(location=2) in vec2 texcoord;
 layout(location=3) in vec4 vertexColor;
 uniform mat4 model,viewProjection;uniform float normalYCorrection;
-out vec3 worldPosition;out vec3 worldNormal;out vec2 uv;out vec4 tint;
-void main(){vec4 p=model*vec4(position,1);worldPosition=p.xyz;worldNormal=mat3(model)*normal;worldNormal.y*=normalYCorrection;uv=texcoord;tint=vertexColor;gl_Position=viewProjection*p;}
+out vec3 worldPosition;out vec3 worldNormal;out vec2 uv;out vec4 tint;flat out vec3 pilotCenter;
+void main(){vec4 p=model*vec4(position,1);pilotCenter=p.xyz;worldPosition=p.xyz;worldNormal=mat3(model)*normal;worldNormal.y*=normalYCorrection;uv=texcoord;tint=vertexColor;gl_Position=viewProjection*p;}
 )GLSL";
 static constexpr const char *staticShadowVS = R"GLSL(#version 330 core
 layout(location=0)in vec3 position;layout(location=2)in vec2 texcoord;layout(location=3)in vec4 vertexColor;
@@ -110,10 +111,20 @@ layout(location=1) in vec3 normal;
 layout(location=2) in vec2 texcoord;
 layout(location=3) in vec4 vertexColor;
 layout(location=4) in vec4 jointIndices;layout(location=5) in vec4 jointWeights;
-uniform int skinned;uniform mat4 bones[24];
+uniform int skinned;uniform mat4 bones[24];uniform float pilotWind,pilotTime;uniform int pilotCards;uniform vec3 pilotRight,pilotUp,sunDirection;uniform vec2 pilotPixels;flat out vec3 pilotCenter;
 uniform mat4 model,viewProjection;uniform float normalYCorrection;
 out vec3 worldPosition;out vec3 worldNormal;out vec2 uv;out vec4 tint;
-void main(){mat4 skin=mat4(1);if(skinned!=0)skin=bones[int(jointIndices.x)]*jointWeights.x+bones[int(jointIndices.y)]*jointWeights.y+bones[int(jointIndices.z)]*jointWeights.z+bones[int(jointIndices.w)]*jointWeights.w;vec4 p=model*skin*vec4(position,1);worldPosition=p.xyz;worldNormal=mat3(model)*mat3(skin)*normal;worldNormal.y*=normalYCorrection;uv=texcoord;tint=vertexColor;gl_Position=viewProjection*p;}
+void main(){mat4 skin=mat4(1);if(skinned!=0)skin=bones[int(jointIndices.x)]*jointWeights.x+bones[int(jointIndices.y)]*jointWeights.y+bones[int(jointIndices.z)]*jointWeights.z+bones[int(jointIndices.w)]*jointWeights.w;vec4 p=model*skin*vec4(position,1);pilotCenter=p.xyz;if(pilotWind>0.){float h=max(0.,position.y);p.xz+=pilotWind*h*h*vec2(sin(pilotTime*1.3+p.x*.4+p.z*.3),cos(pilotTime*1.1+p.z*.5));}float puff=1.;if(pilotCards==2){float life=fract(pilotTime*.08+normal.x*.5+.5);float k=length(model[0].xyz);p.xyz+=vec3(life*life*1.6+sin(life*6.+normal.z*9.)*.14,life*4.2,life*.5)*k;puff=.5+life*1.5;pilotCenter=vec3(life);}vec3 swayed=p.xyz;if(pilotCards!=0){vec2 c=vertexColor.rg-.5;float s=vertexColor.b*2.*length(model[0].xyz)*puff;p.xyz+=(pilotRight*c.x+pilotUp*c.y)*s;}worldPosition=p.xyz;worldNormal=mat3(model)*mat3(skin)*normal;worldNormal.y*=normalYCorrection;uv=texcoord;tint=vertexColor;gl_Position=viewProjection*p;
+ // Leaf cards are drawn as pixel sprites: a whole-pixel position and whole-pixel
+ // size, so their texels stop flickering as the camera or wind moves them.
+ if(pilotCards!=0){vec2 c=vertexColor.rg;vec4 h=viewProjection*vec4(swayed,1),t=viewProjection*vec4(swayed+pilotUp*vertexColor.b*2.*length(model[0].xyz)*puff,1);
+  float px=max(2.,floor(abs(t.y/t.w-h.y/h.w)*.5*pilotPixels.y+.5));
+  vec2 q=floor((h.xy/h.w*.5+.5)*pilotPixels)-floor(px*.5)+c*px;
+  // Lighter clusters sit nearer the camera, so each band's edge shows whole cluster outlines.
+  float z=h.z;if(pilotCards==1){vec3 wn=normalize(mat3(model)*normal),ld=normalize(sunDirection+vec3(0,.8,0));
+   float k=dot(wn,ld)+(fract(sin(dot(pilotCenter.xz+pilotCenter.yy,vec2(41.3,289.1)))*43758.5453)-.5)*.10;
+   float lift=k<-.25?0.:k<.22?1.:k<.62?2.:3.;vec4 f=viewProjection*vec4(swayed+cross(pilotRight,pilotUp)*lift*.45,1);z=f.z/f.w*h.w;}
+  gl_Position=vec4((q/pilotPixels*2.-1.)*h.w,z,h.w);}}
 )GLSL";
 // Optional canopy transmittance proxy, anchored in the fixed sun projection.
 // The same ray samples the same authored alpha through front/back surfaces.
@@ -123,7 +134,7 @@ in vec2 uv,canopyUV;in float alpha;uniform sampler2D albedo;uniform int textured
 void main(){casterOwner=uint(shadowCasterID);if(alphaMode==1){float a=factorAlpha*alpha;if(textured!=0)a*=texture(albedo,leafProxy!=0?fract(canopyUV*8.):uv).a;if(a<cutoff)discard;}}
 )GLSL";
 static constexpr const char *meshFS = R"GLSL(#version 330 core
-in vec3 worldPosition;in vec3 worldNormal;in vec2 uv;in vec4 tint;
+in vec3 worldPosition;in vec3 worldNormal;in vec2 uv;in vec4 tint;flat in vec3 pilotCenter;uniform int pilotCards,pilotGlow;
 uniform int coverage,meadowSolidCount;uniform vec4 meadowSolids[16];uniform sampler2D leafCoverage;
 bool designated(vec2 p){float path=.68*sin(-p.y*.57)-.13*p.y;if(abs(p.x)>5.8||abs(p.y)>5.8||abs(p.x-path)<.78)return false;if(p.x> -4.5&&p.x<.6&&abs(p.y-.25)<.8)return false;if(length(p-vec2(2.6,-2.3))<1.05)return false;for(int i=0;i<meadowSolidCount;i++)if(all(lessThan(abs(p-meadowSolids[i].xy),meadowSolids[i].zw+vec2(.18))))return false;return true;}
 uniform sampler2D albedo;uniform vec4 factor;uniform vec3 emission;uniform int textured,mode,bands,alphaMode;uniform float cutoff;
@@ -139,10 +150,11 @@ uniform int shadowMode;uniform sampler2D groundShadow;
 // TREE
 // MEADOW
 // VISIBILITY
+// PILOT
 float hash2(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 float field(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash2(i),hash2(i+vec2(1,0)),f.x),mix(hash2(i+vec2(0,1)),hash2(i+vec2(1,1)),f.x),f.y);}
-layout(location=0) out vec4 color;layout(location=1) out vec4 normals;layout(location=2)out uint sceneOwner;uniform int drawOwnerID;
-void main(){sceneOwner=uint(drawOwnerID);vec4 a=factor*(vertexTint!=0?tint:vec4(1));if(textured!=0)a*=(sampling==1?textureLod(albedo,uv,0.):texture(albedo,uv));if(alphaMode==1&&a.a<cutoff)discard;
+uniform float screenDoor;layout(location=0) out vec4 color;layout(location=1) out vec4 normals;layout(location=2)out uint sceneOwner;uniform int drawOwnerID;
+void main(){if(screenDoor>0.){const int door[16]=int[16](0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5);ivec2 q=ivec2(gl_FragCoord.xy)&3;if(float(door[q.y*4+q.x])+.5<screenDoor*16.)discard;}sceneOwner=uint(drawOwnerID);vec4 a=factor*(vertexTint!=0?tint:vec4(1));if(textured!=0)a*=(sampling==1?textureLod(albedo,uv,0.):texture(albedo,uv));if(alphaMode==1&&a.a<cutoff)discard;
 // Preserve the licensed alpha silhouette; plain mode never uses texture RGB,
 // vertex color or per-card tint for its material base.
 if(treeCards!=0&&plainLeaves!=0)a.rgb=treeCanopyColor;
@@ -197,8 +209,11 @@ if(smoothLighting!=0&&leafy!=0)sun=max(0.,(dot(shadeNormal,normalize(sunDirectio
 vec3 ambient=mix(ambientGround,ambientSky,clamp(shadeNormal.y*.5+.5,0.,1.));
 // Authored style maps only: keep three calm form tones and avoid black trim.
 if(pixelMaterial!=0){float d=max(0.,dot(shadeNormal,normalize(sunDirection)));sun=.22+.40*smoothstep(.25-.025,.25+.025,d)+.38*smoothstep(.67-.025,.67+.025,d);ambient=mix(ambient,vec3(.20,.23,.22),.35);}
+vec3 pilotG=normalize(cross(dFdx(worldPosition),dFdy(worldPosition)));if(dot(pilotG,n)<0.)pilotG=-pilotG;
+bool pilotSurface=pilotOn!=0&&(profileFamily==5||profileFamily==3||profileFamily==1);
+vec3 shadowPoint=pilotCards!=0?pilotCenter:pilotSurface?pilotSnap(worldPosition,pilotG):worldPosition;
 float visibility=1.;
-if(receiveShadows!=0&&(shadowMode==1||shadowMode==2))visibility=stableShadow!=0?stableReceiver(worldPosition,normalize(cross(dFdx(worldPosition),dFdy(worldPosition))),biasScale*.000015):receiverCorrection!=0?receiverShadow(worldPosition,biasScale*.00006):sunlight(worldPosition,biasScale*max(.00055,.0010*(1.-max(0.,dot(n,sunDirection)))));
+if(receiveShadows!=0&&(shadowMode==1||shadowMode==2))visibility=stableShadow!=0?stableReceiver(shadowPoint,normalize(cross(dFdx(worldPosition),dFdy(worldPosition))),biasScale*.000015):receiverCorrection!=0?receiverShadow(worldPosition,biasScale*.00006):sunlight(worldPosition,biasScale*max(.00055,.0010*(1.-max(0.,dot(n,sunDirection)))));
 else if(shadowMode==3&&ground!=0&&all(lessThan(abs(worldPosition.xz),vec2(24))))visibility=texture(groundShadow,worldPosition.xz/48.+.5).r;
 if(diagnostic==9){vec3 g=normalize(cross(dFdx(worldPosition),dFdy(worldPosition)));float before=legacyStableReceiver(worldPosition,g,biasScale*.000015),after=cleanReceiver(worldPosition,g,biasScale*.000015);color=vec4(1.-before,1.-after,0,1);normals=vec4(n*.5+.5,1);return;}
 if(diagnostic==4){color=vec4(vec3(visibility),1);normals=vec4(n*.5+.5,1);return;}
@@ -240,13 +255,40 @@ lit=lit/(1.+lit*.18);
 vec3 display=pow(clamp(lit,0.,1.),vec3(1./2.2));
 if(profileActive!=0&&greenTerrain&&meadowPatchOn!=0&&meadowLightingOn!=0)
  display=meadowBeamOn!=0?meadowBeamLit(originalAlbedo,worldPosition,max(0.,dot(shadeNormal,normalize(sunDirection))),visibility,direct,exposure,false):meadowLit(originalAlbedo,max(0.,dot(shadeNormal,normalize(sunDirection))),visibility,direct,exposure);
+if(pilotSurface){
+ vec3 base=srgbEncode(clamp(originalAlbedo,0.,1.)),hsv=rgbHSV(base);
+ bool green=hsv.x>=.18&&hsv.x<=.46&&hsv.y>=.12;
+ vec3 sd=normalize(sunDirection);
+ if(pilotGlow!=0)display=srgbEncode(clamp(originalAlbedo,0.,1.));
+ else if(pilotCards==2){
+  float life=pilotCenter.x,b=mod(floor(gl_FragCoord.x)+2.*floor(gl_FragCoord.y),4.)/4.;
+  if(life>.6&&b<(life-.6)/.4)discard;
+  display=mix(vec3(.96,.91,.82),vec3(.80,.77,.74),life);
+ } else if(pilotCards!=0){
+  // One flat tone per leaf card, read at its centre, so the crown stays clean.
+  // The nudge only matters near a band edge, which gives leafy clusters there.
+  float nudge=(pilotHash(pilotCenter.xz+pilotCenter.yy)-.5)*.10;
+  display=pilotRamp(3,pilotLeafTone(dot(n,normalize(sd+vec3(0,.8,0)))+nudge,visibility));
+ } else if(profileFamily==1){
+  if(green)display=pilotRamp(3,pilotLeafTone(dot(n,normalize(sd+vec3(0,.8,0))),visibility));
+  else display=pilotRamp(4,min(mix(.12,.24+.56*max(0.,dot(pilotG,sd)),visibility),.82));
+ } else {
+  if(green)display=pilotRamp(0,pilotGreenTone(max(0.,sd.y),visibility,shadowPoint.xz));
+  else{
+   vec4 tile=pilotTile(1,pilotPlane(worldPosition,pilotG));
+   float t=pilotTone(max(0.,dot(pilotG,sd)),visibility,shadowPoint.xz,1.)+(tile.r-.5)*pilotAmps[1];
+   if(tile.b>.5)t-=.24;
+   display=pilotRamp(1,t);
+  }
+ }
+}
 if(diagnostic==11){float b=greenTerrain?beamField(worldPosition):0.;color=vec4(b,greenTerrain?visibility:0.,b*visibility,1);normals=vec4(n*.5+.5,ground!=0?.05:.85);return;}
 float haze=smoothstep(hazeStart,hazeEnd,length(worldPosition-eye))*hazeStrength;
 color=vec4(mix(display,hazeColor,haze),alphaMode==2?a.a:1.);
 float category=ground!=0?.05:foliage!=0?.15:architecture!=0?.30+float(kind)*.09:.85;
 if(studyMode>0)category=studyKind==1?.4:studyKind==2?.15:studyKind==4?.05:.85;
 if(profileActive!=0&&profileFamily==4)category=.27;
-if(treeCards!=0||(treeLeaf&&treeTreatment==4))category=.20;
+if(pilotCards!=0||treeCards!=0||(treeLeaf&&treeTreatment==4))category=.20;
 normals=vec4(n*.5+.5,artStyle==0?(foliage!=0?.5:1.):category);}
 
 )GLSL";
@@ -276,6 +318,8 @@ if(shaftEnabled!=0){
 color=vec4(c,1);}
 )GLSL";
 struct Gpu::Impl {
+  PilotLook pilot;
+  GLuint pilotTiles = 0;
   std::unique_ptr<HudRenderer> hud;
   int coverage = 0, solidCount = 0;
   std::array<std::array<float, 4>, 16> meadowSolids{};
@@ -316,6 +360,8 @@ struct Gpu::Impl {
   Style style;
   StyleProfile profile;
   bool definedShafts=false;
+  std::function<void(const Mat &)> overlay;
+  std::vector<float> fades;
   bool sourceView=false,shadowClean=true;float terrainRelief=1;int diagnosticView=0;
   Integration integration;
   GLuint edgePost = 0;
@@ -484,7 +530,7 @@ Gpu::Gpu(World &world, bool allowSoftware, const TreeStudy *treeStudy) {
   };
   auto visibleVertex=vertexWithTree(hasSkins?meshVS:staticMeshVS,true);
   p->mesh =
-      program(visibleVertex.c_str(), ([&]{auto text=visibility(meshFS);auto at=text.find("// TREE");text.replace(at,7,treeSurfaceGLSL);at=text.find("// PROFILE");text.replace(at,10,profileGLSL);at=text.find("// MEADOW");text.replace(at,9,std::string(sunbeamGLSL)+meadowPatchGLSL);return text;}()).c_str());
+      program(visibleVertex.c_str(), ([&]{auto text=visibility(meshFS);auto at=text.find("// TREE");text.replace(at,7,treeSurfaceGLSL);at=text.find("// PROFILE");text.replace(at,10,profileGLSL);at=text.find("// MEADOW");text.replace(at,9,std::string(sunbeamGLSL)+meadowPatchGLSL);at=text.find("// PILOT");text.replace(at,8,pilotGLSL);return text;}()).c_str());
   gl::GenSamplers(1, &p->linearSampler);
   gl::SamplerParameteri(p->linearSampler, GL_TEXTURE_MIN_FILTER,
                         GL_LINEAR_MIPMAP_LINEAR);
@@ -729,6 +775,8 @@ Gpu::Gpu(World &world, bool allowSoftware, const TreeStudy *treeStudy) {
   setStyle(Style{});
   check("GPU resource creation");
 }
+void Gpu::setOverlay(std::function<void(const Mat &)> f) { p->overlay = std::move(f); }
+void Gpu::setFades(const std::vector<float> &f) { p->fades = f; }
 void Gpu::hud(const std::vector<std::string> &lines, int w, int h) {
   if (!p->hud)
     p->hud = std::make_unique<HudRenderer>();
@@ -919,6 +967,28 @@ void Gpu::saveDiagnostics(const std::filesystem::path &dir) {
     v << n << ' ';
   v << '\n';
 }
+void Gpu::setPilot(const PilotLook &v) {
+  p->pilot = v;
+  if (!v.enabled || p->pilotTiles)
+    return;
+  const char *names[] = {"t0_grass.png", "t1_soil.png", "t2_rock.png", "t3_leaf.png", "t4_bark.png", "t5_wood.png", "t6_tuft.png", "t7_tuft.png"};
+  gl::GenTextures(1, &p->pilotTiles);
+  gl::ActiveTexture(GL_TEXTURE0 + 13);
+  gl::BindTexture(GL_TEXTURE_2D_ARRAY, p->pilotTiles);
+  gl::TexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8, 128, 128, 8, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+  for (int i = 0; i < 8; i++) {
+    auto im = loadImage(v.tiles / names[i]);
+    if (im.w != 128 || im.h != 128)
+      throw std::runtime_error("pilot tile must be 128x128");
+    gl::TexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, i, 128, 128, 1, GL_RGBA, GL_UNSIGNED_BYTE, im.rgba.data());
+  }
+  gl::TexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+  gl::TexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  gl::GenerateMipmap(GL_TEXTURE_2D_ARRAY);
+  gl::ActiveTexture(GL_TEXTURE0);
+  check("pilot tiles");
+}
+void Gpu::setPilotTime(float t) { p->pilot.time = t; }
 void Gpu::setDefinedShafts(bool enabled){p->definedShafts=enabled;}
 void Gpu::setEffects(const Effects &e) {
   e.validate();
@@ -1224,6 +1294,27 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
   uniformInt(p->mesh, "softShadow", p->effects.soft);
   uniformInt(p->mesh, "shadowDepth", 3);
   uniformInt(p->mesh, "groundShadow", 4);
+  uniformInt(p->mesh, "pilotOn", p->pilot.enabled && !p->sourceView);
+  uniformInt(p->mesh, "pilotTiles", 13);
+  gl::Uniform2f(gl::GetUniformLocation(p->mesh, "pilotPixels"), float(w), float(h));
+  if (p->pilot.enabled) {
+    gl::ActiveTexture(GL_TEXTURE0 + 13);
+    gl::BindTexture(GL_TEXTURE_2D_ARRAY, p->pilotTiles);
+    gl::BindSampler(13, 0);
+    gl::ActiveTexture(GL_TEXTURE0);
+    {auto right=direction(inverse(camera.view()),{1,0,0}),up=direction(inverse(camera.view()),{0,1,0});gl::Uniform3f(gl::GetUniformLocation(p->mesh,"pilotRight"),right.x,right.y,right.z);gl::Uniform3f(gl::GetUniformLocation(p->mesh,"pilotUp"),up.x,up.y,up.z);}
+    uniformFloat(p->mesh, "pilotDensity", p->pilot.density);
+    uniformFloat(p->mesh, "pilotTime", p->pilot.time);
+    uniformFloat(p->mesh, "pilotPoolStrength", p->pilot.pools);
+    uniformFloat(p->mesh, "pilotSweepStrength", p->pilot.sweep);
+    gl::Uniform3f(gl::GetUniformLocation(p->mesh, "pilotLichen"), p->pilot.lichen.x, p->pilot.lichen.y, p->pilot.lichen.z);
+    for (int i = 0; i < 36; i++) {
+      auto c = p->pilot.ramps[i];
+      gl::Uniform3f(gl::GetUniformLocation(p->mesh, ("pilotRamps[" + std::to_string(i) + "]").c_str()), c.x, c.y, c.z);
+    }
+    for (int i = 0; i < 6; i++)
+      uniformFloat(p->mesh, ("pilotAmps[" + std::to_string(i) + "]").c_str(), p->pilot.amps[i]);
+  }
   bind(3, p->shadowDepth);
   bind(4, p->groundImage);
   gl::BindFramebuffer(GL_FRAMEBUFFER, p->fbo);
@@ -1285,8 +1376,11 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     if(targetTree){gl::Uniform4fv(gl::GetUniformLocation(p->mesh,"treeLeafUV"),1,p->tree->leafUV.data());gl::Uniform2f(gl::GetUniformLocation(p->mesh,"treeLeafBase"),p->tree->leafBase[0],p->tree->leafBase[1]);gl::Uniform3f(gl::GetUniformLocation(p->mesh,"treeCanopyColor"),p->tree->canopyColor.x,p->tree->canopyColor.y,p->tree->canopyColor.z);uniformFloat(p->mesh,"treeLeafMean",p->tree->leafMean);uniformInt(p->mesh,"treeGroupCount",int(p->tree->centers.size()));gl::Uniform4fv(gl::GetUniformLocation(p->mesh,"treeCenters"),GLsizei(p->tree->centers.size()),p->tree->centers.front().data());gl::Uniform4fv(gl::GetUniformLocation(p->mesh,"treeRadii"),GLsizei(p->tree->radii.size()),p->tree->radii.front().data());uniformInt(p->mesh,"treeLeafDetail",6);bind(6,p->textures.at(p->tree->texture));gl::BindSampler(6,0);
      auto right=direction(inverse(effective.view()),{1,0,0}),up=direction(inverse(effective.view()),{0,1,0});gl::Uniform3f(gl::GetUniformLocation(p->mesh,"treeCameraRight"),right.x,right.y,right.z);gl::Uniform3f(gl::GetUniformLocation(p->mesh,"treeCameraUp"),up.x,up.y,up.z);gl::ActiveTexture(GL_TEXTURE0);
     }
-    int family=model.rig?-1:model.id.starts_with("EA_TREE")||model.id.starts_with("EA_BUSH")||model.id.starts_with("EA_REED")?1:model.id.starts_with("EA_ROCK")?4:model.id.starts_with("EA_PATH")||model.id=="EA_COBBLE"||model.id.starts_with("HG_PATH")?3:model.id=="EA_GROUND"||model.id.starts_with("HG_GROUND")||model.id.starts_with("HG_GREEN")||model.id.starts_with("EA_GREEN")?5:model.id.starts_with("EA_GREEN")||model.id.starts_with("HG_GREEN")||model.id=="EA_MOSS"?0:2;
+    int family=model.rig||model.id.starts_with("WS0")?-1:model.id.starts_with("WSP_")||model.id.starts_with("EA_TREE")||model.id.starts_with("EA_BUSH")||model.id.starts_with("EA_REED")?1:model.id.starts_with("EA_ROCK")?4:model.id.starts_with("EA_PATH")||model.id=="EA_COBBLE"||model.id.starts_with("HG_PATH")?3:model.id=="EA_GROUND"||model.id.starts_with("HG_GROUND")||model.id.starts_with("HG_GREEN")||model.id.starts_with("EA_GREEN")?5:model.id.starts_with("EA_GREEN")||model.id.starts_with("HG_GREEN")||model.id=="EA_MOSS"?0:2;
     uniformInt(p->mesh,"profileFamily",family);
+    uniformInt(p->mesh,"pilotPlain",model.id.starts_with("HAWTOR"));
+    uniformFloat(p->mesh,"screenDoor",index<p->fades.size()?p->fades[index]:0.f);
+    uniformFloat(p->mesh,"pilotWind",p->pilot.enabled&&!p->sourceView&&family==1?.003f:0.f);
     uniformInt(p->mesh,"drawOwnerID",int(index)+1);uniformInt(p->mesh,"receiverOwner",int(index)+1);
     float depthUnit=.5f*std::sqrt(p->lightVP.v[2]*p->lightVP.v[2]+p->lightVP.v[6]*p->lightVP.v[6]+p->lightVP.v[10]*p->lightVP.v[10]);
     uniformFloat(p->mesh,"receiverSelfTolerance",model.materials.front().architecture?.12f*depthUnit:-1.f);
@@ -1322,6 +1416,8 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
       uniformInt(p->mesh, "pixelMaterial",
                  p->style.materials && !mat.styleTexture.empty());
       uniformInt(p->mesh, "kind", mat.kind);
+      uniformInt(p->mesh, "pilotCards", !p->pilot.enabled || p->sourceView ? 0 : model.id.starts_with("WSP_") ? (mat.name == "Leaf" ? 1 : mat.name == "Smoke" ? 2 : 0) : 0);
+      uniformInt(p->mesh, "pilotGlow", p->pilot.enabled && !p->sourceView && mat.name == "Glow");
       uniformInt(p->mesh, "architecture", mat.architecture);
       uniformInt(p->mesh, "leafy", mat.leafy);
       if (p->style.sampling == 2) {
@@ -1368,7 +1464,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     if(p->tree&&index==p->tree->target&&p->treeMode==4)
       for(const auto &part:p->rimParts)draw(index,part);
   }
-  if(p->grassRenderer)p->grassRenderer->setProfile(p->profile,!p->sourceView);
+  if(p->grassRenderer){p->pilot.right=direction(inverse(camera.view()),{1,0,0});p->pilot.wide=float(w);p->pilot.high=float(h);p->grassRenderer->setProfile(p->profile,!p->sourceView);p->grassRenderer->setPilot(p->pilot);}
   if (p->grassRenderer && p->grass && p->coverage != 1 && p->coverage != 4) {
     stats.grass = p->grassRenderer->draw(
         *p->grass, effective, vp, p->look, p->lightVP, p->shadowDepth,
@@ -1394,6 +1490,8 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
   gl::DepthMask(GL_FALSE);
   for (auto &d : p->blends)
     draw(d.instance,p->models[world.instances[d.instance].model][d.part]);
+  if (p->overlay)
+    p->overlay(vp);
   gl::DepthMask(GL_TRUE);
   gl::Disable(GL_BLEND);
   gl::Disable(GL_CULL_FACE);
@@ -1517,8 +1615,9 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
   uniformFloat(postProgram,"grassInk",p->profile.grassInk);uniformFloat(postProgram,"organicCeiling",p->profile.organicCeiling);
   gl::Uniform3f(gl::GetUniformLocation(postProgram,"organicHighlights"),p->profile.organicHighlights.x,p->profile.organicHighlights.y,p->profile.organicHighlights.z);
   uniformInt(postProgram,"shadowClean",p->shadowClean);uniformInt(postProgram,"shadowOwners",9);bind(9,p->shadowOwners);gl::BindSampler(9,0);
-  uniformInt(postProgram,"sceneOwners",10);bind(10,p->owners);gl::BindSampler(10,0);
+  uniformInt(postProgram,"pilotOn",p->pilot.enabled&&!p->sourceView);uniformInt(postProgram,"sceneOwners",10);bind(10,p->owners);gl::BindSampler(10,0);
   uniformInt(postProgram,"shadowDepth",11);bind(11,p->shadowDepth);gl::BindSampler(11,0);
+  uniformFloat(postProgram,"pilotRays",p->pilot.enabled&&!p->sourceView?p->pilot.rays:0.f);uniformFloat(postProgram,"pilotTime",p->pilot.time);
   uniformInt(postProgram,"softShadow",p->effects.soft);
   uniformMatrix(postProgram,"lightNormalMatrix",transpose(inverse(p->lightVP)));
   uniformInt(postProgram,"profileInk",p->profile.inkMode);

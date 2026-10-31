@@ -3,11 +3,13 @@
 #include "core.hpp"
 #include "integration.hpp"
 #include "look.hpp"
+#include "pilot_look.hpp"
 #include "style_profile.hpp"
 #include "mesh_clumps.hpp"
 #include "pixel_camera.hpp"
 #include "style.hpp"
 #include "tree_study.hpp"
+#include <functional>
 #include <memory>
 struct SDL_Window;
 namespace p3 {
@@ -48,6 +50,10 @@ struct Gpu {
   void setCoverage(int, const std::vector<game::Solid> &,
                    const std::filesystem::path &);
   void hud(const std::vector<std::string> &, int, int);
+  // Drawn in the world pass after opaque surfaces: blended, depth tested, colour only.
+  void setOverlay(std::function<void(const Mat &)>);
+  // Per-instance pixel dissolve, 0 solid to 1 gone; the shadow pass ignores it.
+  void setFades(const std::vector<float> &);
   void setLook(const Look &);
   void setProfile(const StyleProfile &);
   void setSourceView(bool);
@@ -61,6 +67,8 @@ struct Gpu {
   std::size_t ownershipBytes() const;
   void setEffects(const Effects &);
   void setDefinedShafts(bool);
+  void setPilot(const PilotLook &);
+  void setPilotTime(float);
   std::size_t effectBytes() const;
   ~Gpu();
   Gpu(const Gpu &) = delete;
