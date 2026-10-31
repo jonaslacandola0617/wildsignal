@@ -2,6 +2,8 @@
 
 **Status:** Proposal for review. **Confirmed:** companions physically follow players, can assist exploration, 1v1 turn-based battles, offline story works fully, first game uses the user's owned original pixel sprites. **Proposed:** creature names, behaviors, recruitment/bond points, exact habitat positions and outcome numbers.
 
+**Update 2026-11-01:** friendly spars are real-time fights (D-006). The first playable test of this trust model is `experiments/hearthgrove_emaceart/src/bond.cpp`, `src/wild_scene.cpp` and `data/wildlife_test.json`; placements and wording there are placeholders.
+
 ## 1. Philosophy
 
 Unlike automatic/random capture, **creatures are encountered as wildlife and invited to join through trust**. The player earns trust by paying attention, improving creature habitat, optionally sparring, and respecting each species' cues. There is no projectile capture device and no paid shortcut to recruitment. Visual creature bodies remain the owner's original sprite designs (WS-IDs); new animations/multiple angles must be drawn to match.

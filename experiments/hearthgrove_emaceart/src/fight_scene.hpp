@@ -1,4 +1,5 @@
 #pragma once
+#include "bond.hpp"
 #include "fight.hpp"
 #include "ground_marks.hpp"
 #include "pixel_ui.hpp"
@@ -24,8 +25,12 @@ public:
   explicit FightScene(const std::filesystem::path &folder);
   bool active() const { return running; }
   bool lost() const { return wasLost; }
-  void start(Vec you, Vec wild, const std::vector<battle::Block> &blocks);
-  void heal();
+  bool won() const { return wasWon; }
+  const battle::Content &roster() const { return content; }
+  // Health left per team member after the last fight, in team order.
+  const std::vector<int> &teamHp() const { return hp; }
+  // wildHealth is an encounter scale in percent, so a fight has time to breathe.
+  void start(const std::string &wildSpecies, int wildLevel, int wildHealth, const std::vector<bond::Member> &team, Vec you, Vec wild, const std::vector<battle::Block> &blocks);
   void key(int sdlKey);
   void update(float dt, int moveX, int moveZ);
   void draw(PixelUi &, const Project &);
@@ -54,11 +59,11 @@ private:
   battle::Content content;
   battle::FightData data;
   std::unique_ptr<battle::Fight> fight;
-  std::vector<int> party, hp;
+  std::vector<int> hp;
   std::vector<Floater> floaters;
   std::vector<Puff> puffs;
   battle::Pad pending;
-  bool running = false, wasLost = false;
+  bool running = false, wasLost = false, wasWon = false;
   int encounters = 0, queued = -1;
   float spare = 0, toastTime = 0, hintTime = 0, clock = 0, clipClock = 0, commandT = 0;
   std::string toast;

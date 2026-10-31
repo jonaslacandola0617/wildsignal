@@ -13,7 +13,6 @@ namespace {
 const PixelUi::Colour Ink{.227f, .149f, .094f, 1}, Cream{.96f, .91f, .77f, 1}, Muted{.72f, .70f, .60f, 1}, Gold{.96f, .86f, .55f, 1};
 const PixelUi::Colour HpGood{.49f, .67f, .27f, 1}, HpMid{.91f, .72f, .29f, 1}, HpLow{.82f, .36f, .22f, 1}, Calm{.45f, .78f, .84f, 1}, Coral{.95f, .47f, .32f, 1};
 const GroundMarks::Colour Danger{.96f, .42f, .24f, .85f}, Friendly{.52f, .86f, .90f, .55f}, Bound{.96f, .91f, .77f, .4f};
-const float WildHealth = 240; // Encounter scale for the test, so a fight has time to breathe.
 const char *statusIcon(battle::Status s) {
   switch (s) {
   case battle::Status::Guard: return "guard";
@@ -57,13 +56,6 @@ Mat posed(const FightScene::Staged &s, float base) {
 FightScene::FightScene(const std::filesystem::path &folder) {
   content = battle::parseRoster(readText(folder / "roster.json"));
   data = battle::parseFight(readText(folder / "fight.json"), content);
-  party = {content.speciesIndex("WS-008"), content.speciesIndex("WS-004")};
-  for (int s : party)
-    hp.push_back(battle::statsAt(content.species[s], 5).hp);
-}
-void FightScene::heal() {
-  for (std::size_t i = 0; i < party.size(); i++)
-    hp[i] = battle::statsAt(content.species[party[i]], 5).hp;
 }
 std::string FightScene::nameOf(const Fighter &k) const { return upper(content.species[k.species].name); }
 void FightScene::say(const std::string &text, float seconds) {
@@ -71,29 +63,31 @@ void FightScene::say(const std::string &text, float seconds) {
   toastTime = seconds;
 }
 
-void FightScene::start(Vec you, Vec wild, const std::vector<battle::Block> &blocks) {
-  if (std::none_of(hp.begin(), hp.end(), [](int v) { return v > 0; })) heal();
-  std::vector<battle::Member> team;
-  for (std::size_t i = 0; i < party.size(); i++)
-    team.push_back({party[i], 5, hp[i]});
+void FightScene::start(const std::string &wildSpecies, int wildLevel, int wildHealth, const std::vector<bond::Member> &team, Vec you, Vec wild, const std::vector<battle::Block> &blocks) {
+  // A team with nobody standing is rested first; losing never strands the player.
+  bool anyone = std::any_of(team.begin(), team.end(), [](const bond::Member &m) { return m.hp != 0; });
+  std::vector<battle::Member> members;
+  for (const auto &m : team)
+    members.push_back({content.speciesIndex(m.species), m.level, anyone ? m.hp : -1});
   encounters++;
-  fight = std::make_unique<battle::Fight>(content, data, team, battle::Member{content.speciesIndex("WS-005"), 3, -1}, millimetres(you), millimetres(wild),
-                                          std::uint32_t(0x51A7 + encounters), blocks, int(WildHealth));
+  fight = std::make_unique<battle::Fight>(content, data, members, battle::Member{content.speciesIndex(wildSpecies), wildLevel, -1}, millimetres(you), millimetres(wild),
+                                          std::uint32_t(0x51A7 + encounters), blocks, wildHealth);
   running = true;
-  wasLost = false;
+  wasLost = wasWon = false;
   pending = {};
   queued = -1;
   spare = commandT = 0;
   hintTime = 7;
   floaters.clear();
   puffs.clear();
-  say("A WILD " + nameOf(fight->wild()) + " TURNS ON YOU!", 2.2f);
+  say(nameOf(fight->wild()) + " ACCEPTS YOUR CHALLENGE!", 2.2f);
 }
 void FightScene::finish() {
-  const auto &team = fight->party();
-  for (std::size_t i = 0; i < party.size(); i++)
-    hp[i] = team[i].hp;
+  hp.clear();
+  for (const auto &k : fight->party())
+    hp.push_back(k.hp);
   wasLost = fight->outcome() == battle::Outcome::Lost;
+  wasWon = fight->outcome() == battle::Outcome::Won;
   running = false;
 }
 void FightScene::key(int k) {

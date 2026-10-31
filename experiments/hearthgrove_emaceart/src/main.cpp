@@ -1,5 +1,6 @@
 #include "animation.hpp"
 #include "fight_scene.hpp"
+#include "wild_scene.hpp"
 #include "followers.hpp"
 #include "game.hpp"
 #include "gpu.hpp"
@@ -605,9 +606,9 @@ int main(int argc, char **argv) {
     std::unique_ptr<p3::PixelUi> pixelUi;
     std::unique_ptr<p3::FightScene> scene;
     std::unique_ptr<p3::GroundMarks> groundMarks;
+    std::unique_ptr<p3::WildScene> wilds;
     std::map<std::string, std::size_t> stageModels;
     std::map<std::string, p3::Mat> stageHome;
-    p3::Vec wildSpot{.6f, 0, 3.4f};
     bool stageSet = false;
     float fightTurn = 0, fightZoom = 0;
     p3::Vec fightFoe{};
@@ -617,11 +618,13 @@ int main(int argc, char **argv) {
     if(!o.pilot.empty()){
       pixelUi=std::make_unique<p3::PixelUi>(o.pilot.parent_path());
       scene=std::make_unique<p3::FightScene>(o.pilot.parent_path());
+      auto bondFile=o.save;bondFile+=".bonds.json";
+      wilds=std::make_unique<p3::WildScene>(o.pilot.parent_path(),scene->roster(),bondFile,o.fresh,game.state.player);
       groundMarks=std::make_unique<p3::GroundMarks>([](float x,float z){return game::terrain(x,z);});
       gpu.setOverlay([&](const p3::Mat &m){groundMarks->draw(m);});
       for(std::size_t i=0;i<world.instances.size();i++){
         const auto &model=world.models[world.instances[i].model];
-        if(model.id=="WS004"||model.id=="WS005"||model.id=="WS008"){stageModels[model.id]=i;stageHome[model.id]=world.instances[i].matrix;}
+        if(model.id=="WS004"||model.id=="WS005"||model.id=="WS008"||model.id=="WS012"){stageModels[model.id]=i;stageHome[model.id]=world.instances[i].matrix;}
       }
       // Anything tall enough to hide the Wayfinder can dissolve; ground, characters and building details cannot.
       std::vector<std::size_t> details;
@@ -641,8 +644,6 @@ int main(int argc, char **argv) {
         }
         if(home!=i)viewFollowers.emplace_back(i,home);
       }
-      auto place=[&](const std::string &id,p3::Vec at,float yaw){auto &i=world.instances[stageModels.at(id)];float s=std::hypot(i.matrix.v[0],std::hypot(i.matrix.v[1],i.matrix.v[2]));at.y=game::terrain(at.x,at.z);i.matrix=p3::transform(at,yaw,s);i.bounds=p3::transformed(world.models[i.model].bounds,i.matrix);stageHome[id]=i.matrix;};
-      if(stageModels.count("WS005"))place("WS005",wildSpot,-.6f);
     }
     p3::Style style;
     style.mode = 2;
@@ -748,6 +749,9 @@ int main(int argc, char **argv) {
         log << game.message << '\n';
       }
     };
+    auto atRest = [&] {
+      return o.house && std::any_of(game.restSpots.begin(), game.restSpots.end(), [&](p3::Vec p) { return std::hypot(game.state.player.x - p.x, game.state.player.z - p.z) < 1.5f; });
+    };
     bool run = true, paused = false, relative = true;
     std::array<bool, 4> held{};
     SDL_SetWindowRelativeMouseMode(screen.window, true);
@@ -807,6 +811,23 @@ int main(int argc, char **argv) {
             scene->key(int(e.key.key));
             continue;
           }
+          if (wilds && !paused && !o.benchmark && game.phase == game::Phase::Explore && !(e.key.key == SDLK_E && atRest())) {
+            auto press = wilds->press(int(e.key.key), game.state.player);
+            if (press == p3::WildScene::Press::Fight) {
+              std::vector<battle::Block> blocks;
+              for (const auto &s : game.solids)
+                blocks.push_back({int(s.x * 1000), int(s.z * 1000), int(s.hx * 1000), int(s.hz * 1000)});
+              scene->start(wilds->foeSpecies(), wilds->foeLevel(), wilds->foeHealth(), wilds->team(), game.state.player, wilds->foeAt(), blocks);
+              game.phase = game::Phase::Battle;
+              fightTurn = .7f;
+              event(frame, "fight_start");
+            }
+            if (press != p3::WildScene::Press::None) {
+              if (e.key.key == SDLK_E)
+                fightTurn = .7f;
+              continue;
+            }
+          }
           if (e.key.key == SDLK_ESCAPE) {
             paused = !paused;
             relative = !paused;
@@ -854,7 +875,7 @@ int main(int argc, char **argv) {
               o.shadows=!o.shadows;updateEffects();event(frame,"shadows_toggle");
             } else if(e.key.key==SDLK_H) {
               o.haze=!o.haze;look.hazeStrength=o.haze?authoredHaze:0;gpu.setLook(look);event(frame,"haze_toggle");
-            } else if(e.key.key==SDLK_F) {
+            } else if(e.key.key==SDLK_F&&!wilds) { // F means friendly fight in the pilot corner.
               o.original=!o.original;style.highlights=!o.original&&o.edgeHighlights;style.outlines=!o.original&&o.edgeOutlines;gpu.setSourceView(o.original);gpu.setStyle(style);event(frame,"source_toon_toggle");
             } else if(e.key.key==SDLK_L) {
               o.quality=o.quality=="low"?"medium":o.quality=="medium"?"high":"low";updateEffects();event(frame,"quality_toggle");
@@ -879,19 +900,11 @@ int main(int argc, char **argv) {
                                        1.5f;
                               })) {
                 game.rest();
-                if (scene)
-                  scene->heal();
+                if (wilds)
+                  wilds->rest();
                 save();
                 event(frame, "cottage_rest");
-              } else if (scene && std::hypot(game.state.player.x - wildSpot.x, game.state.player.z - wildSpot.z) < 2.4f) {
-                std::vector<battle::Block> blocks;
-                for (const auto &s : game.solids)
-                  blocks.push_back({int(s.x * 1000), int(s.z * 1000), int(s.hx * 1000), int(s.hz * 1000)});
-                scene->start(game.state.player, wildSpot, blocks);
-                game.phase = game::Phase::Battle;
-                fightTurn = .7f;
-                event(frame, "fight_start");
-              } else if (game.encounter()) {
+              } else if (!scene && game.encounter()) {
                 attackTime = 10;
                 event(frame, "encounter");
               } else
@@ -927,7 +940,7 @@ int main(int argc, char **argv) {
           }
         }
       }
-      if (!paused && !o.benchmark && game.phase == game::Phase::Explore) {
+      if (!paused && !o.benchmark && game.phase == game::Phase::Explore && !(wilds && wilds->busy())) {
         float f = float(held[0]) - float(held[1]),
               side = float(held[3]) - float(held[2]);
         float n = std::hypot(f, side);
@@ -986,63 +999,67 @@ int main(int argc, char **argv) {
           fightX = int(std::lround((std::sin(y) * ahead + std::cos(y) * across) * 1000));
           fightZ = int(std::lround((-std::cos(y) * ahead + std::sin(y) * across) * 1000));
         }
-        if (!paused)
+        if (!paused) {
           scene->update(dt, fightX, fightZ);
-        if (scene->active()) {
+          if (!scene->active())
+            wilds->update(dt, game.state.player, game.solids);
+        }
+        for (const auto &name : wilds->takeEvents())
+          event(frame, name.c_str());
+        bool fighting = scene->active(), watching = wilds->watching();
+        if (fighting) {
           game.state.player = scene->youAt();
-          p3::Vec foe = scene->wildAt();
-          // The camera swings round to face the wild Signari, then the mouse keeps control.
-          if (fightTurn > 0) {
-            fightTurn = std::max(0.f, fightTurn - dt);
-            float want = std::atan2(foe.x - game.state.player.x, game.state.player.z - foe.z);
-            game.state.yaw += std::remainder(want - game.state.yaw, 2 * p3::pi) * std::min(1.f, dt * 7);
-          }
-          auto staged = std::array{scene->creature(true), scene->creature(false)};
-          for (auto &[id, home] : stageHome) {
-            auto &i = world.instances[stageModels[id]];
-            i.matrix = home;
-            if (id != staged[0].model && id != staged[1].model)
-              i.matrix.v[13] -= 40; // A resting party member waits out of sight.
-            i.bounds = p3::transformed(world.models[i.model].bounds, i.matrix);
-          }
-          for (const auto &s : staged) {
-            auto it = stageModels.find(s.model);
-            if (it == stageModels.end())
-              continue;
-            auto &i = world.instances[it->second];
-            const auto &home = stageHome[s.model];
-            i.matrix = p3::posed(s, std::hypot(home.v[0], std::hypot(home.v[1], home.v[2])));
-            i.bounds = p3::transformed(world.models[i.model].bounds, i.matrix);
-            i.bounds.lo = i.bounds.lo - p3::Vec{.6f, .6f, .6f};
-            i.bounds.hi = i.bounds.hi + p3::Vec{.6f, .6f, .6f};
-          }
-          fightFoe = foe;
-          stageSet = true;
-        } else if (stageSet) {
-          for (auto &[id, home] : stageHome) {
-            auto &i = world.instances[stageModels[id]];
-            i.matrix = home;
-            i.bounds = p3::transformed(world.models[i.model].bounds, i.matrix);
-          }
+          fightFoe = scene->wildAt();
+        } else if (watching)
+          fightFoe = wilds->watchAt();
+        // The camera swings round to face the creature, then the mouse keeps control.
+        if (fightTurn > 0 && (fighting || watching)) {
+          fightTurn = std::max(0.f, fightTurn - dt);
+          float want = std::atan2(fightFoe.x - game.state.player.x, game.state.player.z - fightFoe.z);
+          game.state.yaw += std::remainder(want - game.state.yaw, 2 * p3::pi) * std::min(1.f, dt * 7);
+        }
+        // Everyone is posed every frame; a creature not in this list waits out of sight.
+        auto staged = fighting ? std::vector{scene->creature(true), scene->creature(false)} : wilds->staged();
+        for (auto &[id, home] : stageHome) {
+          auto &i = world.instances[stageModels[id]];
+          i.matrix = home;
+          i.matrix.v[13] -= 40;
+          i.bounds = p3::transformed(world.models[i.model].bounds, i.matrix);
+        }
+        for (const auto &s : staged) {
+          auto it = stageModels.find(s.model);
+          if (it == stageModels.end())
+            continue;
+          auto &i = world.instances[it->second];
+          const auto &home = stageHome[s.model];
+          i.matrix = p3::posed(s, std::hypot(home.v[0], std::hypot(home.v[1], home.v[2])));
+          i.bounds = p3::transformed(world.models[i.model].bounds, i.matrix);
+          i.bounds.lo = i.bounds.lo - p3::Vec{.6f, .6f, .6f};
+          i.bounds.hi = i.bounds.hi + p3::Vec{.6f, .6f, .6f};
+        }
+        if (stageSet && !fighting) {
           stageSet = false;
           game.phase = game::Phase::Explore;
           game.message = "";
+          wilds->fightEnded(scene->won(), scene->teamHp());
           if (scene->lost()) {
             // Losing costs nothing: the Wayfinder wakes at the start with a rested party.
             game.state.player = game.spawn;
-            scene->heal();
+            wilds->rest();
           }
+          wilds->regroup(game.state.player, game.solids);
         }
-        // The camera leans in when a fight starts and eases back out when it ends.
-        bool fighting = scene->active();
-        fightZoom += std::clamp(float(fighting) - fightZoom, -dt * 2.5f, dt * 2.5f);
+        stageSet = stageSet || fighting;
+        // The camera leans in for a fight or a quiet watch, and eases back out afterwards.
+        bool leaning = fighting || watching;
+        fightZoom += std::clamp(float(leaning) - fightZoom, -dt * 2.5f, dt * 2.5f);
         if (fightZoom > 0 && (fighting || (o.raisedCamera && game.phase == game::Phase::Explore))) {
           float k = fightZoom * fightZoom * (3 - 2 * fightZoom), y = game.state.yaw;
           // It gives back a little distance when the wild Signari backs off, to keep both in frame.
           float spread = std::hypot(fightFoe.x - game.state.player.x, fightFoe.z - game.state.player.z);
           float reach = 6.4f + std::clamp(spread - 3, 0.f, 6.f) * .35f;
           float arm = 8.5f + (reach - 8.5f) * k, rise = 5.5f + (reach * .68f - 5.5f) * k;
-          p3::Vec middle = game.state.player + (fightFoe - game.state.player) * (.35f * k);
+          p3::Vec middle = game.state.player + (fightFoe - game.state.player) * ((watching ? .5f : .35f) * k);
           camera.position = middle + p3::Vec{-std::sin(y) * arm, rise, std::cos(y) * arm};
           camera.aim(middle + p3::Vec{0, 1.5f - .8f * k, 0});
         }
@@ -1134,6 +1151,8 @@ int main(int argc, char **argv) {
           auto clip = scene->youClip();
           bool loop = clip == "Idle" || clip == "Run" || clip == "Tuck";
           i.palette = world.models[i.model].rig->sample(clip, loop ? animation : scene->clipTime(), loop);
+        } else if (wilds && wilds->busy()) {
+          i.palette = world.models[i.model].rig->sample("Command", wilds->busyTime(), false);
         } else
           i.palette = world.models[i.model].rig->sample(moving ? "Walk" : "Idle", moving ? playerStride : animation, true);
       }
@@ -1185,6 +1204,8 @@ int main(int argc, char **argv) {
         groundMarks->clear();
         auto eye = p3::inverse(camera.view());
         scene->marks(*groundMarks, p3::direction(eye, {1, 0, 0}), p3::direction(eye, {0, 1, 0}));
+        if (!scene->active())
+          wilds->marks(*groundMarks, p3::direction(eye, {1, 0, 0}), p3::direction(eye, {0, 1, 0}));
       }
       auto cullStart = Clock::now();
       auto counts = world.visible(p3::Frustum(vp), true, visible);
@@ -1264,8 +1285,10 @@ int main(int argc, char **argv) {
                   w = std::max(.01f, m[3] * at.x + m[7] * at.y + m[11] * at.z + m[15]);
             return std::array<int, 2>{int((x / w + 1) * 320), int((1 - y / w) * 180)};
           });
-        else if (game.phase == game::Phase::Explore && std::hypot(game.state.player.x - wildSpot.x, game.state.player.z - wildSpot.z) < 2.4f)
-          scene->prompt(*pixelUi, "[E] FACE THE WILD TUMBLETAIL");
+        else if (game.phase == game::Phase::Explore && atRest())
+          scene->prompt(*pixelUi, "[E] REST AT THE COTTAGE");
+        else if (game.phase == game::Phase::Explore)
+          wilds->draw(*pixelUi);
         pixelUi->end();
       }
       auto hudEnd = Clock::now();

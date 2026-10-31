@@ -1,0 +1,102 @@
+{
+  "schema": "wildsignal-wildlife-test-v0",
+  "status": "PROPOSED - placeholder placement and wording for the owner's befriending test, not approved",
+  "wilds": [
+    {
+      "species": "WS-005",
+      "level": 3,
+      "spawn": [
+        0.6,
+        3.4
+      ],
+      "forage": [
+        [
+          2.4,
+          3.0
+        ],
+        [
+          3.4,
+          4.6
+        ],
+        [
+          1.2,
+          5.0
+        ],
+        [
+          0.2,
+          3.2
+        ]
+      ],
+      "hide": [
+        7.7,
+        6.5
+      ],
+      "cache": [
+        4.9,
+        3.9
+      ],
+      "speed": 2.4,
+      "flees": true,
+      "cacheColour": [
+        0.95,
+        0.68,
+        0.26
+      ],
+      "watchPrompt": "WATCH TUMBLETAIL",
+      "watching": "STAY STILL. IT IS GATHERING FOOD.",
+      "observed": "IT HIDES SEEDS BY THE BENCH, BUT THEY ARE SCATTERED.",
+      "assistPrompt": "TIDY THE SCATTERED SEEDS",
+      "assistHint": "TIDY THE SEEDS BY THE BENCH",
+      "assisted": "TUMBLETAIL SEES WHAT YOU DID.",
+      "health": 240
+    },
+    {
+      "species": "WS-012",
+      "level": 3,
+      "spawn": [
+        3.2,
+        -4.6
+      ],
+      "forage": [
+        [
+          2.0,
+          -5.3
+        ],
+        [
+          3.3,
+          -5.7
+        ],
+        [
+          4.3,
+          -4.8
+        ],
+        [
+          3.1,
+          -4.2
+        ]
+      ],
+      "hide": [
+        3.1,
+        -5.4
+      ],
+      "cache": [
+        1.0,
+        -6.3
+      ],
+      "speed": 0.8,
+      "flees": false,
+      "cacheColour": [
+        0.86,
+        0.62,
+        0.3
+      ],
+      "watchPrompt": "WATCH MOSSMELT",
+      "watching": "STAY STILL. IT IS CLEANING THE LEAVES.",
+      "observed": "ITS FEEDING BED IS BURIED UNDER FALLEN DEBRIS.",
+      "assistPrompt": "CLEAR THE FALLEN DEBRIS",
+      "assistHint": "CLEAR THE DEBRIS NEAR THE TREE",
+      "assisted": "MOSSMELT RISES TO GREET YOU.",
+      "health": 150
+    }
+  ]
+}
