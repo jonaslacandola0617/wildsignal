@@ -5,7 +5,7 @@
 #include <cmath>
 namespace p3 {
 namespace {
-const PixelUi::Colour Ink{.227f, .149f, .094f, 1}, Fade{.45f, .32f, .2f, 1}, Calm{.45f, .78f, .84f, 1}, Coral{.78f, .3f, .2f, 1};
+const PixelUi::Colour Calm{.45f, .78f, .84f, 1}, Coral{.78f, .3f, .2f, 1};
 const float WatchFar = 9, FightNear = 3, TidyNear = 1.8f, InviteNear = 3;
 float flat(Vec a, Vec b) { return std::hypot(a.x - b.x, a.z - b.z); }
 std::string upper(std::string s) {
@@ -393,6 +393,7 @@ void WildScene::marks(GroundMarks &g, Vec right, Vec up) {
   }
 }
 void WildScene::draw(PixelUi &ui, const FightScene::Project &project) {
+  const auto &t = ui.theme();
   for (const auto &w : wilds) {
     auto *e = journal.find(w.species);
     if (e && e->joined) continue;
@@ -408,23 +409,21 @@ void WildScene::draw(PixelUi &ui, const FightScene::Project &project) {
     int trust = e ? e->trust() : 0;
     ui.panel("panel", 14, 12, 268, 46);
     ui.image("leaf", 14 + 268 - 13, 13);
-    ui.text(w.name, 26, 23, Ink);
-    ui.text(w.wariness.frightened() ? "WARY" : w.temperament, 92, 23, w.wariness.frightened() ? Coral : Fade);
-    ui.text("TRUST", 160, 23, Fade);
+    ui.text(w.name, 26, 22, t.ink);
+    ui.text(w.wariness.frightened() ? "WARY" : w.temperament, 92, 22, w.wariness.frightened() ? Coral : t.faded);
+    ui.text("TRUST", 160, 22, t.faded);
     for (int i = 0; i < w.trustNeeded; i++)
-      ui.image(i < trust ? "pip_on" : "pip_off", 196 + i * 9, 23);
-    if (watchIndex == near) {
-      ui.panel("bar", 26, 35, 244, 9);
-      ui.fill(29, 38, std::max(1, int(238 * std::min(1.f, w.watchT / watchGoal(w)))), 3, Calm);
-    } else {
-      ui.text(nextStep(w), 26, 36, Fade);
-    }
+      ui.image(i < trust ? "trust_on" : "trust_off", 196 + i * 10, 22);
+    if (watchIndex == near)
+      ui.meter(26, 35, 244, std::min(1.f, w.watchT / watchGoal(w)), Calm);
+    else
+      ui.text(nextStep(w), 26, 36, t.faded);
   }
   std::string line = toastT > 0 ? toast : watchIndex >= 0 ? (sitting ? "STAY STILL AND KEEP IT COMPANY." : wilds[std::size_t(watchIndex)].watchingText) : "";
   if (!line.empty()) {
     int w = ui.width(line) + 28;
     ui.panel("panel", 320 - w / 2, 66, w, 26);
-    ui.text(line, 320 - w / 2 + 14, 76, Ink);
+    ui.text(line, 320 - w / 2 + 14, 75, t.ink);
   }
   if (near < 0 || busy() || watching()) return;
   const auto &w = wilds[std::size_t(near)];
@@ -435,6 +434,6 @@ void WildScene::draw(PixelUi &ui, const FightScene::Project &project) {
   if (text.empty()) return;
   int width = ui.width(text) + 28;
   ui.panel("panel", 320 - width / 2, 318, width, 28);
-  ui.text(text, 320 - width / 2 + 14, 329, Ink);
+  ui.text(text, 320 - width / 2 + 14, 328, t.ink);
 }
 } // namespace p3

@@ -10,7 +10,7 @@ using battle::Pose;
 using battle::Reach;
 using battle::Target;
 namespace {
-const PixelUi::Colour Ink{.227f, .149f, .094f, 1}, Cream{.96f, .91f, .77f, 1}, Muted{.72f, .70f, .60f, 1}, Gold{.96f, .86f, .55f, 1};
+const PixelUi::Colour Cream{.96f, .91f, .77f, 1}, Muted{.72f, .70f, .60f, 1}, Gold{.96f, .86f, .55f, 1};
 const PixelUi::Colour HpGood{.49f, .67f, .27f, 1}, HpMid{.91f, .72f, .29f, 1}, HpLow{.82f, .36f, .22f, 1}, Calm{.45f, .78f, .84f, 1}, Coral{.95f, .47f, .32f, 1};
 const GroundMarks::Colour Danger{.96f, .42f, .24f, .85f}, Friendly{.52f, .86f, .90f, .55f}, Bound{.96f, .91f, .77f, .4f};
 const char *statusIcon(battle::Status s) {
@@ -278,30 +278,28 @@ void FightScene::marks(GroundMarks &g, Vec right, Vec up) {
 }
 
 void FightScene::plate(PixelUi &ui, const Fighter &k, int x, int y, int w, bool full) {
-  ui.panel("panel", x, y, w, full ? 58 : 56);
+  const auto &t = ui.theme();
+  ui.panel("panel", x, y, w, full ? 60 : 56);
   ui.image("leaf", x + w - 13, y + 1);
-  ui.text(nameOf(k), x + 12, y + 11, Ink);
+  ui.text(nameOf(k), x + 12, y + 10, t.ink);
   auto level = "LV " + std::to_string(k.level);
-  ui.text(level, x + w - 16 - ui.width(level), y + 11, Ink);
-  int barW = w - 56, value = std::clamp(k.hp, 0, k.stats.hp), fillW = (barW - 6) * value / std::max(1, k.stats.hp);
-  ui.text("HP", x + 12, y + 24, Ink);
-  ui.panel("bar", x + 28, y + 23, barW, 9);
+  ui.text(level, x + w - 16 - ui.width(level), y + 10, t.ink);
+  int barW = w - 52, value = std::clamp(k.hp, 0, k.stats.hp);
+  ui.text("HP", x + 12, y + 23, t.ink);
   auto colour = value * 4 <= k.stats.hp ? HpLow : value * 2 <= k.stats.hp ? HpMid : HpGood;
-  if (value > 0) ui.fill(x + 31, y + 26, std::max(1, fillW), 3, colour);
+  ui.meter(x + 28, y + 22, barW, float(value) / float(std::max(1, k.stats.hp)), colour);
   int icon = x + 12;
   if (full) {
-    ui.text("EN", x + 12, y + 38, Ink);
+    ui.text("EN", x + 12, y + 37, t.ink);
     for (int i = 0; i < 8; i++)
-      ui.image(i < k.energy ? "pip_on" : "pip_off", x + 28 + i * 9, y + 38);
+      ui.image(i < k.energy ? "pip_on" : "pip_off", x + 28 + i * 9, y + 37);
     icon = x + 112;
-  }
-  if (!full) {
+  } else {
     bool calm = k.spirit <= battle::CalmSpirit;
-    ui.text("SP", x + 12, y + 37, Ink);
-    ui.panel("bar", x + 28, y + 36, barW, 9);
-    if (k.spirit > 0) ui.fill(x + 31, y + 39, std::max(1, (barW - 6) * k.spirit / 100), 3, calm ? Gold : Calm);
+    ui.text("SP", x + 12, y + 36, t.ink);
+    ui.meter(x + 28, y + 35, barW, float(k.spirit) / 100.f, calm ? Gold : Calm);
   }
-  int line = full ? y + 37 : y + 9;
+  int line = full ? y + 36 : y + 9;
   if (!full) icon = x + 82;
   auto mark = [&](bool on, battle::Status s) {
     if (on) {
@@ -316,45 +314,43 @@ void FightScene::plate(PixelUi &ui, const Fighter &k, int x, int y, int w, bool 
   mark(k.focus > 0, battle::Status::Focus);
 }
 void FightScene::moveBar(PixelUi &ui) {
+  const auto &t = ui.theme();
   const auto &k = fight->mine();
-  const int w = 94, h = 36, y = 318, step = 96, left = 33;
+  const int w = 100, h = 24, y = 330, step = 102, left = 15;
   for (int i = 0; i < battle::MoveSlots; i++) {
     int id = fight->moveId(k, i), x = left + i * step;
     const auto &m = content.moves[id];
     bool can = fight->canUse(k, i);
-    ui.panel(queued == i || (k.pose == Pose::Windup && k.strike.slot == i) ? "button_on" : can ? "button" : "button_off", x, y, w, h);
-    ui.text(std::to_string(i + 1), x + 6, y + 6, can ? Gold : Muted);
+    ui.strip(queued == i || (k.pose == Pose::Windup && k.strike.slot == i) ? "button_on" : can ? "button" : "button_off", x, y, w, h);
+    ui.text(std::to_string(i + 1), x + 5, y + 8, can ? t.key : t.keyOff);
     auto name = upper(m.name);
     auto cut = name.find(' ');
-    auto tint = can ? affinityColour(m.type) : Muted;
-    ui.text(name.substr(0, cut), x + 15, y + 6, can ? Cream : Muted);
-    if (cut != std::string::npos) ui.text(name.substr(cut + 1), x + 15, y + 15, can ? Cream : Muted);
-    for (int c = 0; c < m.cost; c++)
-      ui.image("pip_on", x + 7 + c * 8, y + 25);
-    if (m.cost == 0) ui.text("FREE", x + 7, y + 25, tint);
-    if (k.ready[i] > 0) {
-      int shade = (h - 4) * k.ready[i] / std::max(1, data.timing[id].cooldown);
-      ui.fill(x + 2, y + h - 2 - shade, w - 4, shade, {.08f, .06f, .05f, .5f});
+    auto colour = can ? t.onButton : t.onButtonOff;
+    if (cut == std::string::npos) {
+      ui.text(name, x + 18, y + 8, colour);
+    } else {
+      ui.text(name.substr(0, cut), x + 18, y + 3, colour);
+      ui.text(name.substr(cut + 1), x + 18, y + 12, colour);
     }
+    for (int c = 0; c < m.cost; c++)
+      ui.image("pip_on", x + 18 + c * 8, y - 6);
+    if (k.ready[i] > 0) ui.fill(x + 14, y + 21, std::max(1, 66 * k.ready[i] / std::max(1, data.timing[id].cooldown)), 1, t.faded);
   }
   int x = left + battle::MoveSlots * step;
   bool ready = k.dodgeReady == 0 && k.pose != Pose::Down;
-  ui.panel(ready ? "button_on" : "button_off", x, y, w, h);
-  ui.text("Q", x + 6, y + 6, ready ? Gold : Muted);
-  ui.text("DODGE", x + 15, y + 6, ready ? Cream : Muted);
-  ui.text("FREE", x + 7, y + 25, ready ? Gold : Muted);
-  if (!ready) {
-    int shade = (h - 4) * k.dodgeReady / 150;
-    ui.fill(x + 2, y + h - 2 - shade, w - 4, shade, {.08f, .06f, .05f, .5f});
-  }
+  ui.strip(ready ? "button_alt" : "button_off", x, y, w, h);
+  ui.text("Q", x + 5, y + 8, ready ? t.key : t.keyOff);
+  ui.text("DODGE", x + 18, y + 8, ready ? t.onButton : t.onButtonOff);
+  if (!ready) ui.fill(x + 14, y + 21, std::max(1, 66 * k.dodgeReady / 150), 1, t.faded);
 }
 void FightScene::prompt(PixelUi &ui, const std::string &text) {
   int w = ui.width(text) + 28;
   ui.panel("panel", 320 - w / 2, 318, w, 28);
-  ui.text(text, 320 - w / 2 + 14, 329, Ink);
+  ui.text(text, 320 - w / 2 + 14, 328, ui.theme().ink);
 }
 void FightScene::draw(PixelUi &ui, const Project &project) {
   if (!running) return;
+  const auto &t = ui.theme();
   for (const auto &f : floaters) {
     auto p = project(f.at + Vec{0, f.age * .9f, 0});
     int w = ui.width(f.text);
@@ -365,15 +361,15 @@ void FightScene::draw(PixelUi &ui, const Project &project) {
   plate(ui, fight->mine(), 14, 256, 196, true);
   const auto &you = fight->you();
   ui.panel("panel", 14, 226, 196, 30);
-  ui.text("YOU", 20, 237, Ink);
-  ui.panel("bar", 40, 236, 156, 9);
+  ui.text("YOU", 26, 236, t.ink);
   int calm = std::clamp(you.composure, 0, battle::FullComposure);
-  if (calm > 0) ui.fill(43, 239, std::max(1, 150 * calm / battle::FullComposure), 3, calm * 3 <= battle::FullComposure ? HpLow : Calm);
+  ui.meter(48, 235, 148, float(calm) / float(battle::FullComposure), calm * 3 <= battle::FullComposure ? HpLow : Calm);
   const auto &team = fight->party();
   if (team.size() > 1) {
     int next = (fight->activeSlot() + 1) % int(team.size());
     bool can = team[next].hp > 0 && fight->swapReady() == 0;
     auto text = "TAB " + nameOf(team[next]);
+    ui.text(text, 219, 307, {.1f, .07f, .05f, 1});
     ui.text(text, 218, 306, can ? Cream : Muted);
   }
   moveBar(ui);
@@ -381,21 +377,21 @@ void FightScene::draw(PixelUi &ui, const Project &project) {
   if (fight->canReach() && fight->outcome() == battle::Outcome::Ongoing && you.reachTicks == 0) {
     std::string text = "[R] REACH OUT";
     int w = ui.width(text) + 28;
-    ui.panel("panel", 320 - w / 2, 286, w, 26);
-    ui.text(text, 320 - w / 2 + 14, 296, Ink);
+    ui.panel("panel", 320 - w / 2, 288, w, 26);
+    ui.text(text, 320 - w / 2 + 14, 297, t.ink);
   }
   if (!line.empty()) {
     int w = ui.width(line) + 28;
     ui.panel("panel", 320 - w / 2 - 88, 12, w, 26);
-    ui.text(line, 320 - w / 2 - 88 + 14, 22, Ink);
+    ui.text(line, 320 - w / 2 - 88 + 14, 21, t.ink);
   }
   if (fight->outcome() != battle::Outcome::Ongoing) {
     bool won = fight->outcome() == battle::Outcome::Won, left = fight->outcome() == battle::Outcome::Left, reached = fight->outcome() == battle::Outcome::Reached;
     std::string title = reached ? "IT TRUSTS YOU" : won ? "VICTORY" : left ? "SAFE AWAY" : "YOU NEED A REST";
-    int w = std::max(ui.width(title, 2), ui.width("PRESS ENTER")) + 44;
-    ui.panel("panel_dark", 320 - w / 2, 136, w, 62);
-    ui.text(title, 320 - ui.width(title, 2) / 2, 150, Gold, 2);
-    ui.text("PRESS ENTER", 320 - ui.width("PRESS ENTER") / 2, 176, Cream);
+    int w = std::max(ui.width(title, 2), ui.width("PRESS ENTER")) + 68;
+    ui.panel("panel_dark", 320 - w / 2, 128, w, 74);
+    ui.text(title, 320 - ui.width(title, 2) / 2, 146, t.title, 2);
+    ui.text("PRESS ENTER", 320 - ui.width("PRESS ENTER") / 2, 172, t.body);
   }
 }
 } // namespace p3

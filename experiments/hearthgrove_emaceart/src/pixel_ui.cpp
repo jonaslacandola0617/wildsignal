@@ -37,6 +37,8 @@ struct UiVertex {
 struct PixelUi::Impl {
   GLuint vao = 0, buffer = 0, texture = 0, program = 0;
   int atlasW = 1, atlasH = 1, scale = 1, left = 0, top = 0, window = 1, windowH = 1;
+  int meterLeft = 3, meterRight = 3, meterTop = 3, meterRows = 3;
+  Theme theme;
   std::map<std::string, Rect> rects;
   std::map<char, std::array<int, 2>> glyphs;
   std::vector<UiVertex> vertices;
@@ -51,16 +53,29 @@ struct PixelUi::Impl {
 PixelUi::PixelUi(const std::filesystem::path &folder) {
   uigl::load();
   p = std::make_unique<Impl>();
-  auto image = loadImage(folder / "ui_atlas.png");
+  auto stem = std::filesystem::exists(folder / "ui_paper.png") && std::filesystem::exists(folder / "ui_paper.json") ? std::string("ui_paper") : std::string("ui_atlas");
+  auto image = loadImage(folder / (stem + ".png"));
   p->atlasW = image.w;
   p->atlasH = image.h;
-  auto data = ws::parseJson(readText(folder / "ui_atlas.json"));
+  auto data = ws::parseJson(readText(folder / (stem + ".json")));
   for (const auto &[name, r] : std::get<ws::Json::Object>(data.at("rects").value)) {
     const auto &a = r.array();
     p->rects[name] = {int(a[0].number()), int(a[1].number()), int(a[2].number()), int(a[3].number()), int(a[4].number())};
   }
   for (const auto &[name, g] : std::get<ws::Json::Object>(data.at("glyphs").value))
     p->glyphs[name[0]] = {int(g.array()[0].number()), int(g.array()[1].number())};
+  if (stem == "ui_paper") {
+    auto colour = [&](const char *name) {
+      auto v = std::stoul(data.at("theme").at(name).string().substr(1), nullptr, 16);
+      return Colour{float((v >> 16) & 255) / 255.f, float((v >> 8) & 255) / 255.f, float(v & 255) / 255.f, 1};
+    };
+    p->theme = {colour("ink"), colour("faded"), colour("title"), colour("body"), colour("onButton"), colour("onButtonOff"), colour("key"), colour("keyOff")};
+    const auto &m = data.at("meter").array();
+    p->meterLeft = int(m.at(0).number());
+    p->meterRight = int(m.at(1).number());
+    p->meterTop = int(m.at(2).number());
+    p->meterRows = int(m.at(3).number());
+  }
   const char *source[] = {R"(#version 330 core
 layout(location=0)in vec2 position;layout(location=1)in vec2 coord;layout(location=2)in vec4 rgba;uniform vec2 viewport;out vec2 uv;out vec4 colour;
 void main(){uv=coord;colour=rgba;gl_Position=vec4(position.x/viewport.x*2.-1.,1.-position.y/viewport.y*2.,0,1);})",
@@ -125,6 +140,29 @@ void PixelUi::panel(const std::string &name, int x, int y, int w, int h) {
     for (int col = 0; col < 3; col++)
       p->quad(dx[col], dy[row], dw[col], dh[row], sx[col], sy[row], sw[col], sh[row], white);
 }
+void PixelUi::strip(const std::string &name, int x, int y, int w, int h) {
+  const auto &r = p->rects.at(name);
+  int b = std::min(r.border, w / 2);
+  if (h <= 0) h = r.h;
+  Colour white{1, 1, 1, 1};
+  p->quad(x, y, b, h, r.x, r.y, b, r.h, white);
+  p->quad(x + b, y, w - 2 * b, h, r.x + b, r.y, r.w - 2 * b, r.h, white);
+  p->quad(x + w - b, y, b, h, r.x + r.w - b, r.y, b, r.h, white);
+}
+void PixelUi::meter(int x, int y, int w, float fraction, Colour colour) {
+  strip("bar", x, y, w);
+  int inner = w - p->meterLeft - p->meterRight, filled = int(float(inner) * std::clamp(fraction, 0.f, 1.f));
+  if (fraction <= 0) return;
+  filled = std::max(1, filled);
+  int left = x + p->meterLeft, top = y + p->meterTop, rows = p->meterRows;
+  fill(left, top, filled, rows, colour);
+  if (rows < 6) return;
+  // A lit row and a shaded base, like the pack's own bars.
+  auto tone = [&](float k) { return Colour{std::min(1.f, colour[0] * k), std::min(1.f, colour[1] * k), std::min(1.f, colour[2] * k), colour[3]}; };
+  fill(left, top + 1, filled, 1, tone(1.45f));
+  fill(left, top + rows - 2, filled, 2, tone(.72f));
+}
+const PixelUi::Theme &PixelUi::theme() const { return p->theme; }
 void PixelUi::fill(int x, int y, int w, int h, Colour colour) {
   const auto &r = p->rects.at("white");
   p->quad(x, y, w, h, r.x, r.y, 1, 1, colour);
