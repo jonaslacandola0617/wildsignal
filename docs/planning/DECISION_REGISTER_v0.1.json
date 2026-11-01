@@ -135,7 +135,7 @@
     {
       "id": "D-021",
       "status": "CONFIRMED",
-      "statusText": "CONFIRMED planning target, 2026-10-20; feasibility GATED",
+      "statusText": "CONFIRMED planning target, 2026-10-20; feasibility GATED; species count amended to 50 by D-075",
       "decision": "Aspirational commercial 1.0 scope: 6 zones (Z01–Z06), 18–24 completed species, 3–5h main story, expressly subject to feasibility and playtests, not a fixed promise or content freeze.",
       "downstream": "narrative/art/QA scope, costs, real production evidence",
       "approvedAt": "2026-10-20",
@@ -153,7 +153,7 @@
     {
       "id": "D-023",
       "status": "CONFIRMED",
-      "statusText": "CONFIRMED for planning, 2026-10-20",
+      "statusText": "CONFIRMED for planning, 2026-10-20; moved to after launch by D-076",
       "decision": "Two-player cross-platform co-op at commercial 1.0 launch (Android↔Windows). Online trading and ranked PvP remain later optional phases; do not silently defer launch co-op.",
       "downstream": "network authority, backend and operating costs",
       "approvedAt": "2026-10-20",
@@ -446,6 +446,132 @@
       "downstream": "fight rules, controls",
       "approvedAt": "2026-11-02",
       "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-075",
+      "status": "CONFIRMED",
+      "statusText": "CONFIRMED target 2026-11-02; feasibility GATED by the creature production plan",
+      "decision": "Version 1.0 targets 50 Signari (amends D-021); 6 regions and a 3-5 h main story stay",
+      "downstream": "creature models, animation, balancing, schedule",
+      "approvedAt": "2026-11-02",
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-076",
+      "status": "CONFIRMED",
+      "statusText": "CONFIRMED 2026-11-02",
+      "decision": "Two-player co-op moves to after launch; 1.0 is single-player (amends D-023)",
+      "downstream": "network, backend and online UX leave 1.0 scope",
+      "approvedAt": "2026-11-02",
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-077",
+      "status": "CONFIRMED",
+      "statusText": "CONFIRMED 2026-11-02",
+      "decision": "The game design document in docs/gdd/ is the single source of truth; locked chapters outrank older design documents",
+      "downstream": "all design and gameplay work",
+      "approvedAt": "2026-11-02",
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-078",
+      "status": "CONFIRMED",
+      "statusText": "CONFIRMED 2026-11-02",
+      "decision": "Signari kit: basic attack, 3 skills, 1 ultimate charged by the Resonance meter; dodge innate; cooldowns only, no energy; fixed kit per species with skill ranks",
+      "downstream": "fight rules, fight data, HUD",
+      "approvedAt": "2026-11-02",
+      "source": "docs/gdd/02_CORE_GAMEPLAY.md"
+    },
+    {
+      "id": "D-079",
+      "status": "CONFIRMED",
+      "statusText": "CONFIRMED 2026-11-02",
+      "decision": "Recruiting is Tune In with the Resonance Compass: worn down opens it, calm makes it faster; one of each species; team of 3 plus reserve",
+      "downstream": "fight rules, saves, HUD",
+      "approvedAt": "2026-11-02",
+      "source": "docs/gdd/02_CORE_GAMEPLAY.md"
+    },
+    {
+      "id": "D-080",
+      "status": "CONFIRMED",
+      "statusText": "CONFIRMED 2026-11-02",
+      "decision": "Money and village shops, plus healing items found in the world",
+      "downstream": "economy, items, UI",
+      "approvedAt": "2026-11-02",
+      "source": "docs/gdd/02_CORE_GAMEPLAY.md"
+    },
+    {
+      "id": "D-081",
+      "status": "CONFIRMED",
+      "statusText": "CONFIRMED 2026-11-02",
+      "decision": "The Homestead: farming, crafting and building inside one plot, relocatable only to designated sites; reserve Signari help by affinity",
+      "downstream": "world format, saves, art, UI",
+      "approvedAt": "2026-11-02",
+      "source": "docs/gdd/02_CORE_GAMEPLAY.md"
+    },
+    {
+      "id": "D-082",
+      "status": "CONFIRMED",
+      "statusText": "CONFIRMED 2026-11-02",
+      "decision": "Team Signari give field abilities; evolutions decided in chapter 4; swap combo after the first playable region",
+      "downstream": "world design, creature design",
+      "approvedAt": "2026-11-02",
+      "source": "docs/gdd/02_CORE_GAMEPLAY.md"
+    },
+    {
+      "id": "D-083",
+      "status": "CONFIRMED",
+      "statusText": "CONFIRMED 2026-11-02",
+      "decision": "World and story locked in GDD chapter 3: six regions, the Hush, Bellkeeper Sol and the Chorus, rival Juno Hale, silent Wayfinder, day-night and light weather",
+      "downstream": "quests, regions, characters, art",
+      "approvedAt": "2026-11-02",
+      "source": "docs/gdd/03_WORLD_AND_STORY.md"
+    },
+    {
+      "id": "D-084",
+      "status": "CONFIRMED",
+      "statusText": "CONFIRMED 2026-11-02",
+      "decision": "Creatures locked in GDD chapter 4: no evolutions in 1.0; eight-type chart; 50-Signari roster with regions, roles, names, guardians; model standard; Claude builds the 30 new models then rigs and animations for all 50",
+      "downstream": "fight data, art pipeline, regions",
+      "approvedAt": "2026-11-02",
+      "source": "docs/gdd/04_CREATURES.md"
+    },
+    {
+      "id": "D-085",
+      "status": "CONFIRMED",
+      "statusText": "CONFIRMED 2026-11-02 (function); look OPEN",
+      "decision": "UI function locked in GDD chapter 5: screens, HUD layouts, controls for keyboard, controller and touch, accessibility, English first; UI look OPEN with an interim code-drawn style",
+      "downstream": "UI code, art",
+      "approvedAt": "2026-11-02",
+      "source": "docs/gdd/05_UI_AND_CONTROLS.md"
+    },
+    {
+      "id": "D-086",
+      "status": "CONFIRMED",
+      "statusText": "CONFIRMED 2026-11-02; style guide OPEN until LOOKDEV-001",
+      "decision": "Zero budget; own assets for world, characters and UI (packs are placeholders); look development picks the style; music from free royalty-free sources and AI instrumentals; CC0 sound effects plus synthesis",
+      "downstream": "all art, audio, licences",
+      "approvedAt": "2026-11-02",
+      "source": "docs/gdd/06_ART_AUDIO_AND_ASSETS.md"
+    },
+    {
+      "id": "D-087",
+      "status": "CONFIRMED",
+      "statusText": "CONFIRMED 2026-11-02",
+      "decision": "Technical plan locked in GDD chapter 7: source tree, validated data, chunk streaming, saves, budgets, Android after region 1, develop branch",
+      "downstream": "all work",
+      "approvedAt": "2026-11-02",
+      "source": "docs/gdd/07_TECHNICAL_PLAN.md"
+    },
+    {
+      "id": "D-088",
+      "status": "CONFIRMED",
+      "statusText": "CONFIRMED 2026-11-02",
+      "decision": "Production plan locked in GDD chapter 8: milestone flow, phases 0-5, region 1 vertical slice with playtest gate; FOUND-001 first",
+      "downstream": "all work",
+      "approvedAt": "2026-11-02",
+      "source": "docs/gdd/08_PRODUCTION_PLAN.md"
     }
   ]
 }

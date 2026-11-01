@@ -26,7 +26,7 @@
 | Decision ID | Decision | Status | Source/impact |
 |---|---|---|---|
 | D-001 | WILDSIGNAL working title (name trademark clearance not performed) | CONFIRMED working title | branding, Steam/Play naming |
-| D-002 | Original pixel-art monster companion RPG with user's OWN 100-cell hand-created art | CONFIRMED ownership per user | creature catalog, sprite asset rights |
+| D-002 | Original pixel-art monster companion RPG with user's OWN 100-cell hand-created art | CONFIRMED ownership per user; **corrected 2026-11-02: the designs are AI-assisted concepts the owner owns, not hand drawings** | creature catalog, sprite asset rights |
 | D-003 | First-person retro pseudo-3D/2.5D appearance inspired by user's dungeon screenshot | CONFIRMED visual direction | renderer R&D, world geometry |
 | D-004 | Mood "Beautiful but mysterious": cute companions, lush nature, ruins and discovery | CONFIRMED | art and narrative |
 | D-005 | Persistent creature companions follow, respond and help exploration | CONFIRMED | sprite art, sim/navigation |
@@ -43,9 +43,9 @@
 | Decision ID | Current recommendation | Status | Downstream blocker |
 |---|---|---|---|
 | D-020 | **Free-to-play on Steam and Google Play with OPTIONAL cosmetic-only purchases**, no competitive/stat/progression benefits. Exact pricing/SKUs and payment integration unapproved. | **CONFIRMED for planning, 2026-10-20** | monetization, economy, store/billing compliance |
-| D-021 | **Aspirational commercial 1.0 scope: 6 zones (Z01–Z06), 18–24 completed species, 3–5h main story**, expressly subject to feasibility and playtests, not a fixed promise or content freeze. | **CONFIRMED planning target, 2026-10-20; feasibility GATED** | narrative/art/QA scope, costs, real production evidence |
+| D-021 | **Aspirational commercial 1.0 scope: 6 zones (Z01–Z06), 18–24 completed species, 3–5h main story**, expressly subject to feasibility and playtests, not a fixed promise or content freeze. | **CONFIRMED planning target, 2026-10-20; feasibility GATED; species count amended to 50 by D-075** | narrative/art/QA scope, costs, real production evidence |
 | D-022 | Four expanded zones / nine species remains a **contingency option** if D-021 is not feasible; changing the approved aspirational target requires an explicit scope review with owner, not automatic silent shrink. | **OPEN contingency; not approved as new release scope** | production capacity and scope review |
-| D-023 | **Two-player cross-platform co-op at commercial 1.0 launch (Android↔Windows)**. Online trading and ranked PvP remain later optional phases; do not silently defer launch co-op. | **CONFIRMED for planning, 2026-10-20** | network authority, backend and operating costs |
+| D-023 | **Two-player cross-platform co-op at commercial 1.0 launch (Android↔Windows)**. Online trading and ranked PvP remain later optional phases; do not silently defer launch co-op. | **CONFIRMED for planning, 2026-10-20; moved to after launch by D-076** | network authority, backend and operating costs |
 | D-024 | **Local offline story inventory and server-verified online progression are separate**; in casual co-op, show appearance of familiar offline companions **where technically feasible** without importing their unverified stats, trade rights or rank. Exact presentation/recovery remains to design. | **CONFIRMED for planning, 2026-10-20; projection feasibility GATED** | companion UX, accounts, server validation, trust boundaries |
 | D-025 | Original starter art mappings WS-004 Glintle/Flora, WS-008 Driftfin/Tide, WS-050 Brumlet/Ember | RECOMMENDED; original sprite art is confirmed | sprite animation, battle schema |
 | D-026 | First-nine species proposal, including Tumbletail/Puddlefin/Mossmelt/Signalit/Craglet/Hushflame | RECOMMENDED | roster approval, habitats |
@@ -156,3 +156,63 @@ User responded **“64 bit is enough.”** This closes the architecture-scope qu
 | D-074 | The player keeps the current fight role: move, roll, dodge and command, no direct attacks | **CONFIRMED 2026-11-02** | fight rules, controls |
 
 **Meaning of approval:** direction only. The thresholds, chunk size, spawn rules, levelling and the first region's content are proposals until the owner approves them. The 2026-11-01 "first complete Tumbletail encounter" milestone is withdrawn.
+
+
+## 11. Scope changes — 2026-11-02
+
+Owner answers while drafting the game design document ([chapter 1](../gdd/01_VISION_AND_PILLARS.md)).
+
+| Decision ID | Decision | Status | Source/impact |
+|---|---|---|---|
+| D-075 | Version 1.0 targets **50 Signari** (was 18–24 in D-021); 6 regions and a 3–5 h main story stay | **CONFIRMED target 2026-11-02; feasibility GATED by the creature production plan (GDD chapter 4)** | creature models, animation, balancing, schedule; amends D-021 |
+| D-076 | Two-player co-op moves to **after launch**; 1.0 is single-player | **CONFIRMED 2026-11-02** | network, backend and online UX leave 1.0 scope; amends D-023 |
+| D-077 | The game design document in `docs/gdd/` is the single source of truth; locked chapters outrank older design documents | **CONFIRMED 2026-11-02** | all design and gameplay work |
+
+
+## 12. Core gameplay — 2026-11-02
+
+Locked in [GDD chapter 2](../gdd/02_CORE_GAMEPLAY.md); the chapter holds the details.
+
+| Decision ID | Decision | Status | Source/impact |
+|---|---|---|---|
+| D-078 | Signari kit: basic attack, 3 skills, 1 ultimate (charged by the Resonance meter); dodge is innate; no energy costs, cooldowns only; fixed kit per species, skills rank up with levels | **CONFIRMED 2026-11-02** | fight rules, fight data, HUD; replaces "4 learned moves" and energy in D-028 |
+| D-079 | Recruiting is Tune In with the Resonance Compass: worn down opens it, calm makes it faster; one of each species; team of 3 plus reserve | **CONFIRMED 2026-11-02** | fight rules, saves, HUD; refines D-071 |
+| D-080 | Money and village shops, plus healing items found in the world | **CONFIRMED 2026-11-02** | economy, items, UI |
+| D-081 | The Homestead: farming, crafting and building inside one plot, relocatable only to designated sites; reserve Signari help by affinity | **CONFIRMED 2026-11-02** | world format, saves, art, UI |
+| D-082 | Team Signari give field abilities (cross water, move boulders, light caves); evolutions decided in chapter 4; the swap combo comes after the first playable region | **CONFIRMED 2026-11-02** | world design, creature design |
+
+
+## 13. World and story — 2026-11-02
+
+| Decision ID | Decision | Status | Source/impact |
+|---|---|---|---|
+| D-083 | World and story locked in [GDD chapter 3](../gdd/03_WORLD_AND_STORY.md): six regions (Hearthgrove Vale, Liltwood Forest, Tideglass Coast, Ashbell Works, Gloamfen Marsh, Emberglass Caldera), the Hush, Bellkeeper Sol and the Chorus, rival Juno Hale, silent Wayfinder, day–night and light weather | **CONFIRMED 2026-11-02** | quests, regions, characters, art; supersedes region and story drafts in WORLD_BIBLE_v0.1 and NARRATIVE_QUESTS_v0.1 |
+
+
+## 14. Creatures — 2026-11-02
+
+| Decision ID | Decision | Status | Source/impact |
+|---|---|---|---|
+| D-084 | Creatures locked in [GDD chapter 4](../gdd/04_CREATURES.md): no evolutions in 1.0; eight types with a balanced chart; the 50-Signari roster (WS-001–020 plus 30 picks) with regions, roles, names and guardians; model standard (≤6k tris, ≤24 bones, 12 animations, six shared skeletons); Claude builds the 30 new models, then rigs and animations for all 50 | **CONFIRMED 2026-11-02** | fight data, art pipeline, regions; replaces FIRST_NINE_CREATURES and D-025/D-026 proposals; resolves D-065 for 1.0 |
+
+
+## 15. UI and controls — 2026-11-02
+
+| Decision ID | Decision | Status | Source/impact |
+|---|---|---|---|
+| D-085 | UI function locked in [GDD chapter 5](../gdd/05_UI_AND_CONTROLS.md): screen list, HUD layouts, controls for keyboard, controller and Android touch, accessibility, English first. The UI **look** stays OPEN; an interim code-drawn style is used until decided | **CONFIRMED 2026-11-02 (function); look OPEN** | UI code, art; replaces UI_UX_BIBLE_v0.1 drafts |
+
+
+## 16. Art, audio and assets — 2026-11-02
+
+| Decision ID | Decision | Status | Source/impact |
+|---|---|---|---|
+| D-086 | Art and audio locked in [GDD chapter 6](../gdd/06_ART_AUDIO_AND_ASSETS.md): zero budget; all world, character and UI assets made for Wildsignal (current packs are placeholders); look development with three style directions decides the style guide; music from free royalty-free sources and AI instrumentals with terms recorded; free CC0 sound effects plus synthesis | **CONFIRMED 2026-11-02; style guide OPEN until LOOKDEV-001** | all art, audio, licences |
+
+
+## 17. Technical and production plan — 2026-11-02
+
+| Decision ID | Decision | Status | Source/impact |
+|---|---|---|---|
+| D-087 | Technical plan locked in [GDD chapter 7](../gdd/07_TECHNICAL_PLAN.md): new source tree, validated data files, chunk streaming, save contents, performance budgets, Android after region 1, a `develop` branch for approved work | **CONFIRMED 2026-11-02** | all engineering |
+| D-088 | Production plan locked in [GDD chapter 8](../gdd/08_PRODUCTION_PLAN.md): milestone flow, phases 0–5, region 1 vertical slice with a playtest gate; FOUND-001 first | **CONFIRMED 2026-11-02** | all work; supersedes DEVELOPMENT_BACKLOG milestone lists |
