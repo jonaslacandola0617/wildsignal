@@ -39,8 +39,18 @@
 
 **Exists, and stays:**
 - One Signari fights at a time; **Tab** swaps to another team member (with a short cooldown).
-- Each Signari has **6 commands**: its affinity's basic attack (free), 4 learned moves (costing energy 0–8, each with a cooldown), and Dodge (Q).
 - **Your Signari also acts on its own** when you don't give a command.
+
+**Changed by the owner (2026-11-02) — a MOBA-style kit.** Every Signari has exactly:
+
+| Slot | What it is |
+|---|---|
+| **Basic attack** | Free, quick, always available; shaped by its affinity (Leaf Flick, Splash, Spark…) |
+| **Skill 1, 2, 3** | Its three signature skills, each on its own cooldown. A kit mixes roles: damage, control (slow, knock back) and support (guard, heal, speed) |
+| **Ultimate** | One big, flashy move unique to the species, charged by the Resonance meter (2.7) |
+| **Dodge** | Not a skill and not a slot: an innate move every Signari can always do (short cooldown), like the Wayfinder's roll |
+
+This replaces "4 learned moves". **CHOICE C6 — energy:** today moves also cost energy (0–8). Recommendation: **remove energy and use cooldowns only**, as MOBAs do. It's easier to read in a real-time fight, and the ultimate already has its own meter.
 - **The Wayfinder** moves, rolls (Space) and stays out of the way of attacks; getting hit lowers your **composure**. At zero composure you lose the fight. You never attack directly (D-074).
 - Statuses: Guard, Regen, Burn, Slow, Focus. Affinity matchups (Strong / Resisted).
 
@@ -75,8 +85,15 @@
 
 **Recommended:**
 - **Levels 1–50 with experience.** Every team member who took part in a fight earns experience; the reserve earns a small share so nobody falls far behind.
-- **Moves learned by level.** When a Signari learns a 5th move, you choose which one to keep. Forgotten moves can be relearned at a rest spot.
 - **No grinding required** (pillar): the story's difficulty follows the levels a normal playthrough reaches.
+
+**CHOICE C7 — how kits grow with levels:**
+
+| Option | What it means |
+|---|---|
+| **A (recommended)** | **Fixed kit, skills rank up.** Each species always has the same basic, 3 skills and ultimate, like a MOBA hero. Levels raise stats and rank skills up (more damage, shorter cooldown, extra effect). The ultimate unlocks at a set level. Every species keeps a clear identity, and it's far less work for 50 species. |
+| B | **Fixed kit plus one branch choice.** As A, but at two levels you pick one of two upgrades for a skill (for example wider area or longer slow). More depth, more balancing. |
+| C | **Learn and swap skills** from a pool, Pokémon style. Most flexible, but weakens each species' identity and multiplies balancing. |
 
 **CHOICE C3 — evolutions:**
 
@@ -90,13 +107,13 @@ Recommendation: **C**. It depends on whether the hand-drawn designs already form
 
 ## 2.7 Wildsignal's signature twist — Resonance
 
-Every great creature game has one hook (fusion in Cassette Beasts, base-building in Palworld). **CHOICE C4:**
+Every great creature game has one hook (fusion in Cassette Beasts, base-building in Palworld).
 
-| Option | Hook |
-|---|---|
-| **A (recommended)** | **Resonance meter.** Clean dodges, rolls through attacks and well-timed commands fill a meter. When full, press **E** to unleash the active Signari's **Resonance move**: a unique, flashy signature attack per species. Swapping in a new Signari at a full meter triggers a two-Signari combo. The player's skill powers the Signari, which fits your role on the field. |
-| B | **Signal fusion.** Two Signari combine into a temporary fused form. Strong, but very costly in art (models for every pair) and close to Cassette Beasts. |
-| C | **Habitat bonding.** Signari get stronger in their home habitat. Simple, but not exciting enough to be the hook. |
+**Resonance meter — follows from the MOBA kit (2.4).** The ultimate is charged by **your** play: clean dodges, rolls through attacks, skills that land and well-timed commands fill the Resonance meter. When it's full, the active Signari's ultimate is ready. The player's skill powers the Signari, which fits your role on the field.
+
+**CHOICE C4 — the swap combo:** when the meter is full, swapping in a different Signari could trigger a two-Signari combo instead of the ultimate. Recommendation: **yes, but after the first region is playable**: first prove ultimates feel great on their own.
+
+(Rejected alternatives, kept for the record: signal fusion — very costly in art and close to Cassette Beasts; habitat bonding — too quiet to be the hook.)
 
 ## 2.8 Progression and the open world
 
@@ -109,34 +126,57 @@ Every great creature game has one hook (fusion in Cassette Beasts, base-building
 
 - **Rest spots** (cottages, camps, shrines) heal the team, let you change the team, and autosave.
 - **Save anywhere** with F5, plus the autosave at rest spots. *(Already built.)*
-- **CHOICE C5 — items and money:**
+- **Money and items — decided by the owner (2026-11-02):**
+  - **Money** is earned from fights, selling found materials and quests. Spent at **shops** in villages (healing items, compass parts, seeds, decorations) and on crafting.
+  - **Healing items are also found** in the world: berries, herbs and tonics to forage.
+  - Never sold for real money (chapter 1: no pay-to-win).
 
-| Option | What it means |
-|---|---|
-| **A (recommended)** | **No money in 1.0.** Healing items (berries, tonics) are found and foraged in the world; Old Fen gives tools as story rewards. Keeps 1.0 focused. |
-| B | Money from fights and a shop in each village town. More classic, more balancing work. |
+## 2.10 Crafting, farming and building — under discussion
 
-## 2.10 Difficulty and accessibility
+The owner wants these on the table for variety. They can make Wildsignal much richer, and they're also among the most expensive features in any game, so the shape matters more than the yes or no. One idea ties all three together and gives the reserve team a reason to exist:
+
+**The Wayfinder's Homestead.** In the first village, the player gets a small plot of their own.
+- **Farming:** grow berries, herbs and flowers in plots. Harvests become healing items, crafting materials and money.
+- **Crafting:** a workbench turns found and farmed materials into healing items, compass parts (pulse range, faster Tune In) and decorations.
+- **Building:** place and arrange buildings and furniture on the homestead: a barn, a greenhouse, a pond, paths, fences, decorations. Cozy, and a natural home for optional cosmetics later.
+- **Signari help out:** reserve Signari live at the homestead and help by affinity. Flora ones make crops grow faster, Tide ones water, Ember ones run the kiln, Stone ones gather ore. Your collection keeps mattering after the fights.
+
+**CHOICE C8 — how far to take it for 1.0:**
+
+| Option | Scope | Cost |
+|---|---|---|
+| A | None in 1.0; add after launch | Lowest; 1.0 is purely adventure |
+| **B (recommended)** | **The Homestead:** farming plots, a crafting bench and placing buildings and decorations **on the homestead only**, with reserve Signari helping | Medium; one contained area, so it's testable and fits the low-end budget |
+| C | Build anywhere in the open world (camps, bases), Palworld style | Very high: placement anywhere, saving it across streamed chunks, Signari jobs and AI everywhere; at odds with chunk streaming on a 4 GB PC |
+
+The recommendation keeps the adventure as the heart of the game (pillars 1 and 2) and makes the homestead the cozy home you come back to between regions.
+
+## 2.11 Difficulty and accessibility
 
 - **Assist options:** slower fights, longer telegraphs, auto-dodge for the player. Nobody misses the story because of reflexes.
 - No hard difficulty in 1.0; a challenge mode can come later.
 
-## 2.11 What the old design becomes
+## 2.12 What the old design becomes
 
 - **Watch / help / sit together** → optional research in the field book that speeds up Tune In.
 - **Mara Venn's field book** → the Signari log: seen, fought, recruited, habitat notes, plus Mara's questions as optional goals.
 - **Friendly fight (F)** → the normal way to start a fight.
 
-## 2.12 Owner choices needed
+## 2.13 Owner choices
 
-| # | Question | Recommendation |
+| # | Question | Recommendation / decision |
 |---|---|---|
-| C1 | Field abilities from team Signari (cross water, move boulders, light caves)? | Yes |
-| C2 | What opens Tune In? | B — worn down opens it, calm makes it faster |
-| C3 | Evolutions? | C — decide in chapter 4 |
-| C4 | The signature twist? | A — Resonance meter and Resonance moves |
-| C5 | Money and shops in 1.0? | A — no money, found items |
+| C1 | Field abilities from team Signari (cross water, move boulders, light caves)? | Recommend: yes |
+| C2 | What opens Tune In? | Recommend: B — worn down opens it, calm makes it faster |
+| C3 | Evolutions? | Recommend: C — decide in chapter 4 |
+| C4 | Swap combo at a full Resonance meter? | Recommend: yes, after the first region is playable |
+| C5 | Money and shops? | **DECIDED:** money and village shops, plus healing items found in the world |
+| C6 | Keep energy costs on skills? | Recommend: remove energy, cooldowns only |
+| C7 | How do kits grow? | Recommend: A — fixed kit, skills rank up with levels |
+| C8 | Crafting, farming, building in 1.0? | Recommend: B — the Homestead, with reserve Signari helping |
+| — | Kit shape | **DECIDED:** basic attack, 3 skills, 1 ultimate; dodge is innate, not a skill |
 
 ## Change log
 
 - 2026-11-02 — First draft.
+- 2026-11-02 — Owner: MOBA-style kit (basic, 3 skills, ultimate, innate dodge); money and shops plus found healing items; crafting, farming and building opened for discussion. Added C6–C8; the Resonance meter now charges the ultimate.
