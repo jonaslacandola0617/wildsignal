@@ -69,6 +69,7 @@ struct Gpu {
   void setDefinedShafts(bool);
   void setPilot(const PilotLook &);
   void setPilotTime(float);
+  void setOptimizations(bool);
   std::size_t effectBytes() const;
   ~Gpu();
   Gpu(const Gpu &) = delete;

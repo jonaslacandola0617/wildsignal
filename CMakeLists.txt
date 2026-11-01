@@ -1,4 +1,12 @@
 cmake_minimum_required(VERSION 3.24)
+option(WILDSIGNAL_BUILD_CURRENT_PILOT "Build the current playable pilot instead of historical ENGINE001" OFF)
+if(WILDSIGNAL_BUILD_CURRENT_PILOT)
+  project(WILDSIGNAL_CURRENT_PILOT LANGUAGES C CXX)
+  include(CTest)
+  add_subdirectory(experiments/hearthgrove_emaceart current)
+  add_custom_target(wildsignal_player DEPENDS wildsignal_hearthgrove_emaceart)
+  return()
+endif()
 project(WILDSIGNAL_ENGINE001 VERSION 0.1.0 LANGUAGES CXX)
 
 if(WIN32 AND NOT CMAKE_SIZEOF_VOID_P EQUAL 8)

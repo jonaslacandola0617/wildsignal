@@ -53,7 +53,7 @@ struct Options {
   std::filesystem::path assets = "assets", save = "saves/hearthgrove_emaceart.json",
                         out = "runs/play", replay;
   std::string preset="balanced",ink="balanced";std::filesystem::path styleSettings,pilot;float pilotTime=0;bool raisedCamera=false,stableCamera=false;int windowWidth=0;
-  bool contacts=true,edgeHighlights=true,edgeOutlines=true,vegetationEdges=true,cleanShadow=true;
+  bool renderReference=false;bool contacts=true,edgeHighlights=true,edgeOutlines=true,vegetationEdges=true,cleanShadow=true;
   bool treeEnabled=false,treeScene=false,leafPlain=true;int treeMode=0;
   int hudMode=1;bool shadowSet=false,shaftSet=false,hazeSet=false;
   bool sourceTextures = false, legacyFollow = false, legacyGrass = false,
@@ -106,7 +106,7 @@ Options options(int argc, char **argv) {
                    "solid\n"
                    "--shadow-cache-probe (isolated technical test only)\n"
                    "--shafts on|off --haze on|off --quality low|medium|high --shaft-strength 0..3\n";
-      std::cout<<"--tree-scene --tree-study original|shader|clusters|billboards|hybrid --leaf-color plain|source (T tree options, M leaf color)\n";
+      std::cout<<"--render-reference (comparison only; disables optimized shadow cache)\n--tree-scene --tree-study original|shader|clusters|billboards|hybrid --leaf-color plain|source (T tree options, M leaf color)\n";
       std::exit(0);
     } else if (a == "--assets")
       o.assets = value();
@@ -124,6 +124,7 @@ Options options(int argc, char **argv) {
     else if(a=="--contacts"){auto v=value();if(v!="on"&&v!="off")throw std::runtime_error("contacts on|off");o.contacts=v=="on";}
     else if(a=="--style-preset"){o.preset=value();if(o.preset!="baseline"&&o.preset!="balanced"&&o.preset!="rich")throw std::runtime_error("style-preset baseline|balanced|rich");}
     else if(a=="--style-settings")o.styleSettings=value();
+    else if(a=="--render-reference")o.renderReference=true;
     else if(a=="--pilot")o.pilot=value();
     else if(a=="--stable-camera")o.stableCamera=true;
     else if(a=="--camera"){auto v=value();if(v!="first"&&v!="raised")throw std::runtime_error("camera first|raised");o.raisedCamera=v=="raised";}
@@ -403,7 +404,7 @@ int main(int argc, char **argv) {
     if(o.treeScene&&o.save=="saves/hearthgrove_emaceart.json")o.save="saves/tree_study.json";
     std::filesystem::create_directories(o.out);
     std::ofstream log(o.out / "run.log");
-    log << "source=" << PIXEL3D_SOURCE_ID << "\n";
+    log << "source=" << PIXEL3D_SOURCE_ID << "\nrender_optimizations=" << (!o.renderReference) << "\n";
     game::Game game;
     auto cfg = ws::parseJson(p3::readText(o.assets / (o.treeScene?"tree_game.json":"game.json")));
     if (cfg.at("revision").number() != 1)
@@ -670,6 +671,7 @@ int main(int argc, char **argv) {
     }
     gpu.setStyle(style);
     gpu.setStudy(1,o.stableCamera?p3::PixelCameraMode::Compensated:p3::PixelCameraMode::Off,12);
+    gpu.setOptimizations(!o.renderReference);
     p3::Integration integration;
     integration.edges = 3;integration.edgeMask=o.diagnostic==10;
     integration.stableShadow = true;integration.boundedAir=o.boundedAir;

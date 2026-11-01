@@ -373,6 +373,17 @@ struct Gpu::Impl {
   GLuint artPost = 0, airFilter = 0, filteredAir = 0, filteredFbo = 0;
   Mat lightVP,lastVP;
   bool shadowValid = false, groundValid = false;
+  bool optimize = true;
+  GLuint staticShadowFbo = 0, staticShadowDepth = 0, staticShadowOwners = 0;
+  std::vector<Mat> previousMatrices;
+  std::vector<bool> dynamicCasters;
+  std::map<GLuint, std::map<std::string, GLint, std::less<>>> uniformLocations;
+  GLint location(GLuint program, const char *name) {
+    auto &locations = uniformLocations[program];
+    auto found = locations.find(name);
+    if (found != locations.end()) return found->second;
+    return locations.emplace(name, gl::GetUniformLocation(program, name)).first->second;
+  }
   int mapSize = 0, shaftW = 0, shaftH = 0;
   GLuint shadowProgram = 0, bakeProgram = 0, shaftProgram = 0;
   GLuint shadowFbo = 0, shadowDepth = 0,shadowOwners=0, groundFbo = 0, groundImage = 0,
@@ -391,6 +402,9 @@ struct Gpu::Impl {
   GLint receivesLoc = -1, sunTintLoc = -1, shadowFloorLoc = -1;
   ~Impl() {
     grassRenderer.reset();
+    gl::DeleteFramebuffers(1, &staticShadowFbo);
+    gl::DeleteTextures(1, &staticShadowDepth);
+    gl::DeleteTextures(1, &staticShadowOwners);
     gl::DeleteTextures(1, &leafCoverage);
     if (!grassGroundBorrowed)
       gl::DeleteTextures(1, &grassGround);
@@ -994,6 +1008,7 @@ void Gpu::setPilot(const PilotLook &v) {
   gl::ActiveTexture(GL_TEXTURE0);
   check("pilot tiles");
 }
+void Gpu::setOptimizations(bool enabled) { p->optimize = enabled; p->shadowValid = false; }
 void Gpu::setPilotTime(float t) { p->pilot.time = t; }
 void Gpu::setDefinedShafts(bool enabled){p->definedShafts=enabled;}
 void Gpu::setEffects(const Effects &e) {
@@ -1004,6 +1019,10 @@ void Gpu::setEffects(const Effects &e) {
     GLuint f = p->shadowFbo;
     gl::DeleteFramebuffers(1, &f);
     p->shadowDepth = p->shadowOwners=p->shadowFbo = 0;
+    gl::DeleteFramebuffers(1, &p->staticShadowFbo);
+    gl::DeleteTextures(1, &p->staticShadowDepth);
+    gl::DeleteTextures(1, &p->staticShadowOwners);
+    p->staticShadowFbo = p->staticShadowDepth = p->staticShadowOwners = 0;
     p->shadowValid = p->groundValid = false;
   }
   if (p->effects.soft != e.soft) {
@@ -1013,6 +1032,7 @@ void Gpu::setEffects(const Effects &e) {
 }
 std::size_t Gpu::effectBytes() const {
   return (p->shadowDepth ? std::size_t(p->mapSize) * p->mapSize * 6 : 0) +
+         (p->staticShadowDepth ? std::size_t(p->mapSize) * p->mapSize * 6 : 0) +
          (p->groundImage ? 256 * 256 : 0) +
          (p->shaftImage ? std::size_t(p->shaftW) * p->shaftH * 8 : 0) +
          (p->filteredAir ? std::size_t(p->shaftW) * p->shaftH * 8 : 0);
@@ -1044,14 +1064,14 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
       perspective(60 * pi / 180, static_cast<float>(w) / h) * effective.view();
   p->lastVP=vp;
   auto uniformMatrix = [&](GLuint prog, const char *name, const Mat &m) {
-    gl::UniformMatrix4fv(gl::GetUniformLocation(prog, name), 1, GL_FALSE,
+    gl::UniformMatrix4fv(p->location(prog, name), 1, GL_FALSE,
                          m.data());
   };
   auto uniformInt = [&](GLuint prog, const char *name, int n) {
-    gl::Uniform1i(gl::GetUniformLocation(prog, name), n);
+    gl::Uniform1i(p->location(prog, name), n);
   };
   auto uniformFloat = [&](GLuint prog, const char *name, float n) {
-    gl::Uniform1f(gl::GetUniformLocation(prog, name), n);
+    gl::Uniform1f(p->location(prog, name), n);
   };
   auto bind = [&](int unit, GLuint texture) {
     gl::ActiveTexture(GL_TEXTURE0 + unit);
@@ -1065,6 +1085,24 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
   };
   bool needsMap =
       p->effects.shadow != Shadow::Off || p->effects.shafts == Shafts::Volume;
+  // Learn transform mobility instead of relying on asset names or rig presence.
+  // Once an instance moves it stays in the dynamic layer for this world lifetime.
+  const bool splitShadows = p->optimize && p->integration.stableShadow &&
+      p->effects.shadow != Shadow::Live && !p->tree;
+  if (splitShadows && needsMap) {
+    if (p->previousMatrices.size() != world.instances.size()) {
+      p->previousMatrices.resize(world.instances.size());
+      p->dynamicCasters.assign(world.instances.size(), false);
+      for (std::size_t i = 0; i < world.instances.size(); ++i)
+        p->previousMatrices[i] = world.instances[i].matrix;
+      p->shadowValid = false;
+    }
+    for (std::size_t i = 0; i < world.instances.size(); ++i) {
+      if (p->previousMatrices[i].v != world.instances[i].matrix.v)
+        p->dynamicCasters[i] = true;
+      p->previousMatrices[i] = world.instances[i].matrix;
+    }
+  }
   if (p->integration.stableShadow && needsMap) {
     std::uint64_t signature = 1469598103934665603ULL;
     for (float f : {p->look.sunDirection.x, p->look.sunDirection.y,
@@ -1072,7 +1110,8 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
       signature =
           (signature ^ std::bit_cast<std::uint32_t>(f)) * 1099511628211ULL;
     for (const auto &i : world.instances) {
-      if (world.models[i.model].rig || !p->policies[i.model].casts)
+      if (world.models[i.model].rig || !p->policies[i.model].casts ||
+          (splitShadows && p->dynamicCasters[std::size_t(&i-world.instances.data())]))
         continue;
       signature = (signature ^ i.model) * 1099511628211ULL;
       for (float f : i.matrix.v)
@@ -1106,20 +1145,43 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
       if (gl::CheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         throw std::runtime_error("shadow framebuffer incomplete");
     }
-    if (!p->shadowValid || p->effects.shadow == Shadow::Live) {
-      gl::BindFramebuffer(GL_FRAMEBUFFER, p->shadowFbo);
+    if (splitShadows && !p->staticShadowFbo) {
+      gl::GenTextures(1, &p->staticShadowDepth);
+      bind(3, p->staticShadowDepth);
+      gl::TexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, p->mapSize, p->mapSize,
+                     0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, nullptr);
+      configureTexture(GL_NEAREST);
+      gl::GenTextures(1, &p->staticShadowOwners);
+      bind(9, p->staticShadowOwners);
+      gl::TexImage2D(GL_TEXTURE_2D, 0, GL_R16UI, p->mapSize, p->mapSize,
+                     0, GL_RED_INTEGER, GL_UNSIGNED_SHORT, nullptr);
+      configureTexture(GL_NEAREST);
+      gl::GenFramebuffers(1, &p->staticShadowFbo);
+      gl::BindFramebuffer(GL_FRAMEBUFFER, p->staticShadowFbo);
+      gl::FramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, p->staticShadowDepth, 0);
+      gl::FramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, p->staticShadowOwners, 0);
+      GLenum attachment = GL_COLOR_ATTACHMENT0;
+      gl::DrawBuffers(1, &attachment); gl::ReadBuffer(attachment);
+      if (gl::CheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        throw std::runtime_error("static shadow framebuffer incomplete");
+      p->shadowValid = false;
+    }
+    if (splitShadows || !p->shadowValid || p->effects.shadow == Shadow::Live) {
+      auto drawCasters = [&](bool dynamic) {
       gl::Viewport(0, 0, p->mapSize, p->mapSize);
       gl::Enable(GL_DEPTH_TEST);
       gl::DepthFunc(GL_LESS);
       gl::DepthMask(GL_TRUE);
       gl::Disable(GL_BLEND);
       gl::Disable(GL_CULL_FACE);
-      gl::Clear(GL_DEPTH_BUFFER_BIT);const GLuint noOwner[]={0,0,0,0};gl::ClearBufferuiv(GL_COLOR,0,noOwner);
+
       gl::UseProgram(p->shadowProgram);
       uniformMatrix(p->shadowProgram, "lightVP", p->lightVP);
       uniformInt(p->shadowProgram, "albedo", 0);
       Frustum lightFrustum(p->lightVP);
       for (auto &instance : world.instances) {
+        if (splitShadows && p->dynamicCasters[std::size_t(&instance-world.instances.data())] != dynamic)
+          continue;
         if (!p->policies[instance.model].casts)
           continue;
         if (world.models[instance.model].rig &&
@@ -1128,7 +1190,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
         uniformInt(p->shadowProgram, "skinned", !instance.palette.empty());
         if (!instance.palette.empty())
           gl::UniformMatrix4fv(
-              gl::GetUniformLocation(p->shadowProgram, "bones"),
+              p->location(p->shadowProgram, "bones"),
               GLsizei(instance.palette.size()), GL_FALSE,
               instance.palette.front().data());
         if (!p->integration.stableShadow && p->style.casters == 3 &&
@@ -1208,6 +1270,28 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
           stats.shadowTriangles += std::size_t(part.count) / 3*std::size_t(std::max(1,part.instances));
         }
       }
+      };
+      auto clearShadow = [&] {
+        gl::DepthMask(GL_TRUE);
+        gl::Clear(GL_DEPTH_BUFFER_BIT);
+        const GLuint empty[] = {0,0,0,0}; gl::ClearBufferuiv(GL_COLOR, 0, empty);
+      };
+      if (splitShadows) {
+        if (!p->shadowValid) {
+          gl::BindFramebuffer(GL_FRAMEBUFFER, p->staticShadowFbo);
+          clearShadow(); drawCasters(false);
+        }
+        // Copy depth and exact caster IDs together, then overlay moving casters.
+        gl::BindFramebuffer(GL_READ_FRAMEBUFFER, p->staticShadowFbo);
+        gl::BindFramebuffer(GL_DRAW_FRAMEBUFFER, p->shadowFbo);
+        gl::BlitFramebuffer(0,0,p->mapSize,p->mapSize,0,0,p->mapSize,p->mapSize,
+                           GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+        gl::BindFramebuffer(GL_FRAMEBUFFER, p->shadowFbo);
+        drawCasters(true);
+      } else {
+        gl::BindFramebuffer(GL_FRAMEBUFFER, p->shadowFbo);
+        clearShadow(); drawCasters(false);
+      }
       p->shadowValid = true;
       p->groundValid = false;
     }
@@ -1270,14 +1354,14 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
   if(p->grass&&!p->grass->patches.weights.empty()) {
     auto &patch=p->grass->patches;
     uniformInt(p->mesh,"beamCount",patch.beamCount);
-    gl::Uniform4fv(gl::GetUniformLocation(p->mesh,"beamApertures[0]"),4,patch.apertures[0].data());
-    for(int i=0;i<3;i++){auto v=patch.beamColors[i];auto name="beamColors["+std::to_string(i)+"]";gl::Uniform3f(gl::GetUniformLocation(p->mesh,name.c_str()),v.x,v.y,v.z);}
-    gl::Uniform4fv(gl::GetUniformLocation(p->mesh,"meadowWorld"),1,patch.world.data());
-    for(int i=0;i<3;i++){auto c=patch.lightColors[i];auto uniform="meadowLightColors["+std::to_string(i)+"]";gl::Uniform3f(gl::GetUniformLocation(p->mesh,uniform.c_str()),c.x,c.y,c.z);auto v=patch.colors[i];auto name="meadowColors["+std::to_string(i)+"]";gl::Uniform3f(gl::GetUniformLocation(p->mesh,name.c_str()),v.x,v.y,v.z);}
+    gl::Uniform4fv(p->location(p->mesh,"beamApertures[0]"),4,patch.apertures[0].data());
+    for(int i=0;i<3;i++){auto v=patch.beamColors[i];auto name="beamColors["+std::to_string(i)+"]";gl::Uniform3f(p->location(p->mesh,name.c_str()),v.x,v.y,v.z);}
+    gl::Uniform4fv(p->location(p->mesh,"meadowWorld"),1,patch.world.data());
+    for(int i=0;i<3;i++){auto c=patch.lightColors[i];auto uniform="meadowLightColors["+std::to_string(i)+"]";gl::Uniform3f(p->location(p->mesh,uniform.c_str()),c.x,c.y,c.z);auto v=patch.colors[i];auto name="meadowColors["+std::to_string(i)+"]";gl::Uniform3f(p->location(p->mesh,name.c_str()),v.x,v.y,v.z);}
   }
   uniformFloat(p->mesh,"groundAnchor",p->profile.groundAnchor);uniformFloat(p->mesh,"groundContrast",p->profile.groundContrast);
   uniformFloat(p->mesh,"profileLow",p->profile.lowTone);uniformFloat(p->mesh,"profileMid",p->profile.midTone);
-  for(int f=0;f<6;f++){auto v=p->profile.grades[f];auto name="familyGrade["+std::to_string(f)+"]";gl::Uniform3f(gl::GetUniformLocation(p->mesh,name.c_str()),v.x,v.y,v.z);}
+  for(int f=0;f<6;f++){auto v=p->profile.grades[f];auto name="familyGrade["+std::to_string(f)+"]";gl::Uniform3f(p->location(p->mesh,name.c_str()),v.x,v.y,v.z);}
   uniformInt(p->mesh, "artStyle", p->style.mode);
   uniformInt(p->mesh, "studyMode", p->study);
   uniformInt(p->mesh, "smoothLighting", smoothLight);
@@ -1290,7 +1374,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
   bind(8, p->leafCoverage);
   gl::BindSampler(8, 0);
   if (p->solidCount)
-    gl::Uniform4fv(gl::GetUniformLocation(p->mesh, "meadowSolids"),
+    gl::Uniform4fv(p->location(p->mesh, "meadowSolids"),
                    p->solidCount, p->meadowSolids[0].data());
   uniformInt(p->mesh, "sampling", p->style.sampling);
   uniformInt(p->mesh, "vertexTint", p->style.vertexTint);
@@ -1302,21 +1386,21 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
   uniformInt(p->mesh, "groundShadow", 4);
   uniformInt(p->mesh, "pilotOn", p->pilot.enabled && !p->sourceView);
   uniformInt(p->mesh, "pilotTiles", 13);
-  gl::Uniform2f(gl::GetUniformLocation(p->mesh, "pilotPixels"), float(w), float(h));
+  gl::Uniform2f(p->location(p->mesh, "pilotPixels"), float(w), float(h));
   if (p->pilot.enabled) {
     gl::ActiveTexture(GL_TEXTURE0 + 13);
     gl::BindTexture(GL_TEXTURE_2D_ARRAY, p->pilotTiles);
     gl::BindSampler(13, 0);
     gl::ActiveTexture(GL_TEXTURE0);
-    {auto right=direction(inverse(camera.view()),{1,0,0}),up=direction(inverse(camera.view()),{0,1,0});gl::Uniform3f(gl::GetUniformLocation(p->mesh,"pilotRight"),right.x,right.y,right.z);gl::Uniform3f(gl::GetUniformLocation(p->mesh,"pilotUp"),up.x,up.y,up.z);}
+    {auto right=direction(inverse(camera.view()),{1,0,0}),up=direction(inverse(camera.view()),{0,1,0});gl::Uniform3f(p->location(p->mesh,"pilotRight"),right.x,right.y,right.z);gl::Uniform3f(p->location(p->mesh,"pilotUp"),up.x,up.y,up.z);}
     uniformFloat(p->mesh, "pilotDensity", p->pilot.density);
     uniformFloat(p->mesh, "pilotTime", p->pilot.time);
     uniformFloat(p->mesh, "pilotPoolStrength", p->pilot.pools);
     uniformFloat(p->mesh, "pilotSweepStrength", p->pilot.sweep);
-    gl::Uniform3f(gl::GetUniformLocation(p->mesh, "pilotLichen"), p->pilot.lichen.x, p->pilot.lichen.y, p->pilot.lichen.z);
+    gl::Uniform3f(p->location(p->mesh, "pilotLichen"), p->pilot.lichen.x, p->pilot.lichen.y, p->pilot.lichen.z);
     for (int i = 0; i < 36; i++) {
       auto c = p->pilot.ramps[i];
-      gl::Uniform3f(gl::GetUniformLocation(p->mesh, ("pilotRamps[" + std::to_string(i) + "]").c_str()), c.x, c.y, c.z);
+      gl::Uniform3f(p->location(p->mesh, ("pilotRamps[" + std::to_string(i) + "]").c_str()), c.x, c.y, c.z);
     }
     for (int i = 0; i < 6; i++)
       uniformFloat(p->mesh, ("pilotAmps[" + std::to_string(i) + "]").c_str(), p->pilot.amps[i]);
@@ -1379,8 +1463,8 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     bool targetTree=p->tree&&index==p->tree->target;
     uniformInt(p->mesh,"plainLeaves",p->plainLeaves);
     uniformInt(p->mesh,"treeTreatment",targetTree&&!p->sourceView?p->treeMode:0);uniformInt(p->mesh,"treeCards",part.instances>0);uniformInt(p->mesh,"treeBillboard",part.instances>0?(p->treeMode==4?2:p->treeMode==3?1:0):0);
-    if(targetTree){gl::Uniform4fv(gl::GetUniformLocation(p->mesh,"treeLeafUV"),1,p->tree->leafUV.data());gl::Uniform2f(gl::GetUniformLocation(p->mesh,"treeLeafBase"),p->tree->leafBase[0],p->tree->leafBase[1]);gl::Uniform3f(gl::GetUniformLocation(p->mesh,"treeCanopyColor"),p->tree->canopyColor.x,p->tree->canopyColor.y,p->tree->canopyColor.z);uniformFloat(p->mesh,"treeLeafMean",p->tree->leafMean);uniformInt(p->mesh,"treeGroupCount",int(p->tree->centers.size()));gl::Uniform4fv(gl::GetUniformLocation(p->mesh,"treeCenters"),GLsizei(p->tree->centers.size()),p->tree->centers.front().data());gl::Uniform4fv(gl::GetUniformLocation(p->mesh,"treeRadii"),GLsizei(p->tree->radii.size()),p->tree->radii.front().data());uniformInt(p->mesh,"treeLeafDetail",6);bind(6,p->textures.at(p->tree->texture));gl::BindSampler(6,0);
-     auto right=direction(inverse(effective.view()),{1,0,0}),up=direction(inverse(effective.view()),{0,1,0});gl::Uniform3f(gl::GetUniformLocation(p->mesh,"treeCameraRight"),right.x,right.y,right.z);gl::Uniform3f(gl::GetUniformLocation(p->mesh,"treeCameraUp"),up.x,up.y,up.z);gl::ActiveTexture(GL_TEXTURE0);
+    if(targetTree){gl::Uniform4fv(p->location(p->mesh,"treeLeafUV"),1,p->tree->leafUV.data());gl::Uniform2f(p->location(p->mesh,"treeLeafBase"),p->tree->leafBase[0],p->tree->leafBase[1]);gl::Uniform3f(p->location(p->mesh,"treeCanopyColor"),p->tree->canopyColor.x,p->tree->canopyColor.y,p->tree->canopyColor.z);uniformFloat(p->mesh,"treeLeafMean",p->tree->leafMean);uniformInt(p->mesh,"treeGroupCount",int(p->tree->centers.size()));gl::Uniform4fv(p->location(p->mesh,"treeCenters"),GLsizei(p->tree->centers.size()),p->tree->centers.front().data());gl::Uniform4fv(p->location(p->mesh,"treeRadii"),GLsizei(p->tree->radii.size()),p->tree->radii.front().data());uniformInt(p->mesh,"treeLeafDetail",6);bind(6,p->textures.at(p->tree->texture));gl::BindSampler(6,0);
+     auto right=direction(inverse(effective.view()),{1,0,0}),up=direction(inverse(effective.view()),{0,1,0});gl::Uniform3f(p->location(p->mesh,"treeCameraRight"),right.x,right.y,right.z);gl::Uniform3f(p->location(p->mesh,"treeCameraUp"),up.x,up.y,up.z);gl::ActiveTexture(GL_TEXTURE0);
     }
     int family=model.rig||model.id.starts_with("WS0")?-1:model.id.starts_with("WSP_")||model.id.starts_with("EA_TREE")||model.id.starts_with("EA_BUSH")||model.id.starts_with("EA_REED")?1:model.id.starts_with("EA_ROCK")?4:model.id.starts_with("EA_PATH")||model.id=="EA_COBBLE"||model.id.starts_with("HG_PATH")?3:model.id=="EA_GROUND"||model.id.starts_with("HG_GROUND")||model.id.starts_with("HG_GREEN")||model.id.starts_with("EA_GREEN")?5:model.id.starts_with("EA_GREEN")||model.id.starts_with("HG_GREEN")||model.id=="EA_MOSS"?0:2;
     uniformInt(p->mesh,"profileFamily",family);
@@ -1398,7 +1482,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     gl::UniformMatrix4fv(p->modelLoc, 1, GL_FALSE, i.matrix.data());
     uniformInt(p->mesh, "skinned", !i.palette.empty());
     if (!i.palette.empty())
-      gl::UniformMatrix4fv(gl::GetUniformLocation(p->mesh, "bones"),
+      gl::UniformMatrix4fv(p->location(p->mesh, "bones"),
                            GLsizei(i.palette.size()), GL_FALSE,
                            i.palette.front().data());
     if (currentMaterial != part.material) {
@@ -1406,7 +1490,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
           0, !mat.ground && p->style.sampling == 2 ? p->linearSampler : 0);
       currentMaterial = part.material;
       gl::Uniform4fv(p->factorLoc, 1, mat.color.data());
-      gl::Uniform3f(gl::GetUniformLocation(p->mesh, "emission"),
+      gl::Uniform3f(p->location(p->mesh, "emission"),
                     mat.emissive[0], mat.emissive[1], mat.emissive[2]);
       uniformInt(p->mesh, "studyKind", mat.studyKind);
       gl::Uniform1i(p->texLoc, mat.texture.empty() ? 0 : 1);
@@ -1548,7 +1632,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     uniformInt(p->shaftProgram, "smoothAtmosphere",
                smoothAir || p->integration.boundedAir);
     uniformInt(p->shaftProgram, "boundedAir", p->integration.boundedAir);
-    gl::Uniform2f(gl::GetUniformLocation(p->shaftProgram, "airGrid"), float(sw),
+    gl::Uniform2f(p->location(p->shaftProgram, "airGrid"), float(sw),
                   float(sh));
     uniformInt(p->shaftProgram, "smoothShadow", 5);
     bind(5, p->shadowDepth);
@@ -1556,10 +1640,10 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     uniformFloat(p->shaftProgram, "strength", p->effects.shaftStrength);
     uniformMatrix(p->shaftProgram, "inverseVP", inverse(vp));
     uniformMatrix(p->shaftProgram, "lightVP", p->lightVP);
-    gl::Uniform3f(gl::GetUniformLocation(p->shaftProgram, "eye"),
+    gl::Uniform3f(p->location(p->shaftProgram, "eye"),
                   effective.position.x, effective.position.y,
                   effective.position.z);
-    gl::Uniform3f(gl::GetUniformLocation(p->shaftProgram, "sunDirection"),
+    gl::Uniform3f(p->location(p->shaftProgram, "sunDirection"),
                   p->look.sunDirection.x, p->look.sunDirection.y,
                   p->look.sunDirection.z);
     auto sun = effective.position + normalized(p->look.sunDirection) * 100;
@@ -1571,7 +1655,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     float edge = std::min({sx, sy, 1 - sx, 1 - sy});
     float fade = std::clamp(edge / .12f, 0.f, 1.f);
     uniformFloat(p->shaftProgram, "sunOnScreen", fade);
-    gl::Uniform2f(gl::GetUniformLocation(p->shaftProgram, "sunUV"), sx, sy);
+    gl::Uniform2f(p->location(p->shaftProgram, "sunUV"), sx, sy);
     gl::BindVertexArray(p->emptyVAO);
     gl::DrawArrays(GL_TRIANGLES, 0, 3);
     stats.draws++;
@@ -1619,7 +1703,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
   uniformFloat(postProgram,"architectureRim",p->profile.architectureRim);
   uniformInt(postProgram,"organicEdges",p->profile.organicEdges);
   uniformFloat(postProgram,"grassInk",p->profile.grassInk);uniformFloat(postProgram,"organicCeiling",p->profile.organicCeiling);
-  gl::Uniform3f(gl::GetUniformLocation(postProgram,"organicHighlights"),p->profile.organicHighlights.x,p->profile.organicHighlights.y,p->profile.organicHighlights.z);
+  gl::Uniform3f(p->location(postProgram,"organicHighlights"),p->profile.organicHighlights.x,p->profile.organicHighlights.y,p->profile.organicHighlights.z);
   uniformInt(postProgram,"shadowClean",p->shadowClean);uniformInt(postProgram,"shadowOwners",9);bind(9,p->shadowOwners);gl::BindSampler(9,0);
   uniformInt(postProgram,"pilotOn",p->pilot.enabled&&!p->sourceView);uniformInt(postProgram,"sceneOwners",10);bind(10,p->owners);gl::BindSampler(10,0);
   uniformInt(postProgram,"shadowDepth",11);bind(11,p->shadowDepth);gl::BindSampler(11,0);
@@ -1628,7 +1712,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
   uniformMatrix(postProgram,"lightNormalMatrix",transpose(inverse(p->lightVP)));
   uniformInt(postProgram,"profileInk",p->profile.inkMode);
   uniformInt(postProgram,"majorWidth",p->profile.majorWidth);
-  gl::Uniform4fv(gl::GetUniformLocation(postProgram,"profileInkStrength"),1,p->profile.ink.data());
+  gl::Uniform4fv(p->location(postProgram,"profileInkStrength"),1,p->profile.ink.data());
   uniformFloat(postProgram,"profileHighlight",p->profile.highlight);uniformFloat(postProgram,"profileCeiling",p->profile.ceiling);
   uniformInt(postProgram, "edgeMode", integration.edges);
   uniformInt(postProgram, "highlightMask", integration.highlightMask);
@@ -1640,7 +1724,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
   uniformFloat(postProgram, "foliageStrength", integration.foliageStrength);
   uniformFloat(postProgram, "sunThreshold", integration.sunThreshold);
   auto edgeVector = [&](const char *name, Vec v) {
-    gl::Uniform3f(gl::GetUniformLocation(postProgram, name), v.x, v.y, v.z);
+    gl::Uniform3f(p->location(postProgram, name), v.x, v.y, v.z);
   };
   edgeVector("highlightColor", integration.highlightColor);
   auto right = normalized(cross(effective.forward(), {0, 1, 0}));
@@ -1669,7 +1753,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
   uniformMatrix(postProgram, "inverseVP", inverse(vp));
   if (p->style.mode > 0 || p->study > 0) {
     auto vector = [&](const char *name, Vec v) {
-      gl::Uniform3f(gl::GetUniformLocation(postProgram, name), v.x, v.y, v.z);
+      gl::Uniform3f(p->location(postProgram, name), v.x, v.y, v.z);
     };
     vector("skyTop", p->look.skyTop);
     vector("skyHorizon", p->look.skyHorizon);
@@ -1697,7 +1781,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     gl::UseProgram(p->presentProgram);
     bind(0, p->finalColor);
     uniformInt(p->presentProgram, "image", 0);
-    gl::Uniform2f(gl::GetUniformLocation(p->presentProgram, "shiftPixels"),
+    gl::Uniform2f(p->location(p->presentProgram, "shiftPixels"),
                   sampled.offsetPixels.x, sampled.offsetPixels.y);
     gl::BindVertexArray(p->emptyVAO);
     gl::DrawArrays(GL_TRIANGLES, 0, 3);
@@ -1710,7 +1794,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     gl::BindSampler(0, 0);
     configureTexture(GL_LINEAR);
     uniformInt(p->fillProgram, "image", 0);
-    gl::Uniform2f(gl::GetUniformLocation(p->fillProgram, "source"), static_cast<float>(w), static_cast<float>(h));
+    gl::Uniform2f(p->location(p->fillProgram, "source"), static_cast<float>(w), static_cast<float>(h));
     uniformFloat(p->fillProgram, "zoom", fit);
     gl::BindVertexArray(p->emptyVAO);
     gl::DrawArrays(GL_TRIANGLES, 0, 3);

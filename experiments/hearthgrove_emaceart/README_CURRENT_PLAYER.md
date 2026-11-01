@@ -1,0 +1,11 @@
+# Current Wildsignal pilot
+
+Build from the repository root using `cmake --preset current-windows` then `cmake --build --preset current-windows`. Linux automation uses `current-linux`. Historical ENGINE001 presets remain available. `wildsignal_player` builds only the current game; build the default target before running CTest to include its test executables.
+
+Install with `cmake --install build/current-windows --config Release --prefix out/player` (Linux: build/current-linux). This installs `wildsignal_pilot.exe`, PLAY_GAME.cmd, BENCHMARK.cmd and public runtime data. The complete private runtime assets/pilot folder must be supplied separately from wildsignal-art. No private assets belong in this public repository.
+
+PLAY_GAME.cmd continues the existing cozy save and writes logs to a unique run directory. Rendering and gameplay settings retain the baseline look. BENCHMARK.cmd runs original and optimized shadow paths on the same fixed replay, with separate temporary benchmark saves and output folders; it leaves normal play progress intact. The run is 7,200 simulation frames per pass, uncapped. Wall-clock duration varies with hardware; it is not a substitute for the documented warm-up/recording and thermal soak protocol. Close other heavy applications and keep the same power/display settings for comparison. Send both run directories for analysis.
+
+`--render-reference` is an engineering comparison flag that uses the original whole-scene shadow redraw path. Optimized rendering caches static shadow depth and caster IDs, copies them into the working shadow map, and overlays moving casters. Transform changes promote instances to the dynamic layer for the lifetime of that world. Skinned caster behavior and historical tree-study paths retain their prior rules. Uniform locations are cached per renderer/program. No draw-distance, art, resolution, shadow quality or gameplay reduction is used.
+
+The static shadow cache adds one depth/owner map (approximately 6 MiB at 1024 square). The original and optimized images must match on controlled replay captures. Lower draw counts and software-renderer improvements are not physical-device FPS guarantees. Minimum performance targets remain the i3 10th-gen/4 GB PC and Galaxy S10+, with ~30 FPS as a working goal. Android and Win7 validation remain outstanding.

@@ -1,18 +1,119 @@
 {
   "version": 5,
-  "cmakeMinimumRequired": {"major": 3, "minor": 24, "patch": 0},
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 24,
+    "patch": 0
+  },
   "configurePresets": [
-    {"name": "windows-local-release", "generator": "Ninja", "binaryDir": "${sourceDir}/build/windows-release", "cacheVariables": {"CMAKE_BUILD_TYPE": "Release"}},
-    {"name": "windows-local-debug", "inherits": "windows-local-release", "binaryDir": "${sourceDir}/build/windows-debug", "cacheVariables": {"CMAKE_BUILD_TYPE": "Debug"}},
-    {"name": "headless-release", "generator": "Ninja", "binaryDir": "${sourceDir}/build/headless", "cacheVariables": {"CMAKE_BUILD_TYPE": "Release", "ENGINE001_BUILD_SDL": "OFF"}}
+    {
+      "name": "windows-local-release",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/windows-release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "windows-local-debug",
+      "inherits": "windows-local-release",
+      "binaryDir": "${sourceDir}/build/windows-debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "headless-release",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/headless",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "ENGINE001_BUILD_SDL": "OFF"
+      }
+    },
+    {
+      "name": "current-linux",
+      "displayName": "Current pilot \u2014 Linux Release",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/current-linux",
+      "cacheVariables": {
+        "WILDSIGNAL_BUILD_CURRENT_PILOT": "ON",
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "current-windows",
+      "displayName": "Current pilot \u2014 Windows x64 Release",
+      "generator": "Visual Studio 17 2022",
+      "architecture": "x64",
+      "binaryDir": "${sourceDir}/build/current-windows",
+      "cacheVariables": {
+        "WILDSIGNAL_BUILD_CURRENT_PILOT": "ON"
+      }
+    }
   ],
   "buildPresets": [
-    {"name": "windows-local-release", "configurePreset": "windows-local-release", "jobs": 2},
-    {"name": "windows-local-debug", "configurePreset": "windows-local-debug", "jobs": 2},
-    {"name": "headless-release", "configurePreset": "headless-release"}
+    {
+      "name": "windows-local-release",
+      "configurePreset": "windows-local-release",
+      "jobs": 2
+    },
+    {
+      "name": "windows-local-debug",
+      "configurePreset": "windows-local-debug",
+      "jobs": 2
+    },
+    {
+      "name": "headless-release",
+      "configurePreset": "headless-release"
+    },
+    {
+      "name": "current-linux",
+      "configurePreset": "current-linux",
+      "targets": [
+        "wildsignal_player"
+      ],
+      "jobs": 2
+    },
+    {
+      "name": "current-windows",
+      "configurePreset": "current-windows",
+      "configuration": "Release",
+      "targets": [
+        "wildsignal_player"
+      ],
+      "jobs": 2
+    }
   ],
   "testPresets": [
-    {"name": "windows-local-release", "configurePreset": "windows-local-release", "output": {"outputOnFailure": true}},
-    {"name": "headless-release", "configurePreset": "headless-release", "output": {"outputOnFailure": true}}
+    {
+      "name": "windows-local-release",
+      "configurePreset": "windows-local-release",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "headless-release",
+      "configurePreset": "headless-release",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "current-linux",
+      "configurePreset": "current-linux",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "current-windows",
+      "configurePreset": "current-windows",
+      "configuration": "Release",
+      "output": {
+        "outputOnFailure": true
+      }
+    }
   ]
 }
