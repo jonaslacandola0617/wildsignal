@@ -35,6 +35,7 @@ if(PIXEL3D_BUILD_GL)
  # launchers in source, without installing a matrix of runnable variants.
  install(FILES launchers/PLAY_GAME.cmd launchers/BENCHMARK.cmd DESTINATION .)
  install(FILES README_CURRENT_PLAYER.md DESTINATION . RENAME README.md)
+ install(FILES UI_FIELD_KIT_REVIEW.md DESTINATION .)
 endif()
 set(GAMELOOP_ASSETS "" CACHE PATH "Private validated GAMELOOP runtime directory")
 if(BUILD_TESTING)
