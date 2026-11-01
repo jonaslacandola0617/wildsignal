@@ -518,6 +518,15 @@
       "downstream": "world design, creature design",
       "approvedAt": "2026-11-02",
       "source": "docs/gdd/02_CORE_GAMEPLAY.md"
+    },
+    {
+      "id": "D-083",
+      "status": "CONFIRMED",
+      "statusText": "CONFIRMED 2026-11-02",
+      "decision": "World and story locked in GDD chapter 3: six regions, the Hush, Bellkeeper Sol and the Chorus, rival Juno Hale, silent Wayfinder, day-night and light weather",
+      "downstream": "quests, regions, characters, art",
+      "approvedAt": "2026-11-02",
+      "source": "docs/gdd/03_WORLD_AND_STORY.md"
     }
   ]
 }

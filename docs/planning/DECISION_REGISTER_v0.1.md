@@ -180,3 +180,10 @@ Locked in [GDD chapter 2](../gdd/02_CORE_GAMEPLAY.md); the chapter holds the det
 | D-080 | Money and village shops, plus healing items found in the world | **CONFIRMED 2026-11-02** | economy, items, UI |
 | D-081 | The Homestead: farming, crafting and building inside one plot, relocatable only to designated sites; reserve Signari help by affinity | **CONFIRMED 2026-11-02** | world format, saves, art, UI |
 | D-082 | Team Signari give field abilities (cross water, move boulders, light caves); evolutions decided in chapter 4; the swap combo comes after the first playable region | **CONFIRMED 2026-11-02** | world design, creature design |
+
+
+## 13. World and story — 2026-11-02
+
+| Decision ID | Decision | Status | Source/impact |
+|---|---|---|---|
+| D-083 | World and story locked in [GDD chapter 3](../gdd/03_WORLD_AND_STORY.md): six regions (Hearthgrove Vale, Liltwood Forest, Tideglass Coast, Ashbell Works, Gloamfen Marsh, Emberglass Caldera), the Hush, Bellkeeper Sol and the Chorus, rival Juno Hale, silent Wayfinder, day–night and light weather | **CONFIRMED 2026-11-02** | quests, regions, characters, art; supersedes region and story drafts in WORLD_BIBLE_v0.1 and NARRATIVE_QUESTS_v0.1 |

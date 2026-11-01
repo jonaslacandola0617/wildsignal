@@ -1,6 +1,6 @@
 # Chapter 3 — World and story
 
-**Status:** DRAFT 2026-11-02. Owner answers: keep the existing world and characters; story is a mystery **and** a villain; more emotional weight; Claude decides the region set and the player's role. Choices still needed are in 3.9.
+**Status:** LOCKED 2026-11-02 by the owner (all of S1–S7 accepted as recommended). Owner answers behind it: keep the existing world and characters; story is a mystery **and** a villain; more emotional weight; Claude decides the region set and the player's role.
 **Built on:** [Chapter 1](01_VISION_AND_PILLARS.md) and [Chapter 2](02_CORE_GAMEPLAY.md) (locked). Older sources reused: `WORLD_BIBLE_v0.1`, `NARRATIVE_QUESTS_v0.1`, `CHARACTER_NPC_BIBLE_v0.1` (branch `docs/world-preproduction-v0.1`).
 
 ## 3.1 The world: the Signal Archipelago
@@ -86,7 +86,7 @@ The current playable village becomes **Hearthgrove**, part of region 1. Mara's f
 
 ## 3.9 Owner choices
 
-| # | Question | Recommendation |
+| # | Question | Decision (owner, 2026-11-02) |
 |---|---|---|
 | S1 | The six regions and their order (3.2)? | As listed |
 | S2 | The villain: Bellkeeper Sol and the Chorus with binding bells (3.3)? | Yes |
@@ -99,3 +99,4 @@ The current playable village becomes **Hearthgrove**, part of region 1. Mara's f
 ## Change log
 
 - 2026-11-02 — First draft from the owner's answers.
+- 2026-11-02 — Owner accepted S1–S7 as recommended. Locked.
