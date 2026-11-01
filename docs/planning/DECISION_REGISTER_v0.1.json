@@ -536,6 +536,15 @@
       "downstream": "fight data, art pipeline, regions",
       "approvedAt": "2026-11-02",
       "source": "docs/gdd/04_CREATURES.md"
+    },
+    {
+      "id": "D-085",
+      "status": "CONFIRMED",
+      "statusText": "CONFIRMED 2026-11-02 (function); look OPEN",
+      "decision": "UI function locked in GDD chapter 5: screens, HUD layouts, controls for keyboard, controller and touch, accessibility, English first; UI look OPEN with an interim code-drawn style",
+      "downstream": "UI code, art",
+      "approvedAt": "2026-11-02",
+      "source": "docs/gdd/05_UI_AND_CONTROLS.md"
     }
   ]
 }

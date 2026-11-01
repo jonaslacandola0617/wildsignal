@@ -1,6 +1,6 @@
 # Chapter 5 — UI and controls
 
-**Status:** DRAFT 2026-11-02. Drafted by Claude from chapters 1–4 and the existing pilot UI. Choices are in 5.9.
+**Status:** PARTLY LOCKED 2026-11-02 by the owner. **Locked:** how the UI works (5.1 principles 1, 3–5, and 5.3–5.8). **OPEN:** how the UI looks (5.2 and principle 2), revisited in chapter 6.
 **Built on:** chapters 1–4 (locked). Existing pieces: the paper HUD skin, Mara's animated field book, the pause menu, fonts m5x7 and m6x11, 640 × 360 UI layout in `experiments/hearthgrove_emaceart`.
 
 ## 5.1 Principles
@@ -11,7 +11,9 @@
 4. **Read at a glance in fights.** Big shapes, colour plus icon for every type (never colour alone), cooldowns shown as a sweep on the button.
 5. **Short words.** Sentence case, short lines, verbs on buttons ("Rest", "Tune in", "Build").
 
-## 5.2 Visual style
+## 5.2 Visual style — OPEN
+
+**Not decided.** The owner is unsure about the look and has no suitable free art. Plan until it is decided: a clean style drawn by the engine in code (simple rounded panels, soft colours, crisp text, simple icons), so the game always looks tidy; it can later be swapped for a paid UI pack or commissioned art without changing screen code, because layouts are locked. The current paper skin is a placeholder only. The notes below record the existing pieces and their licences.
 
 - **Panels and buttons:** Humble Pixel *Paper UI System* (commercial use allowed, modification allowed, no redistribution: the files stay in the private art repo; credit "@Humblepixel" given anyway).
 - **Fonts:** m5x7 for body text and m6x11 for titles, by Daniel Linssen (credit required; confirm commercial use with the author before release — see 5.9).
@@ -102,16 +104,17 @@ This replaces the pilot's fight keys (1–5 moves, Q dodge, R reach out). In fig
 
 ## 5.9 Owner choices
 
-| # | Question | Recommendation |
+| # | Question | Decision (owner, 2026-11-02) |
 |---|---|---|
-| U1 | The field-kit paper look for menus and HUD (5.1–5.2)? | Yes |
-| U2 | The screen list for 1.0 (5.3)? | As listed |
-| U3 | The control scheme (5.6)? | As listed, fully rebindable |
-| U4 | No minimap; a full map screen only (5.1, 5.3)? | Yes |
-| U5 | English only at launch, built ready for translation (5.8)? | Yes |
-| U6 | Controller support at 1.0 and Android touch controls (5.6)? | Yes, both |
-| U7 | Before release, confirm m6x11's commercial terms with Daniel Linssen, or swap fonts? | Confirm with the author |
+| U1 | The field-kit paper look for menus and HUD? | **OPEN** — interim clean code-drawn style; decide the final look in chapter 6 |
+| U2 | The screen list for 1.0 (5.3)? | **As listed** |
+| U3 | The control scheme (5.6)? | **As listed, fully rebindable** |
+| U4 | No minimap; a full map screen only? | **Yes** |
+| U5 | English only at launch, built ready for translation (5.8)? | **Yes** |
+| U6 | Controller support at 1.0 and Android touch controls? | **Yes, both** |
+| U7 | Font licence | **If m6x11 is kept, confirm its commercial terms with the author before release; otherwise swap fonts** |
 
 ## Change log
 
 - 2026-11-02 — First draft.
+- 2026-11-02 — Owner locked the functional parts; the visual style stays OPEN with an interim code-drawn style.
