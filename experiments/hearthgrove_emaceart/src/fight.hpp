@@ -68,9 +68,9 @@ struct Marker {
   Reach reach = Reach::Burst;
   Spot from, to;
   int size = 0, percent = 0;
-  bool hostile = true;
+  bool hostile = true, heavy = false;
 };
-enum class CueKind { Hit, Unsettled, Dodged, Healed, StatusOn, Faint, Swap, AimYou, AimMine, Command, Leaving, Returned, Calmed, ReachStart, ReachBroken };
+enum class CueKind { Hit, Unsettled, Dodged, Healed, StatusOn, Faint, Swap, AimYou, AimMine, Command, Calmed, Soothed, ReachStart, ReachBroken };
 struct Cue {
   CueKind kind = CueKind::Hit;
   Target target = Target::None;

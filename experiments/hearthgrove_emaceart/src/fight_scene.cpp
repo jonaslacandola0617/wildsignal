@@ -10,9 +10,9 @@ using battle::Pose;
 using battle::Reach;
 using battle::Target;
 namespace {
-const PixelUi::Colour Cream{.96f, .91f, .77f, 1}, Muted{.72f, .70f, .60f, 1}, Gold{.96f, .86f, .55f, 1};
+const PixelUi::Colour Waiting{0, .19f, .23f, .28f}, Cream{.96f, .91f, .77f, 1}, Muted{.72f, .70f, .60f, 1}, Gold{.96f, .86f, .55f, 1};
 const PixelUi::Colour HpGood{.49f, .67f, .27f, 1}, HpMid{.91f, .72f, .29f, 1}, HpLow{.82f, .36f, .22f, 1}, Calm{.45f, .78f, .84f, 1}, Coral{.95f, .47f, .32f, 1};
-const GroundMarks::Colour Danger{.96f, .42f, .24f, .85f}, Friendly{.52f, .86f, .90f, .55f}, Bound{.96f, .91f, .77f, .4f};
+const GroundMarks::Colour Heavy{.78f, .12f, .2f, .92f}, Danger{.96f, .42f, .24f, .85f}, Friendly{.52f, .86f, .90f, .55f}, Bound{.96f, .91f, .77f, .4f};
 const char *statusIcon(battle::Status s) {
   switch (s) {
   case battle::Status::Guard: return "guard";
@@ -54,9 +54,14 @@ FightScene::FightScene(const std::filesystem::path &folder) {
   data = battle::parseFight(readText(folder / "fight.json"), content);
 }
 std::string FightScene::nameOf(const Fighter &k) const { return content.species[k.species].name; }
-void FightScene::say(const std::string &text, float seconds) {
+void FightScene::say(const std::string &text, float seconds, int rank) {
+  if (toastTime > 0 && rank < toastRank) {
+    if (rank > 0 && notes.size() < 3) notes.push_back({text, seconds, 0, rank});
+    return;
+  }
   toast = text;
   toastTime = seconds;
+  toastRank = rank;
 }
 
 void FightScene::start(const std::string &wildSpecies, int wildLevel, int wildHealth, const std::vector<bond::Member> &team, Vec you, Vec wild, const std::vector<battle::Block> &blocks) {
@@ -77,6 +82,10 @@ void FightScene::start(const std::string &wildSpecies, int wildLevel, int wildHe
   hintTime = 7;
   floaters.clear();
   puffs.clear();
+  notes.clear();
+  wasReady = {};
+  readyFlash = {};
+  toastTime = 0;
   say(nameOf(fight->wild()) + " accepts your challenge!", 2.2f);
 }
 void FightScene::finish() {
@@ -97,7 +106,7 @@ void FightScene::key(int k) {
   }
   if (k >= SDLK_1 && k < SDLK_1 + battle::MoveSlots) {
     pending.command = int(k - SDLK_1);
-    if (!fight->canUse(fight->mine(), pending.command)) say(fight->mine().ready[pending.command] > 0 ? "That move is still recovering." : "Not enough energy.", 1);
+    if (!fight->canUse(fight->mine(), pending.command)) say(fight->mine().ready[pending.command] > 0 ? "That move is still recovering." : "Not enough energy.", 1, 0);
   } else if (k == SDLK_SPACE) {
     pending.roll = true;
   } else if (k == SDLK_Q) {
@@ -106,7 +115,7 @@ void FightScene::key(int k) {
     pending.swap = true;
   } else if (k == SDLK_R) {
     pending.reach = true;
-    if (!fight->canReach()) say(fight->wild().spirit > battle::CalmSpirit ? nameOf(fight->wild()) + " is not calm enough yet." : "Get closer to reach out.", 1.2f);
+    if (!fight->canReach()) say(fight->wild().spirit > battle::CalmSpirit ? nameOf(fight->wild()) + " is not calm enough yet." : "Get closer to reach out.", 1.2f, 0);
   }
 }
 void FightScene::cues() {
@@ -114,8 +123,9 @@ void FightScene::cues() {
     Vec at = metres(c.at);
     switch (c.kind) {
     case CueKind::Hit:
-      floaters.push_back({at + Vec{0, 1.3f, 0}, "-" + std::to_string(c.value), c.target == Target::Wild ? Cream : Coral});
-      puffs.push_back({at, 0, c.target == Target::Wild ? Cream : Coral});
+      // Harm to a wild Signari stays quiet: calming it is the goal, not the damage.
+      floaters.push_back({at + Vec{0, 1.3f, 0}, "-" + std::to_string(c.value), c.target == Target::Wild ? Muted : Coral});
+      puffs.push_back({at, 0, c.target == Target::Wild ? Muted : Coral});
       break;
     case CueKind::Unsettled:
       floaters.push_back({at + Vec{0, 1.5f, 0}, "-" + std::to_string(c.value), Gold});
@@ -132,7 +142,7 @@ void FightScene::cues() {
     case CueKind::StatusOn:
       break;
     case CueKind::Faint:
-      say(c.target == Target::Wild ? nameOf(fight->wild()) + " backs down!" : nameOf(fight->party()[c.value]) + " fainted!", 2);
+      say(c.target == Target::Wild ? nameOf(fight->wild()) + " backs down!" : nameOf(fight->party()[c.value]) + " fainted!", 2, 2);
       break;
     case CueKind::Swap:
       say("Go, " + nameOf(fight->party()[c.value]) + "!", 1.2f);
@@ -148,21 +158,18 @@ void FightScene::cues() {
       clipClock = 0;
       queued = c.value;
       break;
-    case CueKind::Leaving:
-      say("Walk on to leave the fight.", 2);
-      break;
-    case CueKind::Returned:
-      say("Back in the fight.", 1);
-      break;
     case CueKind::Calmed:
-      say(nameOf(fight->wild()) + " is calm. Get close and press R.", 2.6f);
+      say(nameOf(fight->wild()) + " is calm. Get close and press R.", 2.6f, 2);
+      break;
+    case CueKind::Soothed:
+      floaters.push_back({at + Vec{.45f, 1.2f, 0}, "", Calm, 0, "icon_spirit"});
       break;
     case CueKind::ReachStart:
       clipClock = 0;
-      say("Hold steady...", float(battle::ReachTicks) / battle::TicksPerSecond);
+      say("Hold steady...", float(battle::ReachTicks) / battle::TicksPerSecond, 2);
       break;
     case CueKind::ReachBroken:
-      say("It flinched away. Try again soon.", 1.6f);
+      say("It flinched away. Try again soon.", 1.6f, 2);
       break;
     }
   }
@@ -171,6 +178,16 @@ void FightScene::update(float dt, int moveX, int moveZ) {
   clock += dt;
   clipClock += dt;
   toastTime = std::max(0.f, toastTime - dt);
+  for (auto &n : notes) n.waited += dt;
+  std::erase_if(notes, [](const Note &n) { return n.waited > 1.2f; });
+  if (toastTime <= 0 && !notes.empty()) {
+    auto next = std::max_element(notes.begin(), notes.end(), [](const Note &a, const Note &b) { return a.rank < b.rank; });
+    toast = next->text;
+    toastTime = next->seconds;
+    toastRank = next->rank;
+    notes.erase(next);
+  }
+  for (auto &f : readyFlash) f = std::max(0.f, f - dt);
   hintTime = std::max(0.f, hintTime - dt);
   commandT = std::max(0.f, commandT - dt);
   for (auto &f : floaters) f.age += dt;
@@ -189,12 +206,20 @@ void FightScene::update(float dt, int moveX, int moveZ) {
     cues();
     if (fight->outcome() != battle::Outcome::Ongoing) {
       clipClock = 0;
-      say("", 0);
+      toastTime = 0;
+      notes.clear();
+      // Walking out needs no confirmation: the fight just stops.
+      if (fight->outcome() == battle::Outcome::Left) finish();
       break;
     }
   }
   const auto &k = fight->mine();
   if (queued >= 0 && k.pose == Pose::Windup && k.strike.slot == queued) queued = -1;
+  for (int i = 0; i <= battle::MoveSlots; i++) {
+    int wait = i < battle::MoveSlots ? k.ready[i] : k.dodgeReady;
+    if (wasReady[i] > 0 && wait == 0) readyFlash[i] = .35f;
+    wasReady[i] = wait;
+  }
 }
 
 Vec FightScene::youAt() const { return metres(fight->you().at); }
@@ -258,10 +283,15 @@ void FightScene::marks(GroundMarks &g, Vec right, Vec up) {
   if (fight->wild().spirit <= battle::CalmSpirit && fight->outcome() == battle::Outcome::Ongoing)
     g.ring(metres(fight->wild().at), float(battle::ReachRange) * .001f, .12f, Friendly);
   for (const auto &m : fight->markers()) {
-    auto colour = m.hostile ? Danger : Friendly;
+    // Heavy attacks differ in colour and shape, so they read without relying on colour alone.
+    auto colour = !m.hostile ? Friendly : m.heavy ? Heavy : Danger;
     float size = float(m.size) * .001f, fill = float(m.percent) * .01f;
     if (m.reach == Reach::Burst) g.disc(metres(m.to), size, fill, colour);
     else g.lane(metres(m.from), metres(m.to), size, fill, colour);
+    if (m.hostile && m.heavy) {
+      if (m.reach == Reach::Burst) g.ring(metres(m.to), size + .3f, .12f, colour);
+      else g.lane(metres(m.from), metres(m.to), size + .3f, 0, {colour[0], colour[1], colour[2], .5f});
+    }
   }
   for (const Fighter *k : {&fight->mine(), &fight->wild()})
     if (k->pose == Pose::Strike && k->strike.reach == Reach::Lane) {
@@ -277,13 +307,14 @@ void FightScene::plate(PixelUi &ui, const Fighter &k, int x, int y, int w, bool 
   const auto &t = ui.theme();
   ui.card(full ? "plate_big" : "plate_small", x, y, w, full ? 96 : 48);
   int left = x + 24, right = x + w - 24, bar = left + 15, barW = right - bar;
-  int rowHp = y + (full ? 24 : 20), rowTwo = y + (full ? 38 : 32);
+  // The wild panel leads with Spirit, because calming it is the goal.
+  int rowHp = y + (full ? 24 : 32), rowTwo = y + (full ? 38 : 20);
   ui.text(nameOf(k), left, y + (full ? 10 : 8), t.ink);
   auto level = "Lv " + std::to_string(k.level);
   ui.text(level, right - ui.width(level), y + (full ? 10 : 8), t.ink);
   int value = std::clamp(k.hp, 0, k.stats.hp);
   auto colour = value * 4 <= k.stats.hp ? HpLow : value * 2 <= k.stats.hp ? HpMid : HpGood;
-  ui.image("trust_on", left + 1, rowHp + 1);
+  ui.image(ui.has("icon_health") ? "icon_health" : "trust_on", left, rowHp);
   ui.meter(bar, rowHp, barW, float(value) / float(std::max(1, k.stats.hp)), "fill_hp", colour);
   int icon = left + 112;
   if (full) {
@@ -299,7 +330,7 @@ void FightScene::plate(PixelUi &ui, const Fighter &k, int x, int y, int w, bool 
     bool calm = k.spirit <= battle::CalmSpirit;
     if (ui.has("icon_spirit")) ui.image("icon_spirit", left - 2, rowTwo - 3);
     ui.meter(bar, rowTwo, barW, float(k.spirit) / 100.f, "fill_sp", calm ? Gold : Calm);
-    if (calm) ui.image("trust_on", right + 3, rowTwo + 1);
+    if (calm && ui.has("calm_mark")) ui.image("calm_mark", right + 3, rowTwo - 2);
     icon = left + 76;
   }
   int line = full ? rowTwo - 4 : y + 4;
@@ -323,7 +354,7 @@ void FightScene::moveBar(PixelUi &ui) {
     int id = fight->moveId(k, i), x = left + i * step;
     const auto &m = content.moves[id];
     bool can = fight->canUse(k, i);
-    ui.strip(queued == i || (k.pose == Pose::Windup && k.strike.slot == i) ? "button_on" : can ? "button" : "button_off", x, y, w, h);
+    ui.strip(queued == i || readyFlash[i] > 0 || (k.pose == Pose::Windup && k.strike.slot == i) ? "button_on" : can ? "button" : "button_off", x, y, w, h);
     ui.text(std::to_string(i + 1), x + 5, y + 8, can ? t.key : t.keyOff);
     const auto &name = m.name;
     auto cut = ui.width(name) <= 60 ? std::string::npos : name.find(' ');
@@ -340,14 +371,14 @@ void FightScene::moveBar(PixelUi &ui) {
         for (int c = 0; c < m.cost; c++)
           ui.image("pip_on", x + 18 + c * 8, y - 6);
     }
-    if (k.ready[i] > 0) ui.fill(x + 14, y + 21, std::max(1, 66 * k.ready[i] / std::max(1, data.timing[id].cooldown)), 1, t.faded);
+    if (k.ready[i] > 0) ui.fill(x + 14, y + 3, std::max(1, 64 * k.ready[i] / std::max(1, data.timing[id].cooldown)), 17, Waiting);
   }
   int x = left + battle::MoveSlots * step;
   bool ready = k.dodgeReady == 0 && k.pose != Pose::Down;
-  ui.strip(ready ? "button_alt" : "button_off", x, y, w, h);
+  ui.strip(!ready ? "button_off" : readyFlash[battle::MoveSlots] > 0 ? "button_on" : "button_alt", x, y, w, h);
   ui.text("Q", x + 5, y + 8, ready ? t.key : t.keyOff);
   ui.text("Dodge", x + 18, y + 8, ready ? t.onButton : t.onButtonOff);
-  if (!ready) ui.fill(x + 14, y + 21, std::max(1, 66 * k.dodgeReady / 150), 1, t.faded);
+  if (!ready) ui.fill(x + 14, y + 3, std::max(1, 64 * k.dodgeReady / 150), 17, Waiting);
 }
 void FightScene::prompt(PixelUi &ui, const std::string &text) {
   ui.note(text, 320, 322);
@@ -357,6 +388,10 @@ void FightScene::draw(PixelUi &ui, const Project &project) {
   const auto &t = ui.theme();
   for (const auto &f : floaters) {
     auto p = project(f.at + Vec{0, f.age * .9f, 0});
+    if (!f.icon.empty()) {
+      if (ui.has(f.icon)) ui.image(f.icon, p[0] - 7, p[1] - 7);
+      continue;
+    }
     int w = ui.width(f.text);
     ui.text(f.text, p[0] - w / 2 + 1, p[1] + 1, {.1f, .07f, .05f, 1});
     ui.text(f.text, p[0] - w / 2, p[1], f.colour);
@@ -366,7 +401,7 @@ void FightScene::draw(PixelUi &ui, const Project &project) {
   const auto &you = fight->you();
   ui.text("You", 38, 275, t.ink);
   int calm = std::clamp(you.composure, 0, battle::FullComposure);
-  ui.meter(60, 274, 154, float(calm) / float(battle::FullComposure), "fill_sp", calm * 3 <= battle::FullComposure ? HpLow : Calm);
+  ui.meter(60, 274, 154, float(calm) / float(battle::FullComposure), "fill_you", calm * 3 <= battle::FullComposure ? HpLow : Calm);
   const auto &team = fight->party();
   if (team.size() > 1) {
     int next = (fight->activeSlot() + 1) % int(team.size());
@@ -384,7 +419,7 @@ void FightScene::draw(PixelUi &ui, const Project &project) {
   }
   if (fight->outcome() != battle::Outcome::Ongoing) {
     bool won = fight->outcome() == battle::Outcome::Won, left = fight->outcome() == battle::Outcome::Left, reached = fight->outcome() == battle::Outcome::Reached;
-    std::string title = reached ? "It trusts you" : won ? "Victory" : left ? "Safe away" : "You need a rest";
+    std::string title = reached ? "It trusts you" : won ? "It needs space" : left ? "Safe away" : "You need a rest";
     if (ui.has("ribbon")) {
       int w = std::max(260, ui.width(title, 2) + 150);
       ui.strip("ribbon", 320 - w / 2, 112, w);

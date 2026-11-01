@@ -13,7 +13,7 @@ constexpr int HeadSpeedDash = 12000 / TicksPerSecond, HeadSpeedLane = 14000 / Ti
 constexpr int EnergySeconds90 = 90, StatusTicks = 90, StatusHp = 3, GuardTicks = 180, FocusTicks = 360, SlowTicks = 240;
 constexpr int HitSafeTicks = 60, HurtTicks = 22, FlinchTicks = 12, CalmAfter = 240, CalmStep = 20, DownTicks = 45;
 constexpr int DodgeCalm = 10, GentleCalm = 12, HardCalm = 3, SpiritTicks = 90, ReachWait = 300;
-constexpr int SwapWait = 180, OrderLife = 300, AutoWait = 240, PushTicks = 16, LeaveTicks = 120;
+constexpr int SwapWait = 180, OrderLife = 300, AutoWait = 240, PushTicks = 16, HeavyPower = 18;
 
 int root(std::int64_t v) {
   if (v <= 0) return 0;
@@ -110,6 +110,7 @@ Fight::Fight(const Content &c, const FightData &d, std::vector<Member> party, Me
 void Fight::soothe(int points) {
   bool wasCalm = foe.spirit <= CalmSpirit;
   foe.spirit = std::max(0, foe.spirit - points);
+  cues.push_back({CueKind::Soothed, Target::Wild, points, foe.at});
   if (!wasCalm && foe.spirit <= CalmSpirit) cues.push_back({CueKind::Calmed, Target::Wild, 0, foe.at});
 }
 bool Fight::canReach() const { return foe.hp > 0 && foe.spirit <= CalmSpirit && gap(player.at, foe.at) <= ReachRange; }
@@ -152,8 +153,9 @@ std::vector<Marker> Fight::markers() const {
   auto add = [&](const Fighter &k, bool hostile) {
     const auto &s = k.strike;
     if (s.move < 0 || s.reach == Reach::Self) return;
-    if (k.pose == Pose::Windup) out.push_back({s.reach, s.from, s.to, s.size, (s.total - k.poseTicks) * 100 / s.total, hostile});
-    else if (k.pose == Pose::Strike) out.push_back({s.reach, s.from, s.to, s.size, 100, hostile});
+    bool heavy = content->moves[s.move].power >= HeavyPower;
+    if (k.pose == Pose::Windup) out.push_back({s.reach, s.from, s.to, s.size, (s.total - k.poseTicks) * 100 / s.total, hostile, heavy});
+    else if (k.pose == Pose::Strike) out.push_back({s.reach, s.from, s.to, s.size, 100, hostile, heavy});
   };
   add(foe, true);
   add(mine(), false);
@@ -580,10 +582,8 @@ void Fight::tickPlayer() {
   p.safeTicks = std::max(0, p.safeTicks - 1);
   p.slow = std::max(0, p.slow - 1);
   if (++p.calmTicks > CalmAfter && p.calmTicks % CalmStep == 0) p.composure = std::min(FullComposure, p.composure + 1);
-  bool out = gap(p.at, middle) > RingRadius;
-  if (out && outside == 0) cues.push_back({CueKind::Leaving, Target::You, 0, p.at});
-  if (!out && outside > 0) cues.push_back({CueKind::Returned, Target::You, 0, p.at});
-  outside = out ? outside + 1 : 0;
+  // Stepping out ends the fight at once; being knocked past the ring does not until the player recovers.
+  outside = gap(p.at, middle) > RingRadius && p.hurtTicks == 0 ? 1 : 0;
 }
 void Fight::checkEnd() {
   if (result != Outcome::Ongoing) return;
@@ -593,7 +593,7 @@ void Fight::checkEnd() {
     result = Outcome::Won;
   } else if (player.composure <= 0) {
     result = Outcome::Lost;
-  } else if (outside > LeaveTicks) {
+  } else if (outside > 0) {
     result = Outcome::Left;
   } else if (own().hp <= 0 && own().pose != Pose::Down) {
     own().pose = Pose::Down;

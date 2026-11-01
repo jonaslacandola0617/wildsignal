@@ -1027,7 +1027,8 @@ int main(int argc, char **argv) {
         }
         if (!paused) {
           scene->update(dt, fightX, fightZ);
-          if (!scene->active())
+          // Waits for the fight's clean-up, so the jump back to exploring cannot startle anything.
+          if (!scene->active() && !stageSet)
             wilds->update(dt, game.state.player, sneaking, game.solids);
         }
         for (const auto &name : wilds->takeEvents())
@@ -1067,13 +1068,17 @@ int main(int argc, char **argv) {
           stageSet = false;
           game.phase = game::Phase::Explore;
           game.message = "";
-          wilds->fightEnded(scene->won(), scene->reached(), scene->left(), scene->teamHp());
+          wilds->fightEnded(scene->won(), scene->reached(), scene->left(), scene->teamHp(), scene->wildAt());
           if (scene->lost()) {
             // Losing costs nothing: the Wayfinder wakes at the start with a rested party.
             game.state.player = game.spawn;
             wilds->rest();
           }
           wilds->regroup(game.state.player, game.solids);
+          if (!scene->lost()) {
+            auto mine = scene->creature(true);
+            wilds->keepAt(mine.model, mine.at);
+          }
         }
         stageSet = stageSet || fighting;
         // The camera leans in for a fight or a quiet watch, and eases back out afterwards.

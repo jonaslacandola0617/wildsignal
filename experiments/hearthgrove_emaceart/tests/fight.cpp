@@ -277,11 +277,12 @@ void gentlePlayLowersSpiritMoreThanForce(const Setup &s) {
   check(roll.wild().spirit < 100, "dodging an attack soothes it");
 }
 void knockingItOutEndsTheChance(const Setup &s) {
-  Fight f(s.content, s.data, {{s.driftfin, 5, -1}}, {s.tumbletail, 3, -1}, {-1500, 0}, {0, 0}, 5);
+  // A frail opponent, so the knockout comes before a lone Signari tires.
+  Fight f(s.content, s.data, {{s.driftfin, 5, -1}}, {s.tumbletail, 3, -1}, {-1500, 0}, {0, 0}, 5, {}, 40);
   f.soothe(80);
   for (int i = 0; i < 9000 && f.outcome() == Outcome::Ongoing; i++) {
     Pad p;
-    p.moveZ = i % 200 < 100 ? 900 : -900;
+    p.moveZ = i % 60 < 30 ? 900 : -900;
     p.roll = i % 70 == 0;
     p.command = i % 60 == 0 ? slotOf(s, f.mine(), "SLIPSTREAM") : -1;
     f.step(p);
@@ -332,6 +333,19 @@ void reportReaching(const Setup &s, int wild, int health, const char *wildName) 
     }
     std::printf("%s, %s: reached %d of %d, knocked out %d, lost %d, average %d seconds\n", wildName, names[style], reached, runs, knocked, lost, ticks / runs / TicksPerSecond);
   }
+}
+void steppingOutEndsTheFightAtOnce(const Setup &s) {
+  Fight f(s.content, s.data, {{s.driftfin, 5, -1}}, {s.tumbletail, 3, -1}, {-RingRadius + 120, 0}, {0, 0}, 5);
+  Pad away;
+  away.moveX = -1000;
+  for (int i = 0; i < 30 && f.outcome() == Outcome::Ongoing; i++)
+    f.step(away);
+  check(f.outcome() == Outcome::Left, "stepping over the ring ends the fight");
+  check(f.you().at.x > -RingRadius - 150, "with no wait past the boundary");
+}
+void everyAttackGivesTimeToReact(const Setup &s) {
+  for (std::size_t i = 0; i < s.data.timing.size(); i++)
+    if (s.data.timing[i].reach != Reach::Self) check(s.data.timing[i].windup >= 21, "attack wind-ups last at least 340 ms");
 }
 void leavingTheRingRetreats(const Setup &s) {
   auto f = s.make();
@@ -394,6 +408,8 @@ int main(int argc, char **argv) {
     aFaintedSignariIsReplaced(s);
     swappingWorksAndWaits(s);
     blocksStopThePlayer(s);
+    steppingOutEndsTheFightAtOnce(s);
+    everyAttackGivesTimeToReact(s);
     reachOutNeedsACalmSignariAndCloseRange(s);
     aHitBreaksTheReach(s);
     gentlePlayLowersSpiritMoreThanForce(s);

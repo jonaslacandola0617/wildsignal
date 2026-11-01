@@ -55,6 +55,13 @@ private:
     std::string text;
     PixelUi::Colour colour;
     float age = 0;
+    std::string icon = "";
+  };
+  // Messages show one at a time. A more important one takes over; others wait briefly.
+  struct Note {
+    std::string text;
+    float seconds = 1, waited = 0;
+    int rank = 1;
   };
   struct Puff {
     Vec at;
@@ -67,15 +74,18 @@ private:
   std::vector<int> hp;
   std::vector<Floater> floaters;
   std::vector<Puff> puffs;
+  std::vector<Note> notes;
+  std::array<int, battle::MoveSlots + 1> wasReady{};
+  std::array<float, battle::MoveSlots + 1> readyFlash{};
   battle::Pad pending;
   bool calmStart = false, running = false, wasLost = false, wasWon = false, wasReached = false, wasLeft = false;
-  int encounters = 0, queued = -1;
+  int encounters = 0, queued = -1, toastRank = 0;
   float spare = 0, toastTime = 0, hintTime = 0, clock = 0, clipClock = 0, commandT = 0;
   std::string toast;
   void plate(PixelUi &, const battle::Fighter &, int x, int y, int w, bool full);
   void moveBar(PixelUi &);
   void cues();
-  void say(const std::string &, float seconds = 1.6f);
+  void say(const std::string &, float seconds = 1.6f, int rank = 1);
   void finish();
   std::string nameOf(const battle::Fighter &) const;
 };

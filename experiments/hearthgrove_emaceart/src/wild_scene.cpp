@@ -308,10 +308,18 @@ WildScene::Press WildScene::press(int k, Vec) {
   // F has no other job here, so an out-of-range press does nothing.
   return k == SDLK_F ? Press::Handled : Press::None;
 }
-void WildScene::fightEnded(bool won, bool reached, bool left, const std::vector<int> &teamHp) {
+void WildScene::keepAt(const std::string &model, Vec at) {
+  for (auto &c : pack)
+    if (modelOf(c.species) == model) {
+      c.follower.position = at;
+      c.follower.target = at;
+    }
+}
+void WildScene::fightEnded(bool won, bool reached, bool left, const std::vector<int> &teamHp, Vec foeStoppedAt) {
   for (std::size_t i = 0; i < journal.party.size() && i < teamHp.size(); i++)
     journal.party[i].hp = teamHp[i];
   auto &w = wilds[std::size_t(target)];
+  w.at = foeStoppedAt;
   w.mood = Mood::Forage;
   w.timer = 1;
   if (reached) {
@@ -325,6 +333,7 @@ void WildScene::fightEnded(bool won, bool reached, bool left, const std::vector<
     say(w.name + " wants nothing to do with you.", 3.6f);
   } else if (left) {
     w.wariness.startle(8);
+    w.mood = Mood::Hide;
   }
   store();
 }

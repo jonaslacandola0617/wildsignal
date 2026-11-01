@@ -23,8 +23,10 @@ public:
   int foeLevel() const { return wilds[target].level; }
   int foeHealth() const { return wilds[target].health; }
   Vec foeAt() const { return wilds[target].at; }
-  void fightEnded(bool won, bool reached, bool left, const std::vector<int> &teamHp);
+  void fightEnded(bool won, bool reached, bool left, const std::vector<int> &teamHp, Vec foeStoppedAt);
   void regroup(Vec player, const std::vector<game::Solid> &);
+  // Leaves a teammate exactly where the fight ended, so nothing jumps.
+  void keepAt(const std::string &model, Vec at);
   void rest();
   void announce(const std::string &text) { say(text, 1.8f); }
   const std::vector<bond::Member> &team() const { return journal.party; }
