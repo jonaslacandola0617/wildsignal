@@ -1,111 +1,120 @@
 # Chapter 6 — Art, audio and assets
 
-**Status:** DRAFT 2026-11-02. Drafted by Claude from chapters 1–5 and an inventory of `D:\wildsignal\assets`, the review builds and `wildsignal-art`. Choices are in 6.8.
+**Status:** DRAFT 2026-11-02 (revised). Choices are in 6.9.
 **Built on:** chapters 1–4 (locked) and chapter 5 (functional parts locked; UI look OPEN).
 
-## 6.1 Art direction — the look we already have
+**Two owner rules shape this chapter (2026-11-02):**
+1. **We make our own assets.** None of the current 3D assets is approved; they're all experiments. Buildings, vegetation, props and the rest of the world are built for Wildsignal, so we decide exactly how it looks.
+2. **Zero budget.** No paid packs, no commissions. Everything is made by Claude (scripted Blender models, code-drawn UI and effects, synthesised audio) or comes from free sources whose licence allows commercial use.
 
-The pilot village already has a look players respond to; 1.0 keeps it and applies it everywhere:
+## 6.1 Art direction — decided through look development
 
-- **Raised 3D camera** over a small, dense world; characters read clearly against the ground.
-- **Low-resolution render, crisp pixels:** the world renders at 480, 640 or 1280 wide (F6) and is scaled up with whole, sharp pixels.
-- **Stylised lighting:** three calm light tones per surface, soft sun-edge highlights (no leaf rims), clean outlines, real shadows, optional sun shafts.
-- **Living foliage:** leaf cards that sway in the wind (with the jitter fix), dense meadow grass.
-- **Selective focus (F8):** the tilt-shift band through the player, off in fights.
-- **Creatures:** soft, rounded, glossy, big readable eyes (the approved WS-001 to WS-020 style).
-- **Palette by mood:** golden greens in Hearthgrove; jade and cyan glow in Liltwood; turquoise and sand on the coast; rust and ember at Ashbell; violet mist and lantern gold in Gloamfen; black rock, magma and crystal blue in the Caldera.
+The final look isn't chosen yet. The rendering features in the pilot are kept as a **starting point**, not a commitment: raised camera, low-resolution render with crisp pixels (F6), three-tone lighting, outlines, shadows, swaying foliage, selective focus (F8). The creatures' soft, rounded, glossy style (WS-001 to WS-020) is approved and the world must suit it.
 
-**Consistency rule:** models from different packs must pass through the same lighting, palette and outline settings so they look like one world. Any new pack is tested in the real game next to existing models before it's approved.
+**Look development (LOOKDEV-001), the first art task:** Claude builds one small test scene in the real game, a cottage, a tree, a bush, rocks, a fence, a path and grass, in **three style directions**, all made from scratch:
 
-## 6.2 Asset sources and licences
+| Direction | Idea | Feels like |
+|---|---|---|
+| **A — Pixel-textured low-poly** | Simple, chunky shapes with small pixel-art textures and visible texels (like WS_HOUSE_001) | Classic, retro, handmade |
+| **B — Soft toy** | Rounded, bevelled, slightly bulgy shapes in flat colours with gentle gradients, matching the glossy Signari | Cozy, modern, toy-like |
+| **C — Painted gradient** | Clean low-poly shapes coloured with soft hand-painted gradients and vertex colour, no textures | Calm, storybook, very light on memory |
 
-Every asset in the game needs a record: source, licence, download date, file hash and any changes. Files bought or downloaded stay in the private art repo; the public engine repo holds code only.
+The owner compares fixed screenshots and a moving preview of all three and picks one (or a blend). The result becomes the **style guide** in this chapter: shape language, proportions, texel density or colour rules, palette per region, outline and lighting settings. Only then is the chapter fully locked.
 
-| Source | Used for | Licence | Status |
+**Palette by mood** (applies to any direction): golden greens in Hearthgrove; jade and cyan glow in Liltwood; turquoise and sand on the coast; rust and ember at Ashbell; violet mist and lantern gold in Gloamfen; black rock, magma and crystal blue in the Caldera.
+
+## 6.2 How we make things
+
+| Category | Method |
+|---|---|
+| Signari | Scripted Blender pipeline (chapter 4) |
+| Buildings, vegetation, rocks, props | **Scripted Blender pipeline, same approach as the Signari:** one script per asset family, built from shared shape and paint helpers, so every model follows the style guide and can be rebuilt or restyled in one pass |
+| Wayfinder and people | Built by Claude in the same pipeline, matching the chosen style (KayKit stays a temporary stand-in until then) |
+| Terrain and ground | Generated in code and Blender: height maps, painted ground types, paths |
+| Effects (VFX) | Code- and particle-driven in the engine |
+| UI | Code-drawn by the engine (chapter 5); pixel-art UI sprites drawn by script if the owner wants a textured look later |
+| Icons | Drawn by script on a pixel grid |
+| Audio | Synthesised by Claude, plus free libraries (6.6) |
+
+Every scripted asset keeps its source script in the private art repo, so changing the style later means changing helpers and rebuilding, not redrawing by hand.
+
+## 6.3 Current assets — experimental, not approved
+
+| Source | Where it's used now | Licence | Role from now on |
 |---|---|---|---|
-| Quaternius — Medieval Village MegaKit (free) | Village buildings, props | CC0 | ✅ in use |
-| KayKit — Adventurers 2.0 (free) | Wayfinder base character | CC0 | ✅ in use |
-| EmaceArt — Free Fantasy Medieval Houses and Props / Slavic World Free | Houses, trees, rocks, grass, terrain | Free commercial use; no resale or redistribution of the files | ✅ in use |
-| Anokolisa — Pixel Crawler Free Pack 2.11 | WS_HOUSE_001 texture atlas | Commercial use and edits allowed; no resale | ✅ in use |
-| Humble Pixel — Paper UI System | Placeholder UI | Commercial use and edits allowed; no redistribution | ⚠️ placeholder (chapter 5) |
-| Daniel Linssen — m5x7, m6x11 fonts | UI text | m5x7 CC0; m6x11 needs credit, commercial terms unconfirmed | ⚠️ confirm before release |
-| Owner-generated — Worldline packs, WS_HOUSE_001 model, creature designs | Props, house, Signari | Owner's own | ✅ |
-| `medieval_house_pack_pixel_art.glb`, `cemetry-blend.zip` | — | **No licence on record** | ⛔ do not use until the source and licence are found |
-| Pokémon models in `assets/samples` | Measurement and proportion study only | Third-party, not licensed for use | ⛔ never in the game |
+| Quaternius — Medieval Village MegaKit (free) | Village buildings, props | CC0 | Placeholder until our own replaces it |
+| EmaceArt — Free Fantasy Medieval Houses and Props / Slavic World Free | Houses, trees, rocks, grass, terrain | Free commercial use; no resale or redistribution | Placeholder |
+| KayKit — Adventurers 2.0 (free) | Wayfinder | CC0 | Placeholder |
+| Anokolisa — Pixel Crawler Free Pack 2.11 | WS_HOUSE_001 texture | Commercial use and edits allowed; no resale | Reference for direction A |
+| Humble Pixel — Paper UI System | UI | Commercial use and edits allowed; no redistribution | Placeholder (chapter 5) |
+| Daniel Linssen — m5x7, m6x11 | UI fonts | m5x7 CC0; m6x11 needs credit, commercial terms unconfirmed | Keep m5x7; confirm or replace m6x11 |
+| Owner's own — creature designs, WS-001–020 models, WS_HOUSE_001, Worldline packs | Signari, house, props | Owner's own | Kept |
+| `medieval_house_pack_pixel_art.glb`, `cemetry-blend.zip` | — | No licence on record | ⛔ do not use |
+| Pokémon models in `assets/samples` | Measurement only | Not licensed | ⛔ never in the game |
 
-## 6.3 What 1.0 needs — the asset list
+**Placeholder rule:** any third-party file still in the game at release must have a recorded licence that allows it; the goal is that none remain except fonts and free audio.
 
-| Category | What | Amount | Have now | Made by |
-|---|---|---|---|---|
-| **Signari** | Models, 6 shared skeletons, 12 animations each, lower-detail versions | 50 | 20 models, 1 rigged | Claude (chapter 4 pipeline) |
-| **Wayfinder** | Player model, 4–6 looks, animations (walk, run, sneak, roll, hurt, Tune In, compass pulse, interact, cheer) | 1 | Test model from KayKit | Claude, from the KayKit CC0 base |
-| **Named characters** | Mara, Old Fen, Iri, Juno, Sol | 5 | — | Claude, from KayKit base + accessories |
-| **Other people** | Chorus members (2 looks), villagers (8–10 variants), shopkeepers | ~14 | — | Claude, kitbashed from KayKit |
-| **Region kits** | Ground, paths, trees and plants, rocks, buildings, props, water per region | 6 regions | Region 1 mostly done | Packs + Claude assembly; new kits per region (6.4) |
-| **Stations and ruins** | Resonance station ruins, Echo Hollow, drowned station, forge, marsh station, Deep Station | 6 sets | — | Claude, built to match the region kits |
-| **Homestead** | Plot ground, farm plots, 6–8 crops with growth stages, barn, greenhouse, pond, kiln, fences, paths, ~30 decorations | ~50 pieces | WS_HOUSE_001 | Claude + packs |
-| **Items** | Icons for healing items, materials, tools, key items, seeds | ~60 icons | — | Code-drawn icons first; final style with the UI look |
-| **Type and skill icons** | 8 type icons, skill icon shapes per role | ~40 | — | Same |
-| **VFX** | Hits per type; skill effects (a shared library per type); ultimates; Tune In ring; compass pulse; rain, mist, fireflies; signal glows | ~80 effects | Ground marks, smoke, sun shafts | Claude, code- and particle-driven |
-| **UI** | Panels, buttons, bars, frames | 1 set | Placeholder | **OPEN** (chapter 5) |
-| **Music** | Title; Hearthgrove day and night; one theme per region (5); homestead; wild fight; guardian fight; rival; Chorus; finale; credits | ~14 tracks | — | See 6.5 |
-| **Sound effects** | Footsteps per surface, UI, compass, Tune In, per-type attacks, hits, faint, ambient loops per region, weather | ~150 | — | See 6.5 |
-| **Signari cries** | One short cry per species | 50 | — | See 6.5 |
+## 6.4 What 1.0 needs — the asset list
 
-## 6.4 Region kits — where each region's look comes from
+| Category | What | Amount | Have now (approved) |
+|---|---|---|---|
+| **Signari** | Models, 6 shared skeletons, 12 animations each, lower-detail versions | 50 | 20 models |
+| **Wayfinder** | Player model, 4–6 looks, animations (walk, run, sneak, roll, hurt, Tune In, compass pulse, interact, cheer) | 1 | — |
+| **Named characters** | Mara, Old Fen, Iri, Juno, Sol | 5 | — |
+| **Other people** | Chorus members (2 looks), villagers (8–10), shopkeepers | ~14 | — |
+| **Region kits** | Ground, paths, trees and plants, rocks, buildings, props, water — per region | 6 regions | — |
+| **Stations and ruins** | Echo Hollow, drowned station, forge, marsh station, Deep Station, plus small ruins | 6 sets | — |
+| **Homestead** | Plot ground, farm plots, 6–8 crops with growth stages, barn, greenhouse, pond, kiln, fences, paths, ~30 decorations | ~50 pieces | — |
+| **Item icons** | Healing items, materials, tools, key items, seeds | ~60 | — |
+| **Type and skill icons** | 8 type icons, skill icon shapes per role | ~40 | — |
+| **VFX** | Hits per type, skill effects, ultimates, Tune In ring, compass pulse, rain, mist, fireflies, signal glows | ~80 | — |
+| **UI** | Panels, buttons, bars, frames | 1 set | — (code-drawn interim) |
+| **Music** | Title; Hearthgrove day and night; one theme per region; homestead; wild fight; guardian fight; rival; Chorus; finale; credits | ~14 tracks | — |
+| **Sound effects** | Footsteps per surface, UI, compass, Tune In, per-type attacks, hits, faint, ambience per region, weather | ~150 | — |
+| **Signari cries** | One per species | 50 | — |
 
-| Region | Base | Still needed |
-|---|---|---|
-| Hearthgrove Vale | EmaceArt + Quaternius village, WS_HOUSE_001 | Harbour and docks (Worldline harbour props are a start), Wayfinder Hall, Compass Workshop |
-| Liltwood Forest | EmaceArt trees and plants | Giant roots, glowing mushrooms, Echo Hollow ruins |
-| Tideglass Coast | — | Sand, tide pools, cliffs, sea caves, boats, fishing town, the drowned station |
-| Ashbell Works | — | Red rock, forge buildings, chains and bells, chimneys |
-| Gloamfen Marsh | EmaceArt water and reeds | Boardwalks, lanterns, marsh houses, mist, the marsh station |
-| Emberglass Caldera | — | Volcanic rock, magma, crystals, the Deep Station |
+## 6.5 Region kits
 
-For regions 3–6: Claude first searches for **free or affordable, commercially licensed** packs that pass the consistency rule (6.1) and lists them for the owner, then builds what's missing in Blender. Nothing is used until its licence is recorded.
+Each region gets its own kit, built by script in the chosen style: a ground set, 3–5 tree and plant families with variations, rocks, 4–8 buildings, 15–30 props, water if needed, and its station. Kits share helpers so the whole game stays consistent. Region 1 (Hearthgrove) comes first, straight after look development, and replaces the current placeholder village.
 
-## 6.5 Audio
+## 6.6 Audio — free only
 
-Audio hasn't been planned before, and the game has none yet. It matters a lot for "cozy" and "mystery".
+| Audio | Approach |
+|---|---|
+| **Music** | **Composed by Claude:** melodies and arrangements written as note data and rendered with free synthesisers and free instrument sample libraries (for example CC0 or royalty-free sound fonts). Small, warm instrumentation suits the cozy mood: soft piano, plucked strings, flute, light percussion. Free CC0 / CC-BY music can fill gaps, with credits recorded. |
+| **Sound effects** | Free **CC0** libraries (for example Kenney's CC0 audio and other public-domain collections), edited to fit, plus synthesised sounds (UI clicks, compass pulse, Tune In tones, magic and signal effects). |
+| **Signari cries** | Synthesised and processed per species (pitch, formants, layered textures), so all 50 are unique and owned. |
 
-**CHOICE A4 — where music comes from:**
+Only licences that allow commercial use are accepted, and every audio file goes into the same manifest as art.
 
-| Option | What | Cost |
-|---|---|---|
-| A | Royalty-free music libraries and packs (some free, some paid), picked to fit | Low to medium; less unique |
-| **B (recommended)** | **Commission a composer** for the core themes (title, Hearthgrove, fights, finale), libraries for the rest | Medium; gives Wildsignal its own identity |
-| C | Commission everything | Highest |
+## 6.7 Production rules
 
-**Sound effects:** recommended from **CC0 and royalty-free libraries** (for example Kenney's CC0 audio, free game-audio bundles), edited to fit, plus sounds Claude can synthesise (UI clicks, compass pulse, Tune In tones).
-**Signari cries:** recommended **synthesised and processed** sounds (pitched, layered voice and instrument samples) designed per species, so all 50 are unique and owned.
-
-## 6.6 Production rules
-
-- One private manifest lists every asset: ID, file, size, triangle count, texture size, source, licence, hash, version, review status.
+- One private manifest lists every asset: ID, file, size, triangle count, texture size, source script or source, licence, version, review status.
 - Review always happens in the real game: fixed screenshots **and** a moving preview. Passing tests isn't art approval.
-- Budgets: Signari as in chapter 4; buildings up to ~5,000 triangles; props up to ~1,500; textures up to 512 × 512 (1024 for large terrain); nearest-neighbour sampling.
+- Budgets: Signari as in chapter 4; buildings up to ~5,000 triangles; props up to ~1,500; textures up to 512 × 512 (1024 for large terrain); nearest-neighbour sampling if the chosen style uses textures.
 - Region memory budgets are set in chapter 7 and checked on the i3 / 4 GB PC.
 
-## 6.7 The UI look (open from chapter 5)
+## 6.8 The UI look (open from chapter 5)
 
-Until the owner chooses, the game uses a **clean code-drawn UI** (simple rounded panels, soft colours, crisp text, simple icons). Options to settle later, in any order:
-1. Claude shortlists 3–5 paid UI packs (typically $5–30) that fit a cozy adventure, with licences checked, and the owner picks by eye.
-2. Commission the core UI pieces from an artist once the screen list (chapter 5) is final.
-3. Keep refining the code-drawn style if it grows on the owner.
+With no budget for UI packs, the choice is between:
+1. **The clean code-drawn style** (already the interim plan), refined over time.
+2. **Pixel-art UI sprites drawn by script** to match the chosen world style (panels, buttons, frames, icons), once LOOKDEV-001 has picked the world style, so UI and world match.
 
-## 6.8 Owner choices
+Recommendation: decide after look development; whichever world style wins, the UI follows it.
+
+## 6.9 Owner choices
 
 | # | Question | Recommendation |
 |---|---|---|
-| A1 | Keep the current look as the art direction (6.1)? | Yes |
-| A2 | The licence rule and the "do not use" list (6.2)? | Yes |
-| A3 | People (Wayfinder, NPCs, villagers) built from the KayKit CC0 base (6.3)? | Yes |
-| A4 | Music: libraries, a composer for core themes, or full commission (6.5)? | Composer for core themes + libraries |
-| A5 | Sound effects from CC0/royalty-free libraries plus synthesis; cries synthesised (6.5)? | Yes |
-| A6 | For regions 3–6, Claude searches for fitting packs first, then builds the rest (6.4)? | Yes |
-| A7 | UI look: shortlist paid packs now, or decide later (6.7)? | Shortlist now, decide when you see them |
+| A1 | Build all our own assets with a zero budget; current packs are placeholders only (6.2–6.3)? | Yes |
+| A2 | Look development first: three style directions in one test scene, owner picks (6.1)? | Yes |
+| A3 | The three directions to test: pixel-textured low-poly, soft toy, painted gradient (6.1)? | Yes |
+| A4 | Music composed by Claude with free instruments, plus free CC0 / CC-BY music (6.6)? | Yes |
+| A5 | Sound effects from CC0 libraries plus synthesis; cries synthesised (6.6)? | Yes |
+| A6 | UI look decided after look development, following the world style (6.8)? | Yes |
+| A7 | The licence rule and the do-not-use list (6.3)? | Yes |
 
 ## Change log
 
 - 2026-11-02 — First draft.
+- 2026-11-02 — Owner: no current 3D asset is approved, we build our own (especially buildings and vegetation), and there is no budget. Reworked around own assets, look development and free audio.
