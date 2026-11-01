@@ -528,7 +528,7 @@ int main(int argc, char **argv) {
     p3::applyKitRelief(world,relief);
     world.partition(3);
     for(auto &m:world.models) for(auto &mat:m.materials) {
-      mat.architecture=m.id=="EA_HOUSE"||m.id=="EA_SHED"||m.id=="EA_HOVEL"||m.id.starts_with("EA_FENCE")||m.id=="EA_BENCH"||m.id=="EA_BARREL";
+      mat.architecture=p3::building(m.id)||m.id.starts_with("EA_FENCE")||m.id=="EA_BENCH"||m.id=="EA_BARREL";
       mat.foliage=m.id.starts_with("EA_TREE_")||m.id.starts_with("EA_BUSH_")||m.id.starts_with("EA_REED_");
       mat.leafy=mat.foliage;
       mat.ground=(m.id=="EA_GROUND"||m.id.starts_with("HG_GROUND")||m.id.starts_with("HG_GREEN")||m.id.starts_with("HG_PATH"))||m.id.starts_with("EA_GREEN_")||m.id.starts_with("EA_PATH_")||m.id=="EA_COBBLE"||m.id=="EA_MOSS";
@@ -657,7 +657,7 @@ int main(int argc, char **argv) {
         auto at=(world.instances[i].bounds.lo+world.instances[i].bounds.hi)*.5f;float best=1e9f;std::size_t home=i;
         for(auto b:viewBlockers){
           const auto &id=world.models[world.instances[b].model].id;
-          if(id!="EA_HOUSE"&&id!="EA_SHED"&&id!="EA_HOVEL")continue;
+          if(!p3::building(id))continue;
           auto c=(world.instances[b].bounds.lo+world.instances[b].bounds.hi)*.5f;float d=std::hypot(c.x-at.x,c.z-at.z);
           if(d<best)best=d,home=b;
         }

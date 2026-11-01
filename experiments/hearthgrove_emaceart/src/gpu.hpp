@@ -11,6 +11,7 @@
 #include "tree_study.hpp"
 #include <functional>
 #include <memory>
+#include <string_view>
 struct SDL_Window;
 namespace p3 {
 struct GpuStats {
@@ -21,6 +22,10 @@ struct GpuStats {
   double shadowCpuMs = 0, shaftCpuMs = 0;
   std::size_t treeCasterDraws = 0, rockCasterDraws = 0, buildingCasterDraws = 0;
 };
+// Whole buildings: kit houses and Wildsignal's own WS_HOUSE models.
+inline bool building(std::string_view id) {
+  return id == "EA_HOUSE" || id == "EA_SHED" || id == "EA_HOVEL" || id.starts_with("WS_HOUSE");
+}
 struct SurfacePolicy {
   bool casts = true, receives = true;
   float sunTint = 1, shadowFloor = 0;

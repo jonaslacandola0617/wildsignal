@@ -813,7 +813,7 @@ void main(){ivec2 size=textureSize(image,0),p=ivec2(gl_FragCoord.xy);vec4 base=t
       auto root = point(i.matrix, {0, 0, 0});
       p->wordlineContacts.push_back({root.x, root.z, .34f, .34f});
     }
-    if(id=="EA_HOUSE"||id=="EA_SHED"||id=="EA_HOVEL") {
+    if(building(id)) {
       p->emaceContacts.push_back({center.x,center.z,(i.bounds.hi.x-i.bounds.lo.x)*.43f,-(i.bounds.hi.z-i.bounds.lo.z)*.43f});
     }else if(id.starts_with("EA_TREE")) {auto root=point(i.matrix,{});p->emaceContacts.push_back({root.x,root.z,.60f,.60f});}
     else if(id.starts_with("EA_ROCK")||id=="EA_BARREL"||id=="EA_BENCH") {
@@ -1305,7 +1305,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
           if ((id.starts_with("EA_ROCK_") || id == "GLADE_ROCKS" || id.starts_with("NATURE_Rock_") ||
                id.starts_with("NATURE_Pebble_")))
             stats.rockCasterDraws++;
-          if (id == "EA_HOUSE" || id.starts_with("Wall_") || id.starts_with("Roof_") ||
+          if (building(id) || id.starts_with("Wall_") || id.starts_with("Roof_") ||
               id.starts_with("Door") || id.starts_with("Corner_") ||
               id == "Prop_Chimney")
             stats.buildingCasterDraws++;
