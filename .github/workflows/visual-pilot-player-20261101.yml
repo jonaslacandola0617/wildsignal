@@ -1,0 +1,26 @@
+name: WILDSIGNAL visual pilot portable Windows build
+on:
+  push:
+    branches: [build/visual-pilot-player-20261101]
+    paths: ['.github/workflows/visual-pilot-player-20261101.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows-x64:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Configure native Windows build
+        run: cmake -S experiments/hearthgrove_emaceart -B build/pilot -G "Visual Studio 17 2022" -A x64
+      - name: Build WILDSIGNAL
+        run: cmake --build build/pilot --config Release --parallel 2
+      - name: Run logic tests
+        run: ctest --test-dir build/pilot -C Release --output-on-failure
+      - name: Package code-only executable
+        run: cmake --install build/pilot --config Release --prefix out/wildsignal-visual-pilot
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: wildsignal-visual-pilot-20261101-windows-code-only
+          path: out/wildsignal-visual-pilot
+          retention-days: 14
