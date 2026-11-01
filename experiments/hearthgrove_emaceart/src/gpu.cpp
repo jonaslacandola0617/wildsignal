@@ -958,7 +958,7 @@ void Gpu::setStudy(int study, PixelCameraMode cameraMode, float depth) {
   p->cameraMode = cameraMode;
   p->referenceDepth = depth;
 }
-std::size_t Gpu::ownershipBytes()const{return(p->owners?std::size_t(p->w)*p->h*2:0)+(p->shadowOwners?std::size_t(p->mapSize)*p->mapSize*2:0);}
+std::size_t Gpu::ownershipBytes()const{return(p->owners?std::size_t(p->w)*p->h*2:0)+(p->shadowOwners?std::size_t(p->mapSize)*p->mapSize*2:0)+(p->staticShadowOwners?std::size_t(p->mapSize)*p->mapSize*2:0);}
 void Gpu::saveObjectIDs(const std::filesystem::path &dir){
  std::vector<std::uint16_t> data(std::size_t(p->w)*p->h);
  gl::BindFramebuffer(GL_READ_FRAMEBUFFER,p->fbo);gl::ReadBuffer(GL_COLOR_ATTACHMENT2);gl::PixelStorei(GL_PACK_ALIGNMENT,1);
