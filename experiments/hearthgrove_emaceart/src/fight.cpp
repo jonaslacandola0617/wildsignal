@@ -93,6 +93,10 @@ FightData parseFight(std::string_view text, const Content &c) {
   }
   for (const auto &g : root.at("gentle").array())
     d.timing[c.moveIndex(g.string())].gentle = true;
+  if (auto at = fields.find("recruitHealthPercent"); at != fields.end()) {
+    d.recruitPercent = int(at->second.number());
+    if (d.recruitPercent < 1 || d.recruitPercent > 100) throw std::runtime_error("recruitHealthPercent 1..100");
+  }
   return d;
 }
 
@@ -123,7 +127,9 @@ void Fight::soothe(int points) {
   cues.push_back({CueKind::Soothed, Target::Wild, points, foe.at});
   if (!wasCalm && foe.spirit <= CalmSpirit) cues.push_back({CueKind::Calmed, Target::Wild, 0, foe.at});
 }
-bool Fight::canReach() const { return foe.hp > 0 && foe.spirit <= CalmSpirit && gap(player.at, foe.at) <= ReachRange; }
+void Fight::wound(int points) { foe.hp = std::max(1, foe.hp - points); }
+bool Fight::wornDown() const { return foe.hp > 0 && foe.hp * 100 <= foe.stats.hp * data->recruitPercent; }
+bool Fight::canReach() const { return wornDown() && foe.spirit <= CalmSpirit && gap(player.at, foe.at) <= ReachRange; }
 int Fight::moveId(const Fighter &k, int slot) const { return data->slots[k.species][slot]; }
 bool Fight::canUse(const Fighter &k, int slot) const {
   if (slot < 0 || slot >= MoveSlots || k.ready[slot] > 0) return false;
@@ -664,6 +670,11 @@ void Fight::step(const Pad &pad) {
     foe.spirit++;
   }
   tickPlayer();
+  // Say once when it is worn down enough to recruit; healing above the line resets it.
+  if (wornDown() != worn) {
+    worn = !worn;
+    if (worn) cues.push_back({CueKind::WornDown, Target::Wild, foe.hp, foe.at});
+  }
   checkEnd();
 }
 

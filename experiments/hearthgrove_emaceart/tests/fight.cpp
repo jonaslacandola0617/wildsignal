@@ -274,6 +274,7 @@ void reachOutNeedsACalmSignariAndCloseRange(const Setup &s) {
   check(!far.canReach() && far.you().reachTicks == 0, "reaching out needs the player close");
   Fight near(s.content, s.data, {{s.driftfin, 5, -1}}, {s.tumbletail, 3, -1}, {-1500, 0}, {0, 0}, 5);
   near.soothe(80);
+  near.wound(near.wild().stats.hp * 7 / 10);
   check(near.canReach(), "a calm Signari close by can be reached");
   near.step(reach);
   check(near.you().reachTicks > 0, "reaching out starts");
@@ -286,9 +287,39 @@ void reachOutNeedsACalmSignariAndCloseRange(const Setup &s) {
   check(near.outcome() == Outcome::Reached || near.you().reachTicks == 0, "the reach resolves");
   check(near.you().at == start || near.you().composure < FullComposure, "the player holds still while reaching");
 }
+// Fight, then recruit: calm is not enough until it is worn down past the line, and the line is announced once.
+void reachOutNeedsItWornDown(const Setup &s) {
+  Pad reach;
+  reach.reach = true;
+  Fight f(s.content, s.data, {{s.driftfin, 5, -1}}, {s.tumbletail, 3, -1}, {-1500, 0}, {0, 0}, 5);
+  f.soothe(80);
+  check(!f.wornDown() && !f.canReach(), "a calm but healthy Signari cannot be reached");
+  f.step(reach);
+  check(f.you().reachTicks == 0, "reaching out does not start while it is healthy");
+  int line = f.wild().stats.hp * s.data.recruitPercent / 100;
+  f.wound(f.wild().hp - line - 1);
+  check(!f.wornDown(), "just above the line is not worn down");
+  f.wound(1);
+  check(f.wornDown() && f.canReach(), "at the line it can be reached");
+  f.takeCues();
+  f.step({});
+  int announced = 0;
+  for (const auto &c : f.takeCues())
+    announced += c.kind == CueKind::WornDown;
+  f.step({});
+  for (const auto &c : f.takeCues())
+    announced += c.kind == CueKind::WornDown;
+  check(announced == 1, "crossing the line is announced once");
+  auto data = s.data;
+  data.recruitPercent = 100;
+  Fight easy(s.content, data, {{s.driftfin, 5, -1}}, {s.tumbletail, 3, -1}, {-1500, 0}, {0, 0}, 5);
+  easy.soothe(80);
+  check(easy.canReach(), "the line comes from the fight data");
+}
 void aHitBreaksTheReach(const Setup &s) {
   Fight f(s.content, s.data, {{s.driftfin, 5, -1}}, {s.tumbletail, 3, -1}, {-1500, 0}, {0, 0}, 5);
   f.soothe(80);
+  f.wound(f.wild().stats.hp * 7 / 10);
   f.strike(Target::Wild, slotOf(s, f.wild(), "TAP"), Target::You);
   Pad reach;
   reach.reach = true;
@@ -462,6 +493,7 @@ int main(int argc, char **argv) {
     steppingOutEndsTheFightAtOnce(s);
     everyAttackGivesTimeToReact(s);
     reachOutNeedsACalmSignariAndCloseRange(s);
+    reachOutNeedsItWornDown(s);
     aHitBreaksTheReach(s);
     gentlePlayLowersSpiritMoreThanForce(s);
     knockingItOutEndsTheChance(s);

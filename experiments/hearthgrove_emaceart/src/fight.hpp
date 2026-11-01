@@ -30,6 +30,8 @@ struct Timing {
 struct FightData {
   std::vector<Timing> timing;                     // By move index.
   std::vector<std::array<int, MoveSlots>> slots;  // By species index.
+  // Reach Out needs the wild Signari at or below this share of its health (and calm).
+  int recruitPercent = 40;
 };
 FightData parseFight(std::string_view json, const Content &);
 
@@ -70,7 +72,7 @@ struct Marker {
   int size = 0, percent = 0;
   bool hostile = true, heavy = false;
 };
-enum class CueKind { Hit, Unsettled, Dodged, Healed, StatusOn, Faint, Swap, AimYou, AimMine, Command, Calmed, Soothed, ReachStart, ReachBroken };
+enum class CueKind { Hit, Unsettled, Dodged, Healed, StatusOn, Faint, Swap, AimYou, AimMine, Command, Calmed, Soothed, ReachStart, ReachBroken, WornDown };
 struct Cue {
   CueKind kind = CueKind::Hit;
   Target target = Target::None;
@@ -91,8 +93,13 @@ public:
   void strike(Target attacker, int slot, Target victim);
   // Lowers the wild Signari's Spirit; gentle play and dodging call this.
   void soothe(int points);
+  // Takes health from the wild Signari directly, never below 1; tests use it to stage exact cases.
+  void wound(int points);
   // True when the player could reach out from where they stand.
   bool canReach() const;
+  // The wild Signari is hurt enough to be recruited (still standing).
+  bool wornDown() const;
+  int recruitPercent() const { return data->recruitPercent; }
   const Fighter &mine() const { return team[active]; }
   const Fighter &wild() const { return foe; }
   const Wayfinder &you() const { return player; }
@@ -119,6 +126,7 @@ private:
   std::vector<Cue> cues;
   Rng rng;
   Outcome result = Outcome::Ongoing;
+  bool worn = false; // Last worn-down state, so the cue fires once per crossing.
   int active = 0, clock = 0, order = -1, orderAge = 0, autoWait = 90, swapWait = 0, outside = 0;
   int plan = -1, planAge = 0, thinkWait = 60, ignored = 0, lastSlot = -1;
   Target planVictim = Target::None;

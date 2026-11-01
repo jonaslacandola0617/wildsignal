@@ -115,7 +115,11 @@ void FightScene::key(int k) {
     pending.swap = true;
   } else if (k == SDLK_R) {
     pending.reach = true;
-    if (!fight->canReach()) say(fight->wild().spirit > battle::CalmSpirit ? nameOf(fight->wild()) + " is not calm enough yet." : "Get closer to reach out.", 1.2f, 0);
+    if (!fight->canReach())
+      say(!fight->wornDown() ? "Wear " + nameOf(fight->wild()) + " down past the line first."
+          : fight->wild().spirit > battle::CalmSpirit ? nameOf(fight->wild()) + " is not calm enough yet."
+                                                      : "Get closer to reach out.",
+          1.2f, 0);
   }
 }
 void FightScene::cues() {
@@ -162,7 +166,11 @@ void FightScene::cues() {
       queued = c.value;
       break;
     case CueKind::Calmed:
-      say(nameOf(fight->wild()) + " is calm. Get close and press R.", 2.6f, 2);
+      say(nameOf(fight->wild()) + (fight->wornDown() ? " is calm. Get close and press R." : " is calm. Wear it down past the line."), 2.6f, 2);
+      break;
+    case CueKind::WornDown:
+      floaters.push_back({at + Vec{0, 1.6f, 0}, "Worn down", Gold});
+      say(nameOf(fight->wild()) + (fight->wild().spirit <= battle::CalmSpirit ? " is worn down. Get close and press R." : " is worn down. Calm it, then press R."), 2.6f, 2);
       break;
     case CueKind::Soothed:
       floaters.push_back({at + Vec{.45f, 1.2f, 0}, "", Calm, 0, "icon_spirit"});
@@ -319,6 +327,8 @@ void FightScene::plate(PixelUi &ui, const Fighter &k, int x, int y, int w, bool 
   auto colour = value * 4 <= k.stats.hp ? HpLow : value * 2 <= k.stats.hp ? HpMid : HpGood;
   ui.image(ui.has("icon_health") ? "icon_health" : "trust_on", left, rowHp);
   ui.meter(bar, rowHp, barW, float(value) / float(std::max(1, k.stats.hp)), "fill_hp", colour);
+  // The recruit line: wear the wild Signari down past it, but not to zero.
+  if (!full) ui.fill(bar + barW * fight->recruitPercent() / 100, rowHp - 2, 2, 10, fight->wornDown() ? Gold : Cream);
   int icon = left + 112;
   if (full) {
     if (ui.has("icon_energy")) ui.image("icon_energy", left - 2, rowTwo - 2);
