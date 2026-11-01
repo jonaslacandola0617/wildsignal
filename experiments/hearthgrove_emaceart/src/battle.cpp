@@ -91,6 +91,16 @@ Stats statsAt(const Species &s, int level) {
   return {s.base.hp + 4 * up, s.base.might + up, s.base.guard + up, s.base.pulse + up, s.base.ward + up, s.base.swift + up};
 }
 
+const char *affinityName(Affinity a) {
+  switch (a) {
+  case Affinity::Flora: return "Flora";
+  case Affinity::Tide: return "Tide";
+  case Affinity::Ember: return "Ember";
+  case Affinity::Stone: return "Stone";
+  case Affinity::Lumen: return "Lumen";
+  default: return "Wild";
+  }
+}
 int affinityPercent(Affinity a, Affinity d) {
   auto beats = [](Affinity x, Affinity y) {
     return (x == Affinity::Flora && y == Affinity::Tide) || (x == Affinity::Tide && y == Affinity::Ember) ||

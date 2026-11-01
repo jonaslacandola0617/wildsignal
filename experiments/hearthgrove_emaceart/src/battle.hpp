@@ -8,6 +8,8 @@
 // of rendering, timers and network code, so the same inputs replay identically.
 namespace battle {
 enum class Affinity { Wild, Flora, Tide, Ember, Stone, Lumen };
+constexpr int Affinities = 6;
+const char *affinityName(Affinity);
 enum class Kind { Physical, Signal, Support };
 enum class Status { Guard, Regen, Burn, Slow, Focus };
 struct Stats {

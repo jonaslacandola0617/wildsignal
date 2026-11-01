@@ -56,6 +56,56 @@ void everySpeciesHasTapAndFourLearnedMoves(const Setup &s) {
     }
   }
 }
+// A basicAttacks table gives each affinity its own free first move, and hits report the matchup.
+void affinityBasicsFillTheFirstSlot(const Setup &s, std::string fightText) {
+  Content c = s.content;
+  const char *ids[Affinities] = {"NUDGE", "LEAF_FLICK", "SPLASH", "SPARK", "PEBBLE", "GLIMMER"};
+  std::string timing, table;
+  for (int a = 0; a < Affinities; a++) {
+    Move m;
+    m.id = m.name = ids[a];
+    m.type = Affinity(a);
+    m.kind = a == 0 || a == 4 ? Kind::Physical : Kind::Signal;
+    m.power = 16;
+    c.moves.push_back(m);
+    timing += std::string("\"") + ids[a] + "\":{\"reach\":\"lane\",\"range\":5200,\"size\":500,\"windup\":620,\"recover\":420,\"cooldown\":1800},";
+    table += std::string(a ? "," : "") + "\"" + affinityName(Affinity(a)) + "\":\"" + ids[a] + "\"";
+  }
+  auto at = fightText.find("\"timing\"");
+  fightText.insert(fightText.find('{', at) + 1, timing);
+  fightText.insert(fightText.rfind('}'), ",\"basicAttacks\":{" + table + "}");
+  auto data = parseFight(fightText, c);
+  for (std::size_t i = 0; i < c.species.size(); i++)
+    check(c.moves[data.slots[i][0]].type == c.species[i].affinity, "slot one is the basic attack of the Signari's affinity");
+  check(c.moves[data.slots[s.driftfin][0]].id == "SPLASH", "Driftfin's basic attack is Splash");
+  // Glintle's Flora basic against a Tide Driftfin is a strong matchup.
+  bool reported = false;
+  for (std::uint32_t seed = 1; seed < 60 && !reported; seed++) {
+    Fight f(c, data, {{s.glintle, 5, -1}}, {s.driftfin, 3, -1}, {-4000, 0}, {0, 0}, seed);
+    // Like the gentle-play test: let the wild Signari move first, then aim.
+    for (int i = 0; i < 30 + int(seed); i++)
+      f.step({});
+    f.takeCues();
+    f.strike(Target::Mine, 0, Target::Wild);
+    for (int i = 0; i < 110 && !reported; i++) {
+      f.step({});
+      for (const auto &cue : f.takeCues())
+        if (cue.kind == CueKind::Hit && cue.target == Target::Wild && cue.affinity == Affinity::Flora)
+          reported = cue.matchup == 125;
+    }
+  }
+  check(reported, "a Flora hit on a Tide Signari reports a strong matchup");
+  // A paid or supporting move is refused as a basic attack.
+  auto bad = fightText;
+  bad.replace(bad.find("\"Flora\":\"LEAF_FLICK\""), 20, "\"Flora\":\"" + c.moves[c.species[s.glintle].moves[1]].id + "\"");
+  bool refused = false;
+  try {
+    parseFight(bad, c);
+  } catch (const std::exception &) {
+    refused = true;
+  }
+  check(refused || c.moves[c.species[s.glintle].moves[1]].cost == 0, "a costly basic attack is refused");
+}
 void sameInputsReplayIdentically(const Setup &s) {
   auto play = [&] {
     auto f = s.make(99);
@@ -394,6 +444,7 @@ int main(int argc, char **argv) {
     s.glintle = s.content.speciesIndex("WS-004");
     s.tumbletail = s.content.speciesIndex("WS-005");
     everySpeciesHasTapAndFourLearnedMoves(s);
+    affinityBasicsFillTheFirstSlot(s, readText(argv[2]));
     sameInputsReplayIdentically(s);
     standingStillInAMarkerCostsComposure(s);
     aRollThroughTheImpactAvoidsIt(s);

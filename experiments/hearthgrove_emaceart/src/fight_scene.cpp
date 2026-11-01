@@ -125,7 +125,10 @@ void FightScene::cues() {
     case CueKind::Hit:
       // Harm to a wild Signari stays quiet: calming it is the goal, not the damage.
       floaters.push_back({at + Vec{0, 1.3f, 0}, "-" + std::to_string(c.value), c.target == Target::Wild ? Muted : Coral});
-      puffs.push_back({at, 0, c.target == Target::Wild ? Muted : Coral});
+      // The puff takes the move's affinity colour, and a word names a matchup that mattered.
+      puffs.push_back({at, 0, c.affinity != battle::Affinity::Wild ? affinityColour(c.affinity) : c.target == Target::Wild ? Muted : Coral});
+      if (c.matchup != 100)
+        floaters.push_back({at + Vec{0, 1.8f, 0}, c.matchup > 100 ? "Strong!" : "Resisted", c.matchup > 100 ? affinityColour(c.affinity) : Muted});
       break;
     case CueKind::Unsettled:
       floaters.push_back({at + Vec{0, 1.5f, 0}, "-" + std::to_string(c.value), Gold});

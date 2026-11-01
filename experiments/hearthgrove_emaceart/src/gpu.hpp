@@ -69,6 +69,10 @@ struct Gpu {
   void setDefinedShafts(bool);
   void setPilot(const PilotLook &);
   void setPilotTime(float);
+  // Scales every sun-edge highlight; leaf rims can be dropped on their own.
+  void setHighlights(float limit, bool leafRims);
+  // Selective focus around a world point, usually the player.
+  void setFocus(bool enabled, Vec at);
   void setOptimizations(bool);
   std::size_t effectBytes() const;
   ~Gpu();

@@ -72,12 +72,22 @@ FightData parseFight(std::string_view text, const Content &c) {
     known[index] = true;
   }
   if (std::find(known.begin(), known.end(), false) != known.end()) throw std::runtime_error("every move needs fight timing");
+  // Slot 0 is the free basic attack of the Signari's affinity. A basicAttacks table
+  // must name one for every affinity; without the table everyone shares Tap.
+  std::array<int, Affinities> basic{};
+  const auto &fields = std::get<ws::Json::Object>(root.value);
+  auto table = fields.find("basicAttacks");
+  for (int a = 0; a < Affinities; a++) {
+    basic[a] = c.moveIndex(table == fields.end() ? "TAP" : table->second.at(affinityName(Affinity(a))).string());
+    const auto &m = c.moves[basic[a]];
+    if (m.cost != 0 || m.self || m.kind == Kind::Support) throw std::runtime_error("basic attack " + m.id + " must be a free attack");
+  }
   d.slots.resize(c.species.size());
   const auto &slots = root.at("slots");
   for (std::size_t i = 0; i < c.species.size(); i++) {
     const auto &list = slots.at(c.species[i].id).array();
     if (list.size() != LearnedMoves) throw std::runtime_error("four learned moves per species required");
-    d.slots[i][0] = c.moveIndex("TAP");
+    d.slots[i][0] = basic[int(c.species[i].affinity)];
     for (int s = 0; s < LearnedMoves; s++)
       d.slots[i][s + 1] = c.moveIndex(list[s].string());
   }
@@ -376,13 +386,14 @@ void Fight::land(Fighter &a, Target victim, const Strike &s) {
   }
   Fighter &t = victim == Target::Wild ? foe : own();
   bool physical = m.kind == Kind::Physical;
+  int matchup = affinityPercent(m.type, content->species[t.species].affinity);
   auto hit = damage({m.power, physical ? a.stats.might : a.stats.pulse, physical ? t.stats.guard : t.stats.ward, a.level,
-                     affinityPercent(m.type, content->species[t.species].affinity), a.focus > 0, t.guard > 0});
+                     matchup, a.focus > 0, t.guard > 0});
   int applied = std::min(t.hp, hit.finalDamage);
   t.hp -= applied;
   a.focus = 0;
   t.guard = 0;
-  cues.push_back({CueKind::Hit, victim, applied, t.at});
+  cues.push_back({CueKind::Hit, victim, applied, t.at, Status::Guard, m.type, matchup});
   if (victim == Target::Wild) soothe(data->timing[s.move].gentle ? GentleCalm : HardCalm);
   if (t.pose == Pose::Ready || t.pose == Pose::Recover) {
     t.pose = Pose::Hurt;

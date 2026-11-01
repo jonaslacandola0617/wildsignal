@@ -30,7 +30,7 @@ namespace gl {
   F(GenTextures) F(DeleteTextures) F(BindTexture) F(TexImage2D) F(TexImage3D) F(TexSubImage3D) F(TexParameteri) F(GenerateMipmap) F(ActiveTexture) F(PixelStorei) \
   F(GenBuffers) F(DeleteBuffers) F(BindBuffer) F(BufferData) F(GenVertexArrays) F(DeleteVertexArrays) F(BindVertexArray) F(EnableVertexAttribArray) F(VertexAttribPointer) \
   F(CreateShader) F(ShaderSource) F(CompileShader) F(GetShaderiv) F(GetShaderInfoLog) F(DeleteShader) F(CreateProgram) F(AttachShader) F(LinkProgram) F(GetProgramiv) F(GetProgramInfoLog) F(DeleteProgram) F(UseProgram) \
-  F(GetUniformLocation) F(UniformMatrix4fv) F(Uniform4fv) F(Uniform1i) F(Uniform1f) F(Uniform2f) F(Uniform3f) \
+  F(GetUniformLocation) F(UniformMatrix4fv) F(Uniform4fv) F(Uniform1i) F(Uniform1iv) F(Uniform1f) F(Uniform2f) F(Uniform3f) \
   F(GenFramebuffers) F(DeleteFramebuffers) F(BindFramebuffer) F(FramebufferTexture2D) F(CheckFramebufferStatus) F(DrawBuffers) F(ReadBuffer) F(ReadPixels) \
   F(VertexAttribDivisor) F(DrawElementsInstanced) F(Scissor) F(Viewport) F(ClearColor) F(Clear) F(ClearBufferfv) F(ClearBufferuiv) F(Enable) F(Disable) F(DepthMask) F(DepthFunc) F(BlendFunc) F(CullFace) F(DrawElements) F(DrawArrays) F(BlitFramebuffer) \
   F(GenSamplers) F(DeleteSamplers) F(BindSampler) F(SamplerParameteri) F(PolygonMode) F(GetQueryiv) F(GenQueries) F(DeleteQueries) F(BeginQuery) F(EndQuery) F(GetQueryObjectiv) F(GetQueryObjectui64v) F(Finish)
@@ -378,6 +378,11 @@ struct Gpu::Impl {
   GLuint studyPost = 0, presentProgram = 0, fillProgram = 0;
   GLuint linearSampler = 0, compareSampler = 0;
   GLuint artPost = 0, airFilter = 0, filteredAir = 0, filteredFbo = 0;
+  bool leafRims = true;float highlightLimit = 1;
+  // Selective focus: a sharp band through the player, softer above and below.
+  bool focus = false;Vec focusAt{};
+  GLuint focusProgram = 0, focusSampler = 0, focusFbo = 0, focusColor = 0;
+  std::vector<int> actorOwners;
   Mat lightVP,lastVP;
   bool shadowValid = false, groundValid = false;
   bool optimize = true;
@@ -435,6 +440,8 @@ struct Gpu::Impl {
     gl::DeleteProgram(artPost);
     gl::DeleteProgram(studyPost);
     gl::DeleteProgram(edgePost);
+    gl::DeleteProgram(focusProgram);
+    gl::DeleteSamplers(1, &focusSampler);
     gl::DeleteProgram(presentProgram);
     gl::DeleteProgram(fillProgram);
     gl::DeleteProgram(airFilter);
@@ -453,11 +460,11 @@ struct Gpu::Impl {
     freeTargets();
   }
   void freeTargets() {
-    GLuint t[] = {color, normal, depth, finalColor,owners};
-    gl::DeleteTextures(5, t);
-    GLuint f[] = {fbo, postFbo};
-    gl::DeleteFramebuffers(2, f);
-    color = normal = depth = finalColor = owners = fbo = postFbo = 0;
+    GLuint t[] = {color, normal, depth, finalColor,owners,focusColor};
+    gl::DeleteTextures(6, t);
+    GLuint f[] = {fbo, postFbo, focusFbo};
+    gl::DeleteFramebuffers(3, f);
+    color = normal = depth = finalColor = owners = fbo = postFbo = focusColor = focusFbo = 0;
   }
   void target(GLuint &id, GLint internal, GLenum format, GLenum type) {
     gl::GenTextures(1, &id);
@@ -499,6 +506,14 @@ struct Gpu::Impl {
     gl::DrawBuffers(1, attachments);
     if (gl::CheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
       throw std::runtime_error("post framebuffer incomplete");
+    target(focusColor, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE);
+    gl::GenFramebuffers(1, &focusFbo);
+    gl::BindFramebuffer(GL_FRAMEBUFFER, focusFbo);
+    gl::FramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+                             GL_TEXTURE_2D, focusColor, 0);
+    gl::DrawBuffers(1, attachments);
+    if (gl::CheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+      throw std::runtime_error("focus framebuffer incomplete");
     check("targets");
   }
 };
@@ -574,6 +589,24 @@ Gpu::Gpu(World &world, bool allowSoftware, const TreeStudy *treeStudy) {
   p->fillProgram = program(postVS, R"(#version 330 core
 in vec2 uv;out vec4 color;uniform sampler2D image;uniform vec2 source;uniform float zoom;
 void main(){vec2 t=uv*source,b=floor(t)+.5;color=texture(image,(b+clamp((t-b)*zoom,-.5,.5))/source);})");
+  // Selective focus, like a tilted lens: the band through the player stays sharp and
+  // the view softens above and below it. Characters keep their pixels everywhere, and
+  // no sample is taken from them, so they neither blur nor bleed into the background.
+  p->focusProgram = program(postVS, R"(#version 330 core
+in vec2 uv;out vec4 color;uniform sampler2D image;uniform usampler2D owners;uniform int actors[16];uniform int actorCount;uniform float focusY,radius;
+bool actor(ivec2 q){int o=int(texelFetch(owners,q,0).r);if(o==0)return false;for(int i=0;i<actorCount;i++)if(actors[i]==o)return true;return false;}
+void main(){ivec2 size=textureSize(image,0),p=ivec2(gl_FragCoord.xy);vec4 base=texelFetch(image,p,0);
+ float amount=smoothstep(.10,.42,abs(uv.y-focusY));
+ if(amount<.03||actor(p)){color=base;return;}
+ const vec2 disc[12]=vec2[12](vec2(1,0),vec2(.5,.866),vec2(-.5,.866),vec2(-1,0),vec2(-.5,-.866),vec2(.5,-.866),vec2(.5,.29),vec2(0,.58),vec2(-.5,.29),vec2(-.5,-.29),vec2(0,-.58),vec2(.5,-.29));
+ vec3 sum=base.rgb;float total=1.;
+ for(int i=0;i<12;i++){vec2 at=vec2(p)+.5+disc[i]*radius*amount;if(actor(clamp(ivec2(at),ivec2(0),size-1)))continue;float w=i<6?.7:1.;sum+=texture(image,at/vec2(size)).rgb*w;total+=w;}
+ color=vec4(sum/total,1);})");
+  gl::GenSamplers(1, &p->focusSampler);
+  gl::SamplerParameteri(p->focusSampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  gl::SamplerParameteri(p->focusSampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  gl::SamplerParameteri(p->focusSampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  gl::SamplerParameteri(p->focusSampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
   p->airFilter = program(postVS, meadowAirFilterFS);
   gl::GenSamplers(1, &p->compareSampler);
   gl::SamplerParameteri(p->compareSampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -1017,6 +1050,8 @@ void Gpu::setPilot(const PilotLook &v) {
 }
 void Gpu::setOptimizations(bool enabled) { p->optimize = enabled; p->shadowValid = false; }
 void Gpu::setPilotTime(float t) { p->pilot.time = t; }
+void Gpu::setHighlights(float limit, bool leafRims) { p->highlightLimit = std::clamp(limit, 0.f, 1.f); p->leafRims = leafRims; }
+void Gpu::setFocus(bool enabled, Vec at) { p->focus = enabled; p->focusAt = at; }
 void Gpu::setDefinedShafts(bool enabled){p->definedShafts=enabled;}
 void Gpu::setEffects(const Effects &e) {
   e.validate();
@@ -1462,6 +1497,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
 
   gl::ActiveTexture(GL_TEXTURE0);
   p->blends.clear();
+  p->actorOwners.clear();
   std::size_t currentMaterial = std::numeric_limits<std::size_t>::max();
   auto draw = [&](std::size_t index, const Impl::Part &part) {
     auto &i = world.instances[index];
@@ -1479,6 +1515,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     uniformFloat(p->mesh,"screenDoor",index<p->fades.size()?p->fades[index]:0.f);
     uniformFloat(p->mesh,"pilotWind",p->pilot.enabled&&!p->sourceView&&family==1?.003f:0.f);
     uniformInt(p->mesh,"drawOwnerID",int(index)+1);uniformInt(p->mesh,"receiverOwner",int(index)+1);
+    if(family==-1&&p->actorOwners.size()<16&&std::find(p->actorOwners.begin(),p->actorOwners.end(),int(index)+1)==p->actorOwners.end())p->actorOwners.push_back(int(index)+1);
     float depthUnit=.5f*std::sqrt(p->lightVP.v[2]*p->lightVP.v[2]+p->lightVP.v[6]*p->lightVP.v[6]+p->lightVP.v[10]*p->lightVP.v[10]);
     uniformFloat(p->mesh,"receiverSelfTolerance",model.materials.front().architecture?.12f*depthUnit:-1.f);
     bool terrain=model.materials.front().ground;
@@ -1706,6 +1743,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
   uniformInt(postProgram,"profileActive",p->profile.active);
   uniformInt(postProgram,"profileGreenOnly",p->profile.greenOnly);
   uniformInt(postProgram,"luminousRims",p->profile.luminousRims);
+  uniformInt(postProgram,"leafRims",p->leafRims);uniformFloat(postProgram,"highlightLimit",p->highlightLimit);
   uniformFloat(postProgram,"rimSaturation",p->profile.rimSaturation);
   uniformFloat(postProgram,"architectureRim",p->profile.architectureRim);
   uniformInt(postProgram,"organicEdges",p->profile.organicEdges);
@@ -1774,6 +1812,30 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
   gl::BindVertexArray(p->emptyVAO);
   gl::DrawArrays(GL_TRIANGLES, 0, 3);
   stats.draws++;
+  GLuint shown = p->finalColor, shownFbo = p->postFbo;
+  if (p->focus && p->diagnosticView == 0) {
+    const auto &m = vp.v;
+    Vec f = p->focusAt;
+    float clipY = m[1] * f.x + m[5] * f.y + m[9] * f.z + m[13], clipW = m[3] * f.x + m[7] * f.y + m[11] * f.z + m[15];
+    gl::BindFramebuffer(GL_FRAMEBUFFER, p->focusFbo);
+    gl::Viewport(0, 0, w, h);
+    gl::UseProgram(p->focusProgram);
+    bind(0, p->finalColor);
+    gl::BindSampler(0, p->focusSampler);
+    uniformInt(p->focusProgram, "image", 0);
+    bind(1, p->owners);
+    gl::BindSampler(1, 0);
+    uniformInt(p->focusProgram, "owners", 1);
+    gl::Uniform1iv(p->location(p->focusProgram, "actors"), GLsizei(p->actorOwners.size()), p->actorOwners.data());
+    uniformInt(p->focusProgram, "actorCount", int(p->actorOwners.size()));
+    uniformFloat(p->focusProgram, "focusY", clipW > .001f ? std::clamp(clipY / clipW * .5f + .5f, 0.f, 1.f) : .5f);
+    uniformFloat(p->focusProgram, "radius", 3.f * float(w) / 640.f);
+    gl::DrawArrays(GL_TRIANGLES, 0, 3);
+    gl::BindSampler(0, 0);
+    stats.draws++;
+    shown = p->focusColor;
+    shownFbo = p->focusFbo;
+  }
   gl::BindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
   gl::Viewport(0, 0, outW, outH);
   gl::ClearColor(.08f, .12f, .14f, 1);
@@ -1786,7 +1848,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     gl::BindFramebuffer(GL_FRAMEBUFFER, 0);
     gl::Viewport(left, bottom, dw, dh);
     gl::UseProgram(p->presentProgram);
-    bind(0, p->finalColor);
+    bind(0, shown);
     uniformInt(p->presentProgram, "image", 0);
     gl::Uniform2f(p->location(p->presentProgram, "shiftPixels"),
                   sampled.offsetPixels.x, sampled.offsetPixels.y);
@@ -1797,7 +1859,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     gl::BindFramebuffer(GL_FRAMEBUFFER, 0);
     gl::Viewport(left, bottom, dw, dh);
     gl::UseProgram(p->fillProgram);
-    bind(0, p->finalColor);
+    bind(0, shown);
     gl::BindSampler(0, 0);
     configureTexture(GL_LINEAR);
     uniformInt(p->fillProgram, "image", 0);
@@ -1808,7 +1870,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     configureTexture(GL_NEAREST);
     stats.draws++;
   } else {
-    gl::BindFramebuffer(GL_READ_FRAMEBUFFER, p->postFbo);
+    gl::BindFramebuffer(GL_READ_FRAMEBUFFER, shownFbo);
     gl::ReadBuffer(GL_COLOR_ATTACHMENT0);
     gl::BlitFramebuffer(0, 0, w, h, left, bottom, left + dw, bottom + dh,
                         GL_COLOR_BUFFER_BIT, GL_NEAREST);

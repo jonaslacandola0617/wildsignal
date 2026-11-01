@@ -49,11 +49,14 @@ std::uint64_t memory(bool peak = false) {
 #endif
   return 0;
 }
+// F6 render sizes, smallest first: 480 is the light setting for low-end devices.
+int nextWidth(int w) { return w == 480 ? 640 : w == 640 ? 1280 : 480; }
 struct Options {
   std::filesystem::path assets = "assets", save = "saves/hearthgrove_emaceart.json",
                         out = "runs/play", replay;
   std::string preset="balanced",ink="balanced";std::filesystem::path styleSettings,pilot;float pilotTime=0;bool raisedCamera=false,stableCamera=false;int windowWidth=0;
   bool renderReference=false;bool contacts=true,edgeHighlights=true,edgeOutlines=true,vegetationEdges=true,cleanShadow=true;
+  bool tiltShift=true,tiltShiftGiven=false,leafRims=false;float highlightLimit=.55f;
   bool treeEnabled=false,treeScene=false,leafPlain=true;int treeMode=0;
   int hudMode=1;bool shadowSet=false,shaftSet=false,hazeSet=false;
   bool sourceTextures = false, legacyFollow = false, legacyGrass = false,
@@ -106,6 +109,7 @@ Options options(int argc, char **argv) {
                    "solid\n"
                    "--shadow-cache-probe (isolated technical test only)\n"
                    "--shafts on|off --haze on|off --quality low|medium|high --shaft-strength 0..3\n";
+      std::cout<<"--tilt-shift on|off (F8 toggles; paused during fights) --highlight-strength 0..1 --leaf-rims on|off\nF6 cycles the render size 480/640/1280\n";
       std::cout<<"--render-reference (comparison only; disables optimized shadow cache)\n--tree-scene --tree-study original|shader|clusters|billboards|hybrid --leaf-color plain|source (T tree options, M leaf color)\n";
       std::exit(0);
     } else if (a == "--assets")
@@ -114,6 +118,8 @@ Options options(int argc, char **argv) {
     else if(a=="--tree-study"){auto v=value();if(v!="original"&&v!="shader"&&v!="clusters"&&v!="billboards"&&v!="hybrid")throw std::runtime_error("tree-study original|shader|clusters|billboards|hybrid");o.treeEnabled=true;o.treeMode=v=="original"?0:v=="shader"?1:v=="clusters"?2:v=="billboards"?3:4;}
     else if(a=="--leaf-color"){auto v=value();if(v!="plain"&&v!="source")throw std::runtime_error("leaf-color plain|source");o.leafPlain=v=="plain";}
     else if(a=="--tree-scene"){o.treeScene=true;o.treeEnabled=true;}
+    else if(a=="--tilt-shift"||a=="--leaf-rims"){auto v=value();if(v!="on"&&v!="off")throw std::runtime_error(a.substr(2)+" on|off");(a=="--tilt-shift"?o.tiltShift:o.leafRims)=v=="on";if(a=="--tilt-shift")o.tiltShiftGiven=true;}
+    else if(a=="--highlight-strength"){auto v=value();std::size_t used=0;o.highlightLimit=std::stof(v,&used);if(used!=v.size()||!std::isfinite(o.highlightLimit)||o.highlightLimit<0||o.highlightLimit>1)throw std::runtime_error("highlight-strength 0..1");}
     else if(a=="--highlights"||a=="--outlines"||a=="--vegetation-edges"){auto v=value();if(v!="on"&&v!="off")throw std::runtime_error("edges on|off");(a=="--highlights"?o.edgeHighlights:a=="--outlines"?o.edgeOutlines:o.vegetationEdges)=v=="on";}
     else if(a=="--air-proof"){auto v=value();if(v!="legacy"&&v!="bounded")throw std::runtime_error("air-proof legacy|bounded");o.boundedAir=v=="bounded";}
     else if(a=="--grass-lod"||a=="--meadow-patches"){auto v=value();if(v!="on"&&v!="off")throw std::runtime_error("grass controls on|off");(a=="--grass-lod"?o.grassLod:o.meadowPatches)=v=="on";}
@@ -152,9 +158,9 @@ Options options(int argc, char **argv) {
         throw std::runtime_error("texturenative|256");
       o.sourceTextures = v == "native";
     } else if (a == "--resolution") {
-      o.w = integer(value(), 640, 1280);
-      if (o.w != 640 && o.w != 1280)
-        throw std::runtime_error("resolution640|1280");
+      o.w = integer(value(), 480, 1280);
+      if (o.w != 480 && o.w != 640 && o.w != 1280)
+        throw std::runtime_error("resolution 480|640|1280");
       o.resolutionGiven = true;
     } else if (a == "--frames")
       o.frames = integer(value(), 1, 100000);
@@ -583,7 +589,7 @@ int main(int argc, char **argv) {
     if (!screen.context || !SDL_GL_MakeCurrent(screen.window, screen.context))
       throw std::runtime_error(SDL_GetError());
     SDL_GL_SetSwapInterval(0);
-    p3::Gpu gpu(world, o.allow,tree.get());gpu.setTreeTreatment(o.treeMode);gpu.setPlainLeaves(o.leafPlain);gpu.setTerrainRelief(relief);gpu.setDiagnosticView(o.diagnostic);gpu.setShadowClean(o.cleanShadow);gpu.setSourceView(o.original);
+    p3::Gpu gpu(world, o.allow,tree.get());gpu.setTreeTreatment(o.treeMode);gpu.setPlainLeaves(o.leafPlain);gpu.setTerrainRelief(relief);gpu.setDiagnosticView(o.diagnostic);gpu.setShadowClean(o.cleanShadow);gpu.setSourceView(o.original);gpu.setHighlights(o.highlightLimit,o.leafRims);
     log<<"terrain_instance_y_scale="<<relief<<"\nshadow_policy="<<(o.cleanShadow?"clean_object_external":"legacy_full_self")<<"\n";
     auto baselineLook = p3::Look::load(o.assets / "look.json");
     auto profile=p3::StyleProfile::load(o.styleSettings.empty()?o.assets/"style_profiles.json":o.styleSettings,o.preset,baselineLook);
@@ -765,11 +771,16 @@ int main(int argc, char **argv) {
     };
     auto videoFile = o.save;
     videoFile += ".video";
-    if (std::ifstream video(videoFile); video && !o.resolutionGiven) {
-      int width = 0;
-      if (video >> width; width == 640 || width == 1280)
+    // Remembered display choices: render width, then selective focus (older files hold only the width).
+    if (std::ifstream video(videoFile); video) {
+      int width = 0, focus = -1;
+      video >> width >> focus;
+      if (!o.resolutionGiven && (width == 480 || width == 640 || width == 1280))
         o.w = width;
+      if (!o.tiltShiftGiven && (focus == 0 || focus == 1))
+        o.tiltShift = focus == 1;
     }
+    auto rememberVideo = [&] { std::ofstream(videoFile, std::ios::trunc) << o.w << ' ' << int(o.tiltShift) << '\n'; };
     auto atRest = [&] {
       return o.house && std::any_of(game.restSpots.begin(), game.restSpots.end(), [&](p3::Vec p) { return std::hypot(game.state.player.x - p.x, game.state.player.z - p.z) < 1.5f; });
     };
@@ -863,15 +874,23 @@ int main(int argc, char **argv) {
             sneaking = down;
           if (!down || e.key.repeat)
             continue;
-          if (e.key.key == SDLK_F6 && !paused) {
-            o.w = o.w == 640 ? 1280 : 640;
-            std::ofstream(videoFile, std::ios::trunc) << o.w << '\n';
-            event(frame, "resolution");
+          if ((e.key.key == SDLK_F6 || e.key.key == SDLK_F8) && !paused) {
+            std::string text;
+            if (e.key.key == SDLK_F6) {
+              o.w = nextWidth(o.w);
+              text = "Resolution " + std::to_string(o.w) + " x " + std::to_string(o.w * 9 / 16);
+              event(frame, "resolution");
+            } else {
+              o.tiltShift = !o.tiltShift;
+              text = o.tiltShift ? (scene && scene->active() ? "Focus on after the fight" : "Focus on") : "Focus off";
+              event(frame, o.tiltShift ? "focus_on" : "focus_off");
+            }
+            rememberVideo();
             if (scene) {
-              auto text = o.w == 640 ? std::string("Resolution 640 x 360") : std::string("Resolution 1280 x 720");
               scene->announce(text);
               wilds->announce(text);
-            }
+            } else
+              game.message = text;
             continue;
           }
           if (book && book->open()) {
@@ -964,7 +983,7 @@ int main(int argc, char **argv) {
               grass.density = (grass.density + 1) % 4;
               event(frame, "grass_profile");
             } else if (e.key.key == SDLK_R && !wilds) { // R means reach out in the pilot corner.
-              o.w = o.w == 640 ? 1280 : 640;
+              o.w = nextWidth(o.w);
               event(frame, "resolution");
             } else if (e.key.key == SDLK_E &&
                        game.phase == game::Phase::Explore) {
@@ -1307,6 +1326,11 @@ int main(int argc, char **argv) {
         continue;
       }
       gpu.setPilotTime(animation+o.pilotTime);
+      // Fights need the whole ring readable, so focus waits until they end.
+      {
+        const auto &me = game.state.player;
+        gpu.setFocus(o.tiltShift && o.raisedCamera && !(scene && scene->active()), {me.x, game::terrain(me.x, me.z) + .6f, me.z});
+      }
       auto stats =
           gpu.draw(world, visible, camera, o.w, o.w * 9 / 16, ow, oh,
                    o.original ? 0 : 2, !o.coverage, !o.original, false, frame);

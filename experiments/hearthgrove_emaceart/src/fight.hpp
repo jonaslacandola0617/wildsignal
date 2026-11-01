@@ -77,6 +77,9 @@ struct Cue {
   int value = 0;
   Spot at;
   Status status = Status::Guard;
+  // Hits only: the move's affinity and its affinityPercent against the target.
+  Affinity affinity = Affinity::Wild;
+  int matchup = 100;
 };
 
 class Fight {
