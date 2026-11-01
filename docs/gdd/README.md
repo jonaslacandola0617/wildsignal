@@ -19,7 +19,7 @@ Anything not yet decided is marked **OPEN** in its chapter, so nobody guesses. C
 | 2 | [Core gameplay](02_CORE_GAMEPLAY.md) | Exploring, fighting, recruiting, team building, growth, progression, homestead | **LOCKED 2026-11-02** |
 | 3 | [World and story](03_WORLD_AND_STORY.md) | Regions and their order, the main mystery, characters, quests | **LOCKED 2026-11-02** |
 | 4 | [Creatures](04_CREATURES.md) | The 50-Signari roster, types and matchups, kits, growth, habitats, model standard and production | **LOCKED 2026-11-02** |
-| 5 | UI and controls | Every screen and the HUD; keyboard, controller and touch | Not started |
+| 5 | [UI and controls](05_UI_AND_CONTROLS.md) | Every screen and the HUD; keyboard, controller and touch | DRAFT — awaiting owner choices |
 | 6 | Art and assets | Style rules and the full asset list with sources and licences | Not started |
 | 7 | Technical plan | Engine, region and chunk streaming, saves, performance budgets | Not started |
 | 8 | Production plan | Milestones from the first playable region to release | Not started |
