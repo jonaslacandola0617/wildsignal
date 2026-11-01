@@ -201,6 +201,10 @@ void PixelUi::part(const std::string &name, int x, int y, int shown, int scale) 
   p->quad(x, y, shown * scale, r.h * scale, r.x, r.y, shown, r.h, {1, 1, 1, 1});
 }
 bool PixelUi::has(const std::string &name) const { return p->rects.count(name) > 0; }
+void PixelUi::card(const std::string &name, int x, int y, int w, int h) {
+  if (has(name)) image(name, x - 16, y - 32);
+  else panel("panel", x, y, w, h);
+}
 const PixelUi::Theme &PixelUi::theme() const { return p->theme; }
 void PixelUi::fill(int x, int y, int w, int h, Colour colour) {
   const auto &r = p->rects.at("white");

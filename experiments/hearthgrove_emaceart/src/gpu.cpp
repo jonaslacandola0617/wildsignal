@@ -368,7 +368,7 @@ struct Gpu::Impl {
   int study = 0;
   PixelCameraMode cameraMode = PixelCameraMode::Off;
   float referenceDepth = 10;
-  GLuint studyPost = 0, presentProgram = 0;
+  GLuint studyPost = 0, presentProgram = 0, fillProgram = 0;
   GLuint linearSampler = 0, compareSampler = 0;
   GLuint artPost = 0, airFilter = 0, filteredAir = 0, filteredFbo = 0;
   Mat lightVP,lastVP;
@@ -415,6 +415,7 @@ struct Gpu::Impl {
     gl::DeleteProgram(studyPost);
     gl::DeleteProgram(edgePost);
     gl::DeleteProgram(presentProgram);
+    gl::DeleteProgram(fillProgram);
     gl::DeleteProgram(airFilter);
     gl::DeleteTextures(1, &filteredAir);
     gl::DeleteFramebuffers(1, &filteredFbo);
@@ -547,6 +548,11 @@ Gpu::Gpu(World &world, bool allowSoftware, const TreeStudy *treeStudy) {
   p->studyPost = program(postVS, studyPostFS);
   p->edgePost = program(postVS, visibility(edgePostFS).c_str());
   p->presentProgram = program(postVS, compensatedPresentFS);
+  // Fills windows that are not a whole multiple of the render size: pixels stay crisp
+  // and even, with only their shared edges softened.
+  p->fillProgram = program(postVS, R"(#version 330 core
+in vec2 uv;out vec4 color;uniform sampler2D image;uniform vec2 source;uniform float zoom;
+void main(){vec2 t=uv*source,b=floor(t)+.5;color=texture(image,(b+clamp((t-b)*zoom,-.5,.5))/source);})");
   p->airFilter = program(postVS, meadowAirFilterFS);
   gl::GenSamplers(1, &p->compareSampler);
   gl::SamplerParameteri(p->compareSampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -1681,14 +1687,9 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
   gl::Viewport(0, 0, outW, outH);
   gl::ClearColor(.08f, .12f, .14f, 1);
   gl::Clear(GL_COLOR_BUFFER_BIT);
-  int scale = std::min(outW / w, outH / h);
-  int dw = scale >= 1 ? w * scale : outW,
-      dh = scale >= 1 ? h * scale
-                      : static_cast<int>(static_cast<float>(outW) * h / w);
-  if (dh > outH) {
-    dh = outH;
-    dw = static_cast<int>(static_cast<float>(outH) * w / h);
-  }
+  float fit = std::min(static_cast<float>(outW) / w, static_cast<float>(outH) / h);
+  bool whole = std::abs(fit - std::round(fit)) < .001f && fit >= 1;
+  int dw = static_cast<int>(std::lround(w * fit)), dh = static_cast<int>(std::lround(h * fit));
   int left = (outW - dw) / 2, bottom = (outH - dh) / 2;
   if (p->cameraMode == PixelCameraMode::Compensated && !snap) {
     gl::BindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -1700,6 +1701,20 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
                   sampled.offsetPixels.x, sampled.offsetPixels.y);
     gl::BindVertexArray(p->emptyVAO);
     gl::DrawArrays(GL_TRIANGLES, 0, 3);
+    stats.draws++;
+  } else if (!whole) {
+    gl::BindFramebuffer(GL_FRAMEBUFFER, 0);
+    gl::Viewport(left, bottom, dw, dh);
+    gl::UseProgram(p->fillProgram);
+    bind(0, p->finalColor);
+    gl::BindSampler(0, 0);
+    configureTexture(GL_LINEAR);
+    uniformInt(p->fillProgram, "image", 0);
+    gl::Uniform2f(gl::GetUniformLocation(p->fillProgram, "source"), static_cast<float>(w), static_cast<float>(h));
+    uniformFloat(p->fillProgram, "zoom", fit);
+    gl::BindVertexArray(p->emptyVAO);
+    gl::DrawArrays(GL_TRIANGLES, 0, 3);
+    configureTexture(GL_NEAREST);
     stats.draws++;
   } else {
     gl::BindFramebuffer(GL_READ_FRAMEBUFFER, p->postFbo);

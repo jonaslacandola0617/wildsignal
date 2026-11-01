@@ -406,19 +406,18 @@ void WildScene::draw(PixelUi &ui, const FightScene::Project &project) {
     const auto &w = wilds[std::size_t(near)];
     auto *e = journal.find(w.species);
     int trust = e ? e->trust() : 0;
-    ui.panel("panel", 14, 12, 268, 46);
-    ui.text(w.name, 26, 22, t.ink);
-    ui.text(w.wariness.frightened() ? "Wary" : w.temperament, 92, 22, w.wariness.frightened() ? Coral : t.faded);
-    ui.text("Trust", 160, 22, t.faded);
+    ui.card("plate_small", 14, 12, 240, 48);
+    ui.text(w.name, 38, 21, t.ink);
+    ui.text(w.wariness.frightened() ? "Wary" : w.temperament, 104, 21, w.wariness.frightened() ? Coral : t.faded);
     for (int i = 0; i < w.trustNeeded; i++)
-      ui.image(i < trust ? "trust_on" : "trust_off", 196 + i * 10, 22);
+      ui.image(i < trust ? "trust_on" : "trust_off", 186 + i * 10, 22);
     if (watchIndex == near)
-      ui.meter(26, 35, 244, std::min(1.f, w.watchT / watchGoal(w)), "fill_sp", Calm);
+      ui.meter(38, 36, 192, std::min(1.f, w.watchT / watchGoal(w)), "fill_sp", Calm);
     else
-      ui.text(nextStep(w), 26, 36, t.faded);
+      ui.text(nextStep(w), 38, 37, t.faded);
   }
   std::string line = toastT > 0 ? toast : watchIndex >= 0 ? (sitting ? "Stay still and keep it company." : wilds[std::size_t(watchIndex)].watchingText) : "";
-  if (joinT <= 0 && !line.empty()) ui.note(line, 320, 66);
+  if (joinT <= 0 && !line.empty()) ui.note(line, 320, 70);
   if (joinT > 0 && ui.has("ribbon")) {
     // The team stamp: the pack's own stamp animation, leaving its mark on the ribbon.
     int w = std::max(300, ui.width(joinName, 2) + 220), left = 320 - w / 2, markX = left + w - 92, markY = 76;

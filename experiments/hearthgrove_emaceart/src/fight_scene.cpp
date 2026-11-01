@@ -275,33 +275,34 @@ void FightScene::marks(GroundMarks &g, Vec right, Vec up) {
 
 void FightScene::plate(PixelUi &ui, const Fighter &k, int x, int y, int w, bool full) {
   const auto &t = ui.theme();
-  ui.panel("panel", x, y, w, full ? 60 : 56);
-  ui.text(nameOf(k), x + 12, y + 10, t.ink);
+  ui.card(full ? "plate_big" : "plate_small", x, y, w, full ? 96 : 48);
+  int left = x + 24, right = x + w - 24, bar = left + 15, barW = right - bar;
+  int rowHp = y + (full ? 24 : 20), rowTwo = y + (full ? 38 : 32);
+  ui.text(nameOf(k), left, y + (full ? 10 : 8), t.ink);
   auto level = "Lv " + std::to_string(k.level);
-  ui.text(level, x + w - 16 - ui.width(level), y + 10, t.ink);
-  int barW = w - 52, value = std::clamp(k.hp, 0, k.stats.hp);
-  ui.text("HP", x + 12, y + 23, t.ink);
+  ui.text(level, right - ui.width(level), y + (full ? 10 : 8), t.ink);
+  int value = std::clamp(k.hp, 0, k.stats.hp);
   auto colour = value * 4 <= k.stats.hp ? HpLow : value * 2 <= k.stats.hp ? HpMid : HpGood;
-  ui.meter(x + 28, y + 22, barW, float(value) / float(std::max(1, k.stats.hp)), "fill_hp", colour);
-  int icon = x + 12;
+  ui.image("trust_on", left + 1, rowHp + 1);
+  ui.meter(bar, rowHp, barW, float(value) / float(std::max(1, k.stats.hp)), "fill_hp", colour);
+  int icon = left + 112;
   if (full) {
-    ui.text("EN", x + 12, y + 37, t.ink);
+    if (ui.has("icon_energy")) ui.image("icon_energy", left - 2, rowTwo - 2);
     if (ui.has("energy_on")) {
-      ui.part("energy_off", x + 28, y + 37, 41, 2);
-      if (k.energy > 0) ui.part("energy_on", x + 28, y + 37, 1 + k.energy * 5, 2);
+      ui.part("energy_off", bar, rowTwo, 41, 2);
+      if (k.energy > 0) ui.part("energy_on", bar, rowTwo, 1 + k.energy * 5, 2);
     } else {
       for (int i = 0; i < 8; i++)
-        ui.image(i < k.energy ? "pip_on" : "pip_off", x + 28 + i * 9, y + 37);
+        ui.image(i < k.energy ? "pip_on" : "pip_off", bar + i * 9, rowTwo);
     }
-    icon = x + 112;
   } else {
     bool calm = k.spirit <= battle::CalmSpirit;
-    ui.text("SP", x + 12, y + 36, t.ink);
-    ui.meter(x + 28, y + 35, barW, float(k.spirit) / 100.f, "fill_sp", calm ? Gold : Calm);
-    if (calm) ui.image("trust_on", x + w - 21, y + 35);
+    if (ui.has("icon_spirit")) ui.image("icon_spirit", left - 2, rowTwo - 3);
+    ui.meter(bar, rowTwo, barW, float(k.spirit) / 100.f, "fill_sp", calm ? Gold : Calm);
+    if (calm) ui.image("trust_on", right + 3, rowTwo + 1);
+    icon = left + 76;
   }
-  int line = full ? y + 35 : y + 6;
-  if (!full) icon = x + 82;
+  int line = full ? rowTwo - 4 : y + 4;
   auto mark = [&](bool on, battle::Status s) {
     if (on) {
       ui.image(statusIcon(s), icon, line);
@@ -360,20 +361,18 @@ void FightScene::draw(PixelUi &ui, const Project &project) {
     ui.text(f.text, p[0] - w / 2 + 1, p[1] + 1, {.1f, .07f, .05f, 1});
     ui.text(f.text, p[0] - w / 2, p[1], f.colour);
   }
-  plate(ui, fight->wild(), 410, 12, 216, false);
-  plate(ui, fight->mine(), 14, 256, 196, true);
+  plate(ui, fight->wild(), 386, 12, 240, false);
+  plate(ui, fight->mine(), 14, 222, 224, true);
   const auto &you = fight->you();
-  ui.panel("panel", 14, 226, 196, 30);
-  ui.text("You", 26, 235, t.ink);
+  ui.text("You", 38, 275, t.ink);
   int calm = std::clamp(you.composure, 0, battle::FullComposure);
-  ui.meter(48, 235, 148, float(calm) / float(battle::FullComposure), "fill_sp", calm * 3 <= battle::FullComposure ? HpLow : Calm);
+  ui.meter(60, 274, 154, float(calm) / float(battle::FullComposure), "fill_sp", calm * 3 <= battle::FullComposure ? HpLow : Calm);
   const auto &team = fight->party();
   if (team.size() > 1) {
     int next = (fight->activeSlot() + 1) % int(team.size());
     bool can = team[next].hp > 0 && fight->swapReady() == 0;
     auto text = "Tab " + nameOf(team[next]);
-    ui.text(text, 219, 307, {.1f, .07f, .05f, 1});
-    ui.text(text, 218, 306, can ? Cream : Muted);
+    ui.text(text, 38, 291, can ? t.faded : t.onButtonOff);
   }
   moveBar(ui);
   std::string line = toastTime > 0 ? toast : hintTime > 0 ? "WASD move   Space roll   1-5 moves   Q dodge" : "";
@@ -381,7 +380,7 @@ void FightScene::draw(PixelUi &ui, const Project &project) {
     ui.note("[R] reach out", 320, 294);
   }
   if (!line.empty()) {
-    ui.note(line, 232, 12);
+    ui.note(line, 200, 12);
   }
   if (fight->outcome() != battle::Outcome::Ongoing) {
     bool won = fight->outcome() == battle::Outcome::Won, left = fight->outcome() == battle::Outcome::Left, reached = fight->outcome() == battle::Outcome::Reached;

@@ -33,6 +33,8 @@ public:
   // Draws the first `shown` pixels of a piece, for segmented bars.
   void part(const std::string &name, int x, int y, int shown, int scale = 1);
   bool has(const std::string &name) const;
+  // A finished panel drawn unscaled, with its front sheet at x, y; plain atlases draw a sized panel.
+  void card(const std::string &name, int x, int y, int w, int h);
   void fill(int x, int y, int w, int h, Colour colour);
   void text(const std::string &value, int x, int y, Colour colour, int scale = 1);
   int width(const std::string &value, int scale = 1) const;

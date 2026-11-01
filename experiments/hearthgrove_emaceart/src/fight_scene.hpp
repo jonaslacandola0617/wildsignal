@@ -36,6 +36,7 @@ public:
   // wildHealth is an encounter scale in percent, so a fight has time to breathe.
   void start(const std::string &wildSpecies, int wildLevel, int wildHealth, const std::vector<bond::Member> &team, Vec you, Vec wild, const std::vector<battle::Block> &blocks);
   void key(int sdlKey);
+  void announce(const std::string &text) { say(text, 1.8f); }
   void update(float dt, int moveX, int moveZ);
   void draw(PixelUi &, const Project &);
   void marks(GroundMarks &, Vec right, Vec up);

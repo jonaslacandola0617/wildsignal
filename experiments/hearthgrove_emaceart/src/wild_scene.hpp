@@ -26,6 +26,7 @@ public:
   void fightEnded(bool won, bool reached, bool left, const std::vector<int> &teamHp);
   void regroup(Vec player, const std::vector<game::Solid> &);
   void rest();
+  void announce(const std::string &text) { say(text, 1.8f); }
   const std::vector<bond::Member> &team() const { return journal.party; }
   bool busy() const { return tidyT > 0; }
   bool watching() const { return watchIndex >= 0; }

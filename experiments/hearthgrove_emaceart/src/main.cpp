@@ -57,10 +57,10 @@ struct Options {
   int hudMode=1;bool shadowSet=false,shaftSet=false,hazeSet=false;
   bool sourceTextures = false, legacyFollow = false, legacyGrass = false,
        pixelMaterials = true, debugFollow = false;
-  int w = 480, frames = 0, every = 0, cap = 30, density = 2, pose = -1,
+  int w = 640, frames = 0, every = 0, cap = 30, density = 2, pose = -1,
       coverage = 0;
   bool allow = false, hidden = false, house = true, benchmark = false,
-       fresh = false, calmFights = false, original = false;
+       fresh = false, calmFights = false, resolutionGiven = false, original = false;
   std::string pacing = "precise";
   bool shafts = true, haze = true;
   int meadowResponse=2;bool grassOutlines=false;
@@ -150,9 +150,10 @@ Options options(int argc, char **argv) {
         throw std::runtime_error("texturenative|256");
       o.sourceTextures = v == "native";
     } else if (a == "--resolution") {
-      o.w = integer(value(), 480, 1280);
-      if (o.w != 480 && o.w != 640 && o.w != 1280)
-        throw std::runtime_error("resolution480|640|1280");
+      o.w = integer(value(), 640, 1280);
+      if (o.w != 640 && o.w != 1280)
+        throw std::runtime_error("resolution640|1280");
+      o.resolutionGiven = true;
     } else if (a == "--frames")
       o.frames = integer(value(), 1, 100000);
     else if (a == "--capture-every")
@@ -753,6 +754,13 @@ int main(int argc, char **argv) {
         log << game.message << '\n';
       }
     };
+    auto videoFile = o.save;
+    videoFile += ".video";
+    if (std::ifstream video(videoFile); video && !o.resolutionGiven) {
+      int width = 0;
+      if (video >> width; width == 640 || width == 1280)
+        o.w = width;
+    }
     auto atRest = [&] {
       return o.house && std::any_of(game.restSpots.begin(), game.restSpots.end(), [&](p3::Vec p) { return std::hypot(game.state.player.x - p.x, game.state.player.z - p.z) < 1.5f; });
     };
@@ -814,6 +822,17 @@ int main(int argc, char **argv) {
             sneaking = down;
           if (!down || e.key.repeat)
             continue;
+          if (e.key.key == SDLK_F6 && !paused) {
+            o.w = o.w == 640 ? 1280 : 640;
+            std::ofstream(videoFile, std::ios::trunc) << o.w << '\n';
+            event(frame, "resolution");
+            if (scene) {
+              auto text = o.w == 640 ? std::string("Resolution 640 x 360") : std::string("Resolution 1280 x 720");
+              scene->announce(text);
+              wilds->announce(text);
+            }
+            continue;
+          }
           if (scene && scene->active() && !paused && e.key.key != SDLK_ESCAPE) {
             scene->key(int(e.key.key));
             continue;
@@ -895,7 +914,7 @@ int main(int argc, char **argv) {
               grass.density = (grass.density + 1) % 4;
               event(frame, "grass_profile");
             } else if (e.key.key == SDLK_R && !wilds) { // R means reach out in the pilot corner.
-              o.w = o.w == 480 ? 640 : 480;
+              o.w = o.w == 640 ? 1280 : 640;
               event(frame, "resolution");
             } else if (e.key.key == SDLK_E &&
                        game.phase == game::Phase::Explore) {
