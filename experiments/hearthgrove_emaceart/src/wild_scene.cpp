@@ -76,6 +76,20 @@ WildScene::WildScene(const std::filesystem::path &folder, const battle::Content 
     k.companyDone = w.at("companyDone").string();
     wilds.push_back(std::move(k));
   }
+  if (!journal.given) {
+    journal.given = true;
+    journal.unread = true;
+    say("Mara left a field book in your pack. Press B to open it.", 7);
+    store();
+  }
+}
+std::vector<std::string> WildScene::goals() const {
+  std::vector<std::string> out;
+  for (const auto &w : wilds) {
+    auto *e = journal.find(w.species);
+    if (!e || !e->joined) out.push_back(w.name + ": " + nextStep(w));
+  }
+  return out;
 }
 void WildScene::say(const std::string &text, float seconds) {
   toast = text;
@@ -104,7 +118,11 @@ std::string WildScene::nextStep(const Wild &w) const {
 }
 void WildScene::refuse(const Wild &w) {
   switch (journal.refusal(w.species, w.trustNeeded, w.wariness.frightened())) {
-  case bond::Refusal::Frightened: say(w.name + " is too frightened. Give it space.", 2.4f); break;
+  case bond::Refusal::Frightened:
+    say(w.name + " is too frightened. Give it space.", 2.4f);
+    journal.learn(w.species, bond::Lesson::Refused);
+    store();
+    break;
   case bond::Refusal::NotEnoughTrust: say(w.name + " does not trust you yet.", 2.4f); break;
   default: break;
   }
@@ -166,6 +184,8 @@ void WildScene::update(float dt, Vec player, bool sneaking, const std::vector<ga
         w.timer = .55f;
         w.yaw = std::atan2(player.x - w.at.x, player.z - w.at.z);
         events.push_back("wild_spotted_player");
+        journal.learn(w.species, bond::Lesson::Startled);
+        store();
         if (watchIndex >= 0 && &wilds[std::size_t(watchIndex)] == &w) watchIndex = -1;
       }
       w.wariness.startle(w.startleSeconds);
@@ -330,6 +350,7 @@ void WildScene::fightEnded(bool won, bool reached, bool left, const std::vector<
     w.wariness.startle(45);
     w.mood = Mood::Hide;
     events.push_back("wild_knocked_out");
+    journal.learn(w.species, bond::Lesson::Knocked);
     say(w.name + " wants nothing to do with you.", 3.6f);
   } else if (left) {
     w.wariness.startle(8);

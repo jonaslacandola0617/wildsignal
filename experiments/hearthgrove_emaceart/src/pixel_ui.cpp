@@ -201,6 +201,31 @@ void PixelUi::part(const std::string &name, int x, int y, int shown, int scale) 
   p->quad(x, y, shown * scale, r.h * scale, r.x, r.y, shown, r.h, {1, 1, 1, 1});
 }
 bool PixelUi::has(const std::string &name) const { return p->rects.count(name) > 0; }
+int PixelUi::paragraph(const std::string &value, int x, int y, int w, Colour colour) {
+  std::string line, word;
+  auto flush = [&] {
+    if (line.empty()) return;
+    text(line, x, y, colour);
+    y += 10;
+    line.clear();
+  };
+  for (std::size_t i = 0; i <= value.size(); i++) {
+    if (i < value.size() && value[i] != ' ') {
+      word += value[i];
+      continue;
+    }
+    auto joined = line.empty() ? word : line + " " + word;
+    if (width(joined) > w) {
+      flush();
+      line = word;
+    } else {
+      line = joined;
+    }
+    word.clear();
+  }
+  flush();
+  return y;
+}
 void PixelUi::card(const std::string &name, int x, int y, int w, int h) {
   if (has(name)) image(name, x - 16, y - 32);
   else panel("panel", x, y, w, h);

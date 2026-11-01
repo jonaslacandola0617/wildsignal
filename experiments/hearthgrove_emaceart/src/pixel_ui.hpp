@@ -35,6 +35,8 @@ public:
   bool has(const std::string &name) const;
   // A finished panel drawn unscaled, with its front sheet at x, y; plain atlases draw a sized panel.
   void card(const std::string &name, int x, int y, int w, int h);
+  // Wraps text to a width and returns the y position after its last line.
+  int paragraph(const std::string &value, int x, int y, int w, Colour colour);
   void fill(int x, int y, int w, int h, Colour colour);
   void text(const std::string &value, int x, int y, Colour colour, int scale = 1);
   int width(const std::string &value, int scale = 1) const;

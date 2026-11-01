@@ -29,6 +29,10 @@ public:
   void keepAt(const std::string &model, Vec at);
   void rest();
   void announce(const std::string &text) { say(text, 1.8f); }
+  bond::Journal &notes() { return journal; }
+  void saveNow() { store(); }
+  // What Mara's book suggests next, one line per wild Signari.
+  std::vector<std::string> goals() const;
   const std::vector<bond::Member> &team() const { return journal.party; }
   bool busy() const { return tidyT > 0; }
   bool watching() const { return watchIndex >= 0; }

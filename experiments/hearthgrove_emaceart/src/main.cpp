@@ -1,4 +1,5 @@
 #include "animation.hpp"
+#include "field_book.hpp"
 #include "fight_scene.hpp"
 #include "wild_scene.hpp"
 #include "followers.hpp"
@@ -611,6 +612,7 @@ int main(int argc, char **argv) {
     std::unique_ptr<p3::FightScene> scene;
     std::unique_ptr<p3::GroundMarks> groundMarks;
     std::unique_ptr<p3::WildScene> wilds;
+    std::unique_ptr<p3::FieldBook> book;
     std::map<std::string, std::size_t> stageModels;
     std::map<std::string, p3::Mat> stageHome;
     bool stageSet = false;
@@ -625,6 +627,7 @@ int main(int argc, char **argv) {
       scene->startCalm(o.calmFights);
       auto bondFile=o.save;bondFile+=".bonds.json";
       wilds=std::make_unique<p3::WildScene>(o.pilot.parent_path(),scene->roster(),bondFile,o.fresh,game.state.player);
+      book=std::make_unique<p3::FieldBook>(o.pilot.parent_path(),scene->roster());
       groundMarks=std::make_unique<p3::GroundMarks>([](float x,float z){return game::terrain(x,z);});
       gpu.setOverlay([&](const p3::Mat &m){groundMarks->draw(m);});
       for(std::size_t i=0;i<world.instances.size();i++){
@@ -833,6 +836,19 @@ int main(int argc, char **argv) {
             }
             continue;
           }
+          if (book && book->open()) {
+            if (book->key(int(e.key.key))) {
+              wilds->saveNow();
+              event(frame, "book_close");
+            }
+            continue;
+          }
+          if (book && e.key.key == SDLK_B && !paused && game.phase == game::Phase::Explore && !wilds->busy() && !wilds->watching()) {
+            book->show(wilds->notes());
+            wilds->saveNow();
+            event(frame, "book_open");
+            continue;
+          }
           if (scene && scene->active() && !paused && e.key.key != SDLK_ESCAPE) {
             scene->key(int(e.key.key));
             continue;
@@ -905,7 +921,7 @@ int main(int argc, char **argv) {
               o.original=!o.original;style.highlights=!o.original&&o.edgeHighlights;style.outlines=!o.original&&o.edgeOutlines;gpu.setSourceView(o.original);gpu.setStyle(style);event(frame,"source_toon_toggle");
             } else if(e.key.key==SDLK_L) {
               o.quality=o.quality=="low"?"medium":o.quality=="medium"?"high":"low";updateEffects();event(frame,"quality_toggle");
-            } else if(e.key.key==SDLK_B){grass.options.lod=!grass.options.lod;event(frame,"grass_lod_toggle");
+            } else if(e.key.key==SDLK_B&&!book){grass.options.lod=!grass.options.lod;event(frame,"grass_lod_toggle");
             } else if(e.key.key==SDLK_U){o.meadowResponse=(o.meadowResponse+1)%(hasBeams?3:2);setMeadowResponse();updateEffects();event(frame,"meadow_response_toggle");
             } else if(e.key.key==SDLK_I){o.grassOutlines=!o.grassOutlines;profile.grassInk=o.grassOutlines?authoredGrassInk:0;gpu.setProfile(profile);event(frame,"grass_outline_toggle");
             } else if(e.key.key==SDLK_N){o.definedShafts=!o.definedShafts;gpu.setDefinedShafts(o.definedShafts);event(frame,"shaft_profile_toggle");
@@ -966,7 +982,8 @@ int main(int argc, char **argv) {
           }
         }
       }
-      if (!paused && !o.benchmark && game.phase == game::Phase::Explore && !(wilds && wilds->busy())) {
+      bool reading = book && book->open();
+      if (!paused && !o.benchmark && !reading && game.phase == game::Phase::Explore && !(wilds && wilds->busy())) {
         float f = float(held[0]) - float(held[1]),
               side = float(held[3]) - float(held[2]);
         float n = std::hypot(f, side);
@@ -1028,8 +1045,9 @@ int main(int argc, char **argv) {
         if (!paused) {
           scene->update(dt, fightX, fightZ);
           // Waits for the fight's clean-up, so the jump back to exploring cannot startle anything.
-          if (!scene->active() && !stageSet)
+          if (!scene->active() && !stageSet && !reading)
             wilds->update(dt, game.state.player, sneaking, game.solids);
+          book->update(dt);
         }
         for (const auto &name : wilds->takeEvents())
           event(frame, name.c_str());
@@ -1182,6 +1200,9 @@ int main(int argc, char **argv) {
           auto clip = scene->youClip();
           bool loop = clip == "Idle" || clip == "Run" || clip == "Tuck";
           i.palette = world.models[i.model].rig->sample(clip, loop ? animation : scene->clipTime(), loop);
+        } else if (reading) {
+          // The Wayfinder holds the book up while it is open.
+          i.palette = world.models[i.model].rig->sample("Command", std::min(book->openTime(), .4f), false);
         } else if (wilds && wilds->busy()) {
           i.palette = world.models[i.model].rig->sample("Command", wilds->busyTime(), false);
         } else
@@ -1321,6 +1342,10 @@ int main(int argc, char **argv) {
           scene->prompt(*pixelUi, "[E] Rest at the cottage");
         else if (game.phase == game::Phase::Explore)
           wilds->draw(*pixelUi, toCanvas);
+        if (book && !scene->active() && game.phase == game::Phase::Explore) {
+          if (book->open()) book->draw(*pixelUi, wilds->notes(), wilds->goals());
+          else book->drawIcon(*pixelUi, wilds->notes());
+        }
         pixelUi->end();
       }
       auto hudEnd = Clock::now();

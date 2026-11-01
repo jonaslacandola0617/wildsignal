@@ -9,10 +9,13 @@
 namespace bond {
 constexpr int MaxTrust = 8, PartyLimit = 3, CompanyVisits = 2;
 enum class Act { Observe, Assist, Reach };
+enum class Lesson { Startled, Refused, Knocked };
 struct Encounter {
   std::string species;
   bool observed = false, assisted = false, reached = false, joined = false;
   int company = 0; // Quiet visits, up to CompanyVisits.
+  // Lessons the field book keeps; none of these change trust.
+  bool startled = false, refused = false, knocked = false, stamped = false;
   int trust() const;
 };
 struct Member {
@@ -24,11 +27,14 @@ enum class Refusal { None, NotEnoughTrust, Frightened, AlreadyJoined };
 struct Journal {
   std::vector<Encounter> encounters;
   std::vector<Member> party, reserve;
+  // The field book: whether it has been handed over, and whether anything new is unread.
+  bool given = false, unread = false;
   Encounter &encounter(std::string_view species);
   const Encounter *find(std::string_view species) const;
   // False when this act was already counted or the creature has joined.
   bool earn(std::string_view species, Act);
   bool keepCompany(std::string_view species);
+  void learn(std::string_view species, Lesson);
   Refusal refusal(std::string_view species, int trustNeeded, bool frightened) const;
   // A full party sends the newcomer to the reserve; nobody is ever replaced.
   bool invite(std::string_view species, int level, int trustNeeded, bool frightened);

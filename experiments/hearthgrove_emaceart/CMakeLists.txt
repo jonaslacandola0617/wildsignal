@@ -14,7 +14,7 @@ if(WIN32)
  target_compile_definitions(emacegrove_core PUBLIC NOMINMAX WIN32_LEAN_AND_MEAN _WIN32_WINNT=0x0601)
 endif()
 if(PIXEL3D_BUILD_GL)
- add_executable(wildsignal_hearthgrove_emaceart src/main.cpp src/gpu.cpp src/hud.cpp src/image.cpp src/mesh_gpu.cpp src/pixel_ui.cpp src/fight_scene.cpp src/ground_marks.cpp src/wild_scene.cpp)
+ add_executable(wildsignal_hearthgrove_emaceart src/main.cpp src/gpu.cpp src/hud.cpp src/image.cpp src/mesh_gpu.cpp src/pixel_ui.cpp src/fight_scene.cpp src/ground_marks.cpp src/wild_scene.cpp src/field_book.cpp)
  target_include_directories(wildsignal_hearthgrove_emaceart BEFORE PRIVATE src ${stb_SOURCE_DIR})
  # FetchContent is scoped by inherited project; obtain the already-populated path.
  FetchContent_GetProperties(stb SOURCE_DIR GAMELOOP_STB)

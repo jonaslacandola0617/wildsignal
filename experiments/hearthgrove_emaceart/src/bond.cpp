@@ -7,7 +7,7 @@
 #include <stdexcept>
 namespace bond {
 namespace {
-constexpr int Version = 2;
+constexpr int Version = 3;
 std::string encode(const Journal &j) {
   std::ostringstream o;
   auto members = [&](const char *name, const std::vector<Member> &list) {
@@ -16,11 +16,12 @@ std::string encode(const Journal &j) {
       o << (i ? "," : "") << "{\"species\":\"" << list[i].species << "\",\"level\":" << list[i].level << ",\"hp\":" << list[i].hp << "}";
     o << "]";
   };
-  o << "{\"version\":" << Version << ",\"encounters\":[";
+  o << "{\"version\":" << Version << ",\"given\":" << int(j.given) << ",\"unread\":" << int(j.unread) << ",\"encounters\":[";
   for (std::size_t i = 0; i < j.encounters.size(); i++) {
     const auto &e = j.encounters[i];
     o << (i ? "," : "") << "{\"species\":\"" << e.species << "\",\"observed\":" << int(e.observed) << ",\"assisted\":" << int(e.assisted)
-      << ",\"reached\":" << int(e.reached) << ",\"company\":" << e.company << ",\"joined\":" << int(e.joined) << "}";
+      << ",\"reached\":" << int(e.reached) << ",\"company\":" << e.company << ",\"joined\":" << int(e.joined) << ",\"startled\":" << int(e.startled)
+      << ",\"refused\":" << int(e.refused) << ",\"knocked\":" << int(e.knocked) << ",\"stamped\":" << int(e.stamped) << "}";
   }
   o << "],";
   members("party", j.party);
@@ -42,12 +43,24 @@ Journal decode(const std::filesystem::path &p) {
   auto root = ws::parseJson(all.str());
   // Version 1 saves called the fight act a spar; it carries over as a reach.
   int version = int(root.at("version").number());
-  if (version != 1 && version != Version) throw std::runtime_error("version");
+  if (version < 1 || version > Version) throw std::runtime_error("version");
   Journal j;
+  if (version >= 3) {
+    j.given = root.at("given").number() != 0;
+    j.unread = root.at("unread").number() != 0;
+  }
   std::set<std::string> seen;
   for (const auto &e : root.at("encounters").array()) {
     Encounter c{e.at("species").string(), e.at("observed").number() != 0, e.at("assisted").number() != 0, e.at(version == 1 ? "sparred" : "reached").number() != 0, e.at("joined").number() != 0};
     if (version != 1) c.company = int(e.at("company").number());
+    if (version >= 3) {
+      c.startled = e.at("startled").number() != 0;
+      c.refused = e.at("refused").number() != 0;
+      c.knocked = e.at("knocked").number() != 0;
+      c.stamped = e.at("stamped").number() != 0;
+    } else {
+      c.stamped = c.joined; // Older saves joined before the book could stamp them.
+    }
     if (c.species.empty() || !seen.insert(c.species).second || c.company < 0 || c.company > CompanyVisits) throw std::runtime_error("bad encounter");
     j.encounters.push_back(c);
   }
@@ -82,12 +95,20 @@ bool Journal::earn(std::string_view species, Act act) {
   bool &flag = act == Act::Observe ? e.observed : act == Act::Assist ? e.assisted : e.reached;
   if (flag) return false;
   flag = true;
+  unread = true;
   return true;
+}
+void Journal::learn(std::string_view species, Lesson lesson) {
+  auto &e = encounter(species);
+  bool &flag = lesson == Lesson::Startled ? e.startled : lesson == Lesson::Refused ? e.refused : e.knocked;
+  unread = unread || !flag;
+  flag = true;
 }
 bool Journal::keepCompany(std::string_view species) {
   auto &e = encounter(species);
   if (e.joined || e.company >= CompanyVisits) return false;
   e.company++;
+  unread = true;
   return true;
 }
 Refusal Journal::refusal(std::string_view species, int trustNeeded, bool frightened) const {
@@ -99,6 +120,7 @@ Refusal Journal::refusal(std::string_view species, int trustNeeded, bool frighte
 bool Journal::invite(std::string_view species, int level, int trustNeeded, bool frightened) {
   if (refusal(species, trustNeeded, frightened) != Refusal::None) return false;
   encounter(species).joined = true;
+  unread = true;
   (int(party.size()) < PartyLimit ? party : reserve).push_back({std::string(species), level, -1});
   return true;
 }

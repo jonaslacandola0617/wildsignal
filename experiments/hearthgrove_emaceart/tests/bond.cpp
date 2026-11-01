@@ -68,6 +68,23 @@ void aFullPartyNeverLosesAnyone() {
   check(j.invite("WS-012", 3, 3, false), "a full party can still invite");
   check(j.party.size() == 3 && j.reserve.size() == 1 && j.reserve[0].species == "WS-012", "the newcomer waits in the reserve");
 }
+void theBookRemembersLessonsWithoutChangingTrust() {
+  auto j = starters();
+  check(!j.unread, "a new journal has nothing unread");
+  j.earn("WS-005", Act::Observe);
+  check(j.unread, "earning trust leaves a new note");
+  j.unread = false;
+  j.learn("WS-005", Lesson::Startled);
+  j.learn("WS-005", Lesson::Refused);
+  j.learn("WS-005", Lesson::Knocked);
+  const auto *e = j.find("WS-005");
+  check(e->startled && e->refused && e->knocked, "lessons are kept");
+  check(e->trust() == 1, "a bad moment costs no trust");
+  check(j.unread, "a lesson leaves a new note");
+  j.unread = false;
+  j.learn("WS-005", Lesson::Startled);
+  check(!j.unread, "the same lesson is not news twice");
+}
 void restHealsEveryone() {
   auto j = starters();
   j.party[0].hp = 3;
@@ -90,8 +107,22 @@ void saveKeepsEverything(const std::filesystem::path &folder) {
   check(r.journal.party.size() == 3 && r.journal.party[1].hp == 17, "party and health survive");
   check(r.journal.find("WS-005")->joined && r.journal.find("WS-012")->trust() == 2, "trust survives");
   check(!r.journal.earn("WS-012", Act::Observe), "a saved act still counts once");
+  check(!r.journal.given, "an unopened book stays unopened");
+  auto book = starters();
+  book.given = true;
+  book.unread = true;
+  book.learn("WS-005", Lesson::Knocked);
+  book.encounter("WS-005").stamped = true;
+  save(file, book);
+  auto again = load(file, starters()).journal;
+  check(again.given && again.unread && again.find("WS-005")->knocked && again.find("WS-005")->stamped, "book state survives a save");
 }
 void olderSavesStillLoad(const std::filesystem::path &folder) {
+  auto second = folder / "older.json";
+  std::ofstream(second, std::ios::binary | std::ios::trunc)
+      << "{\"version\":2,\"encounters\":[{\"species\":\"WS-012\",\"observed\":1,\"assisted\":1,\"reached\":0,\"company\":0,\"joined\":1}],\"party\":[{\"species\":\"WS-008\",\"level\":5,\"hp\":-1}],\"reserve\":[]}";
+  auto older = load(second, starters());
+  check(older.loaded && older.journal.find("WS-012")->stamped && !older.journal.given, "a second-version save carries over");
   auto file = folder / "old.json";
   std::ofstream(file, std::ios::binary | std::ios::trunc)
       << "{\"version\":1,\"encounters\":[{\"species\":\"WS-005\",\"observed\":1,\"assisted\":0,\"sparred\":1,\"joined\":0}],\"party\":[{\"species\":\"WS-008\",\"level\":5,\"hp\":-1}],\"reserve\":[]}";
@@ -117,7 +148,7 @@ void corruptSavesRecover(const std::filesystem::path &folder) {
   check(!none.loaded && none.journal.party.size() == 2, "with no valid save the new-game party is used");
   auto again = folder / "dup.json";
   std::ofstream(again, std::ios::binary | std::ios::trunc)
-      << "{\"version\":2,\"encounters\":[],\"party\":[{\"species\":\"WS-008\",\"level\":5,\"hp\":-1},{\"species\":\"WS-008\",\"level\":5,\"hp\":-1}],\"reserve\":[]}";
+      << "{\"version\":3,\"given\":1,\"unread\":0,\"encounters\":[],\"party\":[{\"species\":\"WS-008\",\"level\":5,\"hp\":-1},{\"species\":\"WS-008\",\"level\":5,\"hp\":-1}],\"reserve\":[]}";
   check(!load(again, starters()).loaded, "a duplicated Signari is rejected");
 }
 } // namespace
@@ -130,6 +161,7 @@ int main() {
   inviteDependsOnTrustAndMoodNeverDice();
   wildSignariSettleWithTime();
   aFullPartyNeverLosesAnyone();
+  theBookRemembersLessonsWithoutChangingTrust();
   restHealsEveryone();
   saveKeepsEverything(folder);
   olderSavesStillLoad(folder);
