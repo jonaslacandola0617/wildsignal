@@ -17,7 +17,7 @@ Anything not yet decided is marked **OPEN** in its chapter, so nobody guesses. C
 |---|---|---|---|
 | 1 | [Vision and pillars](01_VISION_AND_PILLARS.md) | What the game is, who it's for, what makes it different, what we never do, release scope | **LOCKED 2026-11-02** |
 | 2 | [Core gameplay](02_CORE_GAMEPLAY.md) | Exploring, fighting, recruiting, team building, growth, progression, homestead | **LOCKED 2026-11-02** |
-| 3 | World and story | Regions and their order, the main mystery, characters, quests | Not started |
+| 3 | [World and story](03_WORLD_AND_STORY.md) | Regions and their order, the main mystery, characters, quests | DRAFT — awaiting owner choices |
 | 4 | Creatures | The 50-Signari roster, types and matchups, moves, growth, habitats | Not started |
 | 5 | UI and controls | Every screen and the HUD; keyboard, controller and touch | Not started |
 | 6 | Art and assets | Style rules and the full asset list with sources and licences | Not started |
