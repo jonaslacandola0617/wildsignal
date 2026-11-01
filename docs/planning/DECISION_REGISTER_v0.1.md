@@ -26,7 +26,7 @@
 | Decision ID | Decision | Status | Source/impact |
 |---|---|---|---|
 | D-001 | WILDSIGNAL working title (name trademark clearance not performed) | CONFIRMED working title | branding, Steam/Play naming |
-| D-002 | Original pixel-art monster companion RPG with user's OWN 100-cell hand-created art | CONFIRMED ownership per user | creature catalog, sprite asset rights |
+| D-002 | Original pixel-art monster companion RPG with user's OWN 100-cell hand-created art | CONFIRMED ownership per user; **corrected 2026-11-02: the designs are AI-assisted concepts the owner owns, not hand drawings** | creature catalog, sprite asset rights |
 | D-003 | First-person retro pseudo-3D/2.5D appearance inspired by user's dungeon screenshot | CONFIRMED visual direction | renderer R&D, world geometry |
 | D-004 | Mood "Beautiful but mysterious": cute companions, lush nature, ruins and discovery | CONFIRMED | art and narrative |
 | D-005 | Persistent creature companions follow, respond and help exploration | CONFIRMED | sprite art, sim/navigation |

@@ -103,7 +103,7 @@ This replaces "4 learned moves". **CHOICE C6 — energy:** today moves also cost
 | B | No evolutions. Each Signari changes look slightly at high level (colour accent, bigger aura) instead. |
 | C | Decide in chapter 4, after looking at the 100 designs together. |
 
-Recommendation: **C**. It depends on whether the hand-drawn designs already form families.
+Recommendation: **C**. It depends on whether the designs already form families.
 
 ## 2.7 Wildsignal's signature twist — Resonance
 

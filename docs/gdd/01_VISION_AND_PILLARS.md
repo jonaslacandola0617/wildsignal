@@ -38,7 +38,7 @@ Every feature is checked against these four. If it doesn't serve at least one, i
 
 1. **Fights that feel good.** Real-time, readable, skill-based. You move, roll and dodge while commanding your Signari. Matchups and team choices matter.
 2. **A world worth wandering.** Connected regions you roam freely. Every path leads somewhere: a new Signari, a secret, a view, a piece of the story.
-3. **Creatures that are truly original.** Every Signari comes from the owner's own hand-drawn designs. Each has a personality and behaviour you can see in the world, not just numbers.
+3. **Creatures that are truly original.** Every Signari comes from the owner's own original designs (AI-assisted concepts the owner owns, built into 3D for Wildsignal), never copied from another game. Each has a personality and behaviour you can see in the world, not just numbers.
 4. **Kind at heart.** Signari faint, they never die. You recruit them by earning them in a fight and tuning in to their signal, not by trapping them. Cozy places stay cozy.
 
 ## 1.5 What makes Wildsignal different
@@ -46,7 +46,7 @@ Every feature is checked against these four. If it doesn't serve at least one, i
 - **Real-time fights where you are on the field too:** you dodge attacks aimed at you while directing your Signari.
 - **Recruiting is a skill moment, not a dice roll:** wear the Signari down without knocking it out, then hold steady while you tune in.
 - **The Resonance Compass** (proposed; detailed in chapter 2): the Wayfinder's tool for finding Signari and tuning in to their signals.
-- **A hand-drawn roster of original creatures**, shown in a stylised pixel-3D world.
+- **A roster of original creatures** made for Wildsignal, shown in a stylised pixel-3D world.
 
 ## 1.6 Things Wildsignal never does
 
@@ -59,7 +59,7 @@ Every feature is checked against these four. If it doesn't serve at least one, i
 - The full story is always playable offline.
 - No ads interrupting play.
 - No breeding or selling Signari.
-- Never replacing or AI-redrawing the owner's original creature designs.
+- Never copying creatures, models or designs from another game. Reference models are studied for proportion and technical budgets only.
 
 ## 1.7 Release scope (version 1.0)
 
@@ -86,3 +86,4 @@ Every feature is checked against these four. If it doesn't serve at least one, i
 
 - 2026-11-02 — First draft from the owner's answers.
 - 2026-11-02 — Locked by the owner.
+- 2026-11-02 — Owner correction: the creature designs are AI-assisted concepts the owner owns, not hand drawings. Pillar 3, 1.5 and the never-do line updated to match; meaning unchanged (original, owner-owned, never copied).
