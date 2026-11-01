@@ -1,6 +1,6 @@
 # Chapter 6 — Art, audio and assets
 
-**Status:** DRAFT 2026-11-02 (revised). Choices are in 6.9.
+**Status:** LOCKED 2026-11-02 by the owner (A1–A7). The **style guide** stays OPEN until look development (LOOKDEV-001) picks a direction.
 **Built on:** chapters 1–4 (locked) and chapter 5 (functional parts locked; UI look OPEN).
 
 **Two owner rules shape this chapter (2026-11-02):**
@@ -104,7 +104,7 @@ Recommendation: decide after look development; whichever world style wins, the U
 
 ## 6.9 Owner choices
 
-| # | Question | Recommendation |
+| # | Question | Decision (owner, 2026-11-02) |
 |---|---|---|
 | A1 | Build all our own assets with a zero budget; current packs are placeholders only (6.2–6.3)? | Yes |
 | A2 | Look development first: three style directions in one test scene, owner picks (6.1)? | Yes |
@@ -118,3 +118,4 @@ Recommendation: decide after look development; whichever world style wins, the U
 
 - 2026-11-02 — First draft.
 - 2026-11-02 — Owner: no current 3D asset is approved, we build our own (especially buildings and vegetation), and there is no budget. Reworked around own assets, look development and free audio.
+- 2026-11-02 — Owner accepted A1–A7; music from free royalty-free sources and AI instrumentals. Locked; style guide pending LOOKDEV-001.

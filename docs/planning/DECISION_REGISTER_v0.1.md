@@ -201,3 +201,10 @@ Locked in [GDD chapter 2](../gdd/02_CORE_GAMEPLAY.md); the chapter holds the det
 | Decision ID | Decision | Status | Source/impact |
 |---|---|---|---|
 | D-085 | UI function locked in [GDD chapter 5](../gdd/05_UI_AND_CONTROLS.md): screen list, HUD layouts, controls for keyboard, controller and Android touch, accessibility, English first. The UI **look** stays OPEN; an interim code-drawn style is used until decided | **CONFIRMED 2026-11-02 (function); look OPEN** | UI code, art; replaces UI_UX_BIBLE_v0.1 drafts |
+
+
+## 16. Art, audio and assets — 2026-11-02
+
+| Decision ID | Decision | Status | Source/impact |
+|---|---|---|---|
+| D-086 | Art and audio locked in [GDD chapter 6](../gdd/06_ART_AUDIO_AND_ASSETS.md): zero budget; all world, character and UI assets made for Wildsignal (current packs are placeholders); look development with three style directions decides the style guide; music from free royalty-free sources and AI instrumentals with terms recorded; free CC0 sound effects plus synthesis | **CONFIRMED 2026-11-02; style guide OPEN until LOOKDEV-001** | all art, audio, licences |

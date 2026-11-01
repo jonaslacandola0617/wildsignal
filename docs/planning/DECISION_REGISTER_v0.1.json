@@ -545,6 +545,15 @@
       "downstream": "UI code, art",
       "approvedAt": "2026-11-02",
       "source": "docs/gdd/05_UI_AND_CONTROLS.md"
+    },
+    {
+      "id": "D-086",
+      "status": "CONFIRMED",
+      "statusText": "CONFIRMED 2026-11-02; style guide OPEN until LOOKDEV-001",
+      "decision": "Zero budget; own assets for world, characters and UI (packs are placeholders); look development picks the style; music from free royalty-free sources and AI instrumentals; CC0 sound effects plus synthesis",
+      "downstream": "all art, audio, licences",
+      "approvedAt": "2026-11-02",
+      "source": "docs/gdd/06_ART_AUDIO_AND_ASSETS.md"
     }
   ]
 }
