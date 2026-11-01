@@ -89,3 +89,4 @@ The order above front-loads the decisions that unblock everything else: foundati
 
 - 2026-11-02 — First draft.
 - 2026-11-02 — Owner accepted all choices. Locked.
+- 2026-11-02 — FOUND-001 done: `develop` created (field-kit UI, leaf fix, house, direction docs, recruit rule, docs/gdd); 18/18 tests pass; PR #71 closed as superseded.
