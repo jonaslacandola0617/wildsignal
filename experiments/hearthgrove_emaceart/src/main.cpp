@@ -573,7 +573,7 @@ int main(int argc, char **argv) {
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
     screen.window =
-        SDL_CreateWindow("WILDSIGNAL - Hearthgrove EmaceArt",
+        SDL_CreateWindow("Wildsignal",
                          o.windowWidth ? o.windowWidth : o.hidden ? o.w : 1280, o.windowWidth ? o.windowWidth * 9 / 16 : o.hidden ? o.w * 9 / 16 : 720,
                          SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE |
                              (o.hidden ? SDL_WINDOW_HIDDEN : 0));
