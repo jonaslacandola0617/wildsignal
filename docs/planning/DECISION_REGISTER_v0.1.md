@@ -187,3 +187,10 @@ Locked in [GDD chapter 2](../gdd/02_CORE_GAMEPLAY.md); the chapter holds the det
 | Decision ID | Decision | Status | Source/impact |
 |---|---|---|---|
 | D-083 | World and story locked in [GDD chapter 3](../gdd/03_WORLD_AND_STORY.md): six regions (Hearthgrove Vale, Liltwood Forest, Tideglass Coast, Ashbell Works, Gloamfen Marsh, Emberglass Caldera), the Hush, Bellkeeper Sol and the Chorus, rival Juno Hale, silent Wayfinder, day–night and light weather | **CONFIRMED 2026-11-02** | quests, regions, characters, art; supersedes region and story drafts in WORLD_BIBLE_v0.1 and NARRATIVE_QUESTS_v0.1 |
+
+
+## 14. Creatures — 2026-11-02
+
+| Decision ID | Decision | Status | Source/impact |
+|---|---|---|---|
+| D-084 | Creatures locked in [GDD chapter 4](../gdd/04_CREATURES.md): no evolutions in 1.0; eight types with a balanced chart; the 50-Signari roster (WS-001–020 plus 30 picks) with regions, roles, names and guardians; model standard (≤6k tris, ≤24 bones, 12 animations, six shared skeletons); Claude builds the 30 new models, then rigs and animations for all 50 | **CONFIRMED 2026-11-02** | fight data, art pipeline, regions; replaces FIRST_NINE_CREATURES and D-025/D-026 proposals; resolves D-065 for 1.0 |

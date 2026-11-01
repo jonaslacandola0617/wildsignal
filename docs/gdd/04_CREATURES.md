@@ -1,6 +1,6 @@
 # Chapter 4 — Creatures
 
-**Status:** DRAFT 2026-11-02. Owner answers: no evolutions for 1.0; Claude decides the type chart, picks the other 30 Signari and proposes names; WS-001 to WS-020 are approved models; Claude builds the remaining 3D models. Choices still needed are in 4.9.
+**Status:** LOCKED 2026-11-02 by the owner (R1–R6 accepted as recommended). Owner answers behind it: no evolutions for 1.0; Claude decides the type chart, picks the other 30 Signari and proposes names; WS-001 to WS-020 are approved models; Claude builds the remaining 3D models.
 **Built on:** chapters 1–3 (locked). Sources: `CREATURE_CATALOG_v0.1.json` (100 designs), the turnaround sheets and models in `wildsignal-art`, and the reference models in `assets/samples` (measured for budgets only, never copied).
 
 ## 4.1 Ground rules
@@ -172,7 +172,7 @@ Everything stays in the private art repository. The reference models in `assets/
 
 ## 4.9 Owner choices
 
-| # | Question | Recommendation |
+| # | Question | Decision (owner, 2026-11-02) |
 |---|---|---|
 | R1 | The eight-type chart (4.2)? | As drafted |
 | R2 | The 30 picks and their regions (4.3)? | As drafted |
@@ -184,3 +184,4 @@ Everything stays in the private art repository. The reference models in `assets/
 ## Change log
 
 - 2026-11-02 — First draft from the owner's answers.
+- 2026-11-02 — Owner accepted R1–R6 as recommended. Locked.

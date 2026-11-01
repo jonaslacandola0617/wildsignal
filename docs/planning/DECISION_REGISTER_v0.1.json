@@ -527,6 +527,15 @@
       "downstream": "quests, regions, characters, art",
       "approvedAt": "2026-11-02",
       "source": "docs/gdd/03_WORLD_AND_STORY.md"
+    },
+    {
+      "id": "D-084",
+      "status": "CONFIRMED",
+      "statusText": "CONFIRMED 2026-11-02",
+      "decision": "Creatures locked in GDD chapter 4: no evolutions in 1.0; eight-type chart; 50-Signari roster with regions, roles, names, guardians; model standard; Claude builds the 30 new models then rigs and animations for all 50",
+      "downstream": "fight data, art pipeline, regions",
+      "approvedAt": "2026-11-02",
+      "source": "docs/gdd/04_CREATURES.md"
     }
   ]
 }
