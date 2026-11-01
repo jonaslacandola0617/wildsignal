@@ -1212,7 +1212,7 @@ int main(int argc, char **argv) {
         auto eye = p3::inverse(camera.view());
         scene->marks(*groundMarks, p3::direction(eye, {1, 0, 0}), p3::direction(eye, {0, 1, 0}));
         if (!scene->active())
-          wilds->marks(*groundMarks, p3::direction(eye, {1, 0, 0}), p3::direction(eye, {0, 1, 0}));
+          wilds->marks(*groundMarks, {}, {});
       }
       auto cullStart = Clock::now();
       auto counts = world.visible(p3::Frustum(vp), true, visible);

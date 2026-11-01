@@ -39,11 +39,10 @@ public:
 private:
   enum class Mood { Forage, Spot, Hide };
   struct Wild {
-    std::string species, name, watchPrompt, watchingText, observedText, assistPrompt, assistHint, assistedText, temperament, sneakHint, trustHint, companyPrompt, companyDone;
+    std::string species, name, cacheIcon, watchPrompt, watchingText, observedText, assistPrompt, assistHint, assistedText, temperament, sneakHint, trustHint, companyPrompt, companyDone;
     int level = 1, health = 100, trustNeeded = 3;
     Vec spawn, at, hide, cache;
     std::vector<Vec> forage;
-    std::array<float, 3> cacheColour{};
     float speed = 1, yaw = 0, timer = 0, watchT = 0, startleRange = 3, startleSeconds = 8, watchSeconds = 4, tidySeconds = 1.2f;
     int next = 0;
     bool flees = true, moving = false, pecking = false, watchWhileFeeding = false, company = false, visited = false;
@@ -61,10 +60,10 @@ private:
   std::vector<Companion> pack;
   std::vector<std::string> events;
   Vec lastPlayer, seenPlayer;
-  float clock = 0, toastT = 0, tidyT = 0, busySpent = 0, companySeconds = 12;
+  float clock = 0, toastT = 0, joinT = 0, tidyT = 0, busySpent = 0, companySeconds = 12;
   int target = 0, near = -1, watchIndex = -1, tidyIndex = -1;
   bool sitting = false, sneakingNow = false, canWatch = false, canSit = false, canTidy = false, canFight = false, canInvite = false, tooClose = false;
-  std::string toast;
+  std::string toast, joinName, joinNote;
   void say(const std::string &, float seconds = 3.2f);
   void store();
   void syncPack(Vec player, const std::vector<game::Solid> &);

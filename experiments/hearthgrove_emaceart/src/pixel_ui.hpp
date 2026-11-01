@@ -26,7 +26,13 @@ public:
   void panel(const std::string &name, int x, int y, int w, int h);
   // Stretches only the middle of a piece sideways, keeping both end caps whole.
   void strip(const std::string &name, int x, int y, int w, int h = 0);
-  void meter(int x, int y, int w, float fraction, Colour colour);
+  // A framed bar. `fill` names a skin piece; atlases without it get a plain colour.
+  void meter(int x, int y, int w, float fraction, const std::string &fill, Colour plain);
+  // A short centred message on the skin's note holder.
+  void note(const std::string &text, int centre, int y);
+  // Draws the first `shown` pixels of a piece, for segmented bars.
+  void part(const std::string &name, int x, int y, int shown, int scale = 1);
+  bool has(const std::string &name) const;
   void fill(int x, int y, int w, int h, Colour colour);
   void text(const std::string &value, int x, int y, Colour colour, int scale = 1);
   int width(const std::string &value, int scale = 1) const;

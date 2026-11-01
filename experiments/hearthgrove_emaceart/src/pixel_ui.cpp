@@ -149,19 +149,33 @@ void PixelUi::strip(const std::string &name, int x, int y, int w, int h) {
   p->quad(x + b, y, w - 2 * b, h, r.x + b, r.y, r.w - 2 * b, r.h, white);
   p->quad(x + w - b, y, b, h, r.x + r.w - b, r.y, b, r.h, white);
 }
-void PixelUi::meter(int x, int y, int w, float fraction, Colour colour) {
+void PixelUi::meter(int x, int y, int w, float fraction, const std::string &name, Colour plain) {
   strip("bar", x, y, w);
-  int inner = w - p->meterLeft - p->meterRight, filled = int(float(inner) * std::clamp(fraction, 0.f, 1.f));
+  fraction = std::clamp(fraction, 0.f, 1.f);
   if (fraction <= 0) return;
-  filled = std::max(1, filled);
-  int left = x + p->meterLeft, top = y + p->meterTop, rows = p->meterRows;
-  fill(left, top, filled, rows, colour);
-  if (rows < 6) return;
-  // A lit row and a shaded base, like the pack's own bars.
-  auto tone = [&](float k) { return Colour{std::min(1.f, colour[0] * k), std::min(1.f, colour[1] * k), std::min(1.f, colour[2] * k), colour[3]}; };
-  fill(left, top + 1, filled, 1, tone(1.45f));
-  fill(left, top + rows - 2, filled, 2, tone(.72f));
+  if (has(name)) {
+    strip(name, x, y, std::max(4, int(float(w) * fraction)));
+    return;
+  }
+  int inner = w - p->meterLeft - p->meterRight;
+  fill(x + p->meterLeft, y + p->meterTop, std::max(1, int(float(inner) * fraction)), p->meterRows, plain);
 }
+void PixelUi::note(const std::string &value, int centre, int y) {
+  int w = width(value) + 32;
+  if (has("holder")) {
+    strip("holder", centre - w / 2, y, w);
+    text(value, centre - width(value) / 2, y + 8, p->theme.ink);
+  } else {
+    panel("panel", centre - w / 2, y, w, 26);
+    text(value, centre - width(value) / 2, y + 10, p->theme.ink);
+  }
+}
+void PixelUi::part(const std::string &name, int x, int y, int shown, int scale) {
+  const auto &r = p->rects.at(name);
+  shown = std::clamp(shown, 0, r.w);
+  p->quad(x, y, shown * scale, r.h * scale, r.x, r.y, shown, r.h, {1, 1, 1, 1});
+}
+bool PixelUi::has(const std::string &name) const { return p->rects.count(name) > 0; }
 const PixelUi::Theme &PixelUi::theme() const { return p->theme; }
 void PixelUi::fill(int x, int y, int w, int h, Colour colour) {
   const auto &r = p->rects.at("white");

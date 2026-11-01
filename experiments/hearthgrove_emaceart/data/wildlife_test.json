@@ -37,11 +37,6 @@
       ],
       "speed": 2.4,
       "flees": true,
-      "cacheColour": [
-        0.95,
-        0.68,
-        0.26
-      ],
       "watchPrompt": "WATCH TUMBLETAIL",
       "watching": "STAY STILL. IT IS GATHERING FOOD.",
       "observed": "IT HIDES SEEDS BY THE BENCH, BUT THEY ARE SCATTERED.",
@@ -60,7 +55,8 @@
       "sneakHint": "HOLD SHIFT TO SNEAK CLOSER",
       "trustHint": "CALM IT IN A FRIENDLY FIGHT, THEN REACH OUT",
       "companyPrompt": "",
-      "companyDone": ""
+      "companyDone": "",
+      "cacheIcon": "cache_nuts"
     },
     {
       "species": "WS-012",
@@ -97,11 +93,6 @@
       ],
       "speed": 0.8,
       "flees": false,
-      "cacheColour": [
-        0.86,
-        0.62,
-        0.3
-      ],
       "watchPrompt": "WATCH MOSSMELT",
       "watching": "STAY STILL. IT IS CLEANING THE LEAVES.",
       "observed": "ITS FEEDING BED IS BURIED UNDER FALLEN DEBRIS.",
@@ -120,7 +111,8 @@
       "sneakHint": "",
       "trustHint": "SIT WITH IT, OR REACH OUT IN A FIGHT",
       "companyPrompt": "SIT WITH MOSSMELT",
-      "companyDone": "IT SETTLES BESIDE YOU. COME BACK AFTER A REST."
+      "companyDone": "IT SETTLES BESIDE YOU. COME BACK AFTER A REST.",
+      "cacheIcon": "cache_leaves"
     }
   ],
   "companySeconds": 12

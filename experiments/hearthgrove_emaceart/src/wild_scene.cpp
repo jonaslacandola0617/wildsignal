@@ -28,7 +28,7 @@ bond::Journal newGameTeam() {
 // Where each team member waits around a resting player.
 Vec restSpot(std::size_t i) { return {i % 2 ? 1.1f : -1.1f, 0, 1.2f + float(i / 2) * 1.1f}; }
 // Small fixed offsets, so the scattered seeds sit in the same places every time.
-const std::array<std::array<float, 2>, 7> Scatter{{{-.55f, .1f}, {-.2f, .45f}, {.3f, .3f}, {.6f, -.15f}, {.1f, -.4f}, {-.4f, -.35f}, {.75f, .4f}}};
+const std::array<std::array<float, 2>, 4> Scatter{{{-.6f, .15f}, {.05f, .55f}, {.7f, .05f}, {-.05f, -.55f}}};
 } // namespace
 
 WildScene::WildScene(const std::filesystem::path &folder, const battle::Content &c, std::filesystem::path saveFile, bool fresh, Vec player)
@@ -66,8 +66,7 @@ WildScene::WildScene(const std::filesystem::path &folder, const battle::Content 
     k.tidySeconds = float(w.at("tidySeconds").number());
     k.watchWhileFeeding = std::get<bool>(w.at("watchWhileFeeding").value);
     k.company = std::get<bool>(w.at("company").value);
-    const auto &colour = w.at("cacheColour").array();
-    for (int i = 0; i < 3; i++) k.cacheColour[i] = float(colour.at(i).number());
+    k.cacheIcon = w.at("cacheIcon").string();
     k.watchPrompt = w.at("watchPrompt").string();
     k.watchingText = w.at("watching").string();
     k.observedText = w.at("observed").string();
@@ -137,6 +136,7 @@ void WildScene::regroup(Vec player, const std::vector<game::Solid> &solids) {
 void WildScene::update(float dt, Vec player, bool sneaking, const std::vector<game::Solid> &solids) {
   clock += dt;
   toastT = std::max(0.f, toastT - dt);
+  joinT = std::max(0.f, joinT - dt);
   bool playerMoved = flat(player, seenPlayer) > .002f;
   bool noisy = playerMoved && !sneaking;
   seenPlayer = player;
@@ -293,7 +293,9 @@ WildScene::Press WildScene::press(int k, Vec) {
     journal.invite(w.species, w.level, w.trustNeeded, false);
     store();
     events.push_back("trust_invite");
-    say(roomy ? w.name + " JOINED YOUR TEAM!" : w.name + " IS WAITING AT THE COTTAGE.", 4);
+    joinName = w.name;
+    joinNote = roomy ? "JOINED YOUR TEAM!" : "IS WAITING AT THE COTTAGE.";
+    joinT = 3.8f;
     return Press::Handled;
   }
   if (k == SDLK_E && (canWatch || canSit) && !watching()) {
@@ -373,34 +375,35 @@ std::vector<FightScene::Staged> WildScene::staged() const {
   }
   return out;
 }
-void WildScene::marks(GroundMarks &g, Vec right, Vec up) {
+void WildScene::marks(GroundMarks &g, Vec, Vec) {
   for (const auto &w : wilds) {
     auto *e = journal.find(w.species);
-    if (!e || !e->observed || e->joined) continue;
-    Vec ground = w.cache;
-    float y = game::terrain(ground.x, ground.z) + .2f;
-    GroundMarks::Colour c{w.cacheColour[0], w.cacheColour[1], w.cacheColour[2], 1};
-    if (e->assisted) {
-      // Gathered into one neat pile.
-      for (int i = 0; i < 4; i++)
-        g.orb({ground.x + (i - 1.5f) * .09f, y + (i % 2) * .06f, ground.z}, .085f, c, right, up);
-      continue;
-    }
-    for (const auto &s : Scatter)
-      g.orb({ground.x + s[0], y, ground.z + s[1]}, .075f, c, right, up);
+    if (!e || !e->observed || e->assisted || e->joined) continue;
     float pulse = .5f + .5f * std::sin(clock * 4);
-    g.ring(ground, 1.05f + pulse * .1f, .16f, {.98f, .86f, .42f, .95f});
+    g.ring(w.cache, 1.05f + pulse * .1f, .16f, {.98f, .86f, .42f, .95f});
   }
 }
 void WildScene::draw(PixelUi &ui, const FightScene::Project &project) {
   const auto &t = ui.theme();
+  auto centred = [&](const std::string &name, std::array<int, 2> at) {
+    if (ui.has(name)) ui.image(name, at[0] - 7, at[1] - 7);
+  };
+  for (const auto &w : wilds) {
+    auto *e = journal.find(w.species);
+    if (!e || e->joined) continue;
+    // Scattered, then one neat pile once it has been tidied.
+    if (e->observed && !e->assisted)
+      for (const auto &s : Scatter)
+        centred(w.cacheIcon, project(Vec{w.cache.x + s[0], game::terrain(w.cache.x, w.cache.z) + .15f, w.cache.z + s[1]}));
+    if (e->assisted) centred(w.cacheIcon, project(w.cache + Vec{0, game::terrain(w.cache.x, w.cache.z) + .15f, 0}));
+  }
   for (const auto &w : wilds) {
     auto *e = journal.find(w.species);
     if (e && e->joined) continue;
     if (w.wariness.frightened()) {
       auto p = project(w.at + Vec{0, 1.1f, 0});
-      ui.text("!", p[0] + 1, p[1] + 1, {.1f, .07f, .05f, 1});
-      ui.text("!", p[0], p[1], Coral);
+      if (ui.has("alert")) centred("alert", p);
+      else ui.text("!", p[0], p[1], Coral);
     }
   }
   if (near >= 0) {
@@ -408,22 +411,30 @@ void WildScene::draw(PixelUi &ui, const FightScene::Project &project) {
     auto *e = journal.find(w.species);
     int trust = e ? e->trust() : 0;
     ui.panel("panel", 14, 12, 268, 46);
-    ui.image("leaf", 14 + 268 - 13, 13);
     ui.text(w.name, 26, 22, t.ink);
     ui.text(w.wariness.frightened() ? "WARY" : w.temperament, 92, 22, w.wariness.frightened() ? Coral : t.faded);
     ui.text("TRUST", 160, 22, t.faded);
     for (int i = 0; i < w.trustNeeded; i++)
       ui.image(i < trust ? "trust_on" : "trust_off", 196 + i * 10, 22);
     if (watchIndex == near)
-      ui.meter(26, 35, 244, std::min(1.f, w.watchT / watchGoal(w)), Calm);
+      ui.meter(26, 35, 244, std::min(1.f, w.watchT / watchGoal(w)), "fill_sp", Calm);
     else
       ui.text(nextStep(w), 26, 36, t.faded);
   }
   std::string line = toastT > 0 ? toast : watchIndex >= 0 ? (sitting ? "STAY STILL AND KEEP IT COMPANY." : wilds[std::size_t(watchIndex)].watchingText) : "";
-  if (!line.empty()) {
-    int w = ui.width(line) + 28;
-    ui.panel("panel", 320 - w / 2, 66, w, 26);
-    ui.text(line, 320 - w / 2 + 14, 75, t.ink);
+  if (joinT <= 0 && !line.empty()) ui.note(line, 320, 66);
+  if (joinT > 0 && ui.has("ribbon")) {
+    // The team stamp: the pack's own stamp animation, leaving its mark on the ribbon.
+    int w = std::max(300, ui.width(joinName, 2) + 220), left = 320 - w / 2, markX = left + w - 92, markY = 76;
+    float gone = 3.8f - joinT;
+    int frame = std::min(19, int(gone * 14));
+    ui.strip("ribbon", left, 62, w);
+    ui.text(joinName, 320 - ui.width(joinName, 2) / 2, 82, t.title, 2);
+    ui.note(joinNote, 320, 140);
+    if (frame >= 7) ui.image("stamp_mark", markX, markY);
+    if (gone * 14 < 20) ui.image("stamp" + std::to_string(frame), markX - 23, markY - 43);
+  } else if (joinT > 0) {
+    ui.note(joinName + " " + joinNote, 320, 66);
   }
   if (near < 0 || busy() || watching()) return;
   const auto &w = wilds[std::size_t(near)];
@@ -431,9 +442,6 @@ void WildScene::draw(PixelUi &ui, const FightScene::Project &project) {
   std::string right = canFight ? "[F] FRIENDLY FIGHT" : "";
   std::string text = left.empty() ? right : right.empty() ? left : left + "   " + right;
   if (text.empty() && tooClose && !sneakingNow) text = w.sneakHint;
-  if (text.empty()) return;
-  int width = ui.width(text) + 28;
-  ui.panel("panel", 320 - width / 2, 318, width, 28);
-  ui.text(text, 320 - width / 2 + 14, 328, t.ink);
+  if (!text.empty()) ui.note(text, 320, 322);
 }
 } // namespace p3
