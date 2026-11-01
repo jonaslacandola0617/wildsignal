@@ -1,6 +1,6 @@
 # Chapter 2 — Core gameplay
 
-**Status:** DRAFT 2026-11-02. Sections marked **CHOICE** need the owner's answer; everything else is the recommendation and becomes final when the chapter is locked.
+**Status:** LOCKED 2026-11-02 by the owner. The CHOICE notes below are kept to show the options considered; the decisions are in 2.13.
 **Built on:** [Chapter 1](01_VISION_AND_PILLARS.md) (locked) and decisions D-070 to D-077.
 **What exists today** is noted in each section, so it's clear what's new work and what's already built in `experiments/hearthgrove_emaceart`.
 
@@ -151,6 +151,13 @@ The owner wants these on the table for variety. They can make Wildsignal much ri
 
 The recommendation keeps the adventure as the heart of the game (pillars 1 and 2) and makes the homestead the cozy home you come back to between regions.
 
+**Decided (owner, 2026-11-02): B, with relocation.** The homestead can be **moved, but only to designated homestead sites**, never anywhere:
+- Each region has one or more fixed **homestead sites** (a cleared meadow, a cove, a ruin courtyard), found by exploring.
+- Moving packs the whole homestead up and rebuilds it at the chosen site with the same layout: plots, buildings, decorations and resident Signari. The old site goes back to empty.
+- Every site has the same plot size and grid, so any layout fits any site. Sites can differ in look (ground, surroundings) and in a small bonus suited to their region (for example faster herb growth in the forest).
+- Only one homestead exists at a time. Building stays inside the homestead plot.
+- Technically, the homestead is saved as one layout relative to its site, so moving it is a change of anchor, and it streams with the chunk its site sits in.
+
 ## 2.11 Difficulty and accessibility
 
 - **Assist options:** slower fights, longer telegraphs, auto-dodge for the player. Nobody misses the story because of reflexes.
@@ -164,19 +171,22 @@ The recommendation keeps the adventure as the heart of the game (pillars 1 and 2
 
 ## 2.13 Owner choices
 
-| # | Question | Recommendation / decision |
+All decided by the owner on 2026-11-02.
+
+| # | Question | Decision |
 |---|---|---|
-| C1 | Field abilities from team Signari (cross water, move boulders, light caves)? | Recommend: yes |
-| C2 | What opens Tune In? | Recommend: B — worn down opens it, calm makes it faster |
-| C3 | Evolutions? | Recommend: C — decide in chapter 4 |
-| C4 | Swap combo at a full Resonance meter? | Recommend: yes, after the first region is playable |
-| C5 | Money and shops? | **DECIDED:** money and village shops, plus healing items found in the world |
-| C6 | Keep energy costs on skills? | Recommend: remove energy, cooldowns only |
-| C7 | How do kits grow? | Recommend: A — fixed kit, skills rank up with levels |
-| C8 | Crafting, farming, building in 1.0? | Recommend: B — the Homestead, with reserve Signari helping |
-| — | Kit shape | **DECIDED:** basic attack, 3 skills, 1 ultimate; dodge is innate, not a skill |
+| C1 | Field abilities from team Signari? | **Yes** — e.g. Tide wades shallow water, Stone moves boulders, Lumen lights caves |
+| C2 | What opens Tune In? | **Worn down opens it; calm makes it faster** (≈1.2 s calm, ≈3 s agitated) |
+| C3 | Evolutions? | **Decide in chapter 4**, after reviewing the 100 designs |
+| C4 | Swap combo at a full Resonance meter? | **Yes, after the first region is playable** |
+| C5 | Money and shops? | **Money and village shops, plus healing items found in the world** |
+| C6 | Energy costs on skills? | **Removed; cooldowns only** |
+| C7 | How do kits grow? | **Fixed kit per species; skills rank up with levels; the ultimate unlocks at a set level** |
+| C8 | Crafting, farming, building? | **The Homestead**, relocatable to designated sites only, with reserve Signari helping |
+| — | Kit shape | **Basic attack, 3 skills, 1 ultimate; dodge is innate, not a skill** |
 
 ## Change log
 
 - 2026-11-02 — First draft.
 - 2026-11-02 — Owner: MOBA-style kit (basic, 3 skills, ultimate, innate dodge); money and shops plus found healing items; crafting, farming and building opened for discussion. Added C6–C8; the Resonance meter now charges the ultimate.
+- 2026-11-02 — Owner accepted all recommendations (C1–C4, C6–C8) and added homestead relocation to designated sites. Locked.

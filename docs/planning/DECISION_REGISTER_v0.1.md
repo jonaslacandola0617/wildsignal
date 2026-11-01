@@ -167,3 +167,16 @@ Owner answers while drafting the game design document ([chapter 1](../gdd/01_VIS
 | D-075 | Version 1.0 targets **50 Signari** (was 18–24 in D-021); 6 regions and a 3–5 h main story stay | **CONFIRMED target 2026-11-02; feasibility GATED by the creature production plan (GDD chapter 4)** | creature models, animation, balancing, schedule; amends D-021 |
 | D-076 | Two-player co-op moves to **after launch**; 1.0 is single-player | **CONFIRMED 2026-11-02** | network, backend and online UX leave 1.0 scope; amends D-023 |
 | D-077 | The game design document in `docs/gdd/` is the single source of truth; locked chapters outrank older design documents | **CONFIRMED 2026-11-02** | all design and gameplay work |
+
+
+## 12. Core gameplay — 2026-11-02
+
+Locked in [GDD chapter 2](../gdd/02_CORE_GAMEPLAY.md); the chapter holds the details.
+
+| Decision ID | Decision | Status | Source/impact |
+|---|---|---|---|
+| D-078 | Signari kit: basic attack, 3 skills, 1 ultimate (charged by the Resonance meter); dodge is innate; no energy costs, cooldowns only; fixed kit per species, skills rank up with levels | **CONFIRMED 2026-11-02** | fight rules, fight data, HUD; replaces "4 learned moves" and energy in D-028 |
+| D-079 | Recruiting is Tune In with the Resonance Compass: worn down opens it, calm makes it faster; one of each species; team of 3 plus reserve | **CONFIRMED 2026-11-02** | fight rules, saves, HUD; refines D-071 |
+| D-080 | Money and village shops, plus healing items found in the world | **CONFIRMED 2026-11-02** | economy, items, UI |
+| D-081 | The Homestead: farming, crafting and building inside one plot, relocatable only to designated sites; reserve Signari help by affinity | **CONFIRMED 2026-11-02** | world format, saves, art, UI |
+| D-082 | Team Signari give field abilities (cross water, move boulders, light caves); evolutions decided in chapter 4; the swap combo comes after the first playable region | **CONFIRMED 2026-11-02** | world design, creature design |

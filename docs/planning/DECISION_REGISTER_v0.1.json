@@ -473,6 +473,51 @@
       "downstream": "all design and gameplay work",
       "approvedAt": "2026-11-02",
       "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-078",
+      "status": "CONFIRMED",
+      "statusText": "CONFIRMED 2026-11-02",
+      "decision": "Signari kit: basic attack, 3 skills, 1 ultimate charged by the Resonance meter; dodge innate; cooldowns only, no energy; fixed kit per species with skill ranks",
+      "downstream": "fight rules, fight data, HUD",
+      "approvedAt": "2026-11-02",
+      "source": "docs/gdd/02_CORE_GAMEPLAY.md"
+    },
+    {
+      "id": "D-079",
+      "status": "CONFIRMED",
+      "statusText": "CONFIRMED 2026-11-02",
+      "decision": "Recruiting is Tune In with the Resonance Compass: worn down opens it, calm makes it faster; one of each species; team of 3 plus reserve",
+      "downstream": "fight rules, saves, HUD",
+      "approvedAt": "2026-11-02",
+      "source": "docs/gdd/02_CORE_GAMEPLAY.md"
+    },
+    {
+      "id": "D-080",
+      "status": "CONFIRMED",
+      "statusText": "CONFIRMED 2026-11-02",
+      "decision": "Money and village shops, plus healing items found in the world",
+      "downstream": "economy, items, UI",
+      "approvedAt": "2026-11-02",
+      "source": "docs/gdd/02_CORE_GAMEPLAY.md"
+    },
+    {
+      "id": "D-081",
+      "status": "CONFIRMED",
+      "statusText": "CONFIRMED 2026-11-02",
+      "decision": "The Homestead: farming, crafting and building inside one plot, relocatable only to designated sites; reserve Signari help by affinity",
+      "downstream": "world format, saves, art, UI",
+      "approvedAt": "2026-11-02",
+      "source": "docs/gdd/02_CORE_GAMEPLAY.md"
+    },
+    {
+      "id": "D-082",
+      "status": "CONFIRMED",
+      "statusText": "CONFIRMED 2026-11-02",
+      "decision": "Team Signari give field abilities; evolutions decided in chapter 4; swap combo after the first playable region",
+      "downstream": "world design, creature design",
+      "approvedAt": "2026-11-02",
+      "source": "docs/gdd/02_CORE_GAMEPLAY.md"
     }
   ]
 }
