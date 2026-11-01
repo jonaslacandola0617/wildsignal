@@ -8,10 +8,6 @@ namespace {
 const PixelUi::Colour Calm{.45f, .78f, .84f, 1}, Coral{.78f, .3f, .2f, 1};
 const float WatchFar = 9, FightNear = 3, TidyNear = 1.8f, InviteNear = 3;
 float flat(Vec a, Vec b) { return std::hypot(a.x - b.x, a.z - b.z); }
-std::string upper(std::string s) {
-  for (auto &c : s) c = char(std::toupper((unsigned char)c));
-  return s;
-}
 std::string modelOf(std::string id) {
   id.erase(id.find('-'), 1);
   return id;
@@ -48,7 +44,7 @@ WildScene::WildScene(const std::filesystem::path &folder, const battle::Content 
   for (const auto &w : root.at("wilds").array()) {
     Wild k;
     k.species = w.at("species").string();
-    k.name = upper(c.species[c.speciesIndex(k.species)].name);
+    k.name = c.species[c.speciesIndex(k.species)].name;
     k.level = int(w.at("level").number());
     k.health = int(w.at("health").number());
     k.trustNeeded = int(w.at("trustNeeded").number());
@@ -89,7 +85,7 @@ void WildScene::store() {
   try {
     bond::save(file, journal);
   } catch (const std::exception &) {
-    say("YOUR PROGRESS COULD NOT BE SAVED.");
+    say("Your progress could not be saved.");
   }
 }
 std::vector<std::string> WildScene::takeEvents() {
@@ -100,16 +96,16 @@ std::vector<std::string> WildScene::takeEvents() {
 float WildScene::watchGoal(const Wild &w) const { return sitting ? companySeconds : w.watchSeconds; }
 std::string WildScene::nextStep(const Wild &w) const {
   auto *e = journal.find(w.species);
-  if (w.wariness.frightened()) return "IT IS FRIGHTENED. GIVE IT SPACE.";
-  if (!e || !e->observed) return "WATCH IT FROM A DISTANCE";
+  if (w.wariness.frightened()) return "It is frightened. Give it space.";
+  if (!e || !e->observed) return "Watch it from a distance";
   if (!e->assisted) return w.assistHint;
-  if (e->trust() >= w.trustNeeded) return "IT TRUSTS YOU. GET CLOSE TO INVITE IT.";
+  if (e->trust() >= w.trustNeeded) return "It trusts you. Get close to invite it.";
   return w.trustHint;
 }
 void WildScene::refuse(const Wild &w) {
   switch (journal.refusal(w.species, w.trustNeeded, w.wariness.frightened())) {
-  case bond::Refusal::Frightened: say(w.name + " IS TOO FRIGHTENED. GIVE IT SPACE.", 2.4f); break;
-  case bond::Refusal::NotEnoughTrust: say(w.name + " DOES NOT TRUST YOU YET.", 2.4f); break;
+  case bond::Refusal::Frightened: say(w.name + " is too frightened. Give it space.", 2.4f); break;
+  case bond::Refusal::NotEnoughTrust: say(w.name + " does not trust you yet.", 2.4f); break;
   default: break;
   }
   events.push_back("invite_refused");
@@ -214,7 +210,7 @@ void WildScene::update(float dt, Vec player, bool sneaking, const std::vector<ga
     auto &w = wilds[std::size_t(watchIndex)];
     if (playerMoved) {
       watchIndex = -1;
-      say("IT WENT BACK TO ITS WORK.", 1.6f);
+      say("It went back to its work.", 1.6f);
     } else {
       // A skittish Signari only gives its habits away while it is feeding.
       if (!w.watchWhileFeeding || sitting || w.pecking) w.watchT += dt;
@@ -294,7 +290,7 @@ WildScene::Press WildScene::press(int k, Vec) {
     store();
     events.push_back("trust_invite");
     joinName = w.name;
-    joinNote = roomy ? "JOINED YOUR TEAM!" : "IS WAITING AT THE COTTAGE.";
+    joinNote = roomy ? "Joined your team!" : "Waiting at the cottage.";
     joinT = 3.8f;
     return Press::Handled;
   }
@@ -320,13 +316,13 @@ void WildScene::fightEnded(bool won, bool reached, bool left, const std::vector<
   w.timer = 1;
   if (reached) {
     if (journal.earn(w.species, bond::Act::Reach)) events.push_back("trust_reach");
-    say(w.name + " LEANS INTO YOUR HAND.", 3.6f);
+    say(w.name + " leans into your hand.", 3.6f);
   } else if (won) {
     // Knocking it out earns nothing and leaves it afraid of the player.
     w.wariness.startle(45);
     w.mood = Mood::Hide;
     events.push_back("wild_knocked_out");
-    say(w.name + " WANTS NOTHING TO DO WITH YOU.", 3.6f);
+    say(w.name + " wants nothing to do with you.", 3.6f);
   } else if (left) {
     w.wariness.startle(8);
   }
@@ -412,8 +408,8 @@ void WildScene::draw(PixelUi &ui, const FightScene::Project &project) {
     int trust = e ? e->trust() : 0;
     ui.panel("panel", 14, 12, 268, 46);
     ui.text(w.name, 26, 22, t.ink);
-    ui.text(w.wariness.frightened() ? "WARY" : w.temperament, 92, 22, w.wariness.frightened() ? Coral : t.faded);
-    ui.text("TRUST", 160, 22, t.faded);
+    ui.text(w.wariness.frightened() ? "Wary" : w.temperament, 92, 22, w.wariness.frightened() ? Coral : t.faded);
+    ui.text("Trust", 160, 22, t.faded);
     for (int i = 0; i < w.trustNeeded; i++)
       ui.image(i < trust ? "trust_on" : "trust_off", 196 + i * 10, 22);
     if (watchIndex == near)
@@ -421,7 +417,7 @@ void WildScene::draw(PixelUi &ui, const FightScene::Project &project) {
     else
       ui.text(nextStep(w), 26, 36, t.faded);
   }
-  std::string line = toastT > 0 ? toast : watchIndex >= 0 ? (sitting ? "STAY STILL AND KEEP IT COMPANY." : wilds[std::size_t(watchIndex)].watchingText) : "";
+  std::string line = toastT > 0 ? toast : watchIndex >= 0 ? (sitting ? "Stay still and keep it company." : wilds[std::size_t(watchIndex)].watchingText) : "";
   if (joinT <= 0 && !line.empty()) ui.note(line, 320, 66);
   if (joinT > 0 && ui.has("ribbon")) {
     // The team stamp: the pack's own stamp animation, leaving its mark on the ribbon.
@@ -429,7 +425,7 @@ void WildScene::draw(PixelUi &ui, const FightScene::Project &project) {
     float gone = 3.8f - joinT;
     int frame = std::min(19, int(gone * 14));
     ui.strip("ribbon", left, 62, w);
-    ui.text(joinName, 320 - ui.width(joinName, 2) / 2, 82, t.title, 2);
+    ui.text(joinName, 320 - ui.width(joinName, 2) / 2, 78, t.title, 2);
     ui.note(joinNote, 320, 140);
     if (frame >= 7) ui.image("stamp_mark", markX, markY);
     if (gone * 14 < 20) ui.image("stamp" + std::to_string(frame), markX - 23, markY - 43);
@@ -438,8 +434,8 @@ void WildScene::draw(PixelUi &ui, const FightScene::Project &project) {
   }
   if (near < 0 || busy() || watching()) return;
   const auto &w = wilds[std::size_t(near)];
-  std::string left = canTidy ? "[E] " + w.assistPrompt : canInvite ? "[E] INVITE " + w.name : canWatch ? "[E] " + w.watchPrompt : canSit ? "[E] " + w.companyPrompt : "";
-  std::string right = canFight ? "[F] FRIENDLY FIGHT" : "";
+  std::string left = canTidy ? "[E] " + w.assistPrompt : canInvite ? "[E] Invite " + w.name : canWatch ? "[E] " + w.watchPrompt : canSit ? "[E] " + w.companyPrompt : "";
+  std::string right = canFight ? "[F] Friendly fight" : "";
   std::string text = left.empty() ? right : right.empty() ? left : left + "   " + right;
   if (text.empty() && tooClose && !sneakingNow) text = w.sneakHint;
   if (!text.empty()) ui.note(text, 320, 322);

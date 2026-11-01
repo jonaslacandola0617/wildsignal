@@ -1294,7 +1294,7 @@ int main(int argc, char **argv) {
         if (scene->active())
           scene->draw(*pixelUi, toCanvas);
         else if (game.phase == game::Phase::Explore && atRest())
-          scene->prompt(*pixelUi, "[E] REST AT THE COTTAGE");
+          scene->prompt(*pixelUi, "[E] Rest at the cottage");
         else if (game.phase == game::Phase::Explore)
           wilds->draw(*pixelUi, toCanvas);
         pixelUi->end();

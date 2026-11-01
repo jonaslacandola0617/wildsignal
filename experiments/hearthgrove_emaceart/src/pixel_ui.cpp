@@ -40,7 +40,17 @@ struct PixelUi::Impl {
   int meterLeft = 3, meterRight = 3, meterTop = 3, meterRows = 3;
   Theme theme;
   std::map<std::string, Rect> rects;
-  std::map<char, std::array<int, 2>> glyphs;
+  // Proportional glyphs; `lift` places a letter against the capital height.
+  struct Glyph {
+    int x = 0, y = 0, w = 5, h = 7, advance = 6, lift = 0;
+  };
+  std::map<char, Glyph> glyphs, titles;
+  const std::map<char, Glyph> &fontFor(int scale) const { return scale >= 2 && !titles.empty() ? titles : glyphs; }
+  static const Glyph *find(const std::map<char, Glyph> &font, unsigned char raw) {
+    auto it = font.find(char(raw));
+    if (it == font.end()) it = font.find(char(std::toupper(raw)));
+    return it == font.end() ? nullptr : &it->second;
+  }
   std::vector<UiVertex> vertices;
   void quad(int x, int y, int w, int h, int ax, int ay, int aw, int ah, const Colour &c) {
     float x0 = float(left + x * scale), y0 = float(top + y * scale), x1 = x0 + float(w * scale), y1 = y0 + float(h * scale);
@@ -62,8 +72,23 @@ PixelUi::PixelUi(const std::filesystem::path &folder) {
     const auto &a = r.array();
     p->rects[name] = {int(a[0].number()), int(a[1].number()), int(a[2].number()), int(a[3].number()), int(a[4].number())};
   }
-  for (const auto &[name, g] : std::get<ws::Json::Object>(data.at("glyphs").value))
-    p->glyphs[name[0]] = {int(g.array()[0].number()), int(g.array()[1].number())};
+  auto readFont = [&](const ws::Json &table, std::map<char, Impl::Glyph> &font) {
+    for (const auto &[name, g] : std::get<ws::Json::Object>(table.value)) {
+      const auto &a = g.array();
+      Impl::Glyph out;
+      out.x = int(a[0].number());
+      out.y = int(a[1].number());
+      if (a.size() >= 6) {
+        out.w = int(a[2].number());
+        out.h = int(a[3].number());
+        out.advance = int(a[4].number());
+        out.lift = int(a[5].number());
+      }
+      font[name[0]] = out;
+    }
+  };
+  readFont(data.at("glyphs"), p->glyphs);
+  if (stem == "ui_paper") readFont(data.at("titles"), p->titles);
   if (stem == "ui_paper") {
     auto colour = [&](const char *name) {
       auto v = std::stoul(data.at("theme").at(name).string().substr(1), nullptr, 16);
@@ -182,14 +207,23 @@ void PixelUi::fill(int x, int y, int w, int h, Colour colour) {
   p->quad(x, y, w, h, r.x, r.y, 1, 1, colour);
 }
 void PixelUi::text(const std::string &value, int x, int y, Colour colour, int scale) {
+  const auto &font = p->fontFor(scale);
   for (unsigned char raw : value) {
-    char c = char(std::toupper(raw));
-    if (auto it = p->glyphs.find(c); it != p->glyphs.end())
-      p->quad(x, y, 5 * scale, 7 * scale, it->second[0], it->second[1], 5, 7, colour);
-    x += 6 * scale;
+    const auto *g = Impl::find(font, raw);
+    if (g && g->w > 0)
+      p->quad(x, y + g->lift * scale, g->w * scale, g->h * scale, g->x, g->y, g->w, g->h, colour);
+    x += (g ? g->advance : 6) * scale;
   }
 }
-int PixelUi::width(const std::string &value, int scale) const { return int(value.size()) * 6 * scale; }
+int PixelUi::width(const std::string &value, int scale) const {
+  const auto &font = p->fontFor(scale);
+  int total = 0;
+  for (unsigned char raw : value) {
+    const auto *g = Impl::find(font, raw);
+    total += g ? g->advance : 6;
+  }
+  return total * scale;
+}
 void PixelUi::end() {
   uigl::Disable(GL_SCISSOR_TEST);
   uigl::Disable(GL_DEPTH_TEST);

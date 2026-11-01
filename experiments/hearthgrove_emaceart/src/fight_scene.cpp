@@ -33,10 +33,6 @@ PixelUi::Colour affinityColour(battle::Affinity a) {
   default: return {.84f, .80f, .70f, 1};
   }
 }
-std::string upper(std::string s) {
-  for (auto &c : s) c = char(std::toupper((unsigned char)c));
-  return s;
-}
 Vec metres(battle::Spot s) { return {float(s.x) * .001f, game::terrain(float(s.x) * .001f, float(s.z) * .001f), float(s.z) * .001f}; }
 battle::Spot millimetres(Vec v) { return {int(std::lround(v.x * 1000)), int(std::lround(v.z * 1000))}; }
 float yawOf(battle::Spot face) { return std::atan2(float(face.x), float(face.z)); }
@@ -57,7 +53,7 @@ FightScene::FightScene(const std::filesystem::path &folder) {
   content = battle::parseRoster(readText(folder / "roster.json"));
   data = battle::parseFight(readText(folder / "fight.json"), content);
 }
-std::string FightScene::nameOf(const Fighter &k) const { return upper(content.species[k.species].name); }
+std::string FightScene::nameOf(const Fighter &k) const { return content.species[k.species].name; }
 void FightScene::say(const std::string &text, float seconds) {
   toast = text;
   toastTime = seconds;
@@ -81,7 +77,7 @@ void FightScene::start(const std::string &wildSpecies, int wildLevel, int wildHe
   hintTime = 7;
   floaters.clear();
   puffs.clear();
-  say(nameOf(fight->wild()) + " ACCEPTS YOUR CHALLENGE!", 2.2f);
+  say(nameOf(fight->wild()) + " accepts your challenge!", 2.2f);
 }
 void FightScene::finish() {
   hp.clear();
@@ -101,7 +97,7 @@ void FightScene::key(int k) {
   }
   if (k >= SDLK_1 && k < SDLK_1 + battle::MoveSlots) {
     pending.command = int(k - SDLK_1);
-    if (!fight->canUse(fight->mine(), pending.command)) say(fight->mine().ready[pending.command] > 0 ? "THAT MOVE IS STILL RECOVERING." : "NOT ENOUGH ENERGY.", 1);
+    if (!fight->canUse(fight->mine(), pending.command)) say(fight->mine().ready[pending.command] > 0 ? "That move is still recovering." : "Not enough energy.", 1);
   } else if (k == SDLK_SPACE) {
     pending.roll = true;
   } else if (k == SDLK_Q) {
@@ -110,7 +106,7 @@ void FightScene::key(int k) {
     pending.swap = true;
   } else if (k == SDLK_R) {
     pending.reach = true;
-    if (!fight->canReach()) say(fight->wild().spirit > battle::CalmSpirit ? nameOf(fight->wild()) + " IS NOT CALM ENOUGH YET." : "GET CLOSER TO REACH OUT.", 1.2f);
+    if (!fight->canReach()) say(fight->wild().spirit > battle::CalmSpirit ? nameOf(fight->wild()) + " is not calm enough yet." : "Get closer to reach out.", 1.2f);
   }
 }
 void FightScene::cues() {
@@ -124,11 +120,11 @@ void FightScene::cues() {
     case CueKind::Unsettled:
       floaters.push_back({at + Vec{0, 1.5f, 0}, "-" + std::to_string(c.value), Gold});
       puffs.push_back({at, 0, Gold});
-      say("YOU WERE HIT! KEEP MOVING.", 1.2f);
+      say("You were hit! Keep moving.", 1.2f);
       clipClock = 0;
       break;
     case CueKind::Dodged:
-      floaters.push_back({at + Vec{0, 1.4f, 0}, "DODGED!", Calm});
+      floaters.push_back({at + Vec{0, 1.4f, 0}, "Dodged!", Calm});
       break;
     case CueKind::Healed:
       floaters.push_back({at + Vec{0, 1.3f, 0}, "+" + std::to_string(c.value), HpGood});
@@ -136,16 +132,16 @@ void FightScene::cues() {
     case CueKind::StatusOn:
       break;
     case CueKind::Faint:
-      say(c.target == Target::Wild ? nameOf(fight->wild()) + " BACKS DOWN!" : nameOf(fight->party()[c.value]) + " FAINTED!", 2);
+      say(c.target == Target::Wild ? nameOf(fight->wild()) + " backs down!" : nameOf(fight->party()[c.value]) + " fainted!", 2);
       break;
     case CueKind::Swap:
-      say("GO, " + nameOf(fight->party()[c.value]) + "!", 1.2f);
+      say("Go, " + nameOf(fight->party()[c.value]) + "!", 1.2f);
       break;
     case CueKind::AimYou:
-      say(nameOf(fight->wild()) + " IS COMING FOR YOU!", 1.1f);
+      say(nameOf(fight->wild()) + " is coming for you!", 1.1f);
       break;
     case CueKind::AimMine:
-      say(nameOf(fight->wild()) + " TARGETS " + nameOf(fight->mine()) + "!", 1.1f);
+      say(nameOf(fight->wild()) + " targets " + nameOf(fight->mine()) + "!", 1.1f);
       break;
     case CueKind::Command:
       commandT = .45f;
@@ -153,20 +149,20 @@ void FightScene::cues() {
       queued = c.value;
       break;
     case CueKind::Leaving:
-      say("WALK ON TO LEAVE THE FIGHT.", 2);
+      say("Walk on to leave the fight.", 2);
       break;
     case CueKind::Returned:
-      say("BACK IN THE FIGHT.", 1);
+      say("Back in the fight.", 1);
       break;
     case CueKind::Calmed:
-      say(nameOf(fight->wild()) + " IS CALM. GET CLOSE AND PRESS R.", 2.6f);
+      say(nameOf(fight->wild()) + " is calm. Get close and press R.", 2.6f);
       break;
     case CueKind::ReachStart:
       clipClock = 0;
-      say("HOLD STEADY...", float(battle::ReachTicks) / battle::TicksPerSecond);
+      say("Hold steady...", float(battle::ReachTicks) / battle::TicksPerSecond);
       break;
     case CueKind::ReachBroken:
-      say("IT FLINCHED AWAY. TRY AGAIN SOON.", 1.6f);
+      say("It flinched away. Try again soon.", 1.6f);
       break;
     }
   }
@@ -281,7 +277,7 @@ void FightScene::plate(PixelUi &ui, const Fighter &k, int x, int y, int w, bool 
   const auto &t = ui.theme();
   ui.panel("panel", x, y, w, full ? 60 : 56);
   ui.text(nameOf(k), x + 12, y + 10, t.ink);
-  auto level = "LV " + std::to_string(k.level);
+  auto level = "Lv " + std::to_string(k.level);
   ui.text(level, x + w - 16 - ui.width(level), y + 10, t.ink);
   int barW = w - 52, value = std::clamp(k.hp, 0, k.stats.hp);
   ui.text("HP", x + 12, y + 23, t.ink);
@@ -328,8 +324,8 @@ void FightScene::moveBar(PixelUi &ui) {
     bool can = fight->canUse(k, i);
     ui.strip(queued == i || (k.pose == Pose::Windup && k.strike.slot == i) ? "button_on" : can ? "button" : "button_off", x, y, w, h);
     ui.text(std::to_string(i + 1), x + 5, y + 8, can ? t.key : t.keyOff);
-    auto name = upper(m.name);
-    auto cut = name.find(' ');
+    const auto &name = m.name;
+    auto cut = ui.width(name) <= 60 ? std::string::npos : name.find(' ');
     auto colour = can ? t.onButton : t.onButtonOff;
     if (cut == std::string::npos) {
       ui.text(name, x + 18, y + 8, colour);
@@ -349,7 +345,7 @@ void FightScene::moveBar(PixelUi &ui) {
   bool ready = k.dodgeReady == 0 && k.pose != Pose::Down;
   ui.strip(ready ? "button_alt" : "button_off", x, y, w, h);
   ui.text("Q", x + 5, y + 8, ready ? t.key : t.keyOff);
-  ui.text("DODGE", x + 18, y + 8, ready ? t.onButton : t.onButtonOff);
+  ui.text("Dodge", x + 18, y + 8, ready ? t.onButton : t.onButtonOff);
   if (!ready) ui.fill(x + 14, y + 21, std::max(1, 66 * k.dodgeReady / 150), 1, t.faded);
 }
 void FightScene::prompt(PixelUi &ui, const std::string &text) {
@@ -368,38 +364,38 @@ void FightScene::draw(PixelUi &ui, const Project &project) {
   plate(ui, fight->mine(), 14, 256, 196, true);
   const auto &you = fight->you();
   ui.panel("panel", 14, 226, 196, 30);
-  ui.text("YOU", 26, 236, t.ink);
+  ui.text("You", 26, 235, t.ink);
   int calm = std::clamp(you.composure, 0, battle::FullComposure);
   ui.meter(48, 235, 148, float(calm) / float(battle::FullComposure), "fill_sp", calm * 3 <= battle::FullComposure ? HpLow : Calm);
   const auto &team = fight->party();
   if (team.size() > 1) {
     int next = (fight->activeSlot() + 1) % int(team.size());
     bool can = team[next].hp > 0 && fight->swapReady() == 0;
-    auto text = "TAB " + nameOf(team[next]);
+    auto text = "Tab " + nameOf(team[next]);
     ui.text(text, 219, 307, {.1f, .07f, .05f, 1});
     ui.text(text, 218, 306, can ? Cream : Muted);
   }
   moveBar(ui);
-  std::string line = toastTime > 0 ? toast : hintTime > 0 ? "WASD MOVE   SPACE ROLL   1-5 MOVES   Q DODGE" : "";
+  std::string line = toastTime > 0 ? toast : hintTime > 0 ? "WASD move   Space roll   1-5 moves   Q dodge" : "";
   if (fight->canReach() && fight->outcome() == battle::Outcome::Ongoing && you.reachTicks == 0) {
-    ui.note("[R] REACH OUT", 320, 294);
+    ui.note("[R] reach out", 320, 294);
   }
   if (!line.empty()) {
     ui.note(line, 232, 12);
   }
   if (fight->outcome() != battle::Outcome::Ongoing) {
     bool won = fight->outcome() == battle::Outcome::Won, left = fight->outcome() == battle::Outcome::Left, reached = fight->outcome() == battle::Outcome::Reached;
-    std::string title = reached ? "IT TRUSTS YOU" : won ? "VICTORY" : left ? "SAFE AWAY" : "YOU NEED A REST";
+    std::string title = reached ? "It trusts you" : won ? "Victory" : left ? "Safe away" : "You need a rest";
     if (ui.has("ribbon")) {
       int w = std::max(260, ui.width(title, 2) + 150);
       ui.strip("ribbon", 320 - w / 2, 112, w);
-      ui.text(title, 320 - ui.width(title, 2) / 2, 132, t.title, 2);
-      ui.note("PRESS ENTER", 320, 190);
+      ui.text(title, 320 - ui.width(title, 2) / 2, 128, t.title, 2);
+      ui.note("Press Enter", 320, 190);
     } else {
-      int w = std::max(ui.width(title, 2), ui.width("PRESS ENTER")) + 68;
+      int w = std::max(ui.width(title, 2), ui.width("Press Enter")) + 68;
       ui.panel("panel_dark", 320 - w / 2, 128, w, 74);
       ui.text(title, 320 - ui.width(title, 2) / 2, 146, t.title, 2);
-      ui.text("PRESS ENTER", 320 - ui.width("PRESS ENTER") / 2, 172, t.body);
+      ui.text("Press Enter", 320 - ui.width("Press Enter") / 2, 172, t.body);
     }
   }
 }
