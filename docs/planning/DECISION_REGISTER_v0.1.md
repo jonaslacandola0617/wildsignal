@@ -43,9 +43,9 @@
 | Decision ID | Current recommendation | Status | Downstream blocker |
 |---|---|---|---|
 | D-020 | **Free-to-play on Steam and Google Play with OPTIONAL cosmetic-only purchases**, no competitive/stat/progression benefits. Exact pricing/SKUs and payment integration unapproved. | **CONFIRMED for planning, 2026-10-20** | monetization, economy, store/billing compliance |
-| D-021 | **Aspirational commercial 1.0 scope: 6 zones (Z01–Z06), 18–24 completed species, 3–5h main story**, expressly subject to feasibility and playtests, not a fixed promise or content freeze. | **CONFIRMED planning target, 2026-10-20; feasibility GATED** | narrative/art/QA scope, costs, real production evidence |
+| D-021 | **Aspirational commercial 1.0 scope: 6 zones (Z01–Z06), 18–24 completed species, 3–5h main story**, expressly subject to feasibility and playtests, not a fixed promise or content freeze. | **CONFIRMED planning target, 2026-10-20; feasibility GATED; species count amended to 50 by D-075** | narrative/art/QA scope, costs, real production evidence |
 | D-022 | Four expanded zones / nine species remains a **contingency option** if D-021 is not feasible; changing the approved aspirational target requires an explicit scope review with owner, not automatic silent shrink. | **OPEN contingency; not approved as new release scope** | production capacity and scope review |
-| D-023 | **Two-player cross-platform co-op at commercial 1.0 launch (Android↔Windows)**. Online trading and ranked PvP remain later optional phases; do not silently defer launch co-op. | **CONFIRMED for planning, 2026-10-20** | network authority, backend and operating costs |
+| D-023 | **Two-player cross-platform co-op at commercial 1.0 launch (Android↔Windows)**. Online trading and ranked PvP remain later optional phases; do not silently defer launch co-op. | **CONFIRMED for planning, 2026-10-20; moved to after launch by D-076** | network authority, backend and operating costs |
 | D-024 | **Local offline story inventory and server-verified online progression are separate**; in casual co-op, show appearance of familiar offline companions **where technically feasible** without importing their unverified stats, trade rights or rank. Exact presentation/recovery remains to design. | **CONFIRMED for planning, 2026-10-20; projection feasibility GATED** | companion UX, accounts, server validation, trust boundaries |
 | D-025 | Original starter art mappings WS-004 Glintle/Flora, WS-008 Driftfin/Tide, WS-050 Brumlet/Ember | RECOMMENDED; original sprite art is confirmed | sprite animation, battle schema |
 | D-026 | First-nine species proposal, including Tumbletail/Puddlefin/Mossmelt/Signalit/Craglet/Hushflame | RECOMMENDED | roster approval, habitats |
@@ -156,3 +156,14 @@ User responded **“64 bit is enough.”** This closes the architecture-scope qu
 | D-074 | The player keeps the current fight role: move, roll, dodge and command, no direct attacks | **CONFIRMED 2026-11-02** | fight rules, controls |
 
 **Meaning of approval:** direction only. The thresholds, chunk size, spawn rules, levelling and the first region's content are proposals until the owner approves them. The 2026-11-01 "first complete Tumbletail encounter" milestone is withdrawn.
+
+
+## 11. Scope changes — 2026-11-02
+
+Owner answers while drafting the game design document ([chapter 1](../gdd/01_VISION_AND_PILLARS.md)).
+
+| Decision ID | Decision | Status | Source/impact |
+|---|---|---|---|
+| D-075 | Version 1.0 targets **50 Signari** (was 18–24 in D-021); 6 regions and a 3–5 h main story stay | **CONFIRMED target 2026-11-02; feasibility GATED by the creature production plan (GDD chapter 4)** | creature models, animation, balancing, schedule; amends D-021 |
+| D-076 | Two-player co-op moves to **after launch**; 1.0 is single-player | **CONFIRMED 2026-11-02** | network, backend and online UX leave 1.0 scope; amends D-023 |
+| D-077 | The game design document in `docs/gdd/` is the single source of truth; locked chapters outrank older design documents | **CONFIRMED 2026-11-02** | all design and gameplay work |
