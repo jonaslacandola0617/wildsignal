@@ -1,6 +1,6 @@
 # Wildsignal development backlog
 
-Updated November 1, 2026 (Asia/Shanghai).
+Updated November 1, 2026 (Asia/Shanghai); milestones replaced November 2, 2026.
 
 Owner direction: park further performance optimization and resume gameplay development. Keep the completed shadow-cache optimization. The minimum-device targets remain the Intel i3 10th-gen / 4 GB Windows PC and Galaxy S10+; deferring optimization does not change those targets.
 
@@ -21,21 +21,19 @@ Memory reduction is lower priority while representative process memory remains w
 
 Reopen optimization when representative content causes sustained misses of the ~30 FPS goal, visible frame spikes, memory pressure or measured mobile thermal problems. Keep lightweight performance checks at gameplay milestones; do not wait for a large rewrite to discover a regression. Windows legacy-OS verification remains a separate existing release requirement.
 
-## Recommended next gameplay milestone — first complete encounter
+## Next gameplay milestones — fights first, connected regions
 
-Status: **proposed next milestone**, not permission to expand production scope or replace approved design/art.
+Updated November 2, 2026. The owner withdrew the "first complete Tumbletail encounter" milestone and set a new direction: creature fights are the core loop, wild Signari are recruited by fighting then reaching out, and the world is connected regions streamed in chunks (D-070 to D-074). Full rationale and proposed rules: [Gameplay direction v0.2](../design/GAMEPLAY_DIRECTION_v0.2.md).
 
-Make one short, understandable Tumbletail encounter work from a fresh save through a satisfying conclusion using the existing corner, field book and bonding systems. The current encounter data and wording are explicitly first-draft pilot material.
+| ID | Work | Evidence of completion |
+|---|---|---|
+| FIGHT-RECRUIT-001 | Reach Out opens only when the wild Signari is worn down (proposed ≤40% health) and calm; HUD shows the recruit marker and when Reach Out is open | Deterministic fight tests for the new gate, knockout still ends the chance, a hands-on fight in the corner recruits a Signari |
+| REGION-001 | Region and chunk data format plus a streaming loader, proven by chunking the existing Hearthgrove corner | Same look as today, memory and frame times measured on the i3/4 GB PC, chunk loads cause no visible hitch |
+| SPAWN-001 | Wild Signari placed from per-chunk spawn tables, roaming, starting fights on contact or F | Spawns survive chunk unload/reload, no duplicates of recruited Signari |
+| REGION-002 | First real region blockout, larger than the corner, with one gate to a second area | Walkable end to end with saves, owner visual review |
+| TEAM-001 | Levels, experience and new moves | Owner-approved design first, then implementation with tests |
 
-1. Give the player a clear immediate objective through the existing field book/prompts.
-2. Let the player discover Tumbletail's behavior by watching, then help with its scattered seeds.
-3. Clearly communicate wariness, recovery, trust and invitation availability without requiring debug knowledge.
-4. Let the invitation succeed, show the companion following, and record the discovery/joining in Mara's book.
-5. Confirm that rest, save/quit and reopen preserve the result and let the player continue normally.
-
-Acceptance: a fresh player can complete the encounter without a developer explaining controls or hidden conditions. Frightening or being refused must have an understandable recovery path. The peaceful observation/help/invitation route works without mandatory combat. Existing Reach Out and friendly fights remain available for a separate focused playtest. No new creature pipeline, larger region, economy or networking is part of this milestone.
-
-After this loop passes a hands-on playtest, connect companion friendship to one small exploration objective from the existing quest design. Then expand toward a short first playable slice, adding content in increments that can be tested end to end.
+Do one milestone per branch, in this order. Numbers in the proposed rules need owner approval before they become production logic.
 
 ## Current evidence
 

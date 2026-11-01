@@ -1,5 +1,7 @@
 # WILDSIGNAL — Codex Project Rules (AGENTS.md)
 
+> **Current direction (owner, 2026-11-02):** real-time creature fights are the core loop; wild Signari are recruited by fighting, then reaching out; the world is connected regions streamed in chunks; the player keeps the move/roll/dodge/command role. Read `docs/planning/DECISION_REGISTER_v0.1.md` §10 and `docs/design/GAMEPLAY_DIRECTION_v0.2.md` before gameplay work. The playable game is `experiments/hearthgrove_emaceart` (raised 3D camera); mission and phase text below predates this and is kept for history.
+
 These instructions apply to Codex tasks that run in a branch CONTAINING this file. Read the referenced specs before modifying production systems. Do not treat a prose plan as an asset.
 
 ## Mission and confirmed product boundaries

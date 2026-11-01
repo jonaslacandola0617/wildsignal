@@ -10,7 +10,8 @@
     "PROPOSED",
     "OPEN",
     "BLOCKED_BY_TEST",
-    "DEFERRED"
+    "DEFERRED",
+    "SUPERSEDED"
   ],
   "entries": [
     {
@@ -187,8 +188,8 @@
     },
     {
       "id": "D-027",
-      "status": "PROPOSED",
-      "statusText": "RECOMMENDED",
+      "status": "SUPERSEDED",
+      "statusText": "SUPERSEDED 2026-11-02 by D-071 (gentle acts remain optional bonuses)",
       "decision": "Trust-building Invite/Observe/Help/Friendly Spar instead of capture device",
       "downstream": "core loop/progression",
       "approvedAt": null,
@@ -399,6 +400,51 @@
       "decision": "Cross-store purchases/entitlements automatically syncing",
       "downstream": "",
       "approvedAt": null,
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-070",
+      "status": "CONFIRMED",
+      "statusText": "CONFIRMED 2026-11-02",
+      "decision": "Creature fights are the core loop; befriending acts become optional bonuses",
+      "downstream": "core loop, quests, field book",
+      "approvedAt": "2026-11-02",
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-071",
+      "status": "CONFIRMED",
+      "statusText": "CONFIRMED 2026-11-02; numbers PROPOSED",
+      "decision": "Recruit by fighting, then Reach Out: a wild Signari joins when worn down and calm and the reach is not interrupted; no capture item and no dice roll",
+      "downstream": "fight rules, HUD, saves; supersedes D-027",
+      "approvedAt": "2026-11-02",
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-072",
+      "status": "CONFIRMED",
+      "statusText": "CONFIRMED 2026-11-02",
+      "decision": "Fights stay real-time, as in D-006",
+      "downstream": "battle engine",
+      "approvedAt": "2026-11-02",
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-073",
+      "status": "CONFIRMED",
+      "statusText": "CONFIRMED 2026-11-02; chunk size and budgets BLOCKED_BY_TEST",
+      "decision": "Free roaming through connected regions; only the current region loads, streamed in chunks around the player",
+      "downstream": "world format, loader, memory, saves",
+      "approvedAt": "2026-11-02",
+      "source": "docs/planning/DECISION_REGISTER_v0.1.md"
+    },
+    {
+      "id": "D-074",
+      "status": "CONFIRMED",
+      "statusText": "CONFIRMED 2026-11-02",
+      "decision": "The player keeps the current fight role: move, roll, dodge and command, no direct attacks",
+      "downstream": "fight rules, controls",
+      "approvedAt": "2026-11-02",
       "source": "docs/planning/DECISION_REGISTER_v0.1.md"
     }
   ]

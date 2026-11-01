@@ -1,4 +1,7 @@
-> **2026-10-24 DIRECTION SUPERSESSION NOTICE — CURRENT DESIGN**
+> **2026-11-02 GAMEPLAY DIRECTION — CURRENT DESIGN**
+> Owner decision 2026-11-02: creature fights are the core loop; you recruit a wild Signari by fighting it, then reaching out; the world is connected regions streamed in chunks. See §10 and [Gameplay direction v0.2](../design/GAMEPLAY_DIRECTION_v0.2.md). This replaces befriending-first (D-027).
+
+> **2026-10-24 DIRECTION SUPERSESSION NOTICE**
 > Owner decision 2026-10-24: replace first-person 2.5D presentation with top-down/three-quarter 2D cute fantasy; select Anokolisa Pixel Crawler Free Pack 2.11 as environment art baseline. Keep original creature art, C++/SDL3, Windows/Android and gameplay plans. Details in TOPDOWN_PIXELCRAWLER_DECISION_v0.1.md. Historical renderer decisions below retained for audit only.
 > See [Top-down + Pixel Crawler decision](../planning/TOPDOWN_PIXELCRAWLER_DECISION_v0.1.md) for the governing details. Historical material below is preserved unchanged.
 
@@ -46,7 +49,7 @@
 | D-024 | **Local offline story inventory and server-verified online progression are separate**; in casual co-op, show appearance of familiar offline companions **where technically feasible** without importing their unverified stats, trade rights or rank. Exact presentation/recovery remains to design. | **CONFIRMED for planning, 2026-10-20; projection feasibility GATED** | companion UX, accounts, server validation, trust boundaries |
 | D-025 | Original starter art mappings WS-004 Glintle/Flora, WS-008 Driftfin/Tide, WS-050 Brumlet/Ember | RECOMMENDED; original sprite art is confirmed | sprite animation, battle schema |
 | D-026 | First-nine species proposal, including Tumbletail/Puddlefin/Mossmelt/Signalit/Craglet/Hushflame | RECOMMENDED | roster approval, habitats |
-| D-027 | Trust-building Invite/Observe/Help/Friendly Spar instead of capture device | RECOMMENDED | core loop/progression |
+| D-027 | Trust-building Invite/Observe/Help/Friendly Spar instead of capture device | **SUPERSEDED 2026-11-02 by D-071** (gentle acts remain optional bonuses) | core loop/progression |
 | D-028 | 1 active Signari fought in real time, player movement and dodging, 6 commands per Signari (Tap and Dodge are general, plus 4 learned moves), 3 carried creatures, energy 0..8, integer formulas, basic statuses (numbers and kits still proposed) | RECOMMENDED | combat backend and battle UI |
 | D-029 | 3 local save slots; source sprite pivots and extra angles created conservatively | RECOMMENDED | save UX and art effort |
 | D-030 | Landscape-first on Android; controller support by commercial 1.0 | RECOMMENDED | controls/QA |
@@ -138,3 +141,18 @@ Next review trigger: <measured evidence or milestone>
 ## 9. 64-bit scope explicitly confirmed — 2026-10-20
 
 User responded **“64 bit is enough.”** This closes the architecture-scope question: the Windows game supports **x86_64 (64-bit Windows OS and 64-bit game binary)** as its sole planned Windows architecture. Do **not** include Win32/x86 builds, 32-bit compatibility test cases or store claims in initial release scope. The requested Windows version range remains **7, 8, 8.1, 10, 11**, with Windows 7 SP1 x64 proposed as oldest operational baseline and still requiring real tests. Windows 7/8/8.1 Steam-client support is not available; plan separate legacy standalone delivery. This is a confirmed planning constraint **not permission to start implementation**.
+
+
+## 10. Gameplay direction — 2026-11-02
+
+**Explicit owner decisions in the current working session**, after playing the pilot. Details, proposed rules and next milestones: [Gameplay direction v0.2](../design/GAMEPLAY_DIRECTION_v0.2.md).
+
+| Decision ID | Decision | Status | Source/impact |
+|---|---|---|---|
+| D-070 | Creature fights are the core loop; befriending acts become optional bonuses | **CONFIRMED 2026-11-02** | core loop, quests, field book |
+| D-071 | Recruit by fighting, then Reach Out: a wild Signari joins when worn down and calm and the reach is not interrupted; no capture item and no dice roll (exact thresholds proposed) | **CONFIRMED 2026-11-02; numbers PROPOSED** | fight rules, HUD, saves; supersedes D-027 |
+| D-072 | Fights stay real-time, as in D-006 | **CONFIRMED 2026-11-02** | battle engine |
+| D-073 | Free roaming through connected regions; only the current region loads, streamed in chunks around the player | **CONFIRMED 2026-11-02; chunk size and budgets BLOCKED_BY_TEST** | world format, loader, memory, saves |
+| D-074 | The player keeps the current fight role: move, roll, dodge and command, no direct attacks | **CONFIRMED 2026-11-02** | fight rules, controls |
+
+**Meaning of approval:** direction only. The thresholds, chunk size, spawn rules, levelling and the first region's content are proposals until the owner approves them. The 2026-11-01 "first complete Tumbletail encounter" milestone is withdrawn.
