@@ -1,6 +1,6 @@
 # Chapter 8 — Production plan
 
-**Status:** DRAFT 2026-11-02. Choices are in 8.5.
+**Status:** LOCKED 2026-11-02 by the owner (all choices accepted as recommended).
 **Built on:** chapters 1–7. Team: the owner (direction, review, music) and Claude (code, models, assets, writing drafts), with a zero budget. No dates are promised; work moves milestone by milestone, each one small enough to test and review.
 
 ## 8.1 How a milestone runs
@@ -78,7 +78,7 @@ The order above front-loads the decisions that unblock everything else: foundati
 
 ## 8.5 Owner choices
 
-| # | Question | Recommendation |
+| # | Question | Decision (owner, 2026-11-02) |
 |---|---|---|
 | P1 | The milestone flow (8.1)? | Yes |
 | P2 | The phase order (8.2–8.3)? | Yes |
@@ -88,3 +88,4 @@ The order above front-loads the decisions that unblock everything else: foundati
 ## Change log
 
 - 2026-11-02 — First draft.
+- 2026-11-02 — Owner accepted all choices. Locked.

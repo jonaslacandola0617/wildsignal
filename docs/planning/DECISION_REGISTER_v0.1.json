@@ -554,6 +554,24 @@
       "downstream": "all art, audio, licences",
       "approvedAt": "2026-11-02",
       "source": "docs/gdd/06_ART_AUDIO_AND_ASSETS.md"
+    },
+    {
+      "id": "D-087",
+      "status": "CONFIRMED",
+      "statusText": "CONFIRMED 2026-11-02",
+      "decision": "Technical plan locked in GDD chapter 7: source tree, validated data, chunk streaming, saves, budgets, Android after region 1, develop branch",
+      "downstream": "all work",
+      "approvedAt": "2026-11-02",
+      "source": "docs/gdd/07_TECHNICAL_PLAN.md"
+    },
+    {
+      "id": "D-088",
+      "status": "CONFIRMED",
+      "statusText": "CONFIRMED 2026-11-02",
+      "decision": "Production plan locked in GDD chapter 8: milestone flow, phases 0-5, region 1 vertical slice with playtest gate; FOUND-001 first",
+      "downstream": "all work",
+      "approvedAt": "2026-11-02",
+      "source": "docs/gdd/08_PRODUCTION_PLAN.md"
     }
   ]
 }

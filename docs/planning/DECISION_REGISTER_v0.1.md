@@ -208,3 +208,11 @@ Locked in [GDD chapter 2](../gdd/02_CORE_GAMEPLAY.md); the chapter holds the det
 | Decision ID | Decision | Status | Source/impact |
 |---|---|---|---|
 | D-086 | Art and audio locked in [GDD chapter 6](../gdd/06_ART_AUDIO_AND_ASSETS.md): zero budget; all world, character and UI assets made for Wildsignal (current packs are placeholders); look development with three style directions decides the style guide; music from free royalty-free sources and AI instrumentals with terms recorded; free CC0 sound effects plus synthesis | **CONFIRMED 2026-11-02; style guide OPEN until LOOKDEV-001** | all art, audio, licences |
+
+
+## 17. Technical and production plan — 2026-11-02
+
+| Decision ID | Decision | Status | Source/impact |
+|---|---|---|---|
+| D-087 | Technical plan locked in [GDD chapter 7](../gdd/07_TECHNICAL_PLAN.md): new source tree, validated data files, chunk streaming, save contents, performance budgets, Android after region 1, a `develop` branch for approved work | **CONFIRMED 2026-11-02** | all engineering |
+| D-088 | Production plan locked in [GDD chapter 8](../gdd/08_PRODUCTION_PLAN.md): milestone flow, phases 0–5, region 1 vertical slice with a playtest gate; FOUND-001 first | **CONFIRMED 2026-11-02** | all work; supersedes DEVELOPMENT_BACKLOG milestone lists |

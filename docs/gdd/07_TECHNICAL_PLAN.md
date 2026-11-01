@@ -1,6 +1,6 @@
 # Chapter 7 — Technical plan
 
-**Status:** DRAFT 2026-11-02. Choices are in 7.9.
+**Status:** LOCKED 2026-11-02 by the owner (all choices accepted as recommended).
 **Built on:** chapters 1–6. Facts about today's code come from `experiments/hearthgrove_emaceart` and its tests.
 
 ## 7.1 Stack (kept)
@@ -72,7 +72,7 @@ Every milestone ends with a short performance check on the i3 PC (frame times an
 
 ## 7.9 Owner choices
 
-| # | Question | Recommendation |
+| # | Question | Decision (owner, 2026-11-02) |
 |---|---|---|
 | T1 | Move the game into a proper source tree (7.2)? | Yes, early, before new systems |
 | T2 | All content in validated data files (7.3)? | Yes |
@@ -84,3 +84,4 @@ Every milestone ends with a short performance check on the i3 PC (frame times an
 ## Change log
 
 - 2026-11-02 — First draft.
+- 2026-11-02 — Owner accepted all choices. Locked.

@@ -21,7 +21,7 @@ Anything not yet decided is marked **OPEN** in its chapter, so nobody guesses. C
 | 4 | [Creatures](04_CREATURES.md) | The 50-Signari roster, types and matchups, kits, growth, habitats, model standard and production | **LOCKED 2026-11-02** |
 | 5 | [UI and controls](05_UI_AND_CONTROLS.md) | Every screen and the HUD; keyboard, controller and touch | **PARTLY LOCKED 2026-11-02** (visual style OPEN) |
 | 6 | [Art, audio and assets](06_ART_AUDIO_AND_ASSETS.md) | Style rules, the full asset list with sources and licences, audio | **LOCKED 2026-11-02** (style guide after LOOKDEV-001) |
-| 7 | [Technical plan](07_TECHNICAL_PLAN.md) | Engine, region and chunk streaming, saves, performance budgets | DRAFT |
-| 8 | [Production plan](08_PRODUCTION_PLAN.md) | Milestones from the first playable region to release | DRAFT |
+| 7 | [Technical plan](07_TECHNICAL_PLAN.md) | Engine, region and chunk streaming, saves, performance budgets | **LOCKED 2026-11-02** |
+| 8 | [Production plan](08_PRODUCTION_PLAN.md) | Milestones from the first playable region to release | **LOCKED 2026-11-02** |
 
 Decisions that change earlier records are also logged in `docs/planning/DECISION_REGISTER_v0.1.md`.
