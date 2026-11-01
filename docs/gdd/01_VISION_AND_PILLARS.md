@@ -1,6 +1,6 @@
 # Chapter 1 — Vision and pillars
 
-**Status:** DRAFT, written from the owner's answers of 2026-11-02. Awaiting owner approval to LOCK.
+**Status:** LOCKED 2026-11-02 by the owner.
 
 ## 1.1 The pitch
 
@@ -85,3 +85,4 @@ Every feature is checked against these four. If it doesn't serve at least one, i
 ## Change log
 
 - 2026-11-02 — First draft from the owner's answers.
+- 2026-11-02 — Locked by the owner.
