@@ -62,9 +62,9 @@
       "id": "D-006",
       "status": "CONFIRMED",
       "statusText": "CONFIRMED",
-      "decision": "Creature battles are turn-based; world exploration real-time",
+      "decision": "Creature battles are real-time: the player moves, dodges and commands a Signari that can also act alone, and wild Signari can attack the player (replaces turn-based)",
       "downstream": "battle engine, UI",
-      "approvedAt": "2026-10-20",
+      "approvedAt": "2026-11-01",
       "source": "docs/planning/DECISION_REGISTER_v0.1.md"
     },
     {
@@ -198,7 +198,7 @@
       "id": "D-028",
       "status": "PROPOSED",
       "statusText": "RECOMMENDED",
-      "decision": "3 carried creatures, 1 active 1v1, 4 moves, energy 0..8, integer formulas, basic statuses",
+      "decision": "1 active Signari fought in real time, player movement and dodging, 6 commands per Signari (Tap and Dodge are general, plus 4 learned moves), 3 carried creatures, energy 0..8, integer formulas, basic statuses (numbers and kits still proposed)",
       "downstream": "combat backend and battle UI",
       "approvedAt": null,
       "source": "docs/planning/DECISION_REGISTER_v0.1.md"

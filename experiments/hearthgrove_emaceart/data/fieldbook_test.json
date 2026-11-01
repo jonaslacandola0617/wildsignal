@@ -1,0 +1,56 @@
+{
+  "schema": "wildsignal-fieldbook-test-v0",
+  "status": "PROPOSED - first draft of Mara Venn's field book for the owner's test, not approved",
+  "title": "Field notes",
+  "inscription": "For the new Wayfinder. When the lanterns called, the woods used to answer. Now they have gone quiet, and I can't yet tell you why. I've left questions where I don't know the answer. I hope you'll fill them in. Watch first, then help. The wild owes us nothing.",
+  "signature": "Mara Venn",
+  "pages": [
+    {
+      "species": "WS-008",
+      "temperament": "Curious",
+      "trustNeeded": 0,
+      "mara": "Driftfin feels water before we can see it. When it goes quiet and starts to bob, something nearby is damp. Let it lead you now and then.",
+      "clues": [],
+      "joined": "With you since the quay."
+    },
+    {
+      "species": "WS-004",
+      "temperament": "Steady",
+      "trustNeeded": 0,
+      "mara": "Glintle turns to face things we can't hear. I once watched one hold still for an hour. What is it listening to? Tell me if you find out.",
+      "clues": [],
+      "joined": "With you since the quay."
+    },
+    {
+      "species": "WS-005",
+      "temperament": "Skittish",
+      "trustNeeded": 3,
+      "mara": "Quick, shy and always busy. Tumbletail gathers fallen seeds and tucks them away. Don't rush it. If you run, it will be gone before you've said hello.",
+      "clues": [
+        {"act": "observed", "ask": "Where does it keep its food?", "answer": "Seeds, hidden by the bench. They keep getting scattered."},
+        {"act": "assisted", "ask": "What would earn its trust?", "answer": "I tidied its seeds. It noticed."},
+        {"act": "reached", "ask": "Will it ever come to an open hand?", "answer": "Once it was calm, it leaned into my hand."}
+      ],
+      "startled": "I ran at it and it bolted. Next time, slowly.",
+      "refused": "It wouldn't come near while it was frightened.",
+      "knocked": "I hurt it. It wants nothing to do with me now.",
+      "joined": "It chose to come with me."
+    },
+    {
+      "species": "WS-012",
+      "temperament": "Shy",
+      "trustNeeded": 5,
+      "mara": "Slow and patient, and easy to overlook. Mossmelt cleans fallen leaves and helps the fungi grow. It will not be hurried, so don't try. Bring your patience.",
+      "clues": [
+        {"act": "observed", "ask": "What does it feed on?", "answer": "Its feeding bed sits by the tree, buried in debris."},
+        {"act": "assisted", "ask": "What does it need from us?", "answer": "I cleared the debris and it rose to greet me."},
+        {"act": "company", "ask": "Does it mind company?", "answer": "It settled beside me when I sat still."},
+        {"act": "reached", "ask": "Can a fight end gently?", "answer": "It calmed, and came to my hand."}
+      ],
+      "startled": "It flattened itself when I ran close.",
+      "refused": "It wouldn't answer me while it was frightened.",
+      "knocked": "I went too far. It needs space.",
+      "joined": "It chose to come with me."
+    }
+  ]
+}

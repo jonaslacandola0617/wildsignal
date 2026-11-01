@@ -22,7 +22,7 @@ def run(name, mode, pose=0, extra=()):
     out = root / name
     cmd = [str(exe), "--assets", str(assets), "--tree-scene", "--tree-study", mode,
            "--allow-software", "--hidden", "--benchmark", "--pose", str(pose),
-           "--resolution", "480", "--frames", "3", "--cap", "0", "--hud", "off",
+           "--resolution", "640", "--frames", "3", "--cap", "0", "--hud", "off",
            "--grass-density", "off", "--shafts", "off", "--haze", "off",
            "--shadow", "on", "--output", str(out)] + list(extra)
     p = subprocess.run(cmd, env=env, capture_output=True, text=True, timeout=120)
