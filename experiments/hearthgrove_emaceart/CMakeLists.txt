@@ -146,3 +146,11 @@ if(BUILD_TESTING AND PIXEL3D_TEST_GL AND GAMELOOP_ASSETS AND TARGET wildsignal_h
   set_tests_properties(pilot_optimized_shadow_pixels_and_workload PROPERTIES TIMEOUT 300)
  endif()
 endif()
+if(BUILD_TESTING AND PIXEL3D_TEST_GL AND GAMELOOP_ASSETS AND TARGET wildsignal_hearthgrove_emaceart)
+ if(EXISTS "${GAMELOOP_ASSETS}/pilot/folio.json")
+  add_test(NAME pilot_fieldbook_pointer_and_modal_input COMMAND ${Python3_EXECUTABLE}
+   ${CMAKE_CURRENT_SOURCE_DIR}/tests/fieldbook_runtime.py $<TARGET_FILE:wildsignal_hearthgrove_emaceart>
+   ${GAMELOOP_ASSETS} ${CMAKE_CURRENT_BINARY_DIR}/fieldbook-ui-validation)
+  set_tests_properties(pilot_fieldbook_pointer_and_modal_input PROPERTIES TIMEOUT 300)
+ endif()
+endif()

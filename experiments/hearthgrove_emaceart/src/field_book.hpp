@@ -12,9 +12,11 @@ class FieldBook {
 public:
   FieldBook(const std::filesystem::path &folder, const battle::Content &);
   bool open() const { return showing; }
+  int currentPage() const { return spread; }
   void show(bond::Journal &);
   // Returns true when the book closed.
   bool key(int sdlKey);
+  void pointer(int x, int y, bool pressed);
   void update(float dt);
   float openTime() const { return age; }
   void drawIcon(PixelUi &, const bond::Journal &) const;
@@ -32,7 +34,12 @@ private:
   const battle::Content *content;
   std::string title, inscription, signature;
   std::vector<Page> pages;
-  bool showing = false;
+  bool showing = false, closing = false, reducedMotion = false;
+  int hover = -1, targetSpread = 0, turnDirection = 1;
+  float turnT = -1;
+  std::vector<std::string> openFrames, turnFrames;
+  float openingSeconds = .4f, turningSeconds = .36f;
+  void navigate(int page);
   int spread = 0;
   float age = 0, stampT = 0;
   void cover(PixelUi &, const bond::Journal &, const std::vector<std::string> &goals);

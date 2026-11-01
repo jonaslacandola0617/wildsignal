@@ -28,6 +28,7 @@ public:
   // Leaves a teammate exactly where the fight ended, so nothing jumps.
   void keepAt(const std::string &model, Vec at);
   void rest();
+  void dismissNotice() { toastT = 0; }
   void announce(const std::string &text) { say(text, 1.8f); }
   bond::Journal &notes() { return journal; }
   void saveNow() { store(); }

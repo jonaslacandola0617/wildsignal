@@ -23,6 +23,11 @@ public:
   ~PixelUi();
   void begin(int windowWidth, int windowHeight);
   void image(const std::string &name, int x, int y, Colour tint = {1, 1, 1, 1});
+  void sizedImage(const std::string &, int x, int y, int width, int height, Colour tint = {1,1,1,1});
+  // Sprite origins supplied by the private atlas keep animation frames registered.
+  void fitImage(const std::string &, int x, int y, int width, int height, Colour tint = {1,1,1,1});
+  std::size_t textureBytes() const;
+  void registeredImage(const std::string &, int anchorX, int anchorY, float scale);
   void panel(const std::string &name, int x, int y, int w, int h);
   // Stretches only the middle of a piece sideways, keeping both end caps whole.
   void strip(const std::string &name, int x, int y, int w, int h = 0);

@@ -348,6 +348,9 @@ void push(const Replay &r) {
     e.type = SDL_EVENT_MOUSE_MOTION;
     e.motion.xrel = std::stof(r.arg);
     e.motion.yrel = std::stof(r.arg2);
+  } else if (r.command == "click") {
+    e.type = SDL_EVENT_MOUSE_BUTTON_DOWN; e.button.button = SDL_BUTTON_LEFT;
+    e.button.x = std::stof(r.arg); e.button.y = std::stof(r.arg2);
   } else if (r.command == "quit")
     e.type = SDL_EVENT_QUIT;
   else
@@ -624,6 +627,7 @@ int main(int argc, char **argv) {
     std::vector<float> viewFades(world.instances.size(), 0.f);
     if(!o.pilot.empty()){
       pixelUi=std::make_unique<p3::PixelUi>(o.pilot.parent_path());
+      log<<"ui_texture_bytes="<<pixelUi->textureBytes()<<"\n";
       scene=std::make_unique<p3::FightScene>(o.pilot.parent_path());
       scene->startCalm(o.calmFights);
       auto bondFile=o.save;bondFile+=".bonds.json";
@@ -792,6 +796,22 @@ int main(int argc, char **argv) {
       previous = begin;
       while (nextReplay < replay.size() && replay[nextReplay].frame == frame)
         push(replay[nextReplay++]);
+      auto closeBook = [&] {
+        wilds->saveNow(); held.fill(false); sneaking = false;
+        relative = !paused; SDL_SetWindowRelativeMouseMode(screen.window, relative);
+        event(frame, "book_close");
+      };
+      auto openBook = [&] {
+        book->show(wilds->notes()); wilds->dismissNotice(); wilds->saveNow(); held.fill(false); sneaking = false;
+        relative = false; SDL_SetWindowRelativeMouseMode(screen.window, false);
+        event(frame, "book_open");
+      };
+      auto canvasPoint = [&](float x, float y) {
+        int ww,wh,pw,ph; SDL_GetWindowSize(screen.window,&ww,&wh); SDL_GetWindowSizeInPixels(screen.window,&pw,&ph);
+        int scale = std::max(1,std::min(pw/640,ph/360));
+        return std::array<int,2>{int((x*pw/std::max(1,ww)-(pw-640*scale)/2)/scale),
+                                 int((y*ph/std::max(1,wh)-(ph-360*scale)/2)/scale)};
+      };
       SDL_Event e;
       while (SDL_PollEvent(&e)) {
         if (e.type == SDL_EVENT_QUIT) {
@@ -804,9 +824,25 @@ int main(int argc, char **argv) {
           held.fill(false);
           relative = false;
           SDL_SetWindowRelativeMouseMode(screen.window, false);
+        } else if(e.type==SDL_EVENT_MOUSE_BUTTON_DOWN && paused && !(book&&book->open())) {
+          auto pt=canvasPoint(e.button.x,e.button.y);
+          if(e.button.button==SDL_BUTTON_LEFT && pt[0]>=232 && pt[0]<408) {
+            if(pt[1]>=173 && pt[1]<197) { paused=false; relative=true; held.fill(false); SDL_SetWindowRelativeMouseMode(screen.window,true); event(frame,"resume"); }
+            else if(pt[1]>=210 && pt[1]<234) { save(); run=false; event(frame,"save_quit"); }
+          }
         } else if (e.type == SDL_EVENT_MOUSE_BUTTON_DOWN && !paused) {
+          auto pt = canvasPoint(e.button.x,e.button.y);
+          if (book && book->open()) {
+            if(e.button.button==SDL_BUTTON_LEFT) book->pointer(pt[0],pt[1],true);
+            if(!book->open()) closeBook();
+            continue;
+          }
+          if (book && e.button.button==SDL_BUTTON_LEFT && pt[0]>=586 && pt[0]<632 && pt[1]>=317 && pt[1]<355 &&
+              game.phase==game::Phase::Explore && !scene->active() && !wilds->busy() && !wilds->watching()) { openBook(); continue; }
           relative = true;
           SDL_SetWindowRelativeMouseMode(screen.window, true);
+        } else if (e.type == SDL_EVENT_MOUSE_MOTION && book && book->open()) {
+          auto pt = canvasPoint(e.motion.x,e.motion.y); book->pointer(pt[0],pt[1],false);
         } else if (e.type == SDL_EVENT_MOUSE_MOTION &&
                    (relative || !o.replay.empty()) && !paused &&
                    (game.phase == game::Phase::Explore || (scene && scene->active()))) {
@@ -839,16 +875,12 @@ int main(int argc, char **argv) {
             continue;
           }
           if (book && book->open()) {
-            if (book->key(int(e.key.key))) {
-              wilds->saveNow();
-              event(frame, "book_close");
-            }
+            if (paused) { if(e.key.key==SDLK_RETURN||e.key.key==SDLK_ESCAPE) paused=false; continue; }
+            if (book->key(int(e.key.key))) closeBook();
             continue;
           }
           if (book && e.key.key == SDLK_B && !paused && game.phase == game::Phase::Explore && !wilds->busy() && !wilds->watching()) {
-            book->show(wilds->notes());
-            wilds->saveNow();
-            event(frame, "book_open");
+            openBook();
             continue;
           }
           if (scene && scene->active() && !paused && e.key.key != SDLK_ESCAPE) {
@@ -1049,7 +1081,11 @@ int main(int argc, char **argv) {
           // Waits for the fight's clean-up, so the jump back to exploring cannot startle anything.
           if (!scene->active() && !stageSet && !reading)
             wilds->update(dt, game.state.player, sneaking, game.solids);
+          bool wasReading = book->open();
+          int previousPage = book->currentPage();
           book->update(dt);
+          if(previousPage!=book->currentPage()) event(frame,("book_page_"+std::to_string(book->currentPage())).c_str());
+          if (wasReading && !book->open()) closeBook();
         }
         for (const auto &name : wilds->takeEvents())
           event(frame, name.c_str());
@@ -1338,15 +1374,25 @@ int main(int argc, char **argv) {
           return std::array<int, 2>{int((x / w + 1) * 320), int((1 - y / w) * 180)};
         };
         pixelUi->begin(ow, oh);
-        if (scene->active())
-          scene->draw(*pixelUi, toCanvas);
-        else if (game.phase == game::Phase::Explore && atRest())
-          scene->prompt(*pixelUi, "[E] Rest at the cottage");
-        else if (game.phase == game::Phase::Explore)
-          wilds->draw(*pixelUi, toCanvas);
-        if (book && !scene->active() && game.phase == game::Phase::Explore) {
-          if (book->open()) book->draw(*pixelUi, wilds->notes(), wilds->goals());
-          else book->drawIcon(*pixelUi, wilds->notes());
+        if (book && book->open()) {
+          book->draw(*pixelUi,wilds->notes(),wilds->goals());
+          if(paused) pixelUi->note("Paused. Enter to resume",320,4);
+        } else {
+          if (scene->active()) scene->draw(*pixelUi,toCanvas);
+          else if (game.phase==game::Phase::Explore && atRest()) scene->prompt(*pixelUi,"[E] Rest at the cottage");
+          else if (game.phase==game::Phase::Explore) wilds->draw(*pixelUi,toCanvas);
+          if(book && !scene->active() && game.phase==game::Phase::Explore) book->drawIcon(*pixelUi,wilds->notes());
+        }
+        if(paused && !(book&&book->open())) {
+          const auto &t=pixelUi->theme();
+          pixelUi->fill(0,0,640,360,{.035f,.065f,.06f,.72f});
+          pixelUi->panel("panel_dark",204,100,232,158);
+          pixelUi->text("Paused",284,123,t.title,2);
+          pixelUi->text("Your journey is waiting.",268,152,t.ink);
+          pixelUi->strip("button",232,173,176,24);
+          pixelUi->text("Enter    Continue",264,181,t.onButton);
+          pixelUi->strip("button",232,210,176,24);
+          pixelUi->text("Q    Save and quit",264,218,t.onButton);
         }
         pixelUi->end();
       }

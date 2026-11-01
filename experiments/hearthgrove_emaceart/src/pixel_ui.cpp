@@ -6,6 +6,7 @@
 #include <SDL3/SDL_opengl.h>
 #include <algorithm>
 #include <cctype>
+#include <cmath>
 #include <map>
 #include <stdexcept>
 #include <vector>
@@ -29,7 +30,7 @@ static void load() {
 }
 } // namespace uigl
 struct Rect {
-  int x = 0, y = 0, w = 0, h = 0, border = 0;
+  int x = 0, y = 0, w = 0, h = 0, border = 0, originX = 0, originY = 0;
 };
 struct UiVertex {
   float x, y, u, v, r, g, b, a;
@@ -70,7 +71,7 @@ PixelUi::PixelUi(const std::filesystem::path &folder) {
   auto data = ws::parseJson(readText(folder / (stem + ".json")));
   for (const auto &[name, r] : std::get<ws::Json::Object>(data.at("rects").value)) {
     const auto &a = r.array();
-    p->rects[name] = {int(a[0].number()), int(a[1].number()), int(a[2].number()), int(a[3].number()), int(a[4].number())};
+    p->rects[name] = {int(a[0].number()), int(a[1].number()), int(a[2].number()), int(a[3].number()), int(a[4].number()), a.size() > 5 ? int(a[5].number()) : 0, a.size() > 6 ? int(a[6].number()) : 0};
   }
   auto readFont = [&](const ws::Json &table, std::map<char, Impl::Glyph> &font) {
     for (const auto &[name, g] : std::get<ws::Json::Object>(table.value)) {
@@ -154,6 +155,22 @@ void PixelUi::begin(int w, int h) {
 void PixelUi::image(const std::string &name, int x, int y, Colour tint) {
   const auto &r = p->rects.at(name);
   p->quad(x, y, r.w, r.h, r.x, r.y, r.w, r.h, tint);
+}
+void PixelUi::sizedImage(const std::string &name, int x, int y, int w, int h, Colour tint) {
+  const auto &r = p->rects.at(name);
+  p->quad(x,y,w,h,r.x,r.y,r.w,r.h,tint);
+}
+std::size_t PixelUi::textureBytes() const { return std::size_t(p->atlasW)*p->atlasH*4; }
+void PixelUi::fitImage(const std::string &name, int x, int y, int w, int h, Colour tint) {
+  const auto &r = p->rects.at(name);
+  float scale=std::min(float(w)/r.w,float(h)/r.h);
+  int rw=int(std::lround(r.w*scale)),rh=int(std::lround(r.h*scale));
+  sizedImage(name,x+(w-rw)/2,y+(h-rh)/2,rw,rh,tint);
+}
+void PixelUi::registeredImage(const std::string &name, int x, int y, float scale) {
+  const auto &r = p->rects.at(name);
+  sizedImage(name, x + int(std::lround(r.originX * scale)), y + int(std::lround(r.originY * scale)),
+             int(std::lround(r.w * scale)), int(std::lround(r.h * scale)));
 }
 void PixelUi::panel(const std::string &name, int x, int y, int w, int h) {
   const auto &r = p->rects.at(name);

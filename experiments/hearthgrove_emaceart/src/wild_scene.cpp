@@ -432,41 +432,38 @@ void WildScene::draw(PixelUi &ui, const FightScene::Project &project) {
       else ui.text("!", p[0], p[1], Coral);
     }
   }
-  if (near >= 0) {
-    const auto &w = wilds[std::size_t(near)];
-    auto *e = journal.find(w.species);
-    int trust = e ? e->trust() : 0;
-    ui.card("plate_small", 14, 12, 240, 48);
-    ui.text(w.name, 38, 21, t.ink);
-    ui.text(w.wariness.frightened() ? "Wary" : w.temperament, 104, 21, w.wariness.frightened() ? Coral : t.faded);
-    for (int i = 0; i < w.trustNeeded; i++)
-      ui.image(i < trust ? "trust_on" : "trust_off", 186 + i * 10, 22);
-    if (watchIndex == near)
-      ui.meter(38, 36, 192, std::min(1.f, w.watchT / watchGoal(w)), "fill_sp", Calm);
-    else
-      ui.text(nextStep(w), 38, 37, t.faded);
-  }
-  std::string line = toastT > 0 ? toast : watchIndex >= 0 ? (sitting ? "Stay still and keep it company." : wilds[std::size_t(watchIndex)].watchingText) : "";
-  if (joinT <= 0 && !line.empty()) ui.note(line, 320, 70);
   if (joinT > 0 && ui.has("ribbon")) {
-    // The team stamp: the pack's own stamp animation, leaving its mark on the ribbon.
-    int w = std::max(300, ui.width(joinName, 2) + 220), left = 320 - w / 2, markX = left + w - 92, markY = 76;
-    float gone = 3.8f - joinT;
-    int frame = std::min(19, int(gone * 14));
-    ui.strip("ribbon", left, 62, w);
-    ui.text(joinName, 320 - ui.width(joinName, 2) / 2, 78, t.title, 2);
-    ui.note(joinNote, 320, 140);
-    if (frame >= 7) ui.image("stamp_mark", markX, markY);
-    if (gone * 14 < 20) ui.image("stamp" + std::to_string(frame), markX - 23, markY - 43);
-  } else if (joinT > 0) {
-    ui.note(joinName + " " + joinNote, 320, 66);
+    float gone = 3.8f - joinT; int frame = std::min(19,int(gone*14));
+    int width = std::max(300,ui.width(joinName,2)+180);
+    ui.strip("ribbon",320-width/2,62,width);
+    ui.text(joinName,320-ui.width(joinName,2)/2,78,t.title,2);
+    ui.note(joinNote,320,140);
+    if(frame>=7) ui.image("stamp_mark",320+width/2-80,88);
+    if(gone*14<20) ui.image("stamp"+std::to_string(frame),320+width/2-103,45);
+    return;
   }
-  if (near < 0 || busy() || watching()) return;
-  const auto &w = wilds[std::size_t(near)];
-  std::string left = canTidy ? "[E] " + w.assistPrompt : canInvite ? "[E] Invite " + w.name : canWatch ? "[E] " + w.watchPrompt : canSit ? "[E] " + w.companyPrompt : "";
-  std::string right = canFight ? "[F] Friendly fight" : "";
-  std::string text = left.empty() ? right : right.empty() ? left : left + "   " + right;
-  if (text.empty() && tooClose && !sneakingNow) text = w.sneakHint;
-  if (!text.empty()) ui.note(text, 320, 322);
+  std::string message = toastT>0 ? toast : watchIndex>=0 ? (sitting ? "Stay still and keep it company." : wilds[std::size_t(watchIndex)].watchingText) : "";
+  if(near<0 && message.empty()) return;
+  const int x=174,y=260,w=292;
+  ui.panel("panel",x,y,w,85);
+  if(near<0) {
+    ui.text("A field note",x+16,y+12,t.title,2);
+    ui.paragraph(message,x+16,y+42,w-32,t.ink);
+    return;
+  }
+  const auto &wild=wilds[std::size_t(near)];
+  ui.text(wild.name,x+16,y+10,t.title,2);
+  std::string mood=wild.wariness.frightened()?"Wary":wild.temperament;
+  ui.text(mood,x+w-16-ui.width(mood),y+18,wild.wariness.frightened()?Coral:t.ink);
+  auto description=!message.empty()?message:nextStep(wild);
+  ui.paragraph(description,x+16,y+37,w-32,t.ink);
+  if(watchIndex==near) {
+    ui.meter(x+16,y+67,w-32,std::min(1.f,wild.watchT/watchGoal(wild)),"fill_sp",Calm);
+    return;
+  }
+  if(busy()||watching()) return;
+  std::string action=wild.wariness.frightened()?"Give it space":canTidy?"E  Help":canInvite?"E  Invite":canWatch?"E  Watch":canSit?"E  Sit together":tooClose&&!sneakingNow?"Shift  Sneak":"";
+  if(!action.empty()) ui.text(action,x+16,y+66,t.ink);
+  if(canFight) ui.text("F  Friendly fight",x+w-16-ui.width("F  Friendly fight"),y+66,t.ink);
 }
 } // namespace p3
