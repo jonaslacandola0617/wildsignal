@@ -66,7 +66,8 @@ void FightScene::say(const std::string &text, float seconds, int rank) {
   toastRank = rank;
 }
 
-void FightScene::start(const std::string &wildSpecies, int wildLevel, int wildHealth, const std::vector<bond::Member> &team, Vec you, Vec wild, const std::vector<battle::Block> &blocks) {
+void FightScene::start(const std::string &wildSpecies, int wildLevel, int wildHealth, const std::vector<bond::Member> &team, Vec you, Vec wild, const std::vector<battle::Block> &blocks,
+                       bool watched) {
   // A team with nobody standing is rested first; losing never strands the player.
   bool anyone = std::any_of(team.begin(), team.end(), [](const bond::Member &m) { return m.hp != 0; });
   std::vector<battle::Member> members;
@@ -75,10 +76,12 @@ void FightScene::start(const std::string &wildSpecies, int wildLevel, int wildHe
   encounters++;
   fight = std::make_unique<battle::Fight>(content, data, members, battle::Member{content.speciesIndex(wildSpecies), std::max(wildLevel, minLevel), -1}, millimetres(you), millimetres(wild),
                                           std::uint32_t(0x51A7 + encounters), blocks, wildHealth);
+  fight->familiar(watched);
   if (calmStart) fight->soothe(75);
   running = true;
-  wasLost = wasWon = wasReached = wasLeft = false;
+  wasLost = wasWon = wasTuned = wasLeft = false;
   pending = {};
+  holdingTune = false;
   queued = -1;
   spare = commandT = 0;
   hintTime = 7;
@@ -96,7 +99,7 @@ void FightScene::finish() {
     hp.push_back(k.hp);
   wasLost = fight->outcome() == battle::Outcome::Lost;
   wasWon = fight->outcome() == battle::Outcome::Won;
-  wasReached = fight->outcome() == battle::Outcome::Reached;
+  wasTuned = fight->outcome() == battle::Outcome::Tuned;
   wasLeft = fight->outcome() == battle::Outcome::Left;
   running = false;
 }
@@ -106,7 +109,7 @@ void FightScene::key(int k) {
     if (k == SDLK_RETURN || k == SDLK_E) finish();
     return;
   }
-  // GDD 5.6: 1 basic, 2-4 skills, R ultimate, C dodge, Space roll, Tab swap, F reach out.
+  // GDD 5.6: 1 basic, 2-4 skills, R ultimate, C dodge, Space roll, Tab swap, hold F to tune in.
   int slot = k >= SDLK_1 && k <= SDLK_4 ? int(k - SDLK_1) : k == SDLK_R ? battle::UltimateSlot : -1;
   if (slot >= 0) {
     pending.command = slot;
@@ -118,13 +121,14 @@ void FightScene::key(int k) {
   } else if (k == SDLK_TAB || k == SDLK_P) {
     pending.swap = true;
   } else if (k == SDLK_F) {
-    pending.reach = true;
-    if (!fight->canReach())
-      say(!fight->wornDown() ? "Wear " + nameOf(fight->wild()) + " down past the line first."
-          : fight->wild().spirit > battle::CalmSpirit ? nameOf(fight->wild()) + " is not calm enough yet."
-                                                      : "Get closer to reach out.",
-          1.2f, 0);
+    holdingTune = true;
+    // A guardian says so through its own cue once the player is close enough.
+    if (!fight->canTune() && !(fight->guardian() && fight->wornDown()))
+      say(fight->guardian() ? "Its signal is too strong." : !fight->wornDown() ? "Wear " + nameOf(fight->wild()) + " down past the line first." : "Get closer to tune in.", 1.2f, 0);
   }
+}
+void FightScene::keyUp(int k) {
+  if (k == SDLK_F) holdingTune = false;
 }
 void FightScene::cues() {
   for (const auto &c : fight->takeCues()) {
@@ -170,11 +174,11 @@ void FightScene::cues() {
       queued = c.value;
       break;
     case CueKind::Calmed:
-      say(nameOf(fight->wild()) + (fight->wornDown() ? " is calm. Get close and press F." : " is calm. Wear it down past the line."), 2.6f, 2);
+      if (!fight->guardian()) say(nameOf(fight->wild()) + " is calm. Tuning in will be quick.", 2.6f, 2);
       break;
     case CueKind::WornDown:
       floaters.push_back({at + Vec{0, 1.6f, 0}, "Worn down", Gold});
-      say(nameOf(fight->wild()) + (fight->wild().spirit <= battle::CalmSpirit ? " is worn down. Get close and press F." : " is worn down. Calm it, then press F."), 2.6f, 2);
+      say(fight->guardian() ? nameOf(fight->wild()) + "'s signal is too strong to tune in." : nameOf(fight->wild()) + " is worn down. Get close and hold F to tune in.", 2.6f, 2);
       break;
     case CueKind::Soothed:
       floaters.push_back({at + Vec{.45f, 1.2f, 0}, "", Calm, 0, "icon_spirit"});
@@ -185,12 +189,18 @@ void FightScene::cues() {
       else
         say("Resonance full!", 1.6f, 1);
       break;
-    case CueKind::ReachStart:
+    case CueKind::TuneStart:
       clipClock = 0;
-      say("Hold steady...", float(battle::ReachTicks) / battle::TicksPerSecond, 2);
+      say("Tuning in... hold steady", float(c.value) / battle::TicksPerSecond, 2);
       break;
-    case CueKind::ReachBroken:
-      say("It flinched away. Try again soon.", 1.6f, 2);
+    case CueKind::TuneBroken:
+      say("The signal slipped away. Hold F to try again.", 1.6f, 2);
+      break;
+    case CueKind::TuneLetGo:
+      say("You let go. Hold F to tune in.", 1.4f, 2);
+      break;
+    case CueKind::TuneRefused:
+      say("Its signal is too strong.", 1.6f, 2);
       break;
     }
   }
@@ -222,6 +232,7 @@ void FightScene::update(float dt, int moveX, int moveZ) {
     battle::Pad pad = pending;
     pad.moveX = moveX;
     pad.moveZ = moveZ;
+    pad.tune = holdingTune;
     pending = {};
     fight->step(pad);
     cues();
@@ -253,7 +264,7 @@ float FightScene::rollTurn() const {
 std::string FightScene::youClip() const {
   const auto &y = fight->you();
   if (fight->outcome() == battle::Outcome::Lost) return "Down";
-  if (y.reachTicks > 0) return "Command";
+  if (y.tuning) return "Command";
   if (y.rollTicks > 0) return "Tuck";
   if (y.hurtTicks > 0) return "Hit";
   if (y.moving) return "Run";
@@ -301,8 +312,17 @@ FightScene::Staged FightScene::creature(bool mine) const {
 void FightScene::marks(GroundMarks &g, Vec right, Vec up) {
   if (!running) return;
   g.ring(metres(fight->centre()), float(battle::RingRadius) * .001f, .14f, Bound);
-  if (fight->wild().spirit <= battle::CalmSpirit && fight->outcome() == battle::Outcome::Ongoing)
-    g.ring(metres(fight->wild().at), float(battle::ReachRange) * .001f, .12f, Friendly);
+  // The compass ring (placeholder look until UI-001): a faint circle shows how close to stand,
+  // and a gold ring closes in on the wild Signari as Tune In fills.
+  const auto &you = fight->you();
+  if (fight->wornDown() && !fight->guardian() && fight->outcome() == battle::Outcome::Ongoing) {
+    float range = float(battle::TuneRange) * .001f;
+    g.ring(metres(fight->wild().at), range, .12f, Friendly);
+    if (you.tuning) {
+      float done = float(you.tuneTicks) / float(std::max(1, you.tuneNeed));
+      g.ring(metres(fight->wild().at), .6f + (range - .6f) * (1 - done), .2f, {.96f, .86f, .55f, .55f + .4f * done});
+    }
+  }
   for (const auto &m : fight->markers()) {
     // Heavy attacks differ in colour and shape, so they read without relying on colour alone.
     auto colour = !m.hostile ? Friendly : m.heavy ? Heavy : Danger;
@@ -434,15 +454,15 @@ void FightScene::draw(PixelUi &ui, const Project &project) {
   }
   moveBar(ui);
   std::string line = toastTime > 0 ? toast : hintTime > 0 ? "WASD move   Space roll   1-4 skills   R ultimate   C dodge" : "";
-  if (fight->canReach() && fight->outcome() == battle::Outcome::Ongoing && you.reachTicks == 0) {
-    ui.note("[R] reach out", 320, 294);
+  if (fight->canTune() && fight->outcome() == battle::Outcome::Ongoing && !you.tuning) {
+    ui.note("Hold F  Tune in", 320, 294);
   }
   if (!line.empty()) {
     ui.note(line, 200, 12);
   }
   if (fight->outcome() != battle::Outcome::Ongoing) {
-    bool won = fight->outcome() == battle::Outcome::Won, left = fight->outcome() == battle::Outcome::Left, reached = fight->outcome() == battle::Outcome::Reached;
-    std::string title = reached ? "It trusts you" : won ? "It needs space" : left ? "Safe away" : "You need a rest";
+    bool won = fight->outcome() == battle::Outcome::Won, left = fight->outcome() == battle::Outcome::Left, tuned = fight->outcome() == battle::Outcome::Tuned;
+    std::string title = tuned ? "Tuned in" : won ? "It needs space" : left ? "Safe away" : "You need a rest";
     if (ui.has("ribbon")) {
       int w = std::max(260, ui.width(title, 2) + 150);
       ui.strip("ribbon", 320 - w / 2, 112, w);

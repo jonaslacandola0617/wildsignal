@@ -31,14 +31,18 @@ public:
   void fightLevel(int level) { minLevel = level; }
   bool lost() const { return wasLost; }
   bool won() const { return wasWon; }
-  bool reached() const { return wasReached; }
+  bool tunedIn() const { return wasTuned; }
   bool left() const { return wasLeft; }
   const battle::Content &roster() const { return content; }
   // Health left per team member after the last fight, in team order.
   const std::vector<int> &teamHp() const { return hp; }
   // wildHealth is an encounter scale in percent, so a fight has time to breathe.
-  void start(const std::string &wildSpecies, int wildLevel, int wildHealth, const std::vector<bond::Member> &team, Vec you, Vec wild, const std::vector<battle::Block> &blocks);
+  // watched: the player has watched this species before, so Tune In is faster.
+  void start(const std::string &wildSpecies, int wildLevel, int wildHealth, const std::vector<bond::Member> &team, Vec you, Vec wild, const std::vector<battle::Block> &blocks,
+             bool watched = false);
   void key(int sdlKey);
+  // Key releases matter for held actions: letting go of F stops Tune In.
+  void keyUp(int sdlKey);
   void announce(const std::string &text) { say(text, 1.8f); }
   void update(float dt, int moveX, int moveZ);
   void draw(PixelUi &, const Project &);
@@ -83,7 +87,7 @@ private:
   std::array<float, battle::MoveSlots + 1> readyFlash{};
   battle::Pad pending;
   int minLevel = 0;
-  bool calmStart = false, running = false, wasLost = false, wasWon = false, wasReached = false, wasLeft = false;
+  bool calmStart = false, running = false, wasLost = false, wasWon = false, wasTuned = false, wasLeft = false, holdingTune = false;
   int encounters = 0, queued = -1, toastRank = 0;
   float spare = 0, toastTime = 0, hintTime = 0, clock = 0, clipClock = 0, commandT = 0;
   std::string toast;

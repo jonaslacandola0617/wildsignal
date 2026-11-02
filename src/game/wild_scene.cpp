@@ -335,16 +335,23 @@ void WildScene::keepAt(const std::string &model, Vec at) {
       c.follower.target = at;
     }
 }
-void WildScene::fightEnded(bool won, bool reached, bool left, const std::vector<int> &teamHp, Vec foeStoppedAt) {
+void WildScene::fightEnded(bool won, bool tuned, bool left, const std::vector<int> &teamHp, Vec foeStoppedAt) {
   for (std::size_t i = 0; i < journal.party.size() && i < teamHp.size(); i++)
     journal.party[i].hp = teamHp[i];
   auto &w = wilds[std::size_t(target)];
   w.at = foeStoppedAt;
   w.mood = Mood::Forage;
   w.timer = 1;
-  if (reached) {
-    if (journal.earn(w.species, bond::Act::Reach)) events.push_back("trust_reach");
-    say(w.name + " leans into your hand.", 3.6f);
+  if (tuned) {
+    // The save keeps calling this act a reach; its trust still counts in the field book.
+    journal.earn(w.species, bond::Act::Reach);
+    bool roomy = int(journal.party.size()) < bond::PartyLimit;
+    if (journal.invite(w.species, w.level, 0, false)) {
+      events.push_back("tune_in_joined");
+      joinName = w.name;
+      joinNote = roomy ? "Joined your team!" : "Waiting at the cottage.";
+      joinT = 3.8f;
+    }
   } else if (won) {
     // Knocking it out earns nothing and leaves it afraid of the player.
     w.wariness.startle(45);
@@ -432,14 +439,21 @@ void WildScene::draw(PixelUi &ui, const FightScene::Project &project) {
       else ui.text("!", p[0], p[1], Coral);
     }
   }
-  if (joinT > 0 && ui.has("ribbon")) {
+  // The joined moment (placeholder pixel UI until UI-001): a ribbon with the name, the note
+  // below it and the stamp coming down. Without the ribbon art it falls back to a plain panel.
+  if (joinT > 0) {
     float gone = 3.8f - joinT; int frame = std::min(19,int(gone*14));
     int width = std::max(300,ui.width(joinName,2)+180);
-    ui.strip("ribbon",320-width/2,62,width);
-    ui.text(joinName,320-ui.width(joinName,2)/2,78,t.title,2);
+    if (ui.has("ribbon")) {
+      ui.strip("ribbon",320-width/2,62,width);
+      ui.text(joinName,320-ui.width(joinName,2)/2,78,t.title,2);
+    } else {
+      ui.panel("panel_dark",320-width/2,62,width,56);
+      ui.text(joinName,320-ui.width(joinName,2)/2,82,t.title,2);
+    }
     ui.note(joinNote,320,140);
-    if(frame>=7) ui.image("stamp_mark",320+width/2-80,88);
-    if(gone*14<20) ui.image("stamp"+std::to_string(frame),320+width/2-103,45);
+    if(frame>=7 && ui.has("stamp_mark")) ui.image("stamp_mark",320+width/2-80,88);
+    if(gone*14<20 && ui.has("stamp"+std::to_string(frame))) ui.image("stamp"+std::to_string(frame),320+width/2-103,45);
     return;
   }
   std::string message = toastT>0 ? toast : watchIndex>=0 ? (sitting ? "Stay still and keep it company." : wilds[std::size_t(watchIndex)].watchingText) : "";

@@ -11,7 +11,7 @@ constexpr int LeapSpeed = 7800 / TicksPerSecond, LeapTicks = 16, DodgeWait = 150
 constexpr int HeadSpeedDash = 12000 / TicksPerSecond, HeadSpeedLane = 14000 / TicksPerSecond;
 constexpr int StatusTicks = 90, StatusHp = 3, GuardTicks = 180, FocusTicks = 360, SlowTicks = 240;
 constexpr int HitSafeTicks = 60, HurtTicks = 22, FlinchTicks = 12, CalmAfter = 240, CalmStep = 20, DownTicks = 45;
-constexpr int DodgeCalm = 10, GentleCalm = 12, HardCalm = 3, SpiritTicks = 90, ReachWait = 300;
+constexpr int DodgeCalm = 10, GentleCalm = 12, HardCalm = 3, SpiritTicks = 90;
 constexpr int SwapWait = 180, OrderLife = 300, AutoWait = 240, PushTicks = 16, HeavyPower = 18;
 
 int root(std::int64_t v) {
@@ -118,6 +118,7 @@ FightData buildFight(const content::Content &c, Content &out) {
     species.name = sp.name;
     species.affinity = affinityNamed(sp.type);
     species.base = *sp.stats;
+    species.guardian = sp.guardian != content::Guardian::None;
     std::array<int, MoveSlots> slots{};
     slots[BasicSlot] = add(sp, kit->basic);
     for (int i = 0; i < 3; i++)
@@ -159,7 +160,20 @@ void Fight::soothe(int points) {
 }
 void Fight::wound(int points) { foe.hp = std::max(1, foe.hp - points); }
 bool Fight::wornDown() const { return foe.hp > 0 && foe.hp * 100 <= foe.stats.hp * data->recruitPercent; }
-bool Fight::canReach() const { return wornDown() && foe.spirit <= CalmSpirit && gap(player.at, foe.at) <= ReachRange; }
+bool Fight::guardian() const { return content->species[foe.species].guardian; }
+bool Fight::canTune() const { return wornDown() && !guardian() && gap(player.at, foe.at) <= TuneRange; }
+int Fight::tuneTicksNeeded() const {
+  int above = std::clamp(foe.spirit - CalmSpirit, 0, 100 - CalmSpirit);
+  int ticks = TuneCalmTicks + above * (TuneAgitatedTicks - TuneCalmTicks) / (100 - CalmSpirit);
+  return watched ? ticks * TuneWatchedPercent / 100 : ticks;
+}
+void Fight::stopTuning(CueKind why, bool latch) {
+  auto &p = player;
+  p.tuning = false;
+  p.tuneTicks = 0;
+  p.latched = latch;
+  cues.push_back({why, Target::You, 0, p.at});
+}
 int Fight::moveId(const Fighter &k, int slot) const { return data->slots[k.species][slot]; }
 bool Fight::canUse(const Fighter &k, int slot) const { return whyNot(k, slot)[0] == 0; }
 const char *Fight::whyNot(const Fighter &k, int slot) const {
@@ -249,13 +263,24 @@ void Fight::movePlayer(const Pad &pad) {
     p.at = slide(p.at, {p.at.x + p.push.x, p.at.z + p.push.z}, PlayerRadius);
     if (p.hurtTicks <= HurtTicks - PushTicks) p.push = {};
   }
-  if (pad.reach && canReach() && p.reachTicks == 0 && p.reachWait == 0 && p.rollTicks == 0 && p.hurtTicks == 0) {
-    p.reachTicks = ReachTicks;
-    p.reachWait = ReachWait;
-    cues.push_back({CueKind::ReachStart, Target::You, 0, p.at});
+  // Tune In is held: letting go stops it and loses the progress. Once started, only letting
+  // go, a hit (land) or a knockout ends it early. A break waits for the key to be let go.
+  if (!pad.tune) {
+    if (p.tuning) stopTuning(CueKind::TuneLetGo, false);
+    p.latched = false;
+  } else if (!p.tuning && !p.latched && p.rollTicks == 0 && p.hurtTicks == 0) {
+    if (canTune()) {
+      p.tuning = true;
+      p.tuneTicks = 0;
+      p.tuneNeed = tuneTicksNeeded();
+      cues.push_back({CueKind::TuneStart, Target::You, p.tuneNeed, p.at});
+    } else if (guardian() && wornDown() && gap(p.at, foe.at) <= TuneRange) {
+      p.latched = true;
+      cues.push_back({CueKind::TuneRefused, Target::Wild, 0, foe.at});
+    }
   }
-  // Reaching out means standing open, so the player cannot move or roll until it ends.
-  if (p.reachTicks > 0) {
+  // Tuning in means standing open, so the player cannot move or roll until it ends.
+  if (p.tuning) {
     p.moving = false;
     p.drift = {p.at.x - before.x, p.at.z - before.z};
     return;
@@ -432,10 +457,7 @@ void Fight::land(Fighter &a, Target victim, const Strike &s) {
   if (m.accuracy < 10000 && int(rng.next() % 10000u) >= m.accuracy) return;
   if (victim == Target::You) {
     auto &p = player;
-    if (p.reachTicks > 0) {
-      p.reachTicks = 0;
-      cues.push_back({CueKind::ReachBroken, Target::You, 0, p.at});
-    }
+    if (p.tuning) stopTuning(CueKind::TuneBroken, true);
     int loss = std::min(p.composure, std::max(10, power(a, s.move)));
     p.composure -= loss;
     p.hurtTicks = HurtTicks;
@@ -654,8 +676,8 @@ void Fight::tickPlayer() {
   auto &p = player;
   p.rollTicks = std::max(0, p.rollTicks - 1);
   p.rollReady = std::max(0, p.rollReady - 1);
-  p.reachWait = std::max(0, p.reachWait - 1);
-  if (p.reachTicks > 0 && --p.reachTicks == 0) result = Outcome::Reached;
+  // A knockout ends the chance, even on the very tick it would have finished.
+  if (p.tuning && foe.hp > 0 && ++p.tuneTicks >= p.tuneNeed) result = Outcome::Tuned;
   p.hurtTicks = std::max(0, p.hurtTicks - 1);
   p.safeTicks = std::max(0, p.safeTicks - 1);
   p.slow = std::max(0, p.slow - 1);
@@ -751,7 +773,7 @@ std::uint64_t Fight::digest() const {
   for (const auto &k : team)
     fighter(k);
   fighter(foe);
-  for (int v : {player.reachTicks, player.reachWait, player.at.x, player.at.z, player.composure, player.rollTicks, player.rollReady, player.hurtTicks, player.safeTicks, clock, active, meter, int(result)})
+  for (int v : {int(player.tuning), player.tuneTicks, player.tuneNeed, int(player.latched), player.at.x, player.at.z, player.composure, player.rollTicks, player.rollReady, player.hurtTicks, player.safeTicks, clock, active, meter, int(result)})
     mix(v);
   mix(rng.x);
   return h;

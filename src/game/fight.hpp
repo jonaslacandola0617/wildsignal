@@ -19,7 +19,10 @@ constexpr int ResonanceFull = 100, ResonanceDodge = 30, ResonanceRoll = 20, Reso
               ResonanceBasic = 4; // Doubled after the first play-test: the first ultimate now comes ~30 s in.
 constexpr int FullComposure = 80;
 constexpr int RingRadius = 9500;
-constexpr int CalmSpirit = 30, ReachRange = 2600, ReachTicks = 72;
+// Tune In (GDD 2.5, FIGHT-003): worn down opens it, calm makes it faster. Holding still takes
+// TuneCalmTicks at Spirit <= CalmSpirit, rising evenly to TuneAgitatedTicks at Spirit 100.
+// A species the player has watched before tunes in in TuneWatchedPercent of the time.
+constexpr int CalmSpirit = 30, TuneRange = 2600, TuneCalmTicks = 72, TuneAgitatedTicks = 180, TuneWatchedPercent = 75;
 struct Spot {
   int x = 0, z = 0;
   bool operator==(const Spot &) const = default;
@@ -43,7 +46,7 @@ struct FightData {
   std::vector<std::vector<RankUp>> ranks;         // By move index.
   std::vector<std::array<int, MoveSlots>> slots;  // By species index.
   std::array<std::array<int, Affinities>, Affinities> matchup{}; // Percent, [attacker][defender].
-  // Reach Out needs the wild Signari at or below this share of its health (and calm).
+  // Tune In needs the wild Signari at or below this share of its health.
   int recruitPercent = 40;
 };
 // Turns the designer data (types, species with stats, kits) into fight moves and timing.
@@ -53,11 +56,12 @@ FightData buildFight(const content::Content &, Content &out);
 // One tick of player input. Movement is per mille of full speed, already in world axes.
 struct Pad {
   int moveX = 0, moveZ = 0, command = -1;
-  bool roll = false, dodge = false, swap = false, reach = false;
+  bool roll = false, dodge = false, swap = false;
+  bool tune = false; // Held, not pressed: letting go stops Tune In.
 };
 enum class Pose { Ready, Windup, Strike, Recover, Dodge, Hurt, Down };
 enum class Target { None, Mine, Wild, You };
-enum class Outcome { Ongoing, Won, Lost, Left, Reached };
+enum class Outcome { Ongoing, Won, Lost, Left, Tuned };
 struct Strike {
   int move = -1, slot = -1, size = 0, total = 1, struck = 0;
   bool commanded = false; // The player ordered it, so it earns more Resonance when it lands.
@@ -78,7 +82,10 @@ struct Fighter {
 };
 struct Wayfinder {
   Spot at, face{0, 1000}, drift, rollWay, push;
-  int reachTicks = 0, reachWait = 0;
+  // Tune In: whether it runs, ticks held so far and ticks it needs. `latched` waits for the
+  // player to let go after a break or a refusal, so a held key never retries by itself.
+  bool tuning = false, latched = false;
+  int tuneTicks = 0, tuneNeed = 0;
   int composure = FullComposure, rollTicks = 0, rollReady = 0, hurtTicks = 0, safeTicks = 0, calmTicks = 0, slow = 0;
   bool moving = false;
 };
@@ -88,7 +95,7 @@ struct Marker {
   int size = 0, percent = 0;
   bool hostile = true, heavy = false;
 };
-enum class CueKind { Hit, Unsettled, Dodged, Healed, StatusOn, Faint, Swap, AimYou, AimMine, Command, Calmed, Soothed, ReachStart, ReachBroken, WornDown, ResonanceFull };
+enum class CueKind { Hit, Unsettled, Dodged, Healed, StatusOn, Faint, Swap, AimYou, AimMine, Command, Calmed, Soothed, TuneStart, TuneBroken, TuneLetGo, TuneRefused, WornDown, ResonanceFull };
 struct Cue {
   CueKind kind = CueKind::Hit;
   Target target = Target::None;
@@ -111,8 +118,14 @@ public:
   void soothe(int points);
   // Takes health from the wild Signari directly, never below 1; tests use it to stage exact cases.
   void wound(int points);
-  // True when the player could reach out from where they stand.
-  bool canReach() const;
+  // True when the player could tune in from where they stand.
+  bool canTune() const;
+  // Guardians are bound too tightly to tune in during a fight (GDD 3.4).
+  bool guardian() const;
+  // Ticks Tune In would take if it started now, from the wild Signari's Spirit.
+  int tuneTicksNeeded() const;
+  // The player has watched this species before, so Tune In is faster.
+  void familiar(bool yes) { watched = yes; }
   // The wild Signari is hurt enough to be recruited (still standing).
   bool wornDown() const;
   int recruitPercent() const { return data->recruitPercent; }
@@ -152,6 +165,7 @@ private:
   Rng rng;
   Outcome result = Outcome::Ongoing;
   bool worn = false; // Last worn-down state, so the cue fires once per crossing.
+  bool watched = false;
   int meter = 0;
   int active = 0, clock = 0, order = -1, orderAge = 0, autoWait = 90, swapWait = 0, outside = 0;
   int plan = -1, planAge = 0, thinkWait = 60, ignored = 0, lastSlot = -1;
@@ -179,6 +193,7 @@ private:
   std::vector<Effect> effectsAt(const Fighter &, int move) const;
   void tickFighter(Fighter &);
   void tickPlayer();
+  void stopTuning(CueKind, bool latch);
   void checkEnd();
   void swapTo(int slot);
 };

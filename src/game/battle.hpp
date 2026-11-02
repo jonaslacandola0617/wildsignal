@@ -37,6 +37,7 @@ struct Species {
   Affinity affinity = Affinity::Wild;
   Stats base;
   std::array<int, 4> moves{};
+  bool guardian = false; // Region and final guardians cannot be tuned in during a fight.
 };
 struct Content {
   std::vector<Species> species;

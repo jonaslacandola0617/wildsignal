@@ -838,6 +838,7 @@ int main(int argc, char **argv) {
                    !o.hidden && !o.benchmark) {
           paused = true;
           held.fill(false);
+          if (scene) scene->keyUp(SDLK_F);
           relative = false;
           SDL_SetWindowRelativeMouseMode(screen.window, false);
         } else if(e.type==SDL_EVENT_MOUSE_BUTTON_DOWN && paused && !(book&&book->open())) {
@@ -877,6 +878,9 @@ int main(int argc, char **argv) {
             held[std::size_t(at)] = down;
           if (e.key.key == SDLK_LSHIFT)
             sneaking = down;
+          // Held fight actions (Tune In) need the release too, paused or not.
+          if (!down && scene && scene->active())
+            scene->keyUp(int(e.key.key));
           if (!down || e.key.repeat)
             continue;
           if ((e.key.key == SDLK_F6 || e.key.key == SDLK_F8) && !paused) {
@@ -917,7 +921,7 @@ int main(int argc, char **argv) {
               std::vector<battle::Block> blocks;
               for (const auto &s : game.solids)
                 blocks.push_back({int(s.x * 1000), int(s.z * 1000), int(s.hx * 1000), int(s.hz * 1000)});
-              scene->start(wilds->foeSpecies(), wilds->foeLevel(), wilds->foeHealth(), wilds->team(), game.state.player, wilds->foeAt(), blocks);
+              scene->start(wilds->foeSpecies(), wilds->foeLevel(), wilds->foeHealth(), wilds->team(), game.state.player, wilds->foeAt(), blocks, wilds->foeWatched());
               game.phase = game::Phase::Battle;
               fightTurn = .7f;
               event(frame, "fight_start");
@@ -987,7 +991,7 @@ int main(int argc, char **argv) {
             } else if (e.key.key == SDLK_G) {
               grass.density = (grass.density + 1) % 4;
               event(frame, "grass_profile");
-            } else if (e.key.key == SDLK_R && !wilds) { // R means reach out in the pilot corner.
+            } else if (e.key.key == SDLK_R && !wilds) { // R changes the resolution in the pilot corner.
               o.w = nextWidth(o.w);
               event(frame, "resolution");
             } else if (e.key.key == SDLK_E &&
@@ -1148,7 +1152,7 @@ int main(int argc, char **argv) {
           stageSet = false;
           game.phase = game::Phase::Explore;
           game.message = "";
-          wilds->fightEnded(scene->won(), scene->reached(), scene->left(), scene->teamHp(), scene->wildAt());
+          wilds->fightEnded(scene->won(), scene->tunedIn(), scene->left(), scene->teamHp(), scene->wildAt());
           if (scene->lost()) {
             // Losing costs nothing: the Wayfinder wakes at the start with a rested party.
             game.state.player = game.spawn;
