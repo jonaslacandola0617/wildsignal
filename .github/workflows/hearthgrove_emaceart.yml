@@ -2,7 +2,7 @@ name: Hearthgrove EmaceArt playable validation
 on:
   push:
     branches: [feat/hearthgrove-emaceart-complete, feat/hearthgrove-emaceart-style-terrain-r1, feat/hearthgrove-balanced-foliage-shadow-r2, feat/hearthgrove-single-play-shining-rims-r3, feat/hearthgrove-reference-grass-dense, feat/hearthgrove-grass-lod-color-patches, feat/hearthgrove-sunlit-meadow-shafts, feat/hearthgrove-shaped-rays-three-greens, feat/hearthgrove-tree-leaf-options]
-    paths: ['experiments/hearthgrove_emaceart/**', '.github/workflows/hearthgrove_emaceart.yml']
+    paths: ['src/**', 'tests/pilot/**', 'tests/render/**', 'data/pilot/**', 'pilot/**', '.github/workflows/hearthgrove_emaceart.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -11,7 +11,7 @@ jobs:
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-      - run: cmake -S experiments/hearthgrove_emaceart -B build/game -G "Visual Studio 17 2022" -A x64
+      - run: cmake -S src -B build/game -G "Visual Studio 17 2022" -A x64
       - run: cmake --build build/game --config Release --parallel 2
       - run: ctest --test-dir build/game -C Release --output-on-failure
       - run: ./build/game/Release/wildsignal_hearthgrove_emaceart.exe --help
@@ -19,7 +19,7 @@ jobs:
         shell: pwsh
         run: |
           $tokens=$null; $errors=$null
-          [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path experiments/hearthgrove_emaceart/tools/hardware.ps1),[ref]$tokens,[ref]$errors) | Out-Null
+          [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path tools/hardware.ps1),[ref]$tokens,[ref]$errors) | Out-Null
           if($errors.Count){$errors | Format-List; throw 'Launcher parser failed'}
       - run: cmake --install build/game --config Release --prefix out/hearthgrove-emaceart-windows-x64
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -31,6 +31,6 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-      - run: cmake -S experiments/hearthgrove_emaceart -B build/game -DPIXEL3D_BUILD_GL=OFF -DCMAKE_BUILD_TYPE=Debug -DPIXEL3D_SANITIZE=ON
+      - run: cmake -S src -B build/game -DPIXEL3D_BUILD_GL=OFF -DCMAKE_BUILD_TYPE=Debug -DPIXEL3D_SANITIZE=ON
       - run: cmake --build build/game --parallel 2
       - run: ctest --test-dir build/game --output-on-failure
