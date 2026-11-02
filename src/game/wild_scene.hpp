@@ -23,7 +23,13 @@ public:
   int foeLevel() const { return wilds[target].level; }
   int foeHealth() const { return wilds[target].health; }
   Vec foeAt() const { return wilds[target].at; }
-  void fightEnded(bool won, bool reached, bool left, const std::vector<int> &teamHp, Vec foeStoppedAt);
+  // The player has watched this species before, which makes Tune In faster.
+  bool foeWatched() const {
+    auto *e = journal.find(wilds[target].species);
+    return e && e->observed;
+  }
+  // Tuning in recruits the wild Signari at once: it joins the team, or waits at the cottage.
+  void fightEnded(bool won, bool tuned, bool left, const std::vector<int> &teamHp, Vec foeStoppedAt);
   void regroup(Vec player, const std::vector<game::Solid> &);
   // Leaves a teammate exactly where the fight ended, so nothing jumps.
   void keepAt(const std::string &model, Vec at);

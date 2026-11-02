@@ -29,7 +29,7 @@
       "clues": [
         {"act": "observed", "ask": "Where does it keep its food?", "answer": "Seeds, hidden by the bench. They keep getting scattered."},
         {"act": "assisted", "ask": "What would earn its trust?", "answer": "I tidied its seeds. It noticed."},
-        {"act": "reached", "ask": "Will it ever come to an open hand?", "answer": "Once it was calm, it leaned into my hand."}
+        {"act": "reached", "ask": "Will it ever come to an open hand?", "answer": "Once it was worn down, I tuned in to its signal."}
       ],
       "startled": "I ran at it and it bolted. Next time, slowly.",
       "refused": "It wouldn't come near while it was frightened.",
@@ -45,7 +45,7 @@
         {"act": "observed", "ask": "What does it feed on?", "answer": "Its feeding bed sits by the tree, buried in debris."},
         {"act": "assisted", "ask": "What does it need from us?", "answer": "I cleared the debris and it rose to greet me."},
         {"act": "company", "ask": "Does it mind company?", "answer": "It settled beside me when I sat still."},
-        {"act": "reached", "ask": "Can a fight end gently?", "answer": "It calmed, and came to my hand."}
+        {"act": "reached", "ask": "Can a fight end gently?", "answer": "I wore it down gently, then tuned in."}
       ],
       "startled": "It flattened itself when I ran close.",
       "refused": "It wouldn't answer me while it was frightened.",

@@ -53,7 +53,7 @@
       "company": false,
       "temperament": "Skittish",
       "sneakHint": "Hold Shift to sneak closer",
-      "trustHint": "Calm it in a friendly fight, then reach out",
+      "trustHint": "Wear it down in a friendly fight, then tune in",
       "companyPrompt": "",
       "companyDone": "",
       "cacheIcon": "cache_nuts"
@@ -109,7 +109,7 @@
       "company": true,
       "temperament": "Shy",
       "sneakHint": "",
-      "trustHint": "Sit with it, or reach out in a fight",
+      "trustHint": "Sit with it, or tune in during a fight",
       "companyPrompt": "Sit with Mossmelt",
       "companyDone": "It settles beside you. Come back after a rest.",
       "cacheIcon": "cache_leaves"

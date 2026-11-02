@@ -18,6 +18,7 @@ void check(bool ok, const char *what) {
 struct Setup {
   Content content;
   FightData data;
+  content::Content designs;
   int driftfin, glintle, tumbletail;
   Fight make(std::uint32_t seed = 7, int level = 5) const {
     return Fight(content, data, {{driftfin, level, -1}, {glintle, level, -1}}, {tumbletail, 3, -1}, {-4000, 0}, {0, 0}, seed);
@@ -253,45 +254,48 @@ void reportPacing(const Setup &s) {
                 names[style], won, runs, lost, ticks / runs / TicksPerSecond, filled, filled ? fillTicks / filled / TicksPerSecond : 0, ultimates);
   }
 }
-void reachOutNeedsACalmSignariAndCloseRange(const Setup &s) {
-  Pad reach;
-  reach.reach = true;
-  auto wild = s.make();
-  wild.step(reach);
-  check(wild.you().reachTicks == 0, "a wild-spirited Signari cannot be reached");
-  auto far = s.make();
-  far.soothe(80);
-  far.step(reach);
-  check(!far.canReach() && far.you().reachTicks == 0, "reaching out needs the player close");
-  Fight near(s.content, s.data, {{s.driftfin, 5, -1}}, {s.tumbletail, 3, -1}, {-1500, 0}, {0, 0}, 5);
-  near.soothe(80);
-  near.wound(near.wild().stats.hp * 7 / 10);
-  check(near.canReach(), "a calm Signari close by can be reached");
-  near.step(reach);
-  check(near.you().reachTicks > 0, "reaching out starts");
-  Pad away;
-  away.moveX = -1000;
-  auto start = near.you().at;
-  int ticks = 0;
-  while (near.outcome() == Outcome::Ongoing && near.you().reachTicks > 0 && ticks++ < ReachTicks + 4)
-    near.step(away);
-  check(near.outcome() == Outcome::Reached || near.you().reachTicks == 0, "the reach resolves");
-  check(near.you().at == start || near.you().composure < FullComposure, "the player holds still while reaching");
+// Tune In (FIGHT-003) staging: the player stands 1.5 m from the wild Signari.
+Pad tuneHeld() {
+  Pad p;
+  p.tune = true;
+  return p;
 }
-// Fight, then recruit: calm is not enough until it is worn down past the line, and the line is announced once.
-void reachOutNeedsItWornDown(const Setup &s) {
-  Pad reach;
-  reach.reach = true;
-  Fight f(s.content, s.data, {{s.driftfin, 5, -1}}, {s.tumbletail, 3, -1}, {-1500, 0}, {0, 0}, 5);
-  f.soothe(80);
-  check(!f.wornDown() && !f.canReach(), "a calm but healthy Signari cannot be reached");
-  f.step(reach);
-  check(f.you().reachTicks == 0, "reaching out does not start while it is healthy");
+Fight closeBy(const Setup &s, std::uint32_t seed = 5) {
+  return Fight(s.content, s.data, {{s.driftfin, 5, -1}}, {s.tumbletail, 3, -1}, {-1500, 0}, {0, 0}, seed);
+}
+// Holds F from a standing start; the number of ticks until it tunes in, or -1 if it broke or ended.
+int ticksToTuneIn(Fight &f, int limit) {
+  for (int i = 1; i <= limit; i++) {
+    f.step(tuneHeld());
+    if (f.outcome() == Outcome::Tuned) return i;
+    if (f.outcome() != Outcome::Ongoing || !f.you().tuning) return -1;
+  }
+  return -1;
+}
+// The wild Signari may still strike or wander off, so a few seeds are tried for one clean hold.
+int tunedAfter(const Setup &s, int soothe, bool watched) {
+  for (std::uint32_t seed = 1; seed < 60; seed++) {
+    auto f = closeBy(s, seed);
+    f.familiar(watched);
+    if (soothe) f.soothe(soothe);
+    f.wound(f.wild().stats.hp * 7 / 10);
+    int t = ticksToTuneIn(f, f.tuneTicksNeeded() + 5);
+    if (t > 0) return t;
+  }
+  return -1;
+}
+// Worn down opens it, close range is needed, and calm is no longer required (GDD 2.5, C2 = B).
+void tuneInOpensWhenWornDownAndClose(const Setup &s) {
+  auto f = closeBy(s);
+  check(!f.wornDown() && !f.canTune(), "a healthy Signari cannot be tuned in");
+  f.step(tuneHeld());
+  check(!f.you().tuning, "holding F does nothing while it is healthy");
   int line = f.wild().stats.hp * s.data.recruitPercent / 100;
   f.wound(f.wild().hp - line - 1);
   check(!f.wornDown(), "just above the line is not worn down");
   f.wound(1);
-  check(f.wornDown() && f.canReach(), "at the line it can be reached");
+  check(f.wornDown() && f.canTune(), "at the line it can be tuned in");
+  check(f.wild().spirit > CalmSpirit, "calm is not required");
   f.takeCues();
   f.step({});
   int announced = 0;
@@ -301,25 +305,117 @@ void reachOutNeedsItWornDown(const Setup &s) {
   for (const auto &c : f.takeCues())
     announced += c.kind == CueKind::WornDown;
   check(announced == 1, "crossing the line is announced once");
+  auto far = s.make();
+  far.wound(far.wild().stats.hp * 7 / 10);
+  far.step(tuneHeld());
+  check(!far.canTune() && !far.you().tuning, "tuning in needs the player close");
   auto data = s.data;
   data.recruitPercent = 100;
   Fight easy(s.content, data, {{s.driftfin, 5, -1}}, {s.tumbletail, 3, -1}, {-1500, 0}, {0, 0}, 5);
-  easy.soothe(80);
-  check(easy.canReach(), "the line comes from the fight data");
+  check(easy.canTune(), "the line comes from the fight data");
 }
-void aHitBreaksTheReach(const Setup &s) {
-  Fight f(s.content, s.data, {{s.driftfin, 5, -1}}, {s.tumbletail, 3, -1}, {-1500, 0}, {0, 0}, 5);
+// 1.2 s at Spirit 30 or less, 3 s at Spirit 100, even steps between; watched species take 75%.
+void tuneInTakesLongerWhenAgitated(const Setup &s) {
+  auto f = closeBy(s);
+  check(f.tuneTicksNeeded() == TuneAgitatedTicks, "Spirit 100 needs 3 seconds");
+  f.soothe(35);
+  check(f.tuneTicksNeeded() == 126, "Spirit 65 needs half way between");
+  f.soothe(35);
+  check(f.tuneTicksNeeded() == TuneCalmTicks, "Spirit 30 needs 1.2 seconds");
+  f.soothe(30);
+  check(f.tuneTicksNeeded() == TuneCalmTicks, "calmer than 30 is no faster");
+  f.familiar(true);
+  check(f.tuneTicksNeeded() == TuneCalmTicks * TuneWatchedPercent / 100, "a watched species tunes in faster");
+  check(tunedAfter(s, 80, false) == 72, "a calm Signari tunes in after exactly 72 ticks");
+  check(tunedAfter(s, 0, false) == 180, "an agitated Signari tunes in after exactly 180 ticks");
+  check(tunedAfter(s, 80, true) == 54, "a watched calm Signari tunes in after exactly 54 ticks");
+  check(tunedAfter(s, 0, true) == 135, "a watched agitated Signari tunes in after exactly 135 ticks");
+}
+void tuneInHoldsThePlayerStill(const Setup &s) {
+  auto f = closeBy(s);
   f.soothe(80);
   f.wound(f.wild().stats.hp * 7 / 10);
+  auto start = f.you().at;
+  Pad move = tuneHeld();
+  move.moveX = -1000;
+  move.roll = true;
+  for (int i = 0; i < 30; i++)
+    f.step(move);
+  check(f.you().tuning && f.you().at == start, "the player cannot move or roll while tuning in");
+}
+void lettingGoResetsTuneIn(const Setup &s) {
+  auto f = closeBy(s);
+  f.wound(f.wild().stats.hp * 7 / 10);
+  for (int i = 0; i < 30; i++)
+    f.step(tuneHeld());
+  check(f.you().tuning && f.you().tuneTicks == 30, "holding F builds progress");
+  f.takeCues();
+  f.step({});
+  bool said = false;
+  for (const auto &c : f.takeCues())
+    said = said || c.kind == CueKind::TuneLetGo;
+  check(!f.you().tuning && f.you().tuneTicks == 0 && said, "letting go stops it and loses the progress");
+  f.step(tuneHeld());
+  check(f.you().tuning && f.you().tuneTicks == 1, "holding again starts from the beginning");
+}
+void aHitBreaksTuneIn(const Setup &s) {
+  auto f = closeBy(s);
+  f.wound(f.wild().stats.hp * 7 / 10);
   f.strike(Target::Wild, BasicSlot, Target::You);
-  Pad reach;
-  reach.reach = true;
-  f.step(reach);
-  check(f.you().reachTicks > 0, "the reach starts during a windup");
-  run(f, 90);
-  check(f.outcome() == Outcome::Ongoing && f.you().reachTicks == 0 && f.you().composure < FullComposure, "getting hit breaks the reach with no dice involved");
-  f.step(reach);
-  check(f.you().reachTicks == 0, "a broken reach has to wait");
+  f.step(tuneHeld());
+  check(f.you().tuning, "tuning in starts during a windup");
+  bool broken = false;
+  for (int i = 0; i < 90 && f.outcome() == Outcome::Ongoing; i++) {
+    f.step(tuneHeld());
+    for (const auto &c : f.takeCues())
+      broken = broken || c.kind == CueKind::TuneBroken;
+  }
+  check(f.outcome() == Outcome::Ongoing && broken && !f.you().tuning && f.you().composure < FullComposure, "getting hit breaks it with no dice involved");
+  check(f.you().tuneTicks == 0 && f.you().latched, "a break loses the progress and waits for F to be let go");
+  f.step({});
+  run(f, 30);
+  f.step(tuneHeld());
+  check(f.you().tuning, "pressing F again starts over");
+}
+void aKnockoutEndsTuneIn(const Setup &s) {
+  bool knocked = false;
+  for (std::uint32_t seed = 1; seed < 60 && !knocked; seed++) {
+    auto f = closeBy(s, seed);
+    f.wound(f.wild().hp);
+    f.step(tuneHeld());
+    if (!f.you().tuning) continue;
+    for (int i = 0; i < TuneAgitatedTicks && f.outcome() == Outcome::Ongoing; i++) {
+      if (f.mine().pose == Pose::Ready) f.strike(Target::Mine, BasicSlot, Target::Wild);
+      f.step(tuneHeld());
+    }
+    knocked = f.outcome() == Outcome::Won;
+  }
+  check(knocked, "knocking it out mid Tune In is a plain win, never a recruit");
+}
+void guardiansCannotBeTunedIn(const Setup &s) {
+  // A designer marks Tumbletail as a guardian; the flag must reach the fight rules.
+  auto designs = s.designs;
+  for (auto &sp : designs.roster.species)
+    if (sp.id == "WS-005") sp.guardian = content::Guardian::Region;
+  Content guarded;
+  auto data = buildFight(designs, guarded);
+  Fight f(guarded, data, {{s.driftfin, 5, -1}}, {s.tumbletail, 3, -1}, {-1500, 0}, {0, 0}, 5);
+  f.soothe(80);
+  f.wound(f.wild().stats.hp * 7 / 10);
+  check(f.guardian() && f.wornDown() && !f.canTune(), "a worn-down guardian still cannot be tuned in");
+  auto refusals = [&](const Pad &p) {
+    f.step(p);
+    int n = 0;
+    for (const auto &c : f.takeCues())
+      n += c.kind == CueKind::TuneRefused;
+    return n;
+  };
+  f.takeCues();
+  check(refusals(tuneHeld()) == 1 && !f.you().tuning, "pressing F says its signal is too strong");
+  check(refusals(tuneHeld()) == 0, "holding F says it once");
+  refusals({});
+  check(refusals(tuneHeld()) == 1, "pressing again says it again");
+  check(!closeBy(s).guardian(), "ordinary Signari are not guardians");
 }
 void gentlePlayLowersSpiritMoreThanForce(const Setup &s) {
   // The wild Signari may step aside, so each move is tried until one attempt lands.
@@ -359,20 +455,20 @@ void knockingItOutEndsTheChance(const Setup &s) {
     p.command = i % 60 == 0 ? slotOf(s, f.mine(), "SLIPSTREAM") : -1;
     f.step(p);
   }
-  check(f.outcome() == Outcome::Won, "a knockout is a plain win, never a reach");
+  check(f.outcome() == Outcome::Won, "a knockout is a plain win, never a recruit");
 }
-// Prints how a careful player and a rough one fare at reaching out; a pacing report, not a pass mark.
+// Prints how a careful player and a rough one fare at tuning in; a pacing report, not a pass mark.
 void reportReaching(const Setup &s, int wild, int health, const char *wildName) {
   const char *names[] = {"gentle moves, rolls, dodges", "strong moves only"};
   for (int style = 0; style < 2; style++) {
-    int reached = 0, knocked = 0, lost = 0, ticks = 0, runs = 40;
+    int tuned = 0, knocked = 0, lost = 0, ticks = 0, runs = 40;
     for (int seed = 1; seed <= runs; seed++) {
       Fight f(s.content, s.data, {{s.driftfin, 5, -1}, {s.glintle, 5, -1}}, {wild, 3, -1}, {-3000, 0}, {0, 0}, std::uint32_t(seed * 53), {}, health);
       for (int i = 0; i < 18000 && f.outcome() == Outcome::Ongoing; i++) {
         Pad p;
         long dx = f.wild().at.x - f.you().at.x, dz = f.wild().at.z - f.you().at.z;
         long far = dx * dx + dz * dz;
-        // Keeps close to the wild Signari, circling it, and reaches out as soon as it can.
+        // Keeps close to the wild Signari, circling it, and tunes in as soon as it can.
         int side = (i / 120 + seed) % 2 ? 1 : -1;
         p.moveX = int(dz * side / 6);
         p.moveZ = int(-dx * side / 6);
@@ -392,18 +488,18 @@ void reportReaching(const Setup &s, int wild, int health, const char *wildName) 
           for (int k = 1; k < MoveSlots; k++)
             if (s.data.timing[f.moveId(f.mine(), k)].gentle) slot = k;
           if (slot >= 0 && i % 30 == 0) p.command = slot;
-          p.reach = true;
+          p.tune = !f.you().latched; // Holds F, letting go only after a break.
         } else if (i % 30 == 0) {
           p.command = 1;
         }
         f.step(p);
       }
-      reached += f.outcome() == Outcome::Reached;
+      tuned += f.outcome() == Outcome::Tuned;
       knocked += f.outcome() == Outcome::Won;
       lost += f.outcome() == Outcome::Lost;
       ticks += f.tick();
     }
-    std::printf("%s, %s: reached %d of %d, knocked out %d, lost %d, average %d seconds\n", wildName, names[style], reached, runs, knocked, lost, ticks / runs / TicksPerSecond);
+    std::printf("%s, %s: tuned in %d of %d, knocked out %d, lost %d, average %d seconds\n", wildName, names[style], tuned, runs, knocked, lost, ticks / runs / TicksPerSecond);
   }
 }
 void steppingOutEndsTheFightAtOnce(const Setup &s) {
@@ -524,17 +620,29 @@ void resonanceFillsAndPowersTheUltimate(const Setup &s) {
 
 int main(int argc, char **argv) {
   try {
-    if (argc < 2 || argc > 3) throw std::runtime_error("usage: <data/content folder> [resonance]");
-    bool resonanceOnly = argc == 3 && std::string(argv[2]) == "resonance";
+    if (argc < 2 || argc > 3) throw std::runtime_error("usage: <data/content folder> [resonance|tune]");
+    std::string mode = argc == 3 ? argv[2] : "";
+    bool resonanceOnly = mode == "resonance";
     Setup s;
-    auto designs = content::load(argv[1]);
-    s.data = buildFight(designs, s.content);
+    s.designs = content::load(argv[1]);
+    s.data = buildFight(s.designs, s.content);
     s.driftfin = s.content.speciesIndex("WS-008");
     s.glintle = s.content.speciesIndex("WS-004");
     s.tumbletail = s.content.speciesIndex("WS-005");
     if (resonanceOnly) {
       resonanceFillsAndPowersTheUltimate(s);
       std::printf(failures ? "%d resonance checks failed\n" : "resonance rules pass\n", failures);
+      return failures ? 1 : 0;
+    }
+    if (mode == "tune") {
+      tuneInOpensWhenWornDownAndClose(s);
+      tuneInTakesLongerWhenAgitated(s);
+      tuneInHoldsThePlayerStill(s);
+      lettingGoResetsTuneIn(s);
+      aHitBreaksTuneIn(s);
+      aKnockoutEndsTuneIn(s);
+      guardiansCannotBeTunedIn(s);
+      std::printf(failures ? "%d tune in checks failed\n" : "tune in rules pass\n", failures);
       return failures ? 1 : 0;
     }
     everySpeciesHasAFullKit(s);
@@ -556,9 +664,6 @@ int main(int argc, char **argv) {
     blocksStopThePlayer(s);
     steppingOutEndsTheFightAtOnce(s);
     everyAttackGivesTimeToReact(s);
-    reachOutNeedsACalmSignariAndCloseRange(s);
-    reachOutNeedsItWornDown(s);
-    aHitBreaksTheReach(s);
     gentlePlayLowersSpiritMoreThanForce(s);
     knockingItOutEndsTheChance(s);
     reportPacing(s);
