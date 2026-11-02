@@ -112,14 +112,14 @@ Options options(int argc, char **argv) {
                    "--shadow-cache-probe (isolated technical test only)\n"
                    "--shafts on|off --haze on|off --quality low|medium|high --shaft-strength 0..3\n";
       std::cout<<"--tilt-shift on|off (F8 toggles; paused during fights) --highlight-strength 0..1 --leaf-rims on|off\nF6 cycles the render size 480/640/1280\n";
-      std::cout<<"--lookdev DIR --lookdev-style A|B|C --lookdev-shot N (LOOKDEV-001 test plot; F7 cycles the style)\n";
+      std::cout<<"--lookdev DIR --lookdev-style A|B|C|D --lookdev-shot N (LOOKDEV-001 test plot; F7 cycles the style)\n";
       std::cout<<"--render-reference (comparison only; disables optimized shadow cache)\n--tree-scene --tree-study original|shader|clusters|billboards|hybrid --leaf-color plain|source (T tree options, M leaf color)\n";
       std::exit(0);
     } else if (a == "--assets")
       o.assets = value();
     else if(a=="--lookdev")o.lookdev=value();
     else if(a=="--lookdev-shot")o.lookdevShot=integer(value(),0,15);
-    else if(a=="--lookdev-style"){auto v=value();if(v.size()!=1||v[0]<'A'||v[0]>'C')throw std::runtime_error("lookdev-style A|B|C");o.lookdevStyle=v[0]-'A';}
+    else if(a=="--lookdev-style"){auto v=value();if(v.size()!=1||v[0]<'A'||v[0]>'D')throw std::runtime_error("lookdev-style A|B|C|D");o.lookdevStyle=v[0]-'A';}
     else if(a=="--shadow-policy"){auto v=value();if(v!="clean"&&v!="legacy")throw std::runtime_error("shadow-policy clean|legacy");o.cleanShadow=v=="clean";}
     else if(a=="--tree-study"){auto v=value();if(v!="original"&&v!="shader"&&v!="clusters"&&v!="billboards"&&v!="hybrid")throw std::runtime_error("tree-study original|shader|clusters|billboards|hybrid");o.treeEnabled=true;o.treeMode=v=="original"?0:v=="shader"?1:v=="clusters"?2:v=="billboards"?3:4;}
     else if(a=="--leaf-color"){auto v=value();if(v!="plain"&&v!="source")throw std::runtime_error("leaf-color plain|source");o.leafPlain=v=="plain";}
@@ -482,15 +482,33 @@ int main(int argc, char **argv) {
     // LOOKDEV-001: the test plot brings its own flat ground, colliders and spawn.
     std::optional<ws::Json> lookdev;
     std::vector<std::string> lookdevNames;
+    std::vector<std::vector<game::Solid>> lookdevSolids; // Per style; empty uses the plot's.
     std::optional<std::pair<p3::Vec, p3::Vec>> lookdevShot; // Eye, target.
     if (!o.lookdev.empty()) {
       lookdev = ws::parseJson(p3::readText(o.lookdev / "lookdev.json"));
       if (lookdev->at("revision").number() != 1)
         throw std::runtime_error("lookdev manifest revision");
-      for (auto &s : lookdev->at("styles").array())
+      auto solids = [](const ws::Json &list) {
+        std::vector<game::Solid> out;
+        for (auto &v : list.array()) {
+          auto &a = v.array();
+          if (a.size() != 4)
+            throw std::runtime_error("lookdev solid arity");
+          out.push_back({float(a[0].number()), float(a[1].number()),
+                         float(a[2].number()), float(a[3].number())});
+        }
+        return out;
+      };
+      for (auto &s : lookdev->at("styles").array()) {
         lookdevNames.push_back(s.at("name").string());
-      if (lookdevNames.size() != 3)
-        throw std::runtime_error("lookdev needs three styles");
+        auto &fields = std::get<ws::Json::Object>(s.value);
+        auto own = fields.find("solids");
+        lookdevSolids.push_back(own != fields.end() ? solids(own->second) : std::vector<game::Solid>{});
+      }
+      if (lookdevNames.empty() || lookdevNames.size() > 4)
+        throw std::runtime_error("lookdev needs one to four styles");
+      if (o.lookdevStyle >= int(lookdevNames.size()))
+        throw std::runtime_error("lookdev style out of range");
       if (o.lookdevShot >= 0) {
         auto &shots = lookdev->at("shots").array();
         if (o.lookdevShot >= int(shots.size()))
@@ -501,14 +519,11 @@ int main(int argc, char **argv) {
       game::flattenWorld();
       game.spawn = vector3(lookdev->at("spawn"));
       game.restSpots = {{0, 0, -4.4f}};
-      game.solids.clear();
-      for (auto &v : lookdev->at("solids").array()) {
-        auto &a = v.array();
-        if (a.size() != 4)
-          throw std::runtime_error("lookdev solid arity");
-        game.solids.push_back({float(a[0].number()), float(a[1].number()),
-                               float(a[2].number()), float(a[3].number())});
-      }
+      auto plotSolids = solids(lookdev->at("solids"));
+      for (auto &s : lookdevSolids)
+        if (s.empty())
+          s = plotSolids;
+      game.solids = lookdevSolids[std::size_t(o.lookdevStyle)];
       grassSolids = game.solids;
       o.density = 0; // The plot's grass is part of each style.
       o.meadowPatches = false;
@@ -570,10 +585,14 @@ int main(int argc, char **argv) {
                     [](auto &i) { return i.id.starts_with("house_"); });
     // LOOKDEV-001: keep only characters and creatures from the corner, then add
     // every style of the test plot; F7 shows one style at a time.
-    std::vector<std::pair<std::size_t, int>> lookdevParts; // Instance, style 0..2.
+    std::vector<std::pair<std::size_t, int>> lookdevParts; // Instance, style 0..3.
     auto showLookdev = [&](int style) {
       for (auto [index, s] : lookdevParts)
         world.instances[index].hidden = s != style;
+      // Looks may differ in footprint (D's cottage is bigger), so each has its own colliders.
+      game.solids = lookdevSolids[std::size_t(style)];
+      if (!game::freeAt(game.state.player, game.solids))
+        game.state.player = game.spawn;
     };
     if (lookdev) {
       std::erase_if(world.instances, [&](auto &i) {
@@ -585,7 +604,7 @@ int main(int argc, char **argv) {
       for (auto &m : plot.models)
         world.models.push_back(std::move(m));
       for (auto &i : plot.instances) {
-        if (!i.id.starts_with("lookdev_") || i.id.size() < 9 || i.id[8] < 'A' || i.id[8] > 'C')
+        if (!i.id.starts_with("lookdev_") || i.id.size() < 9 || i.id[8] < 'A' || i.id[8] >= 'A' + int(lookdevNames.size()))
           throw std::runtime_error("lookdev instance style");
         i.model += base;
         lookdevParts.emplace_back(world.instances.size(), i.id[8] - 'A');
