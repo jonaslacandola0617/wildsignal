@@ -29,6 +29,8 @@ struct Follower {
 };
 void configureWorld(float halfExtent, const std::filesystem::path &heightGrid,
                     float tileSpacing = 12);
+// Look development plots sit on flat ground at y = 0.
+void flattenWorld();
 float terrain(float x, float z);
 float pathX(float z);
 bool meadow(float x, float z, const std::vector<Solid> &);

@@ -150,6 +150,7 @@ uniform int cozy,ground,foliage,contactCount;
 uniform vec3 sunDirection,sunColor,ambientSky,ambientGround,eye,hazeColor;
 uniform float exposure,bandSoftness,contactStrength,hazeStart,hazeEnd,hazeStrength;
 uniform vec4 contacts[12];
+uniform int lookStyle;
 uniform int pixelMaterial;uniform int artStyle,diagnostic,sampling,vertexTint,kind,architecture,leafy,smoothLighting,receiverCorrection;uniform float biasScale;
 uniform int receiveShadows,patchStudy;uniform float surfaceSunTint,surfaceShadowFloor;uniform sampler2D patchIDs;
 uniform int shadowMode;uniform sampler2D groundShadow;
@@ -161,7 +162,7 @@ uniform int shadowMode;uniform sampler2D groundShadow;
 float hash2(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 float field(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash2(i),hash2(i+vec2(1,0)),f.x),mix(hash2(i+vec2(0,1)),hash2(i+vec2(1,1)),f.x),f.y);}
 uniform float screenDoor;layout(location=0) out vec4 color;layout(location=1) out vec4 normals;layout(location=2)out uint sceneOwner;uniform int drawOwnerID;
-void main(){if(screenDoor>0.){const int door[16]=int[16](0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5);ivec2 q=ivec2(gl_FragCoord.xy)&3;if(float(door[q.y*4+q.x])+.5<screenDoor*16.)discard;}sceneOwner=uint(drawOwnerID);vec4 a=factor*(vertexTint!=0?tint:vec4(1));if(textured!=0)a*=(sampling==1?textureLod(albedo,uv,0.):texture(albedo,uv));if(alphaMode==1&&a.a<cutoff)discard;
+void main(){if(screenDoor>0.){const int door[16]=int[16](0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5);ivec2 q=ivec2(gl_FragCoord.xy)&3;if(float(door[q.y*4+q.x])+.5<screenDoor*16.)discard;}sceneOwner=uint(drawOwnerID);vec4 a=factor*(vertexTint!=0||lookStyle!=0?tint:vec4(1));if(textured!=0)a*=(sampling==1?textureLod(albedo,uv,0.):texture(albedo,uv));if(alphaMode==1&&a.a<cutoff)discard;
 // Preserve the licensed alpha silhouette; plain mode never uses texture RGB,
 // vertex color or per-card tint for its material base.
 if(treeCards!=0&&plainLeaves!=0)a.rgb=treeCanopyColor;
@@ -213,6 +214,9 @@ if(diagnostic==7){color=vec4(srgbEncode(clamp(a.rgb,0.,1.)),1);normals=vec4(n*.5
 float sun=max(0.,dot(shadeNormal,normalize(sunDirection)));
 if(mode!=0&&bands!=0&&smoothLighting==0){float soft=max(.001,bandSoftness);sun=profileBand(sun,soft);}
 if(smoothLighting!=0&&leafy!=0)sun=max(0.,(dot(shadeNormal,normalize(sunDirection))+.2)/1.2);
+// Look development: B soft toy wraps light smoothly; C keeps two soft tones so painted gradients carry the form.
+if(lookStyle==2)sun=smoothstep(-.25,.95,dot(shadeNormal,normalize(sunDirection)));
+if(lookStyle==3)sun=.30+.70*smoothstep(.05,.35,dot(shadeNormal,normalize(sunDirection)));
 vec3 ambient=mix(ambientGround,ambientSky,clamp(shadeNormal.y*.5+.5,0.,1.));
 // Authored style maps only: keep three calm form tones and avoid black trim.
 if(pixelMaterial!=0){float d=max(0.,dot(shadeNormal,normalize(sunDirection)));sun=.22+.40*smoothstep(.25-.025,.25+.025,d)+.38*smoothstep(.67-.025,.67+.025,d);ambient=mix(ambient,vec3(.20,.23,.22),.35);}
@@ -258,6 +262,13 @@ if(treeLeaf){
  light=fill+direct*tone*mix(.22,1.,visibility);
 }
 vec3 lit=max(vec3(0),a.rgb*light*exposure+emission);
+if(lookStyle==2){
+ // Glossy toy sheen and a soft sky rim, like the Signari.
+ vec3 v=normalize(eye-worldPosition),h=normalize(v+normalize(sunDirection));
+ float gloss=smoothstep(.55,.9,pow(max(0.,dot(shadeNormal,h)),18.))*.32*visibility;
+ float rim=pow(1.-max(0.,dot(shadeNormal,v)),3.)*.18;
+ lit+=sunColor*gloss+ambientSky*rim;
+}
 lit=lit/(1.+lit*.18);
 vec3 display=pow(clamp(lit,0.,1.),vec3(1./2.2));
 if(profileActive!=0&&greenTerrain&&meadowPatchOn!=0&&meadowLightingOn!=0)
@@ -1152,7 +1163,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
       signature =
           (signature ^ std::bit_cast<std::uint32_t>(f)) * 1099511628211ULL;
     for (const auto &i : world.instances) {
-      if (world.models[i.model].rig || !p->policies[i.model].casts ||
+      if (i.hidden || world.models[i.model].rig || !p->policies[i.model].casts ||
           (splitShadows && p->dynamicCasters[std::size_t(&i-world.instances.data())]))
         continue;
       signature = (signature ^ i.model) * 1099511628211ULL;
@@ -1224,7 +1235,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
       for (auto &instance : world.instances) {
         if (splitShadows && p->dynamicCasters[std::size_t(&instance-world.instances.data())] != dynamic)
           continue;
-        if (!p->policies[instance.model].casts)
+        if (instance.hidden || !p->policies[instance.model].casts)
           continue;
         if (world.models[instance.model].rig &&
             p->effects.shadow != Shadow::Live)
@@ -1510,6 +1521,10 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
      auto right=direction(inverse(effective.view()),{1,0,0}),up=direction(inverse(effective.view()),{0,1,0});gl::Uniform3f(p->location(p->mesh,"treeCameraRight"),right.x,right.y,right.z);gl::Uniform3f(p->location(p->mesh,"treeCameraUp"),up.x,up.y,up.z);gl::ActiveTexture(GL_TEXTURE0);
     }
     int family=model.rig||model.id.starts_with("WS0")?-1:model.id.starts_with("WSP_")||model.id.starts_with("EA_TREE")||model.id.starts_with("EA_BUSH")||model.id.starts_with("EA_REED")?1:model.id.starts_with("EA_ROCK")?4:model.id.starts_with("EA_PATH")||model.id=="EA_COBBLE"||model.id.starts_with("HG_PATH")?3:model.id=="EA_GROUND"||model.id.starts_with("HG_GROUND")||model.id.starts_with("HG_GREEN")||model.id.starts_with("EA_GREEN")?5:model.id.starts_with("EA_GREEN")||model.id.starts_with("HG_GREEN")||model.id=="EA_MOSS"?0:2;
+    // Look development models (LD_<style>_...) keep their own colours: no grading, no pilot ramps.
+    int lookStyle=model.id.starts_with("LD_")&&model.id.size()>4?model.id[3]-'A'+1:0;
+    if(lookStyle)family=-2;
+    uniformInt(p->mesh,"lookStyle",lookStyle);
     uniformInt(p->mesh,"profileFamily",family);
     uniformInt(p->mesh,"pilotPlain",model.id.starts_with("HAWTOR"));
     uniformFloat(p->mesh,"screenDoor",index<p->fades.size()?p->fades[index]:0.f);
@@ -1531,7 +1546,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
                            i.palette.front().data());
     if (currentMaterial != part.material) {
       gl::BindSampler(
-          0, !mat.ground && p->style.sampling == 2 ? p->linearSampler : 0);
+          0, !mat.ground && !lookStyle && p->style.sampling == 2 ? p->linearSampler : 0);
       currentMaterial = part.material;
       gl::Uniform4fv(p->factorLoc, 1, mat.color.data());
       gl::Uniform3f(p->location(p->mesh, "emission"),

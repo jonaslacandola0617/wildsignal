@@ -238,6 +238,8 @@ Visibility World::visible(const Frustum &f, bool on,
     v.chunksVisible++;
     for (auto i : c.instances) {
       auto &o = instances[i];
+      if (o.hidden)
+        continue;
       if (on && !f.visible(o.bounds)) {
         v.objectsCulled++;
         continue;

@@ -17,7 +17,9 @@ namespace game {
 namespace {
 float worldHalf = 5.85f, tileStep = 12;
 std::vector<float> heights;
+bool flat = false;
 } // namespace
+void flattenWorld() { flat = true; }
 void configureWorld(float extent, const std::filesystem::path &path,
                     float spacing) {
   if (!std::isfinite(spacing) || spacing < 11.5f || spacing > 20)
@@ -45,6 +47,8 @@ void configureWorld(float extent, const std::filesystem::path &path,
   tileStep = spacing;
 }
 float terrain(float x, float z) {
+  if (flat)
+    return 0;
   if (heights.size() == 257 * 257) {
     float u = std::clamp((x + worldHalf) / (2 * worldHalf), 0.f, 1.f) * 256,
           v = std::clamp((z + worldHalf) / (2 * worldHalf), 0.f, 1.f) * 256;

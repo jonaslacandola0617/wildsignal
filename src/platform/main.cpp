@@ -14,6 +14,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <optional>
 #include <sstream>
 #include <thread>
 #ifdef _WIN32
@@ -74,6 +75,7 @@ struct Options {
   bool shadows = true, forceLegacyGrass = false, requireAuthored = false,
        fragmentReceiver = true, cacheProbe = false;
   int receiveGrass = -1, diagnostic = 0, scaleFamily = 0, canopyMask = -1;
+  std::filesystem::path lookdev; int lookdevStyle = 0, lookdevShot = -1; // LOOKDEV-001 test plot, its first style, a fixed review camera.
 };
 int integer(const std::string &s, int lo, int hi) {
   std::size_t n = 0;
@@ -110,10 +112,14 @@ Options options(int argc, char **argv) {
                    "--shadow-cache-probe (isolated technical test only)\n"
                    "--shafts on|off --haze on|off --quality low|medium|high --shaft-strength 0..3\n";
       std::cout<<"--tilt-shift on|off (F8 toggles; paused during fights) --highlight-strength 0..1 --leaf-rims on|off\nF6 cycles the render size 480/640/1280\n";
+      std::cout<<"--lookdev DIR --lookdev-style A|B|C --lookdev-shot N (LOOKDEV-001 test plot; F7 cycles the style)\n";
       std::cout<<"--render-reference (comparison only; disables optimized shadow cache)\n--tree-scene --tree-study original|shader|clusters|billboards|hybrid --leaf-color plain|source (T tree options, M leaf color)\n";
       std::exit(0);
     } else if (a == "--assets")
       o.assets = value();
+    else if(a=="--lookdev")o.lookdev=value();
+    else if(a=="--lookdev-shot")o.lookdevShot=integer(value(),0,15);
+    else if(a=="--lookdev-style"){auto v=value();if(v.size()!=1||v[0]<'A'||v[0]>'C')throw std::runtime_error("lookdev-style A|B|C");o.lookdevStyle=v[0]-'A';}
     else if(a=="--shadow-policy"){auto v=value();if(v!="clean"&&v!="legacy")throw std::runtime_error("shadow-policy clean|legacy");o.cleanShadow=v=="clean";}
     else if(a=="--tree-study"){auto v=value();if(v!="original"&&v!="shader"&&v!="clusters"&&v!="billboards"&&v!="hybrid")throw std::runtime_error("tree-study original|shader|clusters|billboards|hybrid");o.treeEnabled=true;o.treeMode=v=="original"?0:v=="shader"?1:v=="clusters"?2:v=="billboards"?3:4;}
     else if(a=="--leaf-color"){auto v=value();if(v!="plain"&&v!="source")throw std::runtime_error("leaf-color plain|source");o.leafPlain=v=="plain";}
@@ -473,6 +479,40 @@ int main(int argc, char **argv) {
       for (auto index : indices)
         game.solids.erase(game.solids.begin() + std::ptrdiff_t(index));
     }
+    // LOOKDEV-001: the test plot brings its own flat ground, colliders and spawn.
+    std::optional<ws::Json> lookdev;
+    std::vector<std::string> lookdevNames;
+    std::optional<std::pair<p3::Vec, p3::Vec>> lookdevShot; // Eye, target.
+    if (!o.lookdev.empty()) {
+      lookdev = ws::parseJson(p3::readText(o.lookdev / "lookdev.json"));
+      if (lookdev->at("revision").number() != 1)
+        throw std::runtime_error("lookdev manifest revision");
+      for (auto &s : lookdev->at("styles").array())
+        lookdevNames.push_back(s.at("name").string());
+      if (lookdevNames.size() != 3)
+        throw std::runtime_error("lookdev needs three styles");
+      if (o.lookdevShot >= 0) {
+        auto &shots = lookdev->at("shots").array();
+        if (o.lookdevShot >= int(shots.size()))
+          throw std::runtime_error("lookdev shot out of range");
+        auto &s = shots[std::size_t(o.lookdevShot)];
+        lookdevShot = {vector3(s.at("eye")), vector3(s.at("target"))};
+      }
+      game::flattenWorld();
+      game.spawn = vector3(lookdev->at("spawn"));
+      game.restSpots = {{0, 0, -4.4f}};
+      game.solids.clear();
+      for (auto &v : lookdev->at("solids").array()) {
+        auto &a = v.array();
+        if (a.size() != 4)
+          throw std::runtime_error("lookdev solid arity");
+        game.solids.push_back({float(a[0].number()), float(a[1].number()),
+                               float(a[2].number()), float(a[3].number())});
+      }
+      grassSolids = game.solids;
+      o.density = 0; // The plot's grass is part of each style.
+      o.meadowPatches = false;
+    }
     if (!o.fresh && !o.benchmark) {
       auto load = game::load(o.save);
       if (load.loaded) {
@@ -486,6 +526,10 @@ int main(int argc, char **argv) {
       game.message = load.message;
       log << "loaded=" << load.loaded << " recovered=" << load.recovered
           << "\n";
+    }
+    if (lookdev) {
+      game.state.player = game.spawn;
+      game.state.yaw = 0; // Facing the cottage.
     }
     game.follower.position =
         game::move(game.state.player, {.8f, 0, .4f}, game.solids);
@@ -524,6 +568,31 @@ int main(int argc, char **argv) {
     if (!o.house)
       std::erase_if(world.instances,
                     [](auto &i) { return i.id.starts_with("house_"); });
+    // LOOKDEV-001: keep only characters and creatures from the corner, then add
+    // every style of the test plot; F7 shows one style at a time.
+    std::vector<std::pair<std::size_t, int>> lookdevParts; // Instance, style 0..2.
+    auto showLookdev = [&](int style) {
+      for (auto [index, s] : lookdevParts)
+        world.instances[index].hidden = s != style;
+    };
+    if (lookdev) {
+      std::erase_if(world.instances, [&](auto &i) {
+        const auto &m = world.models[i.model];
+        return !m.rig && !m.id.starts_with("WS0");
+      });
+      auto plot = p3::World::load(o.lookdev / "pack.json", o.lookdev / "scene.json", false);
+      auto base = world.models.size();
+      for (auto &m : plot.models)
+        world.models.push_back(std::move(m));
+      for (auto &i : plot.instances) {
+        if (!i.id.starts_with("lookdev_") || i.id.size() < 9 || i.id[8] < 'A' || i.id[8] > 'C')
+          throw std::runtime_error("lookdev instance style");
+        i.model += base;
+        lookdevParts.emplace_back(world.instances.size(), i.id[8] - 'A');
+        world.instances.push_back(std::move(i));
+      }
+      showLookdev(o.lookdevStyle);
+    }
     float relief=1;
     const auto &config=std::get<ws::Json::Object>(cfg.value);
     if(auto at=config.find("terrain_instance_y_scale");at!=config.end())relief=float(at->second.number());
@@ -534,6 +603,7 @@ int main(int argc, char **argv) {
       mat.foliage=m.id.starts_with("EA_TREE_")||m.id.starts_with("EA_BUSH_")||m.id.starts_with("EA_REED_");
       mat.leafy=mat.foliage;
       mat.ground=(m.id=="EA_GROUND"||m.id.starts_with("HG_GROUND")||m.id.starts_with("HG_GREEN")||m.id.starts_with("HG_PATH"))||m.id.starts_with("EA_GREEN_")||m.id.starts_with("EA_PATH_")||m.id=="EA_COBBLE"||m.id=="EA_MOSS";
+      if(m.id.starts_with("LD_"))mat.architecture=m.id.ends_with("COTTAGE")||m.id.ends_with("FENCE");
       mat.studyKind=mat.ground?4:mat.architecture?1:mat.foliage?2:3;
     }
     std::vector<std::size_t> actors;
@@ -707,7 +777,10 @@ int main(int argc, char **argv) {
     gpu.setIntegration(integration);updateEffects();
     for(std::size_t i=0;i<world.models.size();++i) {
       bool ground=!world.models[i].materials.empty()&&world.models[i].materials[0].ground;
-      gpu.setSurfacePolicy(i,{!ground,true,1,0,false});
+      // Look development ground and path receive shadows but never cast them.
+      const auto &id=world.models[i].id;
+      bool flatPart=id.starts_with("LD_")&&(id.ends_with("GROUND")||id.ends_with("PATH"));
+      gpu.setSurfacePolicy(i,{!ground&&!flatPart,true,1,0,false});
     }
     gpu.setGrass(&grass,{},{});
     log << "vendor=" << gpu.vendor << "\nrenderer=" << gpu.renderer
@@ -900,6 +973,12 @@ int main(int argc, char **argv) {
               wilds->announce(text);
             } else
               game.message = text;
+            continue;
+          }
+          if (e.key.key == SDLK_F7 && lookdev && !paused) {
+            o.lookdevStyle = (o.lookdevStyle + 1) % int(lookdevNames.size());
+            showLookdev(o.lookdevStyle);
+            event(frame, "lookdev_" + std::string(1, char('A' + o.lookdevStyle)));
             continue;
           }
           if (book && book->open()) {
@@ -1189,6 +1268,11 @@ int main(int argc, char **argv) {
               {game::pathX(camera.position.z - 2), .6f, camera.position.z - 2});
         }
       }
+      // LOOKDEV-001 review shots: the same fixed camera for every style.
+      if (lookdevShot && game.phase == game::Phase::Explore && !(scene && scene->active())) {
+        camera.position = lookdevShot->first;
+        camera.aim(lookdevShot->second);
+      }
       if (o.cacheProbe) {
         if (frame == 10) {
           for (auto &i : world.instances)
@@ -1415,6 +1499,7 @@ int main(int argc, char **argv) {
           else if (game.phase==game::Phase::Explore && atRest()) scene->prompt(*pixelUi,"[E] Rest at the cottage");
           else if (game.phase==game::Phase::Explore) wilds->draw(*pixelUi,toCanvas);
           if(book && !scene->active() && game.phase==game::Phase::Explore) book->drawIcon(*pixelUi,wilds->notes());
+          if(lookdev && !paused && !scene->active()) pixelUi->note("LOOK "+lookdevNames[o.lookdevStyle]+"    [F7] next look",320,4);
         }
         if(paused && !(book&&book->open())) {
           const auto &t=pixelUi->theme();

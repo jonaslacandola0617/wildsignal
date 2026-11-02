@@ -90,6 +90,7 @@ struct Instance {
   Box bounds;
   std::string id;
   std::vector<Mat> palette;
+  bool hidden = false; // Skipped by drawing and shadows (look development styles).
 };
 struct Chunk {
   Box bounds;
