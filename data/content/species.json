@@ -1,0 +1,645 @@
+{
+  "schema": "wildsignal-species-v1",
+  "source": "docs/gdd/04_CREATURES.md 4.3; stats for the first nine from docs/design/FIRST_NINE_CREATURES_v0.1.json (proposed); null stats = not designed yet",
+  "regions": [
+    {
+      "id": "hearthgrove",
+      "name": "Hearthgrove Vale"
+    },
+    {
+      "id": "liltwood",
+      "name": "Liltwood Forest and Echo Hollow"
+    },
+    {
+      "id": "tideglass",
+      "name": "Tideglass Coast"
+    },
+    {
+      "id": "ashbell",
+      "name": "Ashbell Works"
+    },
+    {
+      "id": "gloamfen",
+      "name": "Gloamfen Marsh"
+    },
+    {
+      "id": "emberglass",
+      "name": "Emberglass Caldera and the Deep Station"
+    }
+  ],
+  "species": [
+    {
+      "id": "WS-004",
+      "name": "Glintle",
+      "type": "Flora",
+      "role": "Guardian",
+      "region": "hearthgrove",
+      "starter": true,
+      "guardian": null,
+      "look": "green-gold forest sentinel",
+      "stats": {
+        "hp": 48,
+        "might": 11,
+        "guard": 15,
+        "pulse": 14,
+        "ward": 15,
+        "swift": 10
+      }
+    },
+    {
+      "id": "WS-008",
+      "name": "Driftfin",
+      "type": "Tide",
+      "role": "Support",
+      "region": "hearthgrove",
+      "starter": true,
+      "guardian": null,
+      "look": "blue bubbly amphibian",
+      "stats": {
+        "hp": 44,
+        "might": 11,
+        "guard": 10,
+        "pulse": 14,
+        "ward": 12,
+        "swift": 18
+      }
+    },
+    {
+      "id": "WS-050",
+      "name": "Brumlet",
+      "type": "Ember",
+      "role": "Striker",
+      "region": "hearthgrove",
+      "starter": true,
+      "guardian": null,
+      "look": "red-orange ember creature",
+      "stats": {
+        "hp": 46,
+        "might": 16,
+        "guard": 12,
+        "pulse": 14,
+        "ward": 10,
+        "swift": 12
+      }
+    },
+    {
+      "id": "WS-002",
+      "name": "Berrikin",
+      "type": "Flora",
+      "role": "Support",
+      "region": "hearthgrove",
+      "starter": false,
+      "guardian": null,
+      "look": "red fruit creature",
+      "stats": null
+    },
+    {
+      "id": "WS-005",
+      "name": "Tumbletail",
+      "type": "Wild",
+      "role": "Striker",
+      "region": "hearthgrove",
+      "starter": false,
+      "guardian": null,
+      "look": "brown squirrel, bushy tail",
+      "stats": {
+        "hp": 42,
+        "might": 14,
+        "guard": 10,
+        "pulse": 9,
+        "ward": 11,
+        "swift": 17
+      }
+    },
+    {
+      "id": "WS-007",
+      "name": "Hornkid",
+      "type": "Wild",
+      "role": "Striker",
+      "region": "hearthgrove",
+      "starter": false,
+      "guardian": null,
+      "look": "pink-tan horned quadruped",
+      "stats": null
+    },
+    {
+      "id": "WS-009",
+      "name": "Fluffet",
+      "type": "Wild",
+      "role": "Support",
+      "region": "hearthgrove",
+      "starter": false,
+      "guardian": null,
+      "look": "cream fluffy small creature",
+      "stats": null
+    },
+    {
+      "id": "WS-010",
+      "name": "Petalwing",
+      "type": "Gale",
+      "role": "Trickster",
+      "region": "hearthgrove",
+      "starter": false,
+      "guardian": null,
+      "look": "green-pink winged insect",
+      "stats": null
+    },
+    {
+      "id": "WS-013",
+      "name": "Lopkin",
+      "type": "Wild",
+      "role": "Trickster",
+      "region": "hearthgrove",
+      "starter": false,
+      "guardian": null,
+      "look": "cream-brown long-eared animal",
+      "stats": null
+    },
+    {
+      "id": "WS-021",
+      "name": "Puddlefin",
+      "type": "Tide",
+      "role": "Support",
+      "region": "hearthgrove",
+      "starter": false,
+      "guardian": null,
+      "look": "round green fish",
+      "stats": {
+        "hp": 46,
+        "might": 11,
+        "guard": 13,
+        "pulse": 12,
+        "ward": 14,
+        "swift": 11
+      }
+    },
+    {
+      "id": "WS-036",
+      "name": "Puffpine",
+      "type": "Wild",
+      "role": "Guardian",
+      "region": "hearthgrove",
+      "starter": false,
+      "guardian": null,
+      "look": "pink puff hedgehog",
+      "stats": null
+    },
+    {
+      "id": "WS-052",
+      "name": "Logwarden",
+      "type": "Stone",
+      "role": "Guardian",
+      "region": "hearthgrove",
+      "starter": false,
+      "guardian": "region",
+      "look": "brown standing log giant",
+      "stats": null
+    },
+    {
+      "id": "WS-001",
+      "name": "Signalit",
+      "type": "Lumen",
+      "role": "Trickster",
+      "region": "liltwood",
+      "starter": false,
+      "guardian": null,
+      "look": "glowing dark bug",
+      "stats": {
+        "hp": 39,
+        "might": 9,
+        "guard": 9,
+        "pulse": 15,
+        "ward": 11,
+        "swift": 18
+      }
+    },
+    {
+      "id": "WS-003",
+      "name": "Hoodsprout",
+      "type": "Flora",
+      "role": "Trickster",
+      "region": "liltwood",
+      "starter": false,
+      "guardian": null,
+      "look": "green hooded plant spirit",
+      "stats": null
+    },
+    {
+      "id": "WS-012",
+      "name": "Mossmelt",
+      "type": "Flora",
+      "role": "Support",
+      "region": "liltwood",
+      "starter": false,
+      "guardian": null,
+      "look": "green slime, pink core",
+      "stats": {
+        "hp": 51,
+        "might": 8,
+        "guard": 13,
+        "pulse": 13,
+        "ward": 14,
+        "swift": 7
+      }
+    },
+    {
+      "id": "WS-014",
+      "name": "Capling",
+      "type": "Flora",
+      "role": "Trickster",
+      "region": "liltwood",
+      "starter": false,
+      "guardian": null,
+      "look": "green-capped tiny wanderer",
+      "stats": null
+    },
+    {
+      "id": "WS-015",
+      "name": "Burrbun",
+      "type": "Flora",
+      "role": "Guardian",
+      "region": "liltwood",
+      "starter": false,
+      "guardian": null,
+      "look": "green spiny round critter",
+      "stats": null
+    },
+    {
+      "id": "WS-019",
+      "name": "Jarrow",
+      "type": "Stone",
+      "role": "Support",
+      "region": "liltwood",
+      "starter": false,
+      "guardian": null,
+      "look": "cream jar-headed creature",
+      "stats": null
+    },
+    {
+      "id": "WS-022",
+      "name": "Hootle",
+      "type": "Gale",
+      "role": "Trickster",
+      "region": "liltwood",
+      "starter": false,
+      "guardian": null,
+      "look": "brown small owl",
+      "stats": null
+    },
+    {
+      "id": "WS-046",
+      "name": "Shieldlet",
+      "type": "Lumen",
+      "role": "Guardian",
+      "region": "liltwood",
+      "starter": false,
+      "guardian": null,
+      "look": "blue-white shield creature",
+      "stats": null
+    },
+    {
+      "id": "WS-063",
+      "name": "Coilmouse",
+      "type": "Lumen",
+      "role": "Trickster",
+      "region": "liltwood",
+      "starter": false,
+      "guardian": null,
+      "look": "cream spiral mouse",
+      "stats": null
+    },
+    {
+      "id": "WS-065",
+      "name": "Slinkit",
+      "type": "Wild",
+      "role": "Striker",
+      "region": "liltwood",
+      "starter": false,
+      "guardian": null,
+      "look": "grey-brown stoat",
+      "stats": null
+    },
+    {
+      "id": "WS-086",
+      "name": "Veilmask",
+      "type": "Lumen",
+      "role": "Guardian",
+      "region": "liltwood",
+      "starter": false,
+      "guardian": "region",
+      "look": "pale floating masked figure",
+      "stats": null
+    },
+    {
+      "id": "WS-020",
+      "name": "Olivane",
+      "type": "Gale",
+      "role": "Striker",
+      "region": "tideglass",
+      "starter": false,
+      "guardian": null,
+      "look": "olive-winged insect",
+      "stats": null
+    },
+    {
+      "id": "WS-032",
+      "name": "Navigill",
+      "type": "Tide",
+      "role": "Striker",
+      "region": "tideglass",
+      "starter": false,
+      "guardian": null,
+      "look": "navy aquatic animal",
+      "stats": null
+    },
+    {
+      "id": "WS-037",
+      "name": "Rippaw",
+      "type": "Tide",
+      "role": "Striker",
+      "region": "tideglass",
+      "starter": false,
+      "guardian": null,
+      "look": "blue beast, orange ears",
+      "stats": null
+    },
+    {
+      "id": "WS-053",
+      "name": "Puffglow",
+      "type": "Lumen",
+      "role": "Support",
+      "region": "tideglass",
+      "starter": false,
+      "guardian": null,
+      "look": "white-blue puff creature",
+      "stats": null
+    },
+    {
+      "id": "WS-081",
+      "name": "Pincerra",
+      "type": "Tide",
+      "role": "Guardian",
+      "region": "tideglass",
+      "starter": false,
+      "guardian": null,
+      "look": "red-blue crab",
+      "stats": null
+    },
+    {
+      "id": "WS-062",
+      "name": "Sharkle",
+      "type": "Tide",
+      "role": "Guardian",
+      "region": "tideglass",
+      "starter": false,
+      "guardian": "region",
+      "look": "grey-blue shark-like animal",
+      "stats": null
+    },
+    {
+      "id": "WS-006",
+      "name": "Spiralug",
+      "type": "Stone",
+      "role": "Guardian",
+      "region": "ashbell",
+      "starter": false,
+      "guardian": null,
+      "look": "orange burrowing snail",
+      "stats": null
+    },
+    {
+      "id": "WS-011",
+      "name": "Cragclaw",
+      "type": "Ember",
+      "role": "Striker",
+      "region": "ashbell",
+      "starter": false,
+      "guardian": null,
+      "look": "red horned crab",
+      "stats": null
+    },
+    {
+      "id": "WS-018",
+      "name": "Shagstone",
+      "type": "Stone",
+      "role": "Guardian",
+      "region": "ashbell",
+      "starter": false,
+      "guardian": null,
+      "look": "brown upright shaggy creature",
+      "stats": null
+    },
+    {
+      "id": "WS-024",
+      "name": "Craglet",
+      "type": "Stone",
+      "role": "Striker",
+      "region": "ashbell",
+      "starter": false,
+      "guardian": null,
+      "look": "red rocky creature",
+      "stats": {
+        "hp": 55,
+        "might": 14,
+        "guard": 18,
+        "pulse": 9,
+        "ward": 16,
+        "swift": 6
+      }
+    },
+    {
+      "id": "WS-038",
+      "name": "Blazebloom",
+      "type": "Ember",
+      "role": "Trickster",
+      "region": "ashbell",
+      "starter": false,
+      "guardian": null,
+      "look": "red flower of flame",
+      "stats": null
+    },
+    {
+      "id": "WS-042",
+      "name": "Gustbug",
+      "type": "Gale",
+      "role": "Striker",
+      "region": "ashbell",
+      "starter": false,
+      "guardian": null,
+      "look": "blue-yellow beetle",
+      "stats": null
+    },
+    {
+      "id": "WS-058",
+      "name": "Chuffle",
+      "type": "Ember",
+      "role": "Guardian",
+      "region": "ashbell",
+      "starter": false,
+      "guardian": null,
+      "look": "chimney-train critter",
+      "stats": null
+    },
+    {
+      "id": "WS-076",
+      "name": "Bullbrand",
+      "type": "Ember",
+      "role": "Guardian",
+      "region": "ashbell",
+      "starter": false,
+      "guardian": "region",
+      "look": "horned bull head",
+      "stats": null
+    },
+    {
+      "id": "WS-016",
+      "name": "Wispel",
+      "type": "Gloom",
+      "role": "Trickster",
+      "region": "gloamfen",
+      "starter": false,
+      "guardian": null,
+      "look": "white wispy spirit",
+      "stats": null
+    },
+    {
+      "id": "WS-017",
+      "name": "Gazebloom",
+      "type": "Gloom",
+      "role": "Support",
+      "region": "gloamfen",
+      "starter": false,
+      "guardian": null,
+      "look": "purple stalk-eyed flower",
+      "stats": null
+    },
+    {
+      "id": "WS-030",
+      "name": "Skullop",
+      "type": "Gloom",
+      "role": "Striker",
+      "region": "gloamfen",
+      "starter": false,
+      "guardian": null,
+      "look": "cream skull-faced critter",
+      "stats": null
+    },
+    {
+      "id": "WS-047",
+      "name": "Jellum",
+      "type": "Gloom",
+      "role": "Support",
+      "region": "gloamfen",
+      "starter": false,
+      "guardian": null,
+      "look": "pink round jelly",
+      "stats": null
+    },
+    {
+      "id": "WS-067",
+      "name": "Hushflame",
+      "type": "Lumen",
+      "role": "Trickster",
+      "region": "gloamfen",
+      "starter": false,
+      "guardian": null,
+      "look": "blue ghostly flame",
+      "stats": {
+        "hp": 40,
+        "might": 8,
+        "guard": 11,
+        "pulse": 17,
+        "ward": 13,
+        "swift": 16
+      }
+    },
+    {
+      "id": "WS-085",
+      "name": "Mirejaw",
+      "type": "Tide",
+      "role": "Striker",
+      "region": "gloamfen",
+      "starter": false,
+      "guardian": null,
+      "look": "green flat crocodile",
+      "stats": null
+    },
+    {
+      "id": "WS-068",
+      "name": "Masquel",
+      "type": "Gloom",
+      "role": "Guardian",
+      "region": "gloamfen",
+      "starter": false,
+      "guardian": "region",
+      "look": "magenta masked flower",
+      "stats": null
+    },
+    {
+      "id": "WS-031",
+      "name": "Spinehide",
+      "type": "Stone",
+      "role": "Guardian",
+      "region": "emberglass",
+      "starter": false,
+      "guardian": null,
+      "look": "blue armoured spiny beast",
+      "stats": null
+    },
+    {
+      "id": "WS-059",
+      "name": "Trumpuff",
+      "type": "Gale",
+      "role": "Guardian",
+      "region": "emberglass",
+      "starter": false,
+      "guardian": null,
+      "look": "white fluffy elephant",
+      "stats": null
+    },
+    {
+      "id": "WS-060",
+      "name": "Emberhop",
+      "type": "Ember",
+      "role": "Striker",
+      "region": "emberglass",
+      "starter": false,
+      "guardian": null,
+      "look": "orange long-tailed rabbit",
+      "stats": null
+    },
+    {
+      "id": "WS-087",
+      "name": "Cindershell",
+      "type": "Ember",
+      "role": "Guardian",
+      "region": "emberglass",
+      "starter": false,
+      "guardian": null,
+      "look": "yellow round shell",
+      "stats": null
+    },
+    {
+      "id": "WS-095",
+      "name": "Gustram",
+      "type": "Gale",
+      "role": "Striker",
+      "region": "emberglass",
+      "starter": false,
+      "guardian": null,
+      "look": "blue-white ram",
+      "stats": null
+    },
+    {
+      "id": "WS-092",
+      "name": "Duskwyrm",
+      "type": "Gloom",
+      "role": "Guardian",
+      "region": "emberglass",
+      "starter": false,
+      "guardian": "final",
+      "look": "navy small dragon",
+      "stats": null
+    }
+  ]
+}

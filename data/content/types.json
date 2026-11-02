@@ -1,0 +1,16 @@
+{
+  "schema": "wildsignal-types-v1",
+  "source": "docs/gdd/04_CREATURES.md 4.2 (chart) and 4.4 (field abilities)",
+  "strongPercent": 125,
+  "resistedPercent": 80,
+  "types": [
+    { "id": "Flora", "feel": "plants, growth", "strongAgainst": ["Tide", "Stone"], "weakTo": ["Ember", "Gale"], "fieldAbility": "Grows vine bridges" },
+    { "id": "Tide", "feel": "water, sea", "strongAgainst": ["Ember", "Stone"], "weakTo": ["Flora", "Wild"], "fieldAbility": "Wades through water" },
+    { "id": "Ember", "feel": "fire, heat", "strongAgainst": ["Flora", "Gloom"], "weakTo": ["Tide", "Stone"], "fieldAbility": "Melts ice or clears thorns" },
+    { "id": "Stone", "feel": "rock, earth, metal", "strongAgainst": ["Ember", "Gale"], "weakTo": ["Flora", "Tide"], "fieldAbility": "Moves boulders" },
+    { "id": "Gale", "feel": "wind, sky, cold", "strongAgainst": ["Flora", "Wild"], "weakTo": ["Stone", "Lumen"], "fieldAbility": "Lifts you over short gaps" },
+    { "id": "Lumen", "feel": "light, signal, spirit", "strongAgainst": ["Gloom", "Gale"], "weakTo": ["Gloom", "Wild"], "fieldAbility": "Lights caves" },
+    { "id": "Gloom", "feel": "shadow, fear, mystery", "strongAgainst": ["Lumen", "Wild"], "weakTo": ["Ember", "Lumen"], "fieldAbility": "Reveals hidden paths at night" },
+    { "id": "Wild", "feel": "beasts, raw strength", "strongAgainst": ["Tide", "Lumen"], "weakTo": ["Gale", "Gloom"], "fieldAbility": "Digs up buried items" }
+  ]
+}
