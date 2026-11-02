@@ -9,7 +9,9 @@ C++20, SDL3, OpenGL 3.3 core on Windows, CMake. Windows builds with MinGW-w64 GC
 
 ## 7.2 Code layout
 
-Today the whole game lives in one experiment folder that also pulls code from older experiments (`creature3d003`, `holland001`). Plan:
+*(FOUND-002 done 2026-11-02: the game now lives in `src/game`, `src/render`, `src/world`, `src/platform`, with tests in `tests/pilot` and `tests/render`.)*
+
+Before FOUND-002 the whole game lived in one experiment folder that also pulled code from older experiments (`creature3d003`, `holland001`). Plan:
 - Move the game into a proper source tree: `game/` (gameplay: fights, team, items, quests, homestead), `render/` (GPU, shaders, UI drawing), `world/` (regions, chunks, streaming, terrain), `platform/` (SDL, input, files, Android glue), `tests/`.
 - Old experiment folders stay for history but nothing new depends on them.
 - Gameplay rules stay free of rendering and timers (as the fight and bond code are today), so they can be tested headlessly and replayed exactly.

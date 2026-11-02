@@ -96,7 +96,7 @@ loop, swap-call/completion intervals, GPU queries when valid, draw calls and RSS
 are separate. A software-GL render does not establish Intel UHD performance or
 displayed FPS. One-tree cost does not establish a forest budget.
 
-Build: `cmake -S experiments/hearthgrove_emaceart -B build/tree -A x64`,
+Build: `cmake -S src -B build/tree -A x64`,
 `cmake --build build/tree --config Release --parallel 2`,
 `ctest --test-dir build/tree -C Release --output-on-failure`, then install with
 `cmake --install build/tree --config Release --prefix out/tree-review`.

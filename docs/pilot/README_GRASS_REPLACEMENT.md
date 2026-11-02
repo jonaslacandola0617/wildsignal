@@ -11,7 +11,7 @@ Use the complete private runtime package and **PLAY_GAME.cmd**. It starts HIGH g
 Build from this branch with:
 
 ```sh
-cmake -S experiments/hearthgrove_emaceart -B build/game -DPIXEL3D_BUILD_GL=ON
+cmake -S src -B build/game -DPIXEL3D_BUILD_GL=ON
 cmake --build build/game --config Release --parallel 2
 ctest --test-dir build/game -C Release --output-on-failure
 cmake --install build/game --config Release --prefix out/hearthgrove

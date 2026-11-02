@@ -17,7 +17,7 @@ The clean shadow rule still suppresses rock/foliage self-shadowing (including ge
 Build Windows x64 with CMake/Visual Studio2022:
 
 ```sh
-cmake -S experiments/hearthgrove_emaceart -B build/hg -G "Visual Studio 17 2022" -A x64
+cmake -S src -B build/hg -G "Visual Studio 17 2022" -A x64
 cmake --build build/hg --config Release --parallel 2
 ctest --test-dir build/hg -C Release --output-on-failure
 cmake --install build/hg --config Release --prefix out/hg

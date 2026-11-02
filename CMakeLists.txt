@@ -3,7 +3,7 @@ option(WILDSIGNAL_BUILD_CURRENT_PILOT "Build the current playable pilot instead 
 if(WILDSIGNAL_BUILD_CURRENT_PILOT)
   project(WILDSIGNAL_CURRENT_PILOT LANGUAGES C CXX)
   include(CTest)
-  add_subdirectory(experiments/hearthgrove_emaceart current)
+  add_subdirectory(src current)
   add_custom_target(wildsignal_player DEPENDS wildsignal_hearthgrove_emaceart)
   return()
 endif()
