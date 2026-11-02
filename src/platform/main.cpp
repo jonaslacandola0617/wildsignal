@@ -54,7 +54,7 @@ int nextWidth(int w) { return w == 480 ? 640 : w == 640 ? 1280 : 480; }
 struct Options {
   std::filesystem::path assets = "assets", save = "saves/hearthgrove_emaceart.json",
                         out = "runs/play", replay;
-  std::string preset="balanced",ink="balanced";std::filesystem::path styleSettings,pilot;float pilotTime=0;bool raisedCamera=false,stableCamera=false;int windowWidth=0;
+  std::string preset="balanced",ink="balanced";std::filesystem::path styleSettings,pilot,content;int fightLevel=0;float pilotTime=0;bool raisedCamera=false,stableCamera=false;int windowWidth=0;
   bool renderReference=false;bool contacts=true,edgeHighlights=true,edgeOutlines=true,vegetationEdges=true,cleanShadow=true;
   bool tiltShift=true,tiltShiftGiven=false,leafRims=false;float highlightLimit=.55f;
   bool treeEnabled=false,treeScene=false,leafPlain=true;int treeMode=0;
@@ -99,7 +99,7 @@ Options options(int argc, char **argv) {
              "--render-mode original|toon --pacing precise|legacy|off\n--cap "
              "0|30|60 --benchmark --pose 0..15 --frames N --capture-every "
              "N\n--save FILE --new-game --output DIR --allow-software --hidden "
-             "--replay FILE --followers trail|legacy --grass-layout "
+             "--replay FILE --followers trail|legacy --content DIR --fight-level 1..50 --grass-layout "
              "continuous|legacy\n--worldstyle source|pixel --debug-follow\n--style-preset baseline|balanced|rich --ink off|balanced|bold --style-settings FILE --hud off|compact|debug (F2 toggles) --contacts on|off\n--shadow-policy clean|legacy --vegetation-edges on|off --highlights on|off --outlines on|off\n";
       std::cout << "Source EmaceArt: --grass-family auto|source "
                    "--grass-scale mixed (original uniform source scale)\n"
@@ -132,6 +132,8 @@ Options options(int argc, char **argv) {
     else if(a=="--style-settings")o.styleSettings=value();
     else if(a=="--render-reference")o.renderReference=true;
     else if(a=="--pilot")o.pilot=value();
+    else if(a=="--content")o.content=value();
+    else if(a=="--fight-level")o.fightLevel=integer(value(),1,50);
     else if(a=="--stable-camera")o.stableCamera=true;
     else if(a=="--camera"){auto v=value();if(v!="first"&&v!="raised")throw std::runtime_error("camera first|raised");o.raisedCamera=v=="raised";}
     else if(a=="--pilot-time")o.pilotTime=std::stof(value());
@@ -634,7 +636,10 @@ int main(int argc, char **argv) {
     if(!o.pilot.empty()){
       pixelUi=std::make_unique<p3::PixelUi>(o.pilot.parent_path());
       log<<"ui_texture_bytes="<<pixelUi->textureBytes()<<"\n";
-      scene=std::make_unique<p3::FightScene>(o.pilot.parent_path());
+      // Designer data ships beside the game in data/content (GDD 7.3) unless --content says otherwise.
+      auto content=o.content.empty()?std::filesystem::path(SDL_GetBasePath())/"data"/"content":o.content;
+      scene=std::make_unique<p3::FightScene>(o.pilot.parent_path(),content);
+      scene->fightLevel(o.fightLevel);
       scene->startCalm(o.calmFights);
       auto bondFile=o.save;bondFile+=".bonds.json";
       wilds=std::make_unique<p3::WildScene>(o.pilot.parent_path(),scene->roster(),bondFile,o.fresh,game.state.player);

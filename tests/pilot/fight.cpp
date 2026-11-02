@@ -1,4 +1,5 @@
 #include "fight.hpp"
+#include "content.hpp"
 #include <algorithm>
 #include <cstdio>
 #include <fstream>
@@ -8,13 +9,6 @@
 using namespace battle;
 namespace {
 int failures = 0;
-std::string readText(const char *path) {
-  std::ifstream in(path, std::ios::binary);
-  if (!in) throw std::runtime_error(std::string("cannot read ") + path);
-  std::stringstream all;
-  all << in.rdbuf();
-  return all.str();
-}
 void check(bool ok, const char *what) {
   if (!ok) {
     std::printf("FAILED: %s\n", what);
@@ -25,13 +19,13 @@ struct Setup {
   Content content;
   FightData data;
   int driftfin, glintle, tumbletail;
-  Fight make(std::uint32_t seed = 7) const {
-    return Fight(content, data, {{driftfin, 5, -1}, {glintle, 5, -1}}, {tumbletail, 3, -1}, {-4000, 0}, {0, 0}, seed);
+  Fight make(std::uint32_t seed = 7, int level = 5) const {
+    return Fight(content, data, {{driftfin, level, -1}, {glintle, level, -1}}, {tumbletail, 3, -1}, {-4000, 0}, {0, 0}, seed);
   }
 };
 int slotOf(const Setup &s, const Fighter &k, const char *id) {
   for (int i = 0; i < MoveSlots; i++)
-    if (s.content.moves[s.data.slots[k.species][i]].id == id) return i;
+    if (s.content.moves[s.data.slots[k.species][i]].id == s.content.species[k.species].id + "/" + id) return i;
   throw std::runtime_error("slot missing");
 }
 void run(Fight &f, int ticks, Pad pad = {}) {
@@ -45,48 +39,35 @@ void untilReleased(Fight &f, Pad press, int pressAt) {
   run(f, 30);
 }
 
-void everySpeciesHasTapAndFourLearnedMoves(const Setup &s) {
-  check(s.data.slots.size() == s.content.species.size(), "slot table covers the roster");
-  int tap = s.content.moveIndex("TAP");
-  for (const auto &row : s.data.slots) {
-    check(row[0] == tap, "slot one is the general Tap");
-    for (int i = 1; i < MoveSlots; i++) {
-      check(row[i] >= 0 && row[i] < int(s.content.moves.size()), "slot names a real move");
-      check(row[i] != tap, "Tap is never a learned move");
-    }
+// GDD 2.4 and 4.6: basic attack, 3 skills, ultimate; skill 3 opens at level 5, the ultimate at 10.
+void everySpeciesHasAFullKit(const Setup &s) {
+  check(s.data.slots.size() == s.content.species.size() && s.content.species.size() == 9, "the first nine have kits");
+  for (std::size_t i = 0; i < s.data.slots.size(); i++) {
+    const auto &row = s.data.slots[i];
+    const auto &basic = s.content.moves[row[BasicSlot]];
+    check(basic.power > 0 && basic.cost == 0, "the basic attack is a free hit");
+    check(basic.type == s.content.species[i].affinity, "the basic attack takes the Signari's type");
+    check(s.data.unlock[row[BasicSlot]] == 1 && s.data.unlock[row[1]] == 1 && s.data.unlock[row[2]] == 1, "basic and skills 1-2 from level 1");
+    check(s.data.unlock[row[3]] == 5 && s.data.unlock[row[UltimateSlot]] == 10, "skill 3 at level 5, ultimate at level 10");
+    check(s.data.timing[row[UltimateSlot]].cooldown == 0, "the ultimate is charged by Resonance, not a cooldown");
   }
 }
-// A basicAttacks table gives each affinity its own free first move, and hits report the matchup.
-void affinityBasicsFillTheFirstSlot(const Setup &s, std::string fightText) {
-  Content c = s.content;
-  const char *ids[Affinities] = {"NUDGE", "LEAF_FLICK", "SPLASH", "SPARK", "PEBBLE", "GLIMMER"};
-  std::string timing, table;
-  for (int a = 0; a < Affinities; a++) {
-    Move m;
-    m.id = m.name = ids[a];
-    m.type = Affinity(a);
-    m.kind = a == 0 || a == 4 ? Kind::Physical : Kind::Signal;
-    m.power = 16;
-    c.moves.push_back(m);
-    timing += std::string("\"") + ids[a] + "\":{\"reach\":\"lane\",\"range\":5200,\"size\":500,\"windup\":620,\"recover\":420,\"cooldown\":1800},";
-    table += std::string(a ? "," : "") + "\"" + affinityName(Affinity(a)) + "\":\"" + ids[a] + "\"";
-  }
-  auto at = fightText.find("\"timing\"");
-  fightText.insert(fightText.find('{', at) + 1, timing);
-  fightText.insert(fightText.rfind('}'), ",\"basicAttacks\":{" + table + "}");
-  auto data = parseFight(fightText, c);
-  for (std::size_t i = 0; i < c.species.size(); i++)
-    check(c.moves[data.slots[i][0]].type == c.species[i].affinity, "slot one is the basic attack of the Signari's affinity");
-  check(c.moves[data.slots[s.driftfin][0]].id == "SPLASH", "Driftfin's basic attack is Splash");
+// GDD 4.2: the fight uses the 8-type chart from types.json, and hits report the matchup.
+void theEightTypeChartDecidesMatchups(const Setup &s) {
+  auto pct = [&](Affinity a, Affinity d) { return s.data.matchup[int(a)][int(d)]; };
+  check(pct(Affinity::Flora, Affinity::Tide) == 125 && pct(Affinity::Tide, Affinity::Flora) == 80, "Flora beats Tide");
+  check(pct(Affinity::Tide, Affinity::Stone) == 125 && pct(Affinity::Gale, Affinity::Wild) == 125, "the new chart, not the old loop");
+  check(pct(Affinity::Lumen, Affinity::Gloom) == 125 && pct(Affinity::Gloom, Affinity::Lumen) == 125, "light and shadow hit each other hard");
+  check(pct(Affinity::Flora, Affinity::Lumen) == 100, "a neutral matchup");
   // Glintle's Flora basic against a Tide Driftfin is a strong matchup.
   bool reported = false;
   for (std::uint32_t seed = 1; seed < 60 && !reported; seed++) {
-    Fight f(c, data, {{s.glintle, 5, -1}}, {s.driftfin, 3, -1}, {-4000, 0}, {0, 0}, seed);
+    Fight f(s.content, s.data, {{s.glintle, 5, -1}}, {s.driftfin, 3, -1}, {-4000, 0}, {0, 0}, seed);
     // Like the gentle-play test: let the wild Signari move first, then aim.
     for (int i = 0; i < 30 + int(seed); i++)
       f.step({});
     f.takeCues();
-    f.strike(Target::Mine, 0, Target::Wild);
+    f.strike(Target::Mine, BasicSlot, Target::Wild);
     for (int i = 0; i < 110 && !reported; i++) {
       f.step({});
       for (const auto &cue : f.takeCues())
@@ -95,16 +76,6 @@ void affinityBasicsFillTheFirstSlot(const Setup &s, std::string fightText) {
     }
   }
   check(reported, "a Flora hit on a Tide Signari reports a strong matchup");
-  // A paid or supporting move is refused as a basic attack.
-  auto bad = fightText;
-  bad.replace(bad.find("\"Flora\":\"LEAF_FLICK\""), 20, "\"Flora\":\"" + c.moves[c.species[s.glintle].moves[1]].id + "\"");
-  bool refused = false;
-  try {
-    parseFight(bad, c);
-  } catch (const std::exception &) {
-    refused = true;
-  }
-  check(refused || c.moves[c.species[s.glintle].moves[1]].cost == 0, "a costly basic attack is refused");
 }
 void sameInputsReplayIdentically(const Setup &s) {
   auto play = [&] {
@@ -153,19 +124,19 @@ void theDodgeCommandSavesTheSignari(const Setup &s) {
   check(safe.mine().hp == full, "the dodge command avoids the hit");
   check(safe.mine().dodgeReady > 0, "dodge goes on cooldown");
 }
-void dodgeNeedsNoSlotAndNoEnergy(const Setup &s) {
+void dodgeNeedsNoSlot(const Setup &s) {
   auto f = s.make();
   run(f, 1);
-  int energy = f.mine().energy;
   Pad dodge;
   dodge.dodge = true;
   f.step(dodge);
-  check(f.mine().pose == Pose::Dodge, "dodge works with no learned slot");
-  check(f.mine().energy == energy, "dodge costs no energy");
+  check(f.mine().pose == Pose::Dodge, "dodge works with no slot");
 }
-void movesRespectEnergyAndCooldown(const Setup &s) {
+// No energy: a skill is usable from the first moment and only its cooldown holds it back.
+void movesRunOnCooldownsOnly(const Setup &s) {
   auto f = s.make();
   int slot = slotOf(s, f.mine(), "SLIPSTREAM");
+  check(f.canUse(f.mine(), slot) && f.canUse(f.mine(), slotOf(s, f.mine(), "CURRENT_SHIELD")), "skills are ready at the start");
   Pad use;
   use.command = slot;
   f.step(use);
@@ -174,9 +145,21 @@ void movesRespectEnergyAndCooldown(const Setup &s) {
     f.step({});
   check(f.mine().ready[slot] > 0, "the commanded move runs and goes on cooldown");
   check(!f.canUse(f.mine(), slot), "a cooling move cannot be used");
-  auto poor = s.make();
-  run(poor, 1);
-  check(s.content.moves[poor.moveId(poor.mine(), slotOf(s, poor.mine(), "CURRENT_SHIELD"))].cost <= poor.mine().energy, "starting energy pays for a two-cost move");
+  auto young = s.make(7, 3);
+  check(!young.canUse(young.mine(), 3) && std::string(young.whyNot(young.mine(), 3)) == "Not learned yet.", "skill 3 waits for level 5");
+  check(!young.canUse(young.mine(), UltimateSlot), "the ultimate waits for level 10");
+}
+// Rank-ups at 15 and 30 raise damage, then shorten the cooldown.
+void skillsRankUp(const Setup &s) {
+  int levels[] = {5, 15, 30}, power[3], cooldown[3];
+  for (int i = 0; i < 3; i++) {
+    auto f = s.make(7, levels[i]);
+    int id = f.moveId(f.mine(), slotOf(s, f.mine(), "SLIPSTREAM"));
+    power[i] = f.power(f.mine(), id);
+    cooldown[i] = f.cooldown(f.mine(), id);
+  }
+  check(power[1] > power[0] && power[2] == power[1], "rank 1 hits harder");
+  check(cooldown[1] == cooldown[0] && cooldown[2] < cooldown[1], "rank 2 recovers faster");
 }
 void theWildTargetsBothOverAFight(const Setup &s) {
   int atYou = 0, atMine = 0;
@@ -200,7 +183,7 @@ void theWildTargetsBothOverAFight(const Setup &s) {
 void composureZeroLosesWithoutTouchingTheParty(const Setup &s) {
   auto f = s.make();
   for (int i = 0; i < 12000 && f.outcome() == Outcome::Ongoing; i++) {
-    if (f.wild().pose == Pose::Ready) f.strike(Target::Wild, slotOf(s, f.wild(), "TAP"), Target::You);
+    if (f.wild().pose == Pose::Ready) f.strike(Target::Wild, BasicSlot, Target::You);
     f.step({});
   }
   check(f.outcome() == Outcome::Lost, "running out of composure loses the fight");
@@ -220,12 +203,14 @@ void beatingTheWildWins(const Setup &s) {
 }
 // Prints how three play styles fare at the HUD's encounter scale; a pacing report, not a pass mark.
 void reportPacing(const Setup &s) {
-  const char *names[] = {"stands still", "only moves and rolls", "moves, rolls, commands, dodges"};
-  for (int style = 0; style < 3; style++) {
-    int won = 0, lost = 0, ticks = 0, runs = 40;
+  const char *names[] = {"stands still", "only moves and rolls", "moves, rolls, commands, dodges", "same at level 10, using ultimates"};
+  for (int style = 0; style < 4; style++) {
+    int won = 0, lost = 0, ticks = 0, runs = 40, filled = 0, fillTicks = 0, ultimates = 0;
+    int level = style == 3 ? 10 : 5;
     for (int seed = 1; seed <= runs; seed++) {
-      Fight f(s.content, s.data, {{s.driftfin, 5, -1}, {s.glintle, 5, -1}}, {s.tumbletail, 3, -1}, {-4000, 0}, {0, 0}, std::uint32_t(seed * 37), {}, 240);
-      int turn = 0;
+      Fight f(s.content, s.data, {{s.driftfin, level, -1}, {s.glintle, level, -1}}, {s.tumbletail, style == 3 ? 10 : 3, -1}, {-4000, 0}, {0, 0},
+              std::uint32_t(seed * 37), {}, 240);
+      int turn = 0, firstFull = -1;
       for (int i = 0; i < 18000 && f.outcome() == Outcome::Ongoing; i++) {
         Pad p;
         if (style > 0) {
@@ -249,17 +234,23 @@ void reportPacing(const Setup &s) {
           }
         }
         if (style > 1) {
-          if (i % 45 == 0) p.command = (i / 45) % MoveSlots;
+          if (i % 45 == 0) p.command = (i / 45) % UltimateSlot;
+          if (style == 3 && f.canUse(f.mine(), UltimateSlot)) p.command = UltimateSlot;
           for (const auto &m : f.markers())
             if (m.hostile && m.percent > 65 && m.percent < 85) p.dodge = true;
         }
+        int before = f.resonance();
         f.step(p);
+        if (firstFull < 0 && f.resonance() == ResonanceFull) firstFull = f.tick();
+        ultimates += before == ResonanceFull && f.resonance() == 0;
       }
       won += f.outcome() == Outcome::Won;
       lost += f.outcome() == Outcome::Lost;
       ticks += f.tick();
+      if (firstFull >= 0) filled++, fillTicks += firstFull;
     }
-    std::printf("%s: won %d of %d, lost %d, average %d seconds\n", names[style], won, runs, lost, ticks / runs / TicksPerSecond);
+    std::printf("%s: won %d of %d, lost %d, average %d seconds; meter filled in %d fights (first after %d seconds on average), %d ultimates\n",
+                names[style], won, runs, lost, ticks / runs / TicksPerSecond, filled, filled ? fillTicks / filled / TicksPerSecond : 0, ultimates);
   }
 }
 void reachOutNeedsACalmSignariAndCloseRange(const Setup &s) {
@@ -320,7 +311,7 @@ void aHitBreaksTheReach(const Setup &s) {
   Fight f(s.content, s.data, {{s.driftfin, 5, -1}}, {s.tumbletail, 3, -1}, {-1500, 0}, {0, 0}, 5);
   f.soothe(80);
   f.wound(f.wild().stats.hp * 7 / 10);
-  f.strike(Target::Wild, slotOf(s, f.wild(), "TAP"), Target::You);
+  f.strike(Target::Wild, BasicSlot, Target::You);
   Pad reach;
   reach.reach = true;
   f.step(reach);
@@ -465,23 +456,96 @@ void blocksStopThePlayer(const Setup &s) {
   check(f.you().at.x < -3000, "a solid stops the player");
 }
 } // namespace
+// GDD 2.7: clean play fills the player's meter; a full meter readies the ultimate, and using it empties it.
+void resonanceFillsAndPowersTheUltimate(const Setup &s) {
+  auto f = s.make(7, 10);
+  check(f.resonance() == 0 && !f.canUse(f.mine(), UltimateSlot), "the ultimate starts locked by an empty meter");
+  check(std::string(f.whyNot(f.mine(), UltimateSlot)) == "Resonance is not full yet.", "the HUD can say why");
+  f.resonate(60);
+  f.resonate(60);
+  bool full = false;
+  for (const auto &c : f.takeCues())
+    full = full || c.kind == CueKind::ResonanceFull;
+  check(f.resonance() == ResonanceFull && full, "the meter caps at full and says so once");
+  check(f.canUse(f.mine(), UltimateSlot), "a full meter readies the ultimate");
+  check(!f.canUse(f.wild(), UltimateSlot), "a wild Signari never uses its ultimate");
+  Pad ult;
+  ult.command = UltimateSlot;
+  int guard = 0;
+  f.step(ult);
+  while (f.mine().pose != Pose::Windup && guard++ < 300)
+    f.step({});
+  check(f.mine().strike.slot == UltimateSlot && f.resonance() == 0, "using the ultimate empties the meter");
+  // Swapping keeps the meter: it belongs to the player, not the Signari.
+  auto swap = s.make(7, 10);
+  swap.resonate(40);
+  Pad tab;
+  tab.swap = true;
+  swap.step(tab);
+  check(swap.activeSlot() == 1 && swap.resonance() == 40, "the meter is shared by the team");
+
+  // A Signari dodge and a Wayfinder roll through an attack both fill it.
+  auto dodged = s.make();
+  dodged.strike(Target::Wild, slotOf(s, dodged.wild(), "BURROW_BUMP"), Target::Mine);
+  Pad dodge;
+  dodge.dodge = true;
+  untilReleased(dodged, dodge, dodged.wild().poseTicks - 8);
+  check(dodged.resonance() == ResonanceDodge, "a clean Signari dodge fills the meter");
+  auto rolled = s.make();
+  rolled.strike(Target::Wild, slotOf(s, rolled.wild(), "BURROW_BUMP"), Target::You);
+  Pad roll;
+  roll.roll = true;
+  untilReleased(rolled, roll, rolled.wild().poseTicks - 6);
+  check(rolled.resonance() == ResonanceRoll, "rolling through an attack fills the meter");
+  // A landed basic attack adds a little; a commanded skill that lands adds more.
+  int basic = 0, commanded = 0;
+  for (std::uint32_t seed = 1; seed < 60 && (!basic || !commanded); seed++) {
+    auto f2 = s.make(seed);
+    for (int i = 0; i < 30 + int(seed); i++)
+      f2.step({});
+    int before = f2.resonance(), hp = f2.wild().hp;
+    if (!basic) {
+      f2.strike(Target::Mine, BasicSlot, Target::Wild);
+      for (int i = 0; i < 110 && f2.wild().hp == hp; i++)
+        f2.step({});
+      if (f2.wild().hp < hp) basic = f2.resonance() - before;
+      continue;
+    }
+    Pad order;
+    order.command = slotOf(s, f2.mine(), "SLIPSTREAM");
+    f2.step(order);
+    for (int i = 0; i < 400 && f2.wild().hp == hp; i++)
+      f2.step({});
+    if (f2.wild().hp < hp && f2.mine().strike.commanded) commanded = f2.resonance() - before;
+  }
+  check(basic == ResonanceBasic, "a landed basic attack adds a little");
+  check(commanded == ResonanceCommanded, "a commanded skill that lands adds more");
+}
+
 int main(int argc, char **argv) {
   try {
-    if (argc != 3) throw std::runtime_error("usage: roster.json fight.json");
+    if (argc < 2 || argc > 3) throw std::runtime_error("usage: <data/content folder> [resonance]");
+    bool resonanceOnly = argc == 3 && std::string(argv[2]) == "resonance";
     Setup s;
-    s.content = parseRoster(readText(argv[1]));
-    s.data = parseFight(readText(argv[2]), s.content);
+    auto designs = content::load(argv[1]);
+    s.data = buildFight(designs, s.content);
     s.driftfin = s.content.speciesIndex("WS-008");
     s.glintle = s.content.speciesIndex("WS-004");
     s.tumbletail = s.content.speciesIndex("WS-005");
-    everySpeciesHasTapAndFourLearnedMoves(s);
-    affinityBasicsFillTheFirstSlot(s, readText(argv[2]));
+    if (resonanceOnly) {
+      resonanceFillsAndPowersTheUltimate(s);
+      std::printf(failures ? "%d resonance checks failed\n" : "resonance rules pass\n", failures);
+      return failures ? 1 : 0;
+    }
+    everySpeciesHasAFullKit(s);
+    theEightTypeChartDecidesMatchups(s);
     sameInputsReplayIdentically(s);
     standingStillInAMarkerCostsComposure(s);
     aRollThroughTheImpactAvoidsIt(s);
     theDodgeCommandSavesTheSignari(s);
-    dodgeNeedsNoSlotAndNoEnergy(s);
-    movesRespectEnergyAndCooldown(s);
+    dodgeNeedsNoSlot(s);
+    movesRunOnCooldownsOnly(s);
+    skillsRankUp(s);
     theWildTargetsBothOverAFight(s);
     composureZeroLosesWithoutTouchingTheParty(s);
     beatingTheWildWins(s);

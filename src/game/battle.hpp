@@ -7,8 +7,11 @@
 // Turn rules from docs/design/BATTLE_BALANCE_BIBLE_v0.1.md. Integer-only and free
 // of rendering, timers and network code, so the same inputs replay identically.
 namespace battle {
-enum class Affinity { Wild, Flora, Tide, Ember, Stone, Lumen };
-constexpr int Affinities = 6;
+// Gale and Gloom join for the real-time fight's 8-type chart (GDD 4.2); the turn rules
+// below keep their original Flora/Tide/Ember loop.
+enum class Affinity { Wild, Flora, Tide, Ember, Stone, Lumen, Gale, Gloom };
+constexpr int Affinities = 8;
+Affinity affinityNamed(std::string_view);
 const char *affinityName(Affinity);
 enum class Kind { Physical, Signal, Support };
 enum class Status { Guard, Regen, Burn, Slow, Focus };
@@ -19,6 +22,7 @@ struct Effect {
   bool heal = false, onSelf = true;
   Status status = Status::Guard;
   int hp = 0;
+  int ticks = 0; // Real-time fight only: how long a status lasts (0 = the fight's default).
 };
 struct Move {
   std::string id, name;

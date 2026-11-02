@@ -1,5 +1,6 @@
 #pragma once
 #include "battle.hpp"
+#include "content.hpp"
 #include <array>
 #include <cstdint>
 #include <string_view>
@@ -9,8 +10,13 @@
 // so the same seed and pad inputs replay identically and nothing here renders.
 namespace battle {
 constexpr int TicksPerSecond = 60;
-// Tap and Dodge are general: every Signari has them. Slot 0 is Tap, then four learned moves.
-constexpr int LearnedMoves = 4, MoveSlots = LearnedMoves + 1;
+// The kit (GDD 2.4, FIGHT-002): slot 0 is the basic attack, 1-3 the skills, 4 the ultimate.
+// Dodge is innate and not a slot. There is no energy: every slot runs on its own cooldown.
+constexpr int BasicSlot = 0, UltimateSlot = 4, MoveSlots = 5;
+// The Resonance meter (GDD 2.7) is the player's, shared by the team and kept across swaps.
+// Clean play fills it; when full, the active Signari's ultimate is ready, and using it empties it.
+constexpr int ResonanceFull = 100, ResonanceDodge = 30, ResonanceRoll = 20, ResonanceCommanded = 16, ResonanceAuto = 10,
+              ResonanceBasic = 4; // Doubled after the first play-test: the first ultimate now comes ~30 s in.
 constexpr int FullComposure = 80;
 constexpr int RingRadius = 9500;
 constexpr int CalmSpirit = 30, ReachRange = 2600, ReachTicks = 72;
@@ -27,13 +33,22 @@ struct Timing {
   int range = 0, size = 0, windup = 0, recover = 0, cooldown = 0; // Times are ticks.
   bool gentle = false; // Soothes more than it hurts.
 };
+struct RankUp {
+  int level = 0, powerPercent = 100, cooldownPercent = 100;
+  std::vector<Effect> addEffects;
+};
 struct FightData {
   std::vector<Timing> timing;                     // By move index.
+  std::vector<int> unlock;                        // By move index: the level that opens it.
+  std::vector<std::vector<RankUp>> ranks;         // By move index.
   std::vector<std::array<int, MoveSlots>> slots;  // By species index.
+  std::array<std::array<int, Affinities>, Affinities> matchup{}; // Percent, [attacker][defender].
   // Reach Out needs the wild Signari at or below this share of its health (and calm).
   int recruitPercent = 40;
 };
-FightData parseFight(std::string_view json, const Content &);
+// Turns the designer data (types, species with stats, kits) into fight moves and timing.
+// Only species with both stats and a kit can fight; the rest are not designed yet.
+FightData buildFight(const content::Content &, Content &out);
 
 // One tick of player input. Movement is per mille of full speed, already in world axes.
 struct Pad {
@@ -45,12 +60,13 @@ enum class Target { None, Mine, Wild, You };
 enum class Outcome { Ongoing, Won, Lost, Left, Reached };
 struct Strike {
   int move = -1, slot = -1, size = 0, total = 1, struck = 0;
+  bool commanded = false; // The player ordered it, so it earns more Resonance when it lands.
   Reach reach = Reach::Self;
   Target victim = Target::None;
   Spot from, to, head;
 };
 struct Fighter {
-  int species = 0, level = 1, hp = 1, energy = 4, charge = 0;
+  int species = 0, level = 1, hp = 1;
   Stats stats;
   Pose pose = Pose::Ready;
   int spirit = 100, spiritClock = 0;
@@ -72,7 +88,7 @@ struct Marker {
   int size = 0, percent = 0;
   bool hostile = true, heavy = false;
 };
-enum class CueKind { Hit, Unsettled, Dodged, Healed, StatusOn, Faint, Swap, AimYou, AimMine, Command, Calmed, Soothed, ReachStart, ReachBroken, WornDown };
+enum class CueKind { Hit, Unsettled, Dodged, Healed, StatusOn, Faint, Swap, AimYou, AimMine, Command, Calmed, Soothed, ReachStart, ReachBroken, WornDown, ResonanceFull };
 struct Cue {
   CueKind kind = CueKind::Hit;
   Target target = Target::None;
@@ -100,6 +116,15 @@ public:
   // The wild Signari is hurt enough to be recruited (still standing).
   bool wornDown() const;
   int recruitPercent() const { return data->recruitPercent; }
+  int resonance() const { return meter; }
+  // Fills the Resonance meter; tests use it to stage exact cases.
+  void resonate(int points);
+  // Why a slot cannot be used right now, for the HUD; empty when it can.
+  const char *whyNot(const Fighter &, int slot) const;
+  // A move's damage or healing and cooldown at this Signari's level, after rank-ups.
+  int power(const Fighter &, int move) const;
+  int rankPercent(const Fighter &, int move) const; // Product of unlocked powerPercent rank-ups.
+  int cooldown(const Fighter &, int move) const;
   const Fighter &mine() const { return team[active]; }
   const Fighter &wild() const { return foe; }
   const Wayfinder &you() const { return player; }
@@ -127,6 +152,7 @@ private:
   Rng rng;
   Outcome result = Outcome::Ongoing;
   bool worn = false; // Last worn-down state, so the cue fires once per crossing.
+  int meter = 0;
   int active = 0, clock = 0, order = -1, orderAge = 0, autoWait = 90, swapWait = 0, outside = 0;
   int plan = -1, planAge = 0, thinkWait = 60, ignored = 0, lastSlot = -1;
   Target planVictim = Target::None;
@@ -149,7 +175,8 @@ private:
   void finishStrike(Fighter &);
   void reachCheck(Fighter &, bool mineSide, const Spot &head, int size);
   void land(Fighter &attacker, Target victim, const Strike &);
-  void applyEffect(Fighter &owner, Fighter *other, const Effect &);
+  void applyEffect(Fighter &owner, Fighter *other, const Effect &, int percent);
+  std::vector<Effect> effectsAt(const Fighter &, int move) const;
   void tickFighter(Fighter &);
   void tickPlayer();
   void checkEnd();

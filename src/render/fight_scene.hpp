@@ -22,10 +22,13 @@ public:
     Vec scale{1, 1, 1};
   };
   using Project = std::function<std::array<int, 2>(Vec)>;
-  explicit FightScene(const std::filesystem::path &folder);
+  // Designer data (species, kits, types) comes from contentFolder, normally <game>/data/content.
+  FightScene(const std::filesystem::path &folder, const std::filesystem::path &contentFolder);
   bool active() const { return running; }
   // Test aid: fights start with the wild Signari already calm.
   void startCalm(bool yes) { calmStart = yes; }
+  // Owner review: lifts every Signari in a fight to at least this level, so later skills and ultimates can be tried.
+  void fightLevel(int level) { minLevel = level; }
   bool lost() const { return wasLost; }
   bool won() const { return wasWon; }
   bool reached() const { return wasReached; }
@@ -68,6 +71,7 @@ private:
     float age = 0;
     PixelUi::Colour colour;
   };
+  content::Content designs;
   battle::Content content;
   battle::FightData data;
   std::unique_ptr<battle::Fight> fight;
@@ -78,6 +82,7 @@ private:
   std::array<int, battle::MoveSlots + 1> wasReady{};
   std::array<float, battle::MoveSlots + 1> readyFlash{};
   battle::Pad pending;
+  int minLevel = 0;
   bool calmStart = false, running = false, wasLost = false, wasWon = false, wasReached = false, wasLeft = false;
   int encounters = 0, queued = -1, toastRank = 0;
   float spare = 0, toastTime = 0, hintTime = 0, clock = 0, clipClock = 0, commandT = 0;
