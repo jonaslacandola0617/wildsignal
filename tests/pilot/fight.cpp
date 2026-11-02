@@ -203,12 +203,14 @@ void beatingTheWildWins(const Setup &s) {
 }
 // Prints how three play styles fare at the HUD's encounter scale; a pacing report, not a pass mark.
 void reportPacing(const Setup &s) {
-  const char *names[] = {"stands still", "only moves and rolls", "moves, rolls, commands, dodges"};
-  for (int style = 0; style < 3; style++) {
-    int won = 0, lost = 0, ticks = 0, runs = 40;
+  const char *names[] = {"stands still", "only moves and rolls", "moves, rolls, commands, dodges", "same at level 10, using ultimates"};
+  for (int style = 0; style < 4; style++) {
+    int won = 0, lost = 0, ticks = 0, runs = 40, filled = 0, fillTicks = 0, ultimates = 0;
+    int level = style == 3 ? 10 : 5;
     for (int seed = 1; seed <= runs; seed++) {
-      Fight f(s.content, s.data, {{s.driftfin, 5, -1}, {s.glintle, 5, -1}}, {s.tumbletail, 3, -1}, {-4000, 0}, {0, 0}, std::uint32_t(seed * 37), {}, 240);
-      int turn = 0;
+      Fight f(s.content, s.data, {{s.driftfin, level, -1}, {s.glintle, level, -1}}, {s.tumbletail, style == 3 ? 10 : 3, -1}, {-4000, 0}, {0, 0},
+              std::uint32_t(seed * 37), {}, 240);
+      int turn = 0, firstFull = -1;
       for (int i = 0; i < 18000 && f.outcome() == Outcome::Ongoing; i++) {
         Pad p;
         if (style > 0) {
@@ -232,17 +234,23 @@ void reportPacing(const Setup &s) {
           }
         }
         if (style > 1) {
-          if (i % 45 == 0) p.command = (i / 45) % MoveSlots;
+          if (i % 45 == 0) p.command = (i / 45) % UltimateSlot;
+          if (style == 3 && f.canUse(f.mine(), UltimateSlot)) p.command = UltimateSlot;
           for (const auto &m : f.markers())
             if (m.hostile && m.percent > 65 && m.percent < 85) p.dodge = true;
         }
+        int before = f.resonance();
         f.step(p);
+        if (firstFull < 0 && f.resonance() == ResonanceFull) firstFull = f.tick();
+        ultimates += before == ResonanceFull && f.resonance() == 0;
       }
       won += f.outcome() == Outcome::Won;
       lost += f.outcome() == Outcome::Lost;
       ticks += f.tick();
+      if (firstFull >= 0) filled++, fillTicks += firstFull;
     }
-    std::printf("%s: won %d of %d, lost %d, average %d seconds\n", names[style], won, runs, lost, ticks / runs / TicksPerSecond);
+    std::printf("%s: won %d of %d, lost %d, average %d seconds; meter filled in %d fights (first after %d seconds on average), %d ultimates\n",
+                names[style], won, runs, lost, ticks / runs / TicksPerSecond, filled, filled ? fillTicks / filled / TicksPerSecond : 0, ultimates);
   }
 }
 void reachOutNeedsACalmSignariAndCloseRange(const Setup &s) {
