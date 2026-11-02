@@ -339,11 +339,14 @@ void FightScene::plate(PixelUi &ui, const Fighter &k, int x, int y, int w, bool 
   ui.meter(bar, rowHp, barW, float(value) / float(std::max(1, k.stats.hp)), "fill_hp", colour);
   // The recruit line: wear the wild Signari down past it, but not to zero.
   if (!full) ui.fill(bar + barW * fight->recruitPercent() / 100, rowHp - 2, 2, 10, fight->wornDown() ? Gold : Cream);
-  int icon = left + 112;
+  // On your plate the status icons sit beside the name, clear of the full-width Resonance meter.
+  int icon = full ? left + ui.width(nameOf(k)) + 6 : left + 112;
   if (full) {
-    // The Resonance meter replaces energy; UI-001 gives it its own art.
+    // The Resonance meter replaces energy, labelled and lined up with "You" below; UI-001 gives it its own art.
     int meter = fight->resonance();
-    ui.meter(bar, rowTwo, barW, float(meter) / float(battle::ResonanceFull), "fill_sp", meter >= battle::ResonanceFull ? Gold : Calm);
+    bool ready = meter >= battle::ResonanceFull;
+    ui.text(ready ? "R!" : "Res", left, rowTwo - 1, ready ? Gold : t.ink);
+    ui.meter(60, rowTwo, 154, float(meter) / float(battle::ResonanceFull), "fill_sp", ready ? Gold : Calm);
   } else {
     bool calm = k.spirit <= battle::CalmSpirit;
     if (ui.has("icon_spirit")) ui.image("icon_spirit", left - 2, rowTwo - 3);
@@ -351,7 +354,7 @@ void FightScene::plate(PixelUi &ui, const Fighter &k, int x, int y, int w, bool 
     if (calm && ui.has("calm_mark")) ui.image("calm_mark", right + 3, rowTwo - 2);
     icon = left + 76;
   }
-  int line = full ? rowTwo - 4 : y + 4;
+  int line = full ? y + 6 : y + 4;
   auto mark = [&](bool on, battle::Status s) {
     if (on) {
       ui.image(statusIcon(s), icon, line);

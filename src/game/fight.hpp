@@ -15,8 +15,8 @@ constexpr int TicksPerSecond = 60;
 constexpr int BasicSlot = 0, UltimateSlot = 4, MoveSlots = 5;
 // The Resonance meter (GDD 2.7) is the player's, shared by the team and kept across swaps.
 // Clean play fills it; when full, the active Signari's ultimate is ready, and using it empties it.
-constexpr int ResonanceFull = 100, ResonanceDodge = 15, ResonanceRoll = 10, ResonanceCommanded = 8, ResonanceAuto = 5,
-              ResonanceBasic = 2;
+constexpr int ResonanceFull = 100, ResonanceDodge = 30, ResonanceRoll = 20, ResonanceCommanded = 16, ResonanceAuto = 10,
+              ResonanceBasic = 4; // Doubled after the first play-test: the first ultimate now comes ~30 s in.
 constexpr int FullComposure = 80;
 constexpr int RingRadius = 9500;
 constexpr int CalmSpirit = 30, ReachRange = 2600, ReachTicks = 72;
