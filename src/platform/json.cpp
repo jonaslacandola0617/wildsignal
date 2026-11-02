@@ -104,7 +104,7 @@ const Json::Array& Json::array() const { const auto* p=std::get_if<Array>(&value
 const std::string& Json::string() const { const auto* p=std::get_if<std::string>(&value); if(!p) bad(); return *p; }
 double Json::number() const { const auto* p=std::get_if<double>(&value); if(!p) bad(); return *p; }
 Json parseJson(std::string_view text) {
-    if(text.size()>65536) bad();
+    if(text.size()>1048576) bad(); // 1 MB: room for kits for all 50 species.
     Parser p{text}; auto r=p.read(0); p.space(); if(p.p!=text.size()) bad(); return r;
 }
 std::string quoteJson(std::string_view text) {

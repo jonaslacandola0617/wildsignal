@@ -43,7 +43,9 @@ struct Roster {
   int index(std::string_view id) const;
 };
 
-enum class Shape { Single, Line, Cone, Circle, Self, Ally, Team };
+// The shapes the fight supports today (FIGHT-002); cone and team-wide come later.
+enum class Shape { Dash, Lane, Burst, Self };
+enum class Kind { Physical, Signal };
 enum class Target { Enemy, Self, Ally, Team };
 enum class EffectKind { Damage, Heal, Status };
 struct Effect {
@@ -59,8 +61,10 @@ struct RankUp {
 };
 struct Skill {
   std::string id, name;
-  Shape shape = Shape::Single;
-  int windupMs = 0, cooldownMs = 0, unlockLevel = 1;
+  Shape shape = Shape::Dash;
+  Kind kind = Kind::Physical; // Which stats a damage effect uses: might/guard or pulse/ward.
+  int rangeMm = 0, sizeMm = 0, windupMs = 0, recoverMs = 0, cooldownMs = 0, unlockLevel = 1;
+  bool gentle = false; // Soothes the wild Signari more than it hurts.
   std::vector<Effect> effects;
   std::vector<RankUp> rankUps;
 };

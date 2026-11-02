@@ -43,18 +43,18 @@ const char *GoodKits = R"({
   "schema": "wildsignal-kits-v1",
   "kits": [{
     "species": "WS-050",
-    "basic": {"id": "SPARK", "name": "Spark", "shape": "single", "windupMs": 150, "cooldownMs": 0, "unlockLevel": 1,
+    "basic": {"id": "SPARK", "name": "Spark", "shape": "dash", "rangeMm": 2400, "sizeMm": 650, "windupMs": 150, "recoverMs": 300, "cooldownMs": 0, "unlockLevel": 1,
               "effects": [{"kind": "damage", "target": "enemy", "amount": 12}]},
     "skills": [
-      {"id": "FLARE", "name": "Flare", "shape": "cone", "windupMs": 400, "cooldownMs": 6000, "unlockLevel": 1,
+      {"id": "FLARE", "name": "Flare", "shape": "burst", "kind": "signal", "rangeMm": 5000, "sizeMm": 1400, "windupMs": 400, "recoverMs": 400, "cooldownMs": 6000, "unlockLevel": 1,
        "effects": [{"kind": "damage", "target": "enemy", "amount": 30}],
        "rankUps": [{"level": 15, "powerPercent": 120}, {"level": 30, "cooldownPercent": 80}]},
-      {"id": "DASH", "name": "Ember Dash", "shape": "line", "windupMs": 200, "cooldownMs": 8000, "unlockLevel": 1,
+      {"id": "DASH", "name": "Ember Dash", "shape": "lane", "rangeMm": 6000, "sizeMm": 500, "windupMs": 200, "recoverMs": 400, "cooldownMs": 8000, "unlockLevel": 1,
        "effects": [{"kind": "damage", "target": "enemy", "amount": 20}]},
-      {"id": "SCORCH", "name": "Scorch", "shape": "circle", "windupMs": 500, "cooldownMs": 10000, "unlockLevel": 5,
-       "effects": [{"kind": "status", "target": "enemy", "status": "Burn", "durationMs": 4000}]}
+      {"id": "SCORCH", "name": "Scorch", "shape": "self", "rangeMm": 0, "sizeMm": 0, "windupMs": 500, "recoverMs": 400, "cooldownMs": 10000, "unlockLevel": 5,
+       "effects": [{"kind": "status", "target": "self", "status": "Focus", "durationMs": 4000}]}
     ],
-    "ultimate": {"id": "ERUPT", "name": "Eruption", "shape": "circle", "windupMs": 900, "cooldownMs": 0, "unlockLevel": 10,
+    "ultimate": {"id": "ERUPT", "name": "Eruption", "shape": "burst", "rangeMm": 3000, "sizeMm": 2400, "windupMs": 900, "recoverMs": 700, "cooldownMs": 0, "unlockLevel": 10,
                  "effects": [{"kind": "damage", "target": "enemy", "amount": 80}]}
   }]
 })";
@@ -83,7 +83,9 @@ int realFiles(const std::filesystem::path &folder) {
   check(c.types.percent("Flora", "Tide") == 125 && c.types.percent("Tide", "Flora") == 80, "Flora beats Tide");
   check(c.types.percent("Lumen", "Gloom") == 125 && c.types.percent("Gloom", "Lumen") == 125, "Lumen and Gloom hit each other hard");
   check(c.types.percent("Flora", "Lumen") == 100, "neutral matchup");
-  check(c.kits.kits.empty(), "kits are written in FIGHT-002");
+  check(c.kits.kits.size() == 9, "FIGHT-002 kits for the first nine");
+  for (const auto &k : c.kits.kits)
+    check(c.roster.species[c.roster.index(k.species)].stats.has_value(), "every kit belongs to a species with stats");
   // A full kit validates against the real roster.
   auto kits = content::parseKits(GoodKits, c.roster);
   check(kits.kits.size() == 1 && kits.kits[0].skills.size() == 3 && kits.kits[0].skills[0].rankUps.size() == 2, "example kit parses");
@@ -119,7 +121,7 @@ int badData(const std::filesystem::path &folder) {
 
   std::string kits = GoodKits;
   rejects("unknown kit species", K(replaced(kits, R"("species": "WS-050")", R"("species": "WS-999")")), "unknown species 'WS-999'");
-  rejects("skill count", K(replaced(kits, R"(      {"id": "DASH", "name": "Ember Dash", "shape": "line", "windupMs": 200, "cooldownMs": 8000, "unlockLevel": 1,
+  rejects("skill count", K(replaced(kits, R"(      {"id": "DASH", "name": "Ember Dash", "shape": "lane", "rangeMm": 6000, "sizeMm": 500, "windupMs": 200, "recoverMs": 400, "cooldownMs": 8000, "unlockLevel": 1,
        "effects": [{"kind": "damage", "target": "enemy", "amount": 20}]},
 )", "")), "needs exactly 3 skills");
   rejects("skill without cooldown", K(replaced(kits, R"("cooldownMs": 8000)", R"("cooldownMs": 0)")), "cooldownMs: 0 is outside 1..120000");
@@ -127,8 +129,12 @@ int badData(const std::filesystem::path &folder) {
   rejects("basic unlocks later", K(replaced(kits, R"("cooldownMs": 0, "unlockLevel": 1)", R"("cooldownMs": 0, "unlockLevel": 2)")), "basic.unlockLevel");
   rejects("rank-ups out of order", K(replaced(kits, R"({"level": 30, )", R"({"level": 12, )")), "must be above 15");
   rejects("rank-up changes nothing", K(replaced(kits, R"({"level": 30, "cooldownPercent": 80})", R"({"level": 30})")), "changes nothing");
-  rejects("unknown status", K(replaced(kits, R"("status": "Burn")", R"("status": "Freeze")")), "unknown value 'Freeze'");
-  rejects("unknown shape", K(replaced(kits, R"("shape": "cone")", R"("shape": "star")")), "unknown value 'star'");
+  rejects("unknown status", K(replaced(kits, R"("status": "Focus")", R"("status": "Freeze")")), "unknown value 'Freeze'");
+  rejects("unknown shape", K(replaced(kits, R"("shape": "lane")", R"("shape": "cone")")), "unknown value 'cone'");
+  rejects("self move with range", K(replaced(kits, R"("shape": "self", "rangeMm": 0)", R"("shape": "self", "rangeMm": 900)")), "rangeMm: 900 is outside 0..0");
+  rejects("aimed move without size", K(replaced(kits, R"("rangeMm": 6000, "sizeMm": 500)", R"("rangeMm": 6000, "sizeMm": 0)")), "sizeMm: 0 is outside 100..4000");
+  rejects("damage on self", K(replaced(kits, R"("target": "enemy", "amount": 20)", R"("target": "self", "amount": 20)")), "damage must target the enemy");
+  rejects("basic without damage", K(replaced(kits, R"({"kind": "damage", "target": "enemy", "amount": 12})", R"({"kind": "heal", "target": "self", "amount": 12})")), "basic attack must deal damage");
   rejects("no effects", K(replaced(kits, R"("effects": [{"kind": "damage", "target": "enemy", "amount": 80}])", R"("effects": [])")), "needs at least one effect");
   rejects("duplicate skill id", K(replaced(kits, R"("id": "DASH")", R"("id": "FLARE")")), "duplicate skill id 'FLARE'");
   rejects("missing file", [&] { content::load(folder / "absent"); }, "cannot open");

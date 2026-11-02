@@ -30,6 +30,8 @@ PixelUi::Colour affinityColour(battle::Affinity a) {
   case battle::Affinity::Ember: return {.92f, .55f, .28f, 1};
   case battle::Affinity::Stone: return {.75f, .68f, .55f, 1};
   case battle::Affinity::Lumen: return {.96f, .86f, .55f, 1};
+  case battle::Affinity::Gale: return {.70f, .84f, .90f, 1};
+  case battle::Affinity::Gloom: return {.62f, .52f, .74f, 1};
   default: return {.84f, .80f, .70f, 1};
   }
 }
@@ -49,9 +51,9 @@ Mat posed(const FightScene::Staged &s, float base) {
   return out * lift * pitch * roll * drop * scale;
 }
 
-FightScene::FightScene(const std::filesystem::path &folder) {
-  content = battle::parseRoster(readText(folder / "roster.json"));
-  data = battle::parseFight(readText(folder / "fight.json"), content);
+FightScene::FightScene(const std::filesystem::path &, const std::filesystem::path &contentFolder) {
+  designs = content::load(contentFolder);
+  data = battle::buildFight(designs, content);
 }
 std::string FightScene::nameOf(const Fighter &k) const { return content.species[k.species].name; }
 void FightScene::say(const std::string &text, float seconds, int rank) {
@@ -69,9 +71,9 @@ void FightScene::start(const std::string &wildSpecies, int wildLevel, int wildHe
   bool anyone = std::any_of(team.begin(), team.end(), [](const bond::Member &m) { return m.hp != 0; });
   std::vector<battle::Member> members;
   for (const auto &m : team)
-    members.push_back({content.speciesIndex(m.species), m.level, anyone ? m.hp : -1});
+    members.push_back({content.speciesIndex(m.species), std::max(m.level, minLevel), anyone ? m.hp : -1});
   encounters++;
-  fight = std::make_unique<battle::Fight>(content, data, members, battle::Member{content.speciesIndex(wildSpecies), wildLevel, -1}, millimetres(you), millimetres(wild),
+  fight = std::make_unique<battle::Fight>(content, data, members, battle::Member{content.speciesIndex(wildSpecies), std::max(wildLevel, minLevel), -1}, millimetres(you), millimetres(wild),
                                           std::uint32_t(0x51A7 + encounters), blocks, wildHealth);
   if (calmStart) fight->soothe(75);
   running = true;
@@ -104,16 +106,18 @@ void FightScene::key(int k) {
     if (k == SDLK_RETURN || k == SDLK_E) finish();
     return;
   }
-  if (k >= SDLK_1 && k < SDLK_1 + battle::MoveSlots) {
-    pending.command = int(k - SDLK_1);
-    if (!fight->canUse(fight->mine(), pending.command)) say(fight->mine().ready[pending.command] > 0 ? "That move is still recovering." : "Not enough energy.", 1, 0);
+  // GDD 5.6: 1 basic, 2-4 skills, R ultimate, C dodge, Space roll, Tab swap, F reach out.
+  int slot = k >= SDLK_1 && k <= SDLK_4 ? int(k - SDLK_1) : k == SDLK_R ? battle::UltimateSlot : -1;
+  if (slot >= 0) {
+    pending.command = slot;
+    if (!fight->canUse(fight->mine(), slot)) say(fight->whyNot(fight->mine(), slot), 1, 0);
   } else if (k == SDLK_SPACE) {
     pending.roll = true;
-  } else if (k == SDLK_Q) {
+  } else if (k == SDLK_C) {
     pending.dodge = true;
   } else if (k == SDLK_TAB || k == SDLK_P) {
     pending.swap = true;
-  } else if (k == SDLK_R) {
+  } else if (k == SDLK_F) {
     pending.reach = true;
     if (!fight->canReach())
       say(!fight->wornDown() ? "Wear " + nameOf(fight->wild()) + " down past the line first."
@@ -166,14 +170,20 @@ void FightScene::cues() {
       queued = c.value;
       break;
     case CueKind::Calmed:
-      say(nameOf(fight->wild()) + (fight->wornDown() ? " is calm. Get close and press R." : " is calm. Wear it down past the line."), 2.6f, 2);
+      say(nameOf(fight->wild()) + (fight->wornDown() ? " is calm. Get close and press F." : " is calm. Wear it down past the line."), 2.6f, 2);
       break;
     case CueKind::WornDown:
       floaters.push_back({at + Vec{0, 1.6f, 0}, "Worn down", Gold});
-      say(nameOf(fight->wild()) + (fight->wild().spirit <= battle::CalmSpirit ? " is worn down. Get close and press R." : " is worn down. Calm it, then press R."), 2.6f, 2);
+      say(nameOf(fight->wild()) + (fight->wild().spirit <= battle::CalmSpirit ? " is worn down. Get close and press F." : " is worn down. Calm it, then press F."), 2.6f, 2);
       break;
     case CueKind::Soothed:
       floaters.push_back({at + Vec{.45f, 1.2f, 0}, "", Calm, 0, "icon_spirit"});
+      break;
+    case CueKind::ResonanceFull:
+      if (fight->canUse(fight->mine(), battle::UltimateSlot))
+        say("Resonance full! R: " + content.moves[fight->moveId(fight->mine(), battle::UltimateSlot)].name, 2, 1);
+      else
+        say("Resonance full!", 1.6f, 1);
       break;
     case CueKind::ReachStart:
       clipClock = 0;
@@ -331,14 +341,9 @@ void FightScene::plate(PixelUi &ui, const Fighter &k, int x, int y, int w, bool 
   if (!full) ui.fill(bar + barW * fight->recruitPercent() / 100, rowHp - 2, 2, 10, fight->wornDown() ? Gold : Cream);
   int icon = left + 112;
   if (full) {
-    if (ui.has("icon_energy")) ui.image("icon_energy", left - 2, rowTwo - 2);
-    if (ui.has("energy_on")) {
-      ui.part("energy_off", bar, rowTwo, 41, 2);
-      if (k.energy > 0) ui.part("energy_on", bar, rowTwo, 1 + k.energy * 5, 2);
-    } else {
-      for (int i = 0; i < 8; i++)
-        ui.image(i < k.energy ? "pip_on" : "pip_off", bar + i * 9, rowTwo);
-    }
+    // The Resonance meter replaces energy; UI-001 gives it its own art.
+    int meter = fight->resonance();
+    ui.meter(bar, rowTwo, barW, float(meter) / float(battle::ResonanceFull), "fill_sp", meter >= battle::ResonanceFull ? Gold : Calm);
   } else {
     bool calm = k.spirit <= battle::CalmSpirit;
     if (ui.has("icon_spirit")) ui.image("icon_spirit", left - 2, rowTwo - 3);
@@ -368,7 +373,7 @@ void FightScene::moveBar(PixelUi &ui) {
     const auto &m = content.moves[id];
     bool can = fight->canUse(k, i);
     ui.strip(queued == i || readyFlash[i] > 0 || (k.pose == Pose::Windup && k.strike.slot == i) ? "button_on" : can ? "button" : "button_off", x, y, w, h);
-    ui.text(std::to_string(i + 1), x + 5, y + 8, can ? t.key : t.keyOff);
+    ui.text(i == battle::UltimateSlot ? "R" : std::to_string(i + 1), x + 5, y + 8, can ? t.key : t.keyOff);
     const auto &name = m.name;
     auto cut = ui.width(name) <= 60 ? std::string::npos : name.find(' ');
     auto colour = can ? t.onButton : t.onButtonOff;
@@ -378,18 +383,20 @@ void FightScene::moveBar(PixelUi &ui) {
       ui.text(name.substr(0, cut), x + 18, y + 3, colour);
       ui.text(name.substr(cut + 1), x + 18, y + 12, colour);
     }
-    if (m.cost > 0) {
-      if (ui.has("energy_on")) ui.part("energy_on", x + 18, y - 7, 1 + m.cost * 5, 2);
-      else
-        for (int c = 0; c < m.cost; c++)
-          ui.image("pip_on", x + 18 + c * 8, y - 6);
+    if (k.level < data.unlock[id]) {
+      ui.text("Lv " + std::to_string(data.unlock[id]), x + 60, y - 9, t.keyOff);
+    } else if (i == battle::UltimateSlot) {
+      // The ultimate fills with the Resonance meter instead of a cooldown.
+      int meter = fight->resonance();
+      if (meter < battle::ResonanceFull) ui.fill(x + 14, y + 3, std::max(1, 64 * (battle::ResonanceFull - meter) / battle::ResonanceFull), 17, Waiting);
+    } else if (k.ready[i] > 0) {
+      ui.fill(x + 14, y + 3, std::max(1, 64 * k.ready[i] / std::max(1, fight->cooldown(k, id))), 17, Waiting);
     }
-    if (k.ready[i] > 0) ui.fill(x + 14, y + 3, std::max(1, 64 * k.ready[i] / std::max(1, data.timing[id].cooldown)), 17, Waiting);
   }
   int x = left + battle::MoveSlots * step;
   bool ready = k.dodgeReady == 0 && k.pose != Pose::Down;
   ui.strip(!ready ? "button_off" : readyFlash[battle::MoveSlots] > 0 ? "button_on" : "button_alt", x, y, w, h);
-  ui.text("Q", x + 5, y + 8, ready ? t.key : t.keyOff);
+  ui.text("C", x + 5, y + 8, ready ? t.key : t.keyOff);
   ui.text("Dodge", x + 18, y + 8, ready ? t.onButton : t.onButtonOff);
   if (!ready) ui.fill(x + 14, y + 3, std::max(1, 64 * k.dodgeReady / 150), 17, Waiting);
 }
@@ -423,7 +430,7 @@ void FightScene::draw(PixelUi &ui, const Project &project) {
     ui.text(text, 38, 291, can ? t.faded : t.onButtonOff);
   }
   moveBar(ui);
-  std::string line = toastTime > 0 ? toast : hintTime > 0 ? "WASD move   Space roll   1-5 moves   Q dodge" : "";
+  std::string line = toastTime > 0 ? toast : hintTime > 0 ? "WASD move   Space roll   1-4 skills   R ultimate   C dodge" : "";
   if (fight->canReach() && fight->outcome() == battle::Outcome::Ongoing && you.reachTicks == 0) {
     ui.note("[R] reach out", 320, 294);
   }

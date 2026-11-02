@@ -1,5 +1,4 @@
 #include "fight.hpp"
-#include "json.hpp"
 #include <algorithm>
 #include <climits>
 #include <cstdlib>
@@ -10,7 +9,7 @@ constexpr int BodyRadius = 360, CreatureRadius = 420, PlayerRadius = 260;
 constexpr int RunSpeed = 3600 / TicksPerSecond, RollSpeed = 8000 / TicksPerSecond, RollTicks = 18, RollWait = 54;
 constexpr int LeapSpeed = 7800 / TicksPerSecond, LeapTicks = 16, DodgeWait = 150, WildDodgeWait = 300;
 constexpr int HeadSpeedDash = 12000 / TicksPerSecond, HeadSpeedLane = 14000 / TicksPerSecond;
-constexpr int EnergySeconds90 = 90, StatusTicks = 90, StatusHp = 3, GuardTicks = 180, FocusTicks = 360, SlowTicks = 240;
+constexpr int StatusTicks = 90, StatusHp = 3, GuardTicks = 180, FocusTicks = 360, SlowTicks = 240;
 constexpr int HitSafeTicks = 60, HurtTicks = 22, FlinchTicks = 12, CalmAfter = 240, CalmStep = 20, DownTicks = 45;
 constexpr int DodgeCalm = 10, GentleCalm = 12, HardCalm = 3, SpiritTicks = 90, ReachWait = 300;
 constexpr int SwapWait = 180, OrderLife = 300, AutoWait = 240, PushTicks = 16, HeavyPower = 18;
@@ -34,14 +33,27 @@ Spot along(Spot from, Spot to, int mm) {
   return {from.x + int(std::int64_t(to.x - from.x) * mm / d), from.z + int(std::int64_t(to.z - from.z) * mm / d)};
 }
 Spot unit(Spot from, Spot to) { return along({0, 0}, {to.x - from.x, to.z - from.z}, 1000); }
-Reach reachFrom(const std::string &name) {
-  if (name == "dash") return Reach::Dash;
-  if (name == "lane") return Reach::Lane;
-  if (name == "burst") return Reach::Burst;
-  if (name == "self") return Reach::Self;
-  throw std::runtime_error("unknown fight reach " + name);
+Reach reachOf(content::Shape shape) {
+  switch (shape) {
+  case content::Shape::Dash: return Reach::Dash;
+  case content::Shape::Lane: return Reach::Lane;
+  case content::Shape::Burst: return Reach::Burst;
+  default: return Reach::Self;
+  }
 }
-int ticksOf(double ms) { return std::max(1, int(ms) * TicksPerSecond / 1000); }
+int ticksOf(int ms) { return std::max(1, ms * TicksPerSecond / 1000); }
+Effect effectOf(const content::Effect &e) {
+  Effect out;
+  out.onSelf = e.target != content::Target::Enemy;
+  if (e.kind == content::EffectKind::Heal) {
+    out.heal = true;
+    out.hp = e.amount;
+  } else {
+    out.status = e.status;
+    out.ticks = ticksOf(e.durationMs);
+  }
+  return out;
+}
 // True when a spot stands in the telegraphed shape: the lane from start to end, or the circle.
 bool inside(const Strike &s, Spot p) {
   if (s.reach == Reach::Burst) return gap(p, s.to) <= s.size + BodyRadius;
@@ -60,43 +72,61 @@ Fighter makeFighter(const Content &c, const Member &m) {
 }
 } // namespace
 
-FightData parseFight(std::string_view text, const Content &c) {
-  auto root = ws::parseJson(text);
+FightData buildFight(const content::Content &c, Content &out) {
+  out = {};
   FightData d;
-  d.timing.resize(c.moves.size());
-  std::vector<bool> known(c.moves.size(), false);
-  for (const auto &[id, t] : std::get<ws::Json::Object>(root.at("timing").value)) {
-    int index = c.moveIndex(id);
-    d.timing[index] = {reachFrom(t.at("reach").string()), int(t.at("range").number()), int(t.at("size").number()),
-                       ticksOf(t.at("windup").number()), ticksOf(t.at("recover").number()), ticksOf(t.at("cooldown").number())};
-    known[index] = true;
+  for (auto &row : d.matchup)
+    row.fill(100);
+  for (const auto &a : c.types.types)
+    for (const auto &b : c.types.types)
+      d.matchup[int(affinityNamed(a.id))][int(affinityNamed(b.id))] = c.types.percent(a.id, b.id);
+  auto add = [&](const content::Species &sp, const content::Skill &s) {
+    Move m;
+    m.id = sp.id + "/" + s.id;
+    m.name = s.name;
+    m.type = affinityNamed(sp.type);
+    m.kind = Kind::Support;
+    m.self = s.shape == content::Shape::Self;
+    for (const auto &e : s.effects) {
+      if (e.kind == content::EffectKind::Damage) {
+        m.power = e.amount;
+        m.kind = s.kind == content::Kind::Signal ? Kind::Signal : Kind::Physical;
+      } else {
+        m.effects.push_back(effectOf(e));
+      }
+    }
+    out.moves.push_back(std::move(m));
+    Timing t{reachOf(s.shape), s.rangeMm, s.sizeMm, ticksOf(s.windupMs), ticksOf(s.recoverMs), s.cooldownMs ? ticksOf(s.cooldownMs) : 0};
+    t.gentle = s.gentle;
+    d.timing.push_back(t);
+    d.unlock.push_back(s.unlockLevel);
+    std::vector<RankUp> ranks;
+    for (const auto &r : s.rankUps) {
+      RankUp up{r.level, r.powerPercent, r.cooldownPercent, {}};
+      for (const auto &e : r.addEffects)
+        if (e.kind != content::EffectKind::Damage) up.addEffects.push_back(effectOf(e));
+      ranks.push_back(std::move(up));
+    }
+    d.ranks.push_back(std::move(ranks));
+    return int(out.moves.size()) - 1;
+  };
+  for (const auto &sp : c.roster.species) {
+    auto kit = std::find_if(c.kits.kits.begin(), c.kits.kits.end(), [&](const content::Kit &k) { return k.species == sp.id; });
+    if (!sp.stats || kit == c.kits.kits.end()) continue;
+    Species species;
+    species.id = sp.id;
+    species.name = sp.name;
+    species.affinity = affinityNamed(sp.type);
+    species.base = *sp.stats;
+    std::array<int, MoveSlots> slots{};
+    slots[BasicSlot] = add(sp, kit->basic);
+    for (int i = 0; i < 3; i++)
+      slots[1 + i] = add(sp, kit->skills[i]);
+    slots[UltimateSlot] = add(sp, kit->ultimate);
+    out.species.push_back(std::move(species));
+    d.slots.push_back(slots);
   }
-  if (std::find(known.begin(), known.end(), false) != known.end()) throw std::runtime_error("every move needs fight timing");
-  // Slot 0 is the free basic attack of the Signari's affinity. A basicAttacks table
-  // must name one for every affinity; without the table everyone shares Tap.
-  std::array<int, Affinities> basic{};
-  const auto &fields = std::get<ws::Json::Object>(root.value);
-  auto table = fields.find("basicAttacks");
-  for (int a = 0; a < Affinities; a++) {
-    basic[a] = c.moveIndex(table == fields.end() ? "TAP" : table->second.at(affinityName(Affinity(a))).string());
-    const auto &m = c.moves[basic[a]];
-    if (m.cost != 0 || m.self || m.kind == Kind::Support) throw std::runtime_error("basic attack " + m.id + " must be a free attack");
-  }
-  d.slots.resize(c.species.size());
-  const auto &slots = root.at("slots");
-  for (std::size_t i = 0; i < c.species.size(); i++) {
-    const auto &list = slots.at(c.species[i].id).array();
-    if (list.size() != LearnedMoves) throw std::runtime_error("four learned moves per species required");
-    d.slots[i][0] = basic[int(c.species[i].affinity)];
-    for (int s = 0; s < LearnedMoves; s++)
-      d.slots[i][s + 1] = c.moveIndex(list[s].string());
-  }
-  for (const auto &g : root.at("gentle").array())
-    d.timing[c.moveIndex(g.string())].gentle = true;
-  if (auto at = fields.find("recruitHealthPercent"); at != fields.end()) {
-    d.recruitPercent = int(at->second.number());
-    if (d.recruitPercent < 1 || d.recruitPercent > 100) throw std::runtime_error("recruitHealthPercent 1..100");
-  }
+  if (out.species.empty()) throw std::runtime_error("no species has both stats and a kit");
   return d;
 }
 
@@ -131,9 +161,38 @@ void Fight::wound(int points) { foe.hp = std::max(1, foe.hp - points); }
 bool Fight::wornDown() const { return foe.hp > 0 && foe.hp * 100 <= foe.stats.hp * data->recruitPercent; }
 bool Fight::canReach() const { return wornDown() && foe.spirit <= CalmSpirit && gap(player.at, foe.at) <= ReachRange; }
 int Fight::moveId(const Fighter &k, int slot) const { return data->slots[k.species][slot]; }
-bool Fight::canUse(const Fighter &k, int slot) const {
-  if (slot < 0 || slot >= MoveSlots || k.ready[slot] > 0) return false;
-  return k.energy >= content->moves[moveId(k, slot)].cost;
+bool Fight::canUse(const Fighter &k, int slot) const { return whyNot(k, slot)[0] == 0; }
+const char *Fight::whyNot(const Fighter &k, int slot) const {
+  if (slot < 0 || slot >= MoveSlots) return "No such move.";
+  if (k.level < data->unlock[moveId(k, slot)]) return "Not learned yet.";
+  // The meter is the player's, so a wild Signari never uses its ultimate.
+  if (slot == UltimateSlot && (&k == &foe || meter < ResonanceFull)) return "Resonance is not full yet.";
+  if (k.ready[slot] > 0) return "That move is still recovering.";
+  return "";
+}
+int Fight::rankPercent(const Fighter &k, int move) const {
+  int percent = 100;
+  for (const auto &r : data->ranks[move])
+    if (k.level >= r.level) percent = percent * r.powerPercent / 100;
+  return percent;
+}
+int Fight::power(const Fighter &k, int move) const { return content->moves[move].power * rankPercent(k, move) / 100; }
+int Fight::cooldown(const Fighter &k, int move) const {
+  int t = data->timing[move].cooldown;
+  for (const auto &r : data->ranks[move])
+    if (k.level >= r.level) t = t * r.cooldownPercent / 100;
+  return t;
+}
+std::vector<Effect> Fight::effectsAt(const Fighter &k, int move) const {
+  auto out = content->moves[move].effects;
+  for (const auto &r : data->ranks[move])
+    if (k.level >= r.level) out.insert(out.end(), r.addEffects.begin(), r.addEffects.end());
+  return out;
+}
+void Fight::resonate(int points) {
+  if (meter >= ResonanceFull) return;
+  meter = std::min(ResonanceFull, meter + points);
+  if (meter == ResonanceFull) cues.push_back({CueKind::ResonanceFull, Target::Mine, 0, mine().at});
 }
 Spot Fight::slide(Spot from, Spot to, int radius) const {
   auto clear = [&](Spot p) {
@@ -292,6 +351,7 @@ void Fight::begin(Fighter &k, int slot, Target victim) {
   s.from = s.head = k.at;
   k.pose = Pose::Windup;
   k.poseTicks = t.windup;
+  if (mineSide && slot == UltimateSlot) meter = 0;
   if (t.reach != Reach::Self) {
     Spot aim = victim == Target::You ? player.at : victim == Target::Wild ? foe.at : mine().at;
     // Both sides lead a moving target, so a straight run is not safe and aimed moves can land.
@@ -311,15 +371,12 @@ void Fight::strike(Target attacker, int slot, Target victim) {
 }
 void Fight::release(Fighter &k, bool mineSide) {
   auto &s = k.strike;
-  const auto &m = content->moves[s.move];
-  k.energy -= m.cost;
-  k.ready[s.slot] = data->timing[s.move].cooldown;
-  k.charge = 0;
+  k.ready[s.slot] = cooldown(k, s.move);
   if (!mineSide) lastSlot = s.slot;
   if (s.reach == Reach::Self) {
     if (!mineSide) k.supports++;
-    for (const auto &e : m.effects)
-      applyEffect(k, nullptr, e);
+    for (const auto &e : effectsAt(k, s.move))
+      applyEffect(k, nullptr, e, rankPercent(k, s.move));
     finishStrike(k);
   } else if (s.reach == Reach::Burst) {
     reachCheck(k, mineSide, s.to, s.size);
@@ -355,7 +412,10 @@ void Fight::reachCheck(Fighter &k, bool mineSide, const Spot &head, int size) {
     s.struck |= bit;
     if (safe) {
       cues.push_back({CueKind::Dodged, who, 0, at});
-      if (!mineSide && (who == Target::You ? player.rollTicks > 0 : mine().pose == Pose::Dodge)) soothe(DodgeCalm);
+      if (!mineSide && (who == Target::You ? player.rollTicks > 0 : mine().pose == Pose::Dodge)) {
+        soothe(DodgeCalm);
+        resonate(who == Target::You ? ResonanceRoll : ResonanceDodge);
+      }
     } else {
       land(k, who, s);
     }
@@ -376,7 +436,7 @@ void Fight::land(Fighter &a, Target victim, const Strike &s) {
       p.reachTicks = 0;
       cues.push_back({CueKind::ReachBroken, Target::You, 0, p.at});
     }
-    int loss = std::min(p.composure, std::max(10, m.power));
+    int loss = std::min(p.composure, std::max(10, power(a, s.move)));
     p.composure -= loss;
     p.hurtTicks = HurtTicks;
     p.safeTicks = HitSafeTicks;
@@ -386,45 +446,49 @@ void Fight::land(Fighter &a, Target victim, const Strike &s) {
     if (way == Spot{}) way = a.face;
     p.push = {way.x * 75 / 1000, way.z * 75 / 1000};
     cues.push_back({CueKind::Unsettled, Target::You, loss, p.at});
-    for (const auto &e : m.effects)
-      if (!e.onSelf && !e.heal && e.status == Status::Slow) p.slow = SlowTicks;
+    for (const auto &e : effectsAt(a, s.move))
+      if (!e.onSelf && !e.heal && e.status == Status::Slow) p.slow = e.ticks ? e.ticks : SlowTicks;
     return;
   }
   Fighter &t = victim == Target::Wild ? foe : own();
   bool physical = m.kind == Kind::Physical;
-  int matchup = affinityPercent(m.type, content->species[t.species].affinity);
-  auto hit = damage({m.power, physical ? a.stats.might : a.stats.pulse, physical ? t.stats.guard : t.stats.ward, a.level,
+  int matchup = data->matchup[int(m.type)][int(content->species[t.species].affinity)];
+  auto hit = damage({power(a, s.move), physical ? a.stats.might : a.stats.pulse, physical ? t.stats.guard : t.stats.ward, a.level,
                      matchup, a.focus > 0, t.guard > 0});
   int applied = std::min(t.hp, hit.finalDamage);
   t.hp -= applied;
   a.focus = 0;
   t.guard = 0;
   cues.push_back({CueKind::Hit, victim, applied, t.at, Status::Guard, m.type, matchup});
-  if (victim == Target::Wild) soothe(data->timing[s.move].gentle ? GentleCalm : HardCalm);
+  if (victim == Target::Wild) {
+    soothe(data->timing[s.move].gentle ? GentleCalm : HardCalm);
+    if (s.slot != UltimateSlot) resonate(s.slot == BasicSlot ? ResonanceBasic : s.commanded ? ResonanceCommanded : ResonanceAuto);
+  }
   if (t.pose == Pose::Ready || t.pose == Pose::Recover) {
     t.pose = Pose::Hurt;
     t.poseTicks = FlinchTicks;
   }
   if (t.hp > 0)
-    for (const auto &e : m.effects)
-      applyEffect(a, &t, e);
+    for (const auto &e : effectsAt(a, s.move))
+      applyEffect(a, &t, e, rankPercent(a, s.move));
 }
-void Fight::applyEffect(Fighter &owner, Fighter *other, const Effect &e) {
+void Fight::applyEffect(Fighter &owner, Fighter *other, const Effect &e, int percent) {
   Fighter *t = e.onSelf ? &owner : other;
   if (!t || t->hp <= 0) return;
   Target who = t == &foe ? Target::Wild : Target::Mine;
   if (e.heal) {
     int before = t->hp;
-    t->hp = std::min(t->stats.hp, t->hp + e.hp);
+    t->hp = std::min(t->stats.hp, t->hp + e.hp * percent / 100);
     cues.push_back({CueKind::Healed, who, t->hp - before, t->at});
     return;
   }
   switch (e.status) {
-  case Status::Guard: t->guard = GuardTicks; break;
-  case Status::Regen: t->regen = 2; break;
-  case Status::Burn: t->burn = 2; break;
-  case Status::Slow: t->slow = SlowTicks; break;
-  case Status::Focus: t->focus = FocusTicks; break;
+  // Burn and Regen count pulses of StatusTicks; the others count ticks.
+  case Status::Guard: t->guard = e.ticks ? e.ticks : GuardTicks; break;
+  case Status::Regen: t->regen = e.ticks ? std::max(1, e.ticks / StatusTicks) : 2; break;
+  case Status::Burn: t->burn = e.ticks ? std::max(1, e.ticks / StatusTicks) : 2; break;
+  case Status::Slow: t->slow = e.ticks ? e.ticks : SlowTicks; break;
+  case Status::Focus: t->focus = e.ticks ? e.ticks : FocusTicks; break;
   }
   Cue c{CueKind::StatusOn, who, 0, t->at};
   c.status = e.status;
@@ -449,6 +513,7 @@ void Fight::driveMine() {
     const auto &t = data->timing[moveId(k, slot)];
     if (t.reach == Reach::Self || gap(k.at, foe.at) <= t.range * 85 / 100) {
       begin(k, slot, Target::Wild);
+      k.strike.commanded = slot == order;
       if (slot == order) order = -1;
       autoWait = AutoWait;
     } else {
@@ -508,11 +573,11 @@ void Fight::decide() {
       Spot at = victim == Target::You ? player.at : rival.at;
       if (victim == Target::You) {
         // Measured against full composure, so a shaken player is pressured but never hunted down.
-        score = std::max(10, m.power) * 100 / FullComposure + ignored * 12 + (youOpen ? 25 : 0);
+        score = std::max(10, power(k, id)) * 100 / FullComposure + ignored * 12 + (youOpen ? 25 : 0);
       } else {
         bool physical = m.kind == Kind::Physical;
-        int hurt = damage({m.power, physical ? k.stats.might : k.stats.pulse, physical ? rival.stats.guard : rival.stats.ward, k.level,
-                           affinityPercent(m.type, content->species[rival.species].affinity), k.focus > 0, rival.guard > 0}).finalDamage;
+        int hurt = damage({power(k, id), physical ? k.stats.might : k.stats.pulse, physical ? rival.stats.guard : rival.stats.ward, k.level,
+                           data->matchup[int(m.type)][int(content->species[rival.species].affinity)], k.focus > 0, rival.guard > 0}).finalDamage;
         score = hurt * 100 / std::max(1, rival.hp) + (rivalOpen ? 25 : 0);
       }
       score -= std::max(0, gap(k.at, at) - t.range) / 100;
@@ -568,10 +633,6 @@ void Fight::tickFighter(Fighter &k) {
   k.focus = std::max(0, k.focus - 1);
   k.slow = std::max(0, k.slow - 1);
   if (k.hp <= 0) return;
-  if (++k.charge >= EnergySeconds90) {
-    k.charge = 0;
-    k.energy = std::min(8, k.energy + 1);
-  }
   if ((k.burn > 0 || k.regen > 0) && ++k.statusClock >= StatusTicks) {
     k.statusClock = 0;
     Target who = &k == &foe ? Target::Wild : Target::Mine;
@@ -682,7 +743,7 @@ std::uint64_t Fight::digest() const {
   std::uint64_t h = 1469598103934665603ULL;
   auto mix = [&](std::int64_t v) { h = (h ^ std::uint64_t(v)) * 1099511628211ULL; };
   auto fighter = [&](const Fighter &k) {
-    for (int v : {k.spirit, k.hp, k.energy, k.charge, k.at.x, k.at.z, int(k.pose), k.poseTicks, k.dodgeReady, k.guard, k.regen, k.burn, k.slow, k.focus, k.strike.move, k.strike.to.x, k.strike.to.z})
+    for (int v : {k.spirit, k.hp, k.at.x, k.at.z, int(k.pose), k.poseTicks, k.dodgeReady, k.guard, k.regen, k.burn, k.slow, k.focus, k.strike.move, k.strike.to.x, k.strike.to.z})
       mix(v);
     for (int r : k.ready)
       mix(r);
@@ -690,7 +751,7 @@ std::uint64_t Fight::digest() const {
   for (const auto &k : team)
     fighter(k);
   fighter(foe);
-  for (int v : {player.reachTicks, player.reachWait, player.at.x, player.at.z, player.composure, player.rollTicks, player.rollReady, player.hurtTicks, player.safeTicks, clock, active, int(result)})
+  for (int v : {player.reachTicks, player.reachWait, player.at.x, player.at.z, player.composure, player.rollTicks, player.rollReady, player.hurtTicks, player.safeTicks, clock, active, meter, int(result)})
     mix(v);
   mix(rng.x);
   return h;

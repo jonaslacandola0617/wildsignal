@@ -13,6 +13,8 @@ Affinity affinityFrom(const std::string &name) {
   if (name == "Ember") return Affinity::Ember;
   if (name == "Stone") return Affinity::Stone;
   if (name == "Lumen") return Affinity::Lumen;
+  if (name == "Gale") return Affinity::Gale;
+  if (name == "Gloom") return Affinity::Gloom;
   throw std::runtime_error("unknown affinity " + name);
 }
 Status statusFrom(const std::string &name) {
@@ -85,8 +87,10 @@ Content parseRoster(std::string_view text) {
   return c;
 }
 
+Affinity affinityNamed(std::string_view name) { return affinityFrom(std::string(name)); }
+
 Stats statsAt(const Species &s, int level) {
-  if (level < 1 || level > 30) throw std::runtime_error("level range");
+  if (level < 1 || level > 50) throw std::runtime_error("level range"); // GDD 4.6: levels 1-50.
   int up = level - 1;
   return {s.base.hp + 4 * up, s.base.might + up, s.base.guard + up, s.base.pulse + up, s.base.ward + up, s.base.swift + up};
 }
@@ -98,6 +102,8 @@ const char *affinityName(Affinity a) {
   case Affinity::Ember: return "Ember";
   case Affinity::Stone: return "Stone";
   case Affinity::Lumen: return "Lumen";
+  case Affinity::Gale: return "Gale";
+  case Affinity::Gloom: return "Gloom";
   default: return "Wild";
   }
 }

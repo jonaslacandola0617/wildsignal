@@ -114,19 +114,36 @@ std::vector<Effect> readEffects(const Reader &r, const Json &j, const std::strin
 enum class Slot { Basic, Skill, Ultimate };
 
 Skill readSkill(const Reader &r, const Json &j, const std::string &path, Slot slot) {
-  const auto &o = r.object(j, path, {"id", "name", "shape", "windupMs", "cooldownMs", "unlockLevel", "effects", "rankUps"});
+  const auto &o = r.object(j, path, {"id", "name", "shape", "kind", "rangeMm", "sizeMm", "windupMs", "recoverMs", "cooldownMs", "unlockLevel",
+                                     "gentle", "effects", "rankUps"});
   Skill s;
   s.id = r.text(r.field(o, "id", path), path + ".id");
   s.name = r.text(r.field(o, "name", path), path + ".name");
   s.shape = r.choose<Shape>(r.field(o, "shape", path), path + ".shape",
-                            {{"single", Shape::Single}, {"line", Shape::Line}, {"cone", Shape::Cone}, {"circle", Shape::Circle},
-                             {"self", Shape::Self}, {"ally", Shape::Ally}, {"team", Shape::Team}});
+                            {{"dash", Shape::Dash}, {"lane", Shape::Lane}, {"burst", Shape::Burst}, {"self", Shape::Self}});
+  if (const auto *kind = r.optional(o, "kind"))
+    s.kind = r.choose<Kind>(*kind, path + ".kind", {{"physical", Kind::Physical}, {"signal", Kind::Signal}});
+  // Self moves have no reach; everything else needs a range and a size to telegraph.
+  bool self = s.shape == Shape::Self;
+  s.rangeMm = r.integer(r.field(o, "rangeMm", path), path + ".rangeMm", self ? 0 : 500, self ? 0 : 12000);
+  s.sizeMm = r.integer(r.field(o, "sizeMm", path), path + ".sizeMm", self ? 0 : 100, self ? 0 : 4000);
   s.windupMs = r.integer(r.field(o, "windupMs", path), path + ".windupMs", 0, 5000);
+  s.recoverMs = r.integer(r.field(o, "recoverMs", path), path + ".recoverMs", 0, 5000);
   int coolLo = slot == Slot::Skill ? 1 : 0, coolHi = slot == Slot::Basic ? 5000 : 120000;
   s.cooldownMs = r.integer(r.field(o, "cooldownMs", path), path + ".cooldownMs", coolLo, coolHi);
   s.unlockLevel = r.integer(r.field(o, "unlockLevel", path), path + ".unlockLevel", 1, slot == Slot::Basic ? 1 : MaxLevel);
+  if (const auto *gentle = r.optional(o, "gentle")) s.gentle = r.flag(*gentle, path + ".gentle");
   s.effects = readEffects(r, r.field(o, "effects", path), path + ".effects");
   if (s.effects.empty()) r.fail(path + ".effects", "needs at least one effect");
+  int damages = 0;
+  for (const auto &e : s.effects)
+    if (e.kind == EffectKind::Damage) {
+      damages++;
+      if (e.target != Target::Enemy) r.fail(path + ".effects", "damage must target the enemy");
+      if (self) r.fail(path + ".effects", "a self move cannot deal damage");
+    }
+  if (damages > 1) r.fail(path + ".effects", "at most one damage effect");
+  if (slot == Slot::Basic && damages == 0) r.fail(path + ".effects", "the basic attack must deal damage");
   if (const auto *ranks = r.optional(o, "rankUps")) {
     const auto &list = r.array(*ranks, path + ".rankUps");
     if (list.size() > 2) r.fail(path + ".rankUps", "at most 2 rank-ups");
@@ -282,7 +299,6 @@ Kits parseKits(std::string_view text, const Roster &roster, std::string_view fil
   const auto &o = r.object(root, "(top)", {"schema", "source", "kits"});
   r.schema(o, "wildsignal-kits-v1");
   Kits kits;
-  std::set<std::string> skillIds;
   const auto &list = r.array(r.field(o, "kits", "(top)"), "kits");
   for (std::size_t i = 0; i < list.size(); i++) {
     auto path = at("kits", i);
@@ -298,6 +314,8 @@ Kits parseKits(std::string_view text, const Roster &roster, std::string_view fil
     if (skills.size() != 3) r.fail(path + ".skills", "needs exactly 3 skills");
     for (std::size_t k = 0; k < skills.size(); k++) kit.skills.push_back(readSkill(r, skills[k], at(path + ".skills", k), Slot::Skill));
     kit.ultimate = readSkill(r, r.field(ko, "ultimate", path), path + ".ultimate", Slot::Ultimate);
+    // Species may share a skill id (two Signari can both know Quick Dart), but not within one kit.
+    std::set<std::string> skillIds;
     for (const Skill *s : {&kit.basic, &kit.skills[0], &kit.skills[1], &kit.skills[2], &kit.ultimate})
       if (!skillIds.insert(s->id).second) r.fail(path, "duplicate skill id '" + s->id + "'");
     kits.kits.push_back(std::move(kit));
