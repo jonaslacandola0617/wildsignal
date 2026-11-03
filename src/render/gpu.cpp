@@ -221,7 +221,7 @@ vec3 ambient=mix(ambientGround,ambientSky,clamp(shadeNormal.y*.5+.5,0.,1.));
 // Authored style maps only: keep three calm form tones and avoid black trim.
 if(pixelMaterial!=0){float d=max(0.,dot(shadeNormal,normalize(sunDirection)));sun=.22+.40*smoothstep(.25-.025,.25+.025,d)+.38*smoothstep(.67-.025,.67+.025,d);ambient=mix(ambient,vec3(.20,.23,.22),.35);}
 vec3 pilotG=normalize(cross(dFdx(worldPosition),dFdy(worldPosition)));if(dot(pilotG,n)<0.)pilotG=-pilotG;
-bool pilotSurface=pilotOn!=0&&(profileFamily==5||profileFamily==3||profileFamily==1);
+bool pilotSurface=pilotOn!=0&&(profileFamily==5||profileFamily==3||profileFamily==1||(pilotDream!=0&&profileFamily==4));
 vec3 shadowPoint=pilotCards!=0?pilotCenter:pilotSurface?pilotSnap(worldPosition,pilotG):worldPosition;
 float visibility=1.;
 if(receiveShadows!=0&&(shadowMode==1||shadowMode==2))visibility=stableShadow!=0?stableReceiver(shadowPoint,normalize(cross(dFdx(worldPosition),dFdy(worldPosition))),biasScale*.000015):receiverCorrection!=0?receiverShadow(worldPosition,biasScale*.00006):sunlight(worldPosition,biasScale*max(.00055,.0010*(1.-max(0.,dot(n,sunDirection)))));
@@ -267,6 +267,7 @@ vec3 display=pow(clamp(lit,0.,1.),vec3(1./2.2));
 if(profileActive!=0&&greenTerrain&&meadowPatchOn!=0&&meadowLightingOn!=0)
  display=meadowBeamOn!=0?meadowBeamLit(originalAlbedo,worldPosition,max(0.,dot(shadeNormal,normalize(sunDirection))),visibility,direct,exposure,false):meadowLit(originalAlbedo,max(0.,dot(shadeNormal,normalize(sunDirection))),visibility,direct,exposure);
 if(pilotSurface){
+ visibility=pilotCloudVis(visibility,pilotCards!=0?pilotCenter.xz:shadowPoint.xz);
  vec3 base=srgbEncode(clamp(originalAlbedo,0.,1.)),hsv=rgbHSV(base);
  bool green=hsv.x>=.18&&hsv.x<=.46&&hsv.y>=.12;
  vec3 sd=normalize(sunDirection);
@@ -285,6 +286,11 @@ if(pilotSurface){
   // they melt into the ground; petals keep their colour, stepped by the same light.
   float t=pilotGreenTone(max(0.,sd.y),visibility,shadowPoint.xz);
   display=green?pilotRamp(0,t):base*(t<.32?.72:t<.50?.86:1.);
+ } else if(profileFamily==4){
+  // Dream rocks: faceted stone from the rock ramp, with moss on the faces that look up.
+  float t=pilotTone(max(0.,dot(pilotG,sd)),visibility,shadowPoint.xz,0.);
+  float moss=pilotG.y-.58+(pilotNoise(shadowPoint.xz*2.3+shadowPoint.y*1.7)-.5)*.45;
+  display=moss>0.?pilotRamp(0,pilotGreenTone(max(0.,sd.y),visibility,shadowPoint.xz)-.16):pilotRamp(2,t);
  } else if(profileFamily==1){
   if(green)display=pilotRamp(3,pilotLeafTone(dot(n,normalize(sd+vec3(0,.8,0))),visibility));
   else display=pilotRamp(4,min(mix(.12,.24+.56*max(0.,dot(pilotG,sd)),visibility),.82));
@@ -364,7 +370,7 @@ struct Gpu::Impl {
   std::unique_ptr<TreeStudy> tree;
   std::vector<Part> treeParts, rimParts;
   GLuint treeInstanceBuffer=0, rimInstanceBuffer=0;
-  int treeMode=0;bool plainLeaves=true;bool meadowExtras=true;bool leafSnap=false;
+  int treeMode=0;bool plainLeaves=true;bool meadowExtras=true;bool leafSnap=false;float orthoHalf=0,orthoPull=0;
   std::map<std::filesystem::path, GLuint> textures;
   std::vector<Draw> blends;
   std::vector<Material> materials;
@@ -825,7 +831,7 @@ void main(){ivec2 size=textureSize(image,0),p=ivec2(gl_FragCoord.xy);vec4 base=t
     if(building(id)) {
       p->emaceContacts.push_back({center.x,center.z,(i.bounds.hi.x-i.bounds.lo.x)*.43f,-(i.bounds.hi.z-i.bounds.lo.z)*.43f});
     }else if(id.starts_with("EA_TREE")) {auto root=point(i.matrix,{});p->emaceContacts.push_back({root.x,root.z,.60f,.60f});}
-    else if(id.starts_with("EA_ROCK")||id=="EA_BARREL"||id=="EA_BENCH") {
+    else if(id.starts_with("EA_ROCK")||id.starts_with("WSP_CLIFF")||id=="EA_BARREL"||id=="EA_BENCH") {
       p->emaceContacts.push_back({center.x,center.z,std::clamp((i.bounds.hi.x-i.bounds.lo.x)*.45f,.2f,1.7f),std::clamp((i.bounds.hi.z-i.bounds.lo.z)*.45f,.2f,1.7f)});
     }
     if (i.id == "front-door-wall") {
@@ -944,6 +950,7 @@ void Gpu::setTerrainRelief(float v){if(!std::isfinite(v)||v<.75f||v>1)throw std:
 void Gpu::setPlainLeaves(bool value){p->plainLeaves=value;}
 void Gpu::setMeadowExtras(bool value){p->meadowExtras=value;}
 void Gpu::setLeafSnap(bool value){p->leafSnap=value;}
+void Gpu::setOrtho(float half,float pull){if(!std::isfinite(half)||!std::isfinite(pull)||half<0||half>100||pull<0||pull>200)throw std::runtime_error("ortho view range");p->orthoHalf=half;p->orthoPull=pull;}
 void Gpu::setTreeTreatment(int mode){
  if(mode<0||mode>4||(!p->tree&&mode!=0))throw std::runtime_error("tree treatment requires verified private study");
  if(mode==4&&!p->tree->attached)throw std::runtime_error("hybrid requires verified branch-rooted leaf attachment data");
@@ -1109,12 +1116,17 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     q.frame = frame;
     gl::BeginQuery(GL_TIME_ELAPSED, q.id);
   }
-  auto sampled =
-      pixelCamera(camera, w, h, snap ? PixelCameraMode::Raw : p->cameraMode,
-                  p->referenceDepth);
+  // The flat view always snaps to whole pixels and slides the finished image by the
+  // remainder, so walking moves the world smoothly with no pixel creep.
+  const bool ortho = p->orthoHalf > 0;
+  const PixelCameraMode cameraMode = snap ? PixelCameraMode::Raw : ortho ? PixelCameraMode::Compensated : p->cameraMode;
+  auto sampled = pixelCamera(camera, w, h, cameraMode, p->referenceDepth, p->orthoHalf);
   Camera effective = sampled.render;
-  auto vp =
-      perspective(60 * pi / 180, static_cast<float>(w) / h) * effective.view();
+  Camera drawing = effective;
+  if (ortho)
+    drawing.position = effective.position - effective.forward() * p->orthoPull;
+  auto vp = ortho ? orthographic(p->orthoHalf * w / h, p->orthoHalf) * drawing.view()
+                  : perspective(60 * pi / 180, static_cast<float>(w) / h) * effective.view();
   p->lastVP=vp;
   auto uniformMatrix = [&](GLuint prog, const char *name, const Mat &m) {
     gl::UniformMatrix4fv(p->location(prog, name), 1, GL_FALSE,
@@ -1449,6 +1461,8 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     uniformFloat(p->mesh, "pilotDensity", p->pilot.density);
     uniformFloat(p->mesh, "pilotTime", p->pilot.time);
     uniformFloat(p->mesh, "pilotPoolStrength", p->pilot.pools);
+    uniformFloat(p->mesh, "pilotCloud", p->pilot.cloud);
+    uniformInt(p->mesh, "pilotDream", p->pilot.dream);
     uniformFloat(p->mesh, "pilotSweepStrength", p->pilot.sweep);
     gl::Uniform3f(p->location(p->mesh, "pilotLichen"), p->pilot.lichen.x, p->pilot.lichen.y, p->pilot.lichen.z);
     for (int i = 0; i < 36; i++) {
@@ -1520,7 +1534,8 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     if(targetTree){gl::Uniform4fv(p->location(p->mesh,"treeLeafUV"),1,p->tree->leafUV.data());gl::Uniform2f(p->location(p->mesh,"treeLeafBase"),p->tree->leafBase[0],p->tree->leafBase[1]);gl::Uniform3f(p->location(p->mesh,"treeCanopyColor"),p->tree->canopyColor.x,p->tree->canopyColor.y,p->tree->canopyColor.z);uniformFloat(p->mesh,"treeLeafMean",p->tree->leafMean);uniformInt(p->mesh,"treeGroupCount",int(p->tree->centers.size()));gl::Uniform4fv(p->location(p->mesh,"treeCenters"),GLsizei(p->tree->centers.size()),p->tree->centers.front().data());gl::Uniform4fv(p->location(p->mesh,"treeRadii"),GLsizei(p->tree->radii.size()),p->tree->radii.front().data());uniformInt(p->mesh,"treeLeafDetail",6);bind(6,p->textures.at(p->tree->texture));gl::BindSampler(6,0);
      auto right=direction(inverse(effective.view()),{1,0,0}),up=direction(inverse(effective.view()),{0,1,0});gl::Uniform3f(p->location(p->mesh,"treeCameraRight"),right.x,right.y,right.z);gl::Uniform3f(p->location(p->mesh,"treeCameraUp"),up.x,up.y,up.z);gl::ActiveTexture(GL_TEXTURE0);
     }
-    int family=model.rig||model.id.starts_with("WS0")?-1:model.id.starts_with("WSP_")||model.id.starts_with("EA_TREE")||model.id.starts_with("EA_BUSH")||model.id.starts_with("EA_REED")?1:model.id.starts_with("EA_ROCK")?4:model.id.starts_with("EA_PATH")||model.id=="EA_COBBLE"||model.id.starts_with("HG_PATH")?3:model.id=="EA_GROUND"||model.id.starts_with("HG_GROUND")||model.id.starts_with("HG_GREEN")||model.id.starts_with("EA_GREEN")?5:model.id.starts_with("EA_GREEN")||model.id.starts_with("HG_GREEN")||model.id=="EA_MOSS"?0:2;
+    // LOOKDEV-005 ledges (WSP_CLIFF) are stone: shaded like the rocks, mossy where they face up.
+    int family=model.rig||model.id.starts_with("WS0")?-1:model.id.starts_with("WSP_CLIFF")?4:model.id.starts_with("WSP_")||model.id.starts_with("EA_TREE")||model.id.starts_with("EA_BUSH")||model.id.starts_with("EA_REED")?1:model.id.starts_with("EA_ROCK")?4:model.id.starts_with("EA_PATH")||model.id=="EA_COBBLE"||model.id.starts_with("HG_PATH")?3:model.id=="EA_GROUND"||model.id.starts_with("HG_GROUND")||model.id.starts_with("HG_GREEN")||model.id.starts_with("EA_GREEN")?5:model.id.starts_with("EA_GREEN")||model.id.starts_with("HG_GREEN")||model.id=="EA_MOSS"?0:2;
     uniformInt(p->mesh,"profileFamily",family);
     uniformInt(p->mesh,"pilotMeadow",isMeadowExtra(model.id));
     uniformInt(p->mesh,"pilotLeafSnap",p->leafSnap);
@@ -1815,6 +1830,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
   uniformInt(postProgram, "sceneNormal", 1);
   uniformInt(postProgram, "sceneDepth", 2);
   uniformMatrix(postProgram, "inverseVP", inverse(vp));
+  uniformFloat(postProgram, "orthoSpan", ortho ? 350.f - .1f : 0.f);uniformFloat(postProgram, "orthoBase", p->orthoPull);uniformFloat(postProgram, "orthoPixel", sampled.worldPerPixel);
   if (p->style.mode > 0 || p->study > 0) {
     auto vector = [&](const char *name, Vec v) {
       gl::Uniform3f(p->location(postProgram, name), v.x, v.y, v.z);
@@ -1863,7 +1879,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
   bool whole = std::abs(fit - std::round(fit)) < .001f && fit >= 1;
   int dw = static_cast<int>(std::lround(w * fit)), dh = static_cast<int>(std::lround(h * fit));
   int left = (outW - dw) / 2, bottom = (outH - dh) / 2;
-  if (p->cameraMode == PixelCameraMode::Compensated && !snap) {
+  if (cameraMode == PixelCameraMode::Compensated) {
     gl::BindFramebuffer(GL_FRAMEBUFFER, 0);
     gl::Viewport(left, bottom, dw, dh);
     gl::UseProgram(p->presentProgram);

@@ -51,6 +51,9 @@ struct Gpu {
   // LOOKDEV-003 small flowers and edge-tuft rings (WSP_FLOWER_*, WSP_TUFT_*) on or off.
   void setMeadowExtras(bool);
   void setLeafSnap(bool);
+  // LOOKDEV-005 flat camera: half height of the view in metres (0 = perspective) and how far
+  // the drawing eye sits behind the given camera, so nothing in front of it is clipped.
+  void setOrtho(float halfHeight, float pullBack);
   void setIntegration(const Integration &);
   void setSurfacePolicy(std::size_t model, const SurfacePolicy &);
   void setGrass(MeshClumps *, const std::filesystem::path &,

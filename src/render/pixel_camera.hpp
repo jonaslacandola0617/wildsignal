@@ -10,7 +10,8 @@ struct PixelCamera {
   float worldPerPixel = 0;
 };
 PixelCamera pixelCamera(const Camera &, int width, int height,
-                        PixelCameraMode, float referenceDepth = 10.f);
+                        PixelCameraMode, float referenceDepth = 10.f,
+                        float orthoHalfHeight = 0);
 // Deterministic routes use frame index, never host-dependent elapsed time.
 Camera studyRoute(int route, int frame, int frames);
 Camera studyPreset(int);

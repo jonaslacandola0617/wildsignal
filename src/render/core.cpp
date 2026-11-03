@@ -106,6 +106,17 @@ Mat perspective(float fov, float aspect, float near, float far) {
   m.v[14] = 2 * far * near / (near - far);
   return m;
 }
+Mat orthographic(float halfWidth, float halfHeight, float near, float far) {
+  if (!(halfWidth > 0 && halfHeight > 0 && near > 0 && far > near))
+    throw std::runtime_error("invalid projection");
+  Mat m;
+  m.v[0] = 1 / halfWidth;
+  m.v[5] = 1 / halfHeight;
+  m.v[10] = -2 / (far - near);
+  m.v[14] = -(far + near) / (far - near);
+  m.v[15] = 1;
+  return m;
+}
 Mat lookAt(Vec eye, Vec target) {
   Vec f = normalized(target - eye), s = normalized(cross(f, {0, 1, 0})),
       u = cross(s, f);

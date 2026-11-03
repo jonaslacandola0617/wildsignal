@@ -31,6 +31,8 @@ Mat inverse(const Mat &);
 Mat transpose(const Mat &);
 Mat transform(Vec, float, float);
 Mat perspective(float, float, float = .1f, float = 350.f);
+// Flat (orthographic) view: half width and half height of the view in metres.
+Mat orthographic(float, float, float = .1f, float = 350.f);
 Mat lookAt(Vec, Vec);
 struct Box {
   Vec lo{INFINITY, INFINITY, INFINITY}, hi{-INFINITY, -INFINITY, -INFINITY};
