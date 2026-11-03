@@ -48,6 +48,8 @@ struct Gpu {
   Gpu(World &, bool allowSoftware, const TreeStudy *treeStudy = nullptr);
   void setTreeTreatment(int);
   void setPlainLeaves(bool);
+  // LOOKDEV-002 pixel tree colours: 0 flat engine tones, 1 engine ramps, 2 pack colours.
+  void setPixelTree(int);
   void setIntegration(const Integration &);
   void setSurfacePolicy(std::size_t model, const SurfacePolicy &);
   void setGrass(MeshClumps *, const std::filesystem::path &,
