@@ -74,6 +74,7 @@ struct Options {
   bool shadows = true, forceLegacyGrass = false, requireAuthored = false,
        fragmentReceiver = true, cacheProbe = false;
   int receiveGrass = -1, diagnostic = 0, scaleFamily = 0, canopyMask = -1;
+  bool meadowExtras = true; // LOOKDEV-003 flowers and edge tufts (F10).
 };
 int integer(const std::string &s, int lo, int hi) {
   std::size_t n = 0;
@@ -110,6 +111,7 @@ Options options(int argc, char **argv) {
                    "--shadow-cache-probe (isolated technical test only)\n"
                    "--shafts on|off --haze on|off --quality low|medium|high --shaft-strength 0..3\n";
       std::cout<<"--tilt-shift on|off (F8 toggles; paused during fights) --highlight-strength 0..1 --leaf-rims on|off\nF6 cycles the render size 480/640/1280\n";
+      std::cout<<"--meadow-extras on|off (LOOKDEV-003 flowers and edge tufts; F10 toggles)\n";
       std::cout<<"--render-reference (comparison only; disables optimized shadow cache)\n--tree-scene --tree-study original|shader|clusters|billboards|hybrid --leaf-color plain|source (T tree options, M leaf color)\n";
       std::exit(0);
     } else if (a == "--assets")
@@ -117,6 +119,7 @@ Options options(int argc, char **argv) {
     else if(a=="--shadow-policy"){auto v=value();if(v!="clean"&&v!="legacy")throw std::runtime_error("shadow-policy clean|legacy");o.cleanShadow=v=="clean";}
     else if(a=="--tree-study"){auto v=value();if(v!="original"&&v!="shader"&&v!="clusters"&&v!="billboards"&&v!="hybrid")throw std::runtime_error("tree-study original|shader|clusters|billboards|hybrid");o.treeEnabled=true;o.treeMode=v=="original"?0:v=="shader"?1:v=="clusters"?2:v=="billboards"?3:4;}
     else if(a=="--leaf-color"){auto v=value();if(v!="plain"&&v!="source")throw std::runtime_error("leaf-color plain|source");o.leafPlain=v=="plain";}
+    else if(a=="--meadow-extras"){auto v=value();if(v!="on"&&v!="off")throw std::runtime_error("meadow-extras on|off");o.meadowExtras=v=="on";}
     else if(a=="--tree-scene"){o.treeScene=true;o.treeEnabled=true;}
     else if(a=="--tilt-shift"||a=="--leaf-rims"){auto v=value();if(v!="on"&&v!="off")throw std::runtime_error(a.substr(2)+" on|off");(a=="--tilt-shift"?o.tiltShift:o.leafRims)=v=="on";if(a=="--tilt-shift")o.tiltShiftGiven=true;}
     else if(a=="--highlight-strength"){auto v=value();std::size_t used=0;o.highlightLimit=std::stof(v,&used);if(used!=v.size()||!std::isfinite(o.highlightLimit)||o.highlightLimit<0||o.highlightLimit>1)throw std::runtime_error("highlight-strength 0..1");}
@@ -707,8 +710,11 @@ int main(int argc, char **argv) {
     gpu.setIntegration(integration);updateEffects();
     for(std::size_t i=0;i<world.models.size();++i) {
       bool ground=!world.models[i].materials.empty()&&world.models[i].materials[0].ground;
-      gpu.setSurfacePolicy(i,{!ground,true,1,0,false});
+      // Flowers and edge tufts cast no shadow, like the grass they stand in.
+      bool extra=world.models[i].id.starts_with("WSP_FLOWER_")||world.models[i].id.starts_with("WSP_TUFT_");
+      gpu.setSurfacePolicy(i,{!ground&&!extra,true,1,0,false});
     }
+    gpu.setMeadowExtras(o.meadowExtras);
     gpu.setGrass(&grass,{},{});
     log << "vendor=" << gpu.vendor << "\nrenderer=" << gpu.renderer
         << "\nversion=" << gpu.version << "\nsoftware=" << gpu.software
@@ -900,6 +906,18 @@ int main(int argc, char **argv) {
               wilds->announce(text);
             } else
               game.message = text;
+            continue;
+          }
+          if (e.key.key == SDLK_F10 && !paused) {
+            o.meadowExtras = !o.meadowExtras;
+            gpu.setMeadowExtras(o.meadowExtras);
+            std::string text = o.meadowExtras ? "Flowers and tufts on" : "Flowers and tufts off";
+            if (scene) {
+              scene->announce(text);
+              wilds->announce(text);
+            } else
+              game.message = text;
+            event(frame, o.meadowExtras ? "meadow_extras_on" : "meadow_extras_off");
             continue;
           }
           if (book && book->open()) {

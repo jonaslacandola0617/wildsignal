@@ -48,6 +48,7 @@ void load() {
 }
 } // namespace gl
 using Clock = std::chrono::steady_clock;
+static bool isMeadowExtra(const std::string &id) { return id.starts_with("WSP_FLOWER_") || id.starts_with("WSP_TUFT_"); }
 static double ms(Clock::time_point a, Clock::time_point b) {
   return std::chrono::duration<double, std::milli>(b - a).count();
 }
@@ -141,7 +142,7 @@ in vec2 uv,canopyUV;in float alpha;uniform sampler2D albedo;uniform int textured
 void main(){casterOwner=uint(shadowCasterID);if(alphaMode==1){float a=factorAlpha*alpha;if(textured!=0)a*=texture(albedo,leafProxy!=0?fract(canopyUV*8.):uv).a;if(a<cutoff)discard;}}
 )GLSL";
 static constexpr const char *meshFS = R"GLSL(#version 330 core
-in vec3 worldPosition;in vec3 worldNormal;in vec2 uv;in vec4 tint;flat in vec3 pilotCenter;uniform int pilotCards,pilotGlow;
+in vec3 worldPosition;in vec3 worldNormal;in vec2 uv;in vec4 tint;flat in vec3 pilotCenter;uniform int pilotCards,pilotGlow,pilotMeadow;
 uniform int coverage,meadowSolidCount;uniform vec4 meadowSolids[16];uniform sampler2D leafCoverage;
 bool designated(vec2 p){float path=.68*sin(-p.y*.57)-.13*p.y;if(abs(p.x)>5.8||abs(p.y)>5.8||abs(p.x-path)<.78)return false;if(p.x> -4.5&&p.x<.6&&abs(p.y-.25)<.8)return false;if(length(p-vec2(2.6,-2.3))<1.05)return false;for(int i=0;i<meadowSolidCount;i++)if(all(lessThan(abs(p-meadowSolids[i].xy),meadowSolids[i].zw+vec2(.18))))return false;return true;}
 uniform sampler2D albedo;uniform vec4 factor;uniform vec3 emission;uniform int textured,mode,bands,alphaMode;uniform float cutoff;
@@ -276,6 +277,11 @@ if(pilotSurface){
   // The nudge only matters near a band edge, which gives leafy clusters there.
   float nudge=(pilotHash(pilotCenter.xz+pilotCenter.yy)-.5)*.10;
   display=pilotRamp(3,pilotLeafTone(dot(n,normalize(sd+vec3(0,.8,0)))+nudge,visibility));
+ } else if(pilotMeadow!=0){
+  // LOOKDEV-003 flowers and edge tufts: green parts take the meadow's own grass tone, so
+  // they melt into the ground; petals keep their colour, stepped by the same light.
+  float t=pilotGreenTone(max(0.,sd.y),visibility,shadowPoint.xz);
+  display=green?pilotRamp(0,t):base*(t<.32?.72:t<.50?.86:1.);
  } else if(profileFamily==1){
   if(green)display=pilotRamp(3,pilotLeafTone(dot(n,normalize(sd+vec3(0,.8,0))),visibility));
   else display=pilotRamp(4,min(mix(.12,.24+.56*max(0.,dot(pilotG,sd)),visibility),.82));
@@ -355,7 +361,7 @@ struct Gpu::Impl {
   std::unique_ptr<TreeStudy> tree;
   std::vector<Part> treeParts, rimParts;
   GLuint treeInstanceBuffer=0, rimInstanceBuffer=0;
-  int treeMode=0;bool plainLeaves=true;
+  int treeMode=0;bool plainLeaves=true;bool meadowExtras=true;
   std::map<std::filesystem::path, GLuint> textures;
   std::vector<Draw> blends;
   std::vector<Material> materials;
@@ -933,6 +939,7 @@ void Gpu::setSourceView(bool v){p->sourceView=v;}
 void Gpu::setShadowClean(bool v){p->shadowClean=v;}
 void Gpu::setTerrainRelief(float v){if(!std::isfinite(v)||v<.75f||v>1)throw std::runtime_error("terrain instance relief range");p->terrainRelief=v;}
 void Gpu::setPlainLeaves(bool value){p->plainLeaves=value;}
+void Gpu::setMeadowExtras(bool value){p->meadowExtras=value;}
 void Gpu::setTreeTreatment(int mode){
  if(mode<0||mode>4||(!p->tree&&mode!=0))throw std::runtime_error("tree treatment requires verified private study");
  if(mode==4&&!p->tree->attached)throw std::runtime_error("hybrid requires verified branch-rooted leaf attachment data");
@@ -1511,6 +1518,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     }
     int family=model.rig||model.id.starts_with("WS0")?-1:model.id.starts_with("WSP_")||model.id.starts_with("EA_TREE")||model.id.starts_with("EA_BUSH")||model.id.starts_with("EA_REED")?1:model.id.starts_with("EA_ROCK")?4:model.id.starts_with("EA_PATH")||model.id=="EA_COBBLE"||model.id.starts_with("HG_PATH")?3:model.id=="EA_GROUND"||model.id.starts_with("HG_GROUND")||model.id.starts_with("HG_GREEN")||model.id.starts_with("EA_GREEN")?5:model.id.starts_with("EA_GREEN")||model.id.starts_with("HG_GREEN")||model.id=="EA_MOSS"?0:2;
     uniformInt(p->mesh,"profileFamily",family);
+    uniformInt(p->mesh,"pilotMeadow",isMeadowExtra(model.id));
     uniformInt(p->mesh,"pilotPlain",model.id.starts_with("HAWTOR"));
     uniformFloat(p->mesh,"screenDoor",index<p->fades.size()?p->fades[index]:0.f);
     uniformFloat(p->mesh,"pilotWind",p->pilot.enabled&&!p->sourceView&&family==1?.003f:0.f);
@@ -1584,6 +1592,12 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     gl::PolygonMode(GL_FRONT_AND_BACK, GL_LINE);
   for (auto index : visible) {
     auto &i = world.instances[index];
+    // LOOKDEV-003 flowers and edge tufts: switchable, and dropped past 20 m like far grass.
+    if (isMeadowExtra(world.models[i.model].id)) {
+      auto d = point(i.matrix, {}) - effective.position;
+      if (!p->meadowExtras || dot(d, d) > 400.f)
+        continue;
+    }
     auto &parts = p->tree&&index==p->tree->target&&(p->treeMode==2||p->treeMode==3)?p->treeParts:p->models[i.model];
     for (std::size_t j = 0; j < parts.size(); j++) {
       if (p->materials[parts[j].material].alpha == Alpha::Blend) {
