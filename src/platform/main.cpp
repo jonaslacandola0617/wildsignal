@@ -1397,16 +1397,18 @@ int main(int argc, char **argv) {
       auto vp = flatHalf > 0 ? p3::orthographic(flatHalf * 16.f / 9, flatHalf) * sight.view()
                              : p3::perspective(p3::pi / 3, 16.f / 9) * camera.view();
       if (scene) {
-        // In the raised view and in fights, whatever stands between the camera and the action dissolves in a pixel pattern.
+        // In the raised view and in fights, whatever really hides the action opens a round window around it.
         bool fighting = scene->active(), dissolving = !o.benchmark && (fighting || o.raisedCamera);
         std::vector<p3::Vec> watched{game.state.player + p3::Vec{0, .9f, 0}};
         if (fighting) {
           watched.push_back(scene->wildAt() + p3::Vec{0, .5f, 0});
           watched.push_back(scene->creature(true).at + p3::Vec{0, .5f, 0});
         }
-        auto crosses = [&](const p3::Box &b, p3::Vec from, p3::Vec to) {
-          float enter = 0, leave = 1;
-          for (auto [a, d, lo, hi] : {std::array{from.x, to.x - from.x, b.lo.x - .4f, b.hi.x + .4f}, std::array{from.y, to.y - from.y, b.lo.y, b.hi.y}, std::array{from.z, to.z - from.z, b.lo.z - .4f, b.hi.z + .4f}}) {
+        // The box is shrunk toward its middle, so only the solid heart of a crown or a
+        // house counts: standing near its edge, or near the camera, no longer fades it.
+        auto crosses = [&](const p3::Box &b, p3::Vec from, p3::Vec to, float shrink) {
+          float enter = 0, leave = 1, sx = (b.hi.x - b.lo.x) * shrink, sz = (b.hi.z - b.lo.z) * shrink;
+          for (auto [a, d, lo, hi] : {std::array{from.x, to.x - from.x, b.lo.x + sx, b.hi.x - sx}, std::array{from.y, to.y - from.y, b.lo.y, b.hi.y}, std::array{from.z, to.z - from.z, b.lo.z + sz, b.hi.z - sz}}) {
             if (std::abs(d) < 1e-5f) {
               if (a < lo || a > hi)
                 return false;
@@ -1422,13 +1424,11 @@ int main(int argc, char **argv) {
           const auto &b = world.instances[index].bounds;
           float want = 0;
           if (dissolving) {
-            auto within = [&](float margin) {
-              return sight.position.x > b.lo.x - margin && sight.position.x < b.hi.x + margin && sight.position.y < b.hi.y + margin && sight.position.z > b.lo.z - margin && sight.position.z < b.hi.z + margin;
-            };
+            float shrink = p3::building(world.models[world.instances[index].model].id) ? .1f : .25f;
             bool blocks = false;
             for (auto at : watched)
-              blocks = blocks || crosses(b, sight.position, at);
-            want = within(1.5f) ? 1.f : blocks ? .8f : 0.f; // Beside the lens even a faint pattern would fill the frame.
+              blocks = blocks || crosses(b, sight.position, at, shrink);
+            want = blocks ? 1.f : 0.f;
           }
           auto &fade = viewFades[index];
           fade += std::clamp(want - fade, -dt * 3.5f, dt * 3.5f);
@@ -1436,6 +1436,7 @@ int main(int argc, char **argv) {
         for (auto [detail, home] : viewFollowers)
           viewFades[detail] = viewFades[home];
         gpu.setFades(viewFades);
+        gpu.setSeeThrough(dissolving ? watched : std::vector<p3::Vec>{});
       }
       if (groundMarks) {
         groundMarks->clear();

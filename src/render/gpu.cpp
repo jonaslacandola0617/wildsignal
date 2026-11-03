@@ -164,8 +164,13 @@ uniform int shadowMode;uniform sampler2D groundShadow;
 // PILOT
 float hash2(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 float field(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash2(i),hash2(i+vec2(1,0)),f.x),mix(hash2(i+vec2(0,1)),hash2(i+vec2(1,1)),f.x),f.y);}
-uniform float screenDoor;layout(location=0) out vec4 color;layout(location=1) out vec4 normals;layout(location=2)out uint sceneOwner;uniform int drawOwnerID;
-void main(){if(screenDoor>0.){const int door[16]=int[16](0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5);ivec2 q=ivec2(gl_FragCoord.xy)&3;if(float(door[q.y*4+q.x])+.5<screenDoor*16.)discard;}sceneOwner=uint(drawOwnerID);vec4 a=factor*(vertexTint!=0?tint:vec4(1));if(textured!=0)a*=(sampling==1?textureLod(albedo,uv,0.):texture(albedo,uv));if(alphaMode==1&&a.a<cutoff)discard;
+uniform float screenDoor;uniform int seeCount;uniform vec4 seeThrough[3];layout(location=0) out vec4 color;layout(location=1) out vec4 normals;layout(location=2)out uint sceneOwner;uniform int drawOwnerID;
+void main(){if(screenDoor>0.){
+ // A round window around each watched point, cut only through what stands in front of it,
+ // with a one-pixel checker rim so the edge stays crisp. It grows in as the fade rises.
+ if(seeCount>0){for(int i=0;i<seeCount;i++){vec4 s=seeThrough[i];float r=s.w*screenDoor,d=distance(gl_FragCoord.xy,s.xy);
+  if(gl_FragCoord.z<s.z&&(d<r-1.||(d<r+1.&&((int(gl_FragCoord.x)+int(gl_FragCoord.y))&1)==0)))discard;}}
+ else{const int door[16]=int[16](0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5);ivec2 q=ivec2(gl_FragCoord.xy)&3;if(float(door[q.y*4+q.x])+.5<screenDoor*16.)discard;}}sceneOwner=uint(drawOwnerID);vec4 a=factor*(vertexTint!=0?tint:vec4(1));if(textured!=0)a*=(sampling==1?textureLod(albedo,uv,0.):texture(albedo,uv));if(alphaMode==1&&a.a<cutoff)discard;
 // Preserve the licensed alpha silhouette; plain mode never uses texture RGB,
 // vertex color or per-card tint for its material base.
 if(treeCards!=0&&plainLeaves!=0)a.rgb=treeCanopyColor;
@@ -384,6 +389,7 @@ struct Gpu::Impl {
   bool definedShafts=false;
   std::function<void(const Mat &)> overlay;
   std::vector<float> fades;
+  std::vector<Vec> seeThrough;
   bool sourceView=false,shadowClean=true;float terrainRelief=1;int diagnosticView=0;
   Integration integration;
   GLuint edgePost = 0;
@@ -852,6 +858,7 @@ void main(){ivec2 size=textureSize(image,0),p=ivec2(gl_FragCoord.xy);vec4 base=t
 }
 void Gpu::setOverlay(std::function<void(const Mat &)> f) { p->overlay = std::move(f); }
 void Gpu::setFades(const std::vector<float> &f) { p->fades = f; }
+void Gpu::setSeeThrough(const std::vector<Vec> &points) { p->seeThrough.assign(points.begin(), points.begin() + std::min<std::size_t>(points.size(), 3)); }
 void Gpu::hud(const std::vector<std::string> &lines, int w, int h) {
   if (!p->hud)
     p->hud = std::make_unique<HudRenderer>();
@@ -1450,6 +1457,24 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
   uniformInt(p->mesh, "shadowDepth", 3);
   uniformInt(p->mesh, "groundShadow", 4);
   uniformInt(p->mesh, "pilotOn", p->pilot.enabled && !p->sourceView);
+  {
+    // See-through windows: each watched point in internal pixels, its depth, and a radius of
+    // about 1.5 m at that point.
+    int count = 0;
+    for (const auto &at : p->seeThrough) {
+      const float *m = vp.v.data();
+      float cx = m[0] * at.x + m[4] * at.y + m[8] * at.z + m[12], cy = m[1] * at.x + m[5] * at.y + m[9] * at.z + m[13],
+            cz = m[2] * at.x + m[6] * at.y + m[10] * at.z + m[14], cw = m[3] * at.x + m[7] * at.y + m[11] * at.z + m[15];
+      if (cw <= 1e-4f)
+        continue;
+      float perMetre = ortho ? 1 / sampled.worldPerPixel : h / (2 * cw * std::tan(30 * pi / 180));
+      std::string name = "seeThrough[" + std::to_string(count++) + "]";
+      const float value[4] = {(cx / cw * .5f + .5f) * w, (cy / cw * .5f + .5f) * h, cz / cw * .5f + .5f,
+                              std::clamp(1.5f * perMetre, 10.f, 100.f)};
+      gl::Uniform4fv(p->location(p->mesh, name.c_str()), 1, value);
+    }
+    uniformInt(p->mesh, "seeCount", count);
+  }
   uniformInt(p->mesh, "pilotTiles", 13);
   gl::Uniform2f(p->location(p->mesh, "pilotPixels"), float(w), float(h));
   if (p->pilot.enabled) {

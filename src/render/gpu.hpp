@@ -65,6 +65,8 @@ struct Gpu {
   void setOverlay(std::function<void(const Mat &)>);
   // Per-instance pixel dissolve, 0 solid to 1 gone; the shadow pass ignores it.
   void setFades(const std::vector<float> &);
+  // Faded objects open a round window around these points (up to 3) instead of dissolving whole.
+  void setSeeThrough(const std::vector<Vec> &);
   void setLook(const Look &);
   void setProfile(const StyleProfile &);
   void setSourceView(bool);
