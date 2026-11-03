@@ -8,6 +8,7 @@
 #include "gpu.hpp"
 #include "json.hpp"
 #include "kit_terrain.hpp"
+#include "region.hpp"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include <algorithm>
@@ -15,6 +16,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <optional>
 #include <sstream>
 #include <thread>
 #ifdef _WIN32
@@ -78,6 +80,7 @@ struct Options {
   bool meadowExtras = true; // LOOKDEV-003 flowers and edge tufts (F10).
   bool leafSnap = false; // LOOKDEV-004: old whole-pixel leaf cards, for comparison (F7).
   std::filesystem::path dream; bool dreamOn = true; // LOOKDEV-005 dream look file; F4 compares.
+  std::string region; // REGION-001: assets/regions/<id>/ instead of game.json + scene.json.
 };
 int integer(const std::string &s, int lo, int hi) {
   std::size_t n = 0;
@@ -114,7 +117,7 @@ Options options(int argc, char **argv) {
                    "--shadow-cache-probe (isolated technical test only)\n"
                    "--shafts on|off --haze on|off --quality low|medium|high --shaft-strength 0..3\n";
       std::cout<<"--tilt-shift on|off (F8 toggles; paused during fights) --highlight-strength 0..1 --leaf-rims on|off\nF6 cycles the render size 480/640/1280\n";
-      std::cout<<"--meadow-extras on|off (LOOKDEV-003 flowers and edge tufts; F10 toggles)\n--dream FILE --dream-look on|off (LOOKDEV-005 look and flat camera; F4 toggles, Z/X turn)\n--leaf-snap on|off (old whole-pixel leaf cards; F7 toggles)\n";
+      std::cout<<"--meadow-extras on|off (LOOKDEV-003 flowers and edge tufts; F10 toggles)\n--dream FILE --dream-look on|off (LOOKDEV-005 look and flat camera; F4 toggles, Z/X turn)\n--region ID (REGION-001: load assets/regions/ID/ chunk files)\n--leaf-snap on|off (old whole-pixel leaf cards; F7 toggles)\n";
       std::cout<<"--render-reference (comparison only; disables optimized shadow cache)\n--tree-scene --tree-study original|shader|clusters|billboards|hybrid --leaf-color plain|source (T tree options, M leaf color)\n";
       std::exit(0);
     } else if (a == "--assets")
@@ -124,6 +127,7 @@ Options options(int argc, char **argv) {
     else if(a=="--leaf-color"){auto v=value();if(v!="plain"&&v!="source")throw std::runtime_error("leaf-color plain|source");o.leafPlain=v=="plain";}
     else if(a=="--meadow-extras"){auto v=value();if(v!="on"&&v!="off")throw std::runtime_error("meadow-extras on|off");o.meadowExtras=v=="on";}
     else if(a=="--dream")o.dream=value();
+    else if(a=="--region")o.region=value();
     else if(a=="--dream-look"){auto v=value();if(v!="on"&&v!="off")throw std::runtime_error("dream-look on|off");o.dreamOn=v=="on";}
     else if(a=="--leaf-snap"){auto v=value();if(v!="on"&&v!="off")throw std::runtime_error("leaf-snap on|off");o.leafSnap=v=="on";}
     else if(a=="--tree-scene"){o.treeScene=true;o.treeEnabled=true;}
@@ -312,6 +316,8 @@ Options options(int argc, char **argv) {
   }
   if (o.cacheProbe && !o.benchmark)
     throw std::runtime_error("shadow-cache-probe requires --benchmark");
+  if (!o.region.empty() && o.treeScene)
+    throw std::runtime_error("--region and --tree-scene are separate worlds");
   if(o.preset=="baseline"){if(!o.shadowSet)o.shadows=true;if(!o.shaftSet)o.shafts=true;if(!o.hazeSet)o.haze=true;}
   return o;
 }
@@ -426,12 +432,30 @@ int main(int argc, char **argv) {
     std::ofstream log(o.out / "run.log");
     log << "source=" << PIXEL3D_SOURCE_ID << "\nrender_optimizations=" << (!o.renderReference) << "\n";
     game::Game game;
-    auto cfg = ws::parseJson(p3::readText(o.assets / (o.treeScene?"tree_game.json":"game.json")));
-    if (cfg.at("revision").number() != 1)
-      throw std::runtime_error("game manifest revision");
-    game::configureWorld(float(cfg.at("world_half_extent").number()),
-                         o.assets / "terrain_height.bin",
-                         float(cfg.at("ground_spacing").number()));
+    std::optional<world::Region> region;
+    ws::Json cfg;
+    if (!o.region.empty()) {
+      auto start = Clock::now();
+      region = world::Region::load(o.assets, o.region);
+      if (region->walkHalf != region->heightHalf)
+        throw std::runtime_error("region walk and height extents must match in REGION-001");
+      game::configureHeights(region->heightHalf, region->heights, region->groundSpacing);
+      cfg = region->config;
+      log << "region=" << region->id << "\nregion_chunks=" << region->chunksLoaded
+          << "\nregion_grid=" << region->columns << "x" << region->rows
+          << "\nregion_instances=" << region->instances.size()
+          << "\nregion_solids=" << region->solids.size()
+          << "\nregion_grass=" << region->grass.size()
+          << "\nregion_bytes=" << region->bytesRead
+          << "\nregion_load_ms=" << ms(start, Clock::now()) << "\n";
+    } else {
+      cfg = ws::parseJson(p3::readText(o.assets / (o.treeScene?"tree_game.json":"game.json")));
+      if (cfg.at("revision").number() != 1)
+        throw std::runtime_error("game manifest revision");
+      game::configureWorld(float(cfg.at("world_half_extent").number()),
+                           o.assets / "terrain_height.bin",
+                           float(cfg.at("ground_spacing").number()));
+    }
     auto vector3 = [](const ws::Json &v) {
       auto &a = v.array();
       if (a.size() != 3)
@@ -452,13 +476,17 @@ int main(int argc, char **argv) {
     game.message = "HEARTHGROVE EMACEART: explore the green. E rests at cottage doors / "
                    "meets wild Petalyn. F5 saves.";
 
-    for (auto &v : cfg.at("solids").array()) {
-      auto &a = v.array();
-      if (a.size() != 4)
-        throw std::runtime_error("solid arity");
-      game.solids.push_back({float(a[0].number()), float(a[1].number()),
-                             float(a[2].number()), float(a[3].number())});
-    }
+    if (region)
+      for (auto &s : region->solids)
+        game.solids.push_back(s.box);
+    else
+      for (auto &v : cfg.at("solids").array()) {
+        auto &a = v.array();
+        if (a.size() != 4)
+          throw std::runtime_error("solid arity");
+        game.solids.push_back({float(a[0].number()), float(a[1].number()),
+                               float(a[2].number()), float(a[3].number())});
+      }
     for (const auto &s : game.solids)
       if (!std::isfinite(s.x) || !std::isfinite(s.z) || !std::isfinite(s.hx) ||
           !std::isfinite(s.hz) || s.hx <= 0 || s.hz <= 0 || s.hx > 12 ||
@@ -469,13 +497,18 @@ int main(int argc, char **argv) {
     auto grassSolids = game.solids;
     if (!o.house) {
       std::vector<std::size_t> indices;
-      for (auto &v : cfg.at("house_solids").array()) {
-        double index = v.number();
-        if (index < 0 || index >= game.solids.size() ||
-            index != std::floor(index))
-          throw std::runtime_error("house collider index");
-        indices.push_back(std::size_t(index));
-      }
+      if (region)
+        for (std::size_t i = 0; i < region->solids.size(); i++)
+          if (region->solids[i].house)
+            indices.push_back(i);
+      else
+        for (auto &v : cfg.at("house_solids").array()) {
+          double index = v.number();
+          if (index < 0 || index >= game.solids.size() ||
+              index != std::floor(index))
+            throw std::runtime_error("house collider index");
+          indices.push_back(std::size_t(index));
+        }
       std::sort(indices.rbegin(), indices.rend());
       if (std::adjacent_find(indices.begin(), indices.end()) != indices.end())
         throw std::runtime_error("duplicate house collider");
@@ -502,11 +535,20 @@ int main(int argc, char **argv) {
         game::move(game.state.player, {-.8f, 0, .6f}, game.solids);
     game::Followers followers;
     followers.reset(game);
-    auto world = p3::World::load(
-        o.assets / (o.sourceTextures   ? "pack_source.json"
-                    : o.pixelMaterials ? "pack_style.json"
-                                       : "pack.json"),
-        o.assets / (o.treeScene?"tree_scene.json":o.house ? "scene.json" : "scene_nohouse.json"), false);
+    auto worldStart = Clock::now();
+    auto world = region
+        ? p3::World::load(
+              p3::safePath(o.assets, o.sourceTextures   ? region->sourcePack
+                                     : o.pixelMaterials ? region->stylePack
+                                                        : region->pack),
+              region->instances, false)
+        : p3::World::load(
+              o.assets / (o.sourceTextures   ? "pack_source.json"
+                          : o.pixelMaterials ? "pack_style.json"
+                                             : "pack.json"),
+              o.assets / (o.treeScene?"tree_scene.json":o.house ? "scene.json" : "scene_nohouse.json"), false);
+    log << "world_models=" << world.models.size() << "\nworld_instances=" << world.instances.size()
+        << "\nworld_load_ms=" << ms(worldStart, Clock::now()) << "\n";
     // Select existing approved components without rewriting source asset files.
     for (const auto &entry : cfg.at("exclude_materials").array()) {
       bool found = false;
@@ -561,8 +603,16 @@ int main(int argc, char **argv) {
     auto &rig = world.models[world.instances[actors[0]].model].rig;
     for (auto clip : {"Idle", "Fly", "Attack"})
       rig->sample(clip, 0);
+    if (region && region->vegetation != "vegetation.json")
+      throw std::runtime_error("REGION-001 shares the assets' vegetation.json");
     p3::MeshClumps grass(o.assets, grassSolids, o.legacyGrass,
-                         o.forceLegacyGrass, o.scaleFamily);
+                         o.forceLegacyGrass, o.scaleFamily,
+                         region ? &region->grass : nullptr);
+    if (region) { // Built into the world and grass now; the file rows are not needed.
+      ws::Json::Array().swap(region->instances);
+      ws::Json::Array().swap(region->grass);
+      std::vector<float>().swap(region->heights);
+    }
     if (o.requireAuthored && !grass.authored)
       throw std::runtime_error("EmaceArt revision2 vegetation.json required");
     if (grass.authored && o.coverage)

@@ -3,7 +3,8 @@
 #include <algorithm>
 namespace p3 {
 MeshClumps::MeshClumps(const std::filesystem::path &r,
- const std::vector<game::Solid> &, bool legacyLayout, bool forceLegacy, int scaleFamily) {
+ const std::vector<game::Solid> &, bool legacyLayout, bool forceLegacy, int scaleFamily,
+ const ws::Json::Array *regionRows) {
  if (legacyLayout || forceLegacy || scaleFamily) throw std::runtime_error("EmaceArt source grass only; use earlier executable for R2 controls");
  auto cfg = ws::parseJson(readText(r / "vegetation.json"));
  if (cfg.at("revision").number()!=2 || !std::get<bool>(cfg.at("source_materials").value))
@@ -56,9 +57,10 @@ MeshClumps::MeshClumps(const std::filesystem::path &r,
    hasLods=true;
  }
  if(cfg.at("instance_files").array().size()>96) throw std::runtime_error("grass chunk budget");
- for(auto &file:cfg.at("instance_files").array()) {
-   auto rows=ws::parseJson(readText(safePath(r,file.string())));
-   for(auto &e:rows.array()) {
+ std::vector<ws::Json> files;
+ if(!regionRows)for(auto &file:cfg.at("instance_files").array())files.push_back(ws::parseJson(readText(safePath(r,file.string()))));
+ auto addRows=[&](const ws::Json::Array &rows) {
+   for(auto &e:rows) {
      if(all.size()>=16000) throw std::runtime_error("grass population budget");
      auto &p=e.at("position").array(); auto &n=e.at("normal").array();
      double v=e.at("variant").number();
@@ -83,10 +85,17 @@ MeshClumps::MeshClumps(const std::filesystem::path &r,
        if(!std::isfinite(n)||n!=std::floor(n)||n<0||n>2) throw std::runtime_error("grass color variant");
        colorVariant=int(n);
      }
+     std::uint32_t seed=std::uint32_t(all.size());
+     if(auto it=row.find("seed");it!=row.end()) {
+       double n=it->second.number();
+       if(!std::isfinite(n)||n!=std::floor(n)||n<0||n>1e9) throw std::runtime_error("grass seed");
+       seed=std::uint32_t(n);
+     }
      all.push_back({mat,{float(colorVariant),normal.x,normal.y,normal.z}});
-     variants.push_back(int(v)); bounds.push_back(transformed(models[int(v)].bounds,mat));
+     variants.push_back(int(v)); bounds.push_back(transformed(models[int(v)].bounds,mat)); seeds.push_back(seed);
    }
- }
+ };
+ if(regionRows)addRows(*regionRows);else for(auto &f:files)addRows(f.array());
  if(all.empty()) throw std::runtime_error("empty grass placement");
  if(auto it=fields.find("expected_instances");it!=fields.end())
    if(it->second.number()!=double(all.size())) throw std::runtime_error("grass placement count differs from manifest");
@@ -100,7 +109,8 @@ MeshVisibility MeshClumps::select(const Camera &camera,const Frustum &f,int heig
  for(auto &b:batches)b.clear(); MeshVisibility s; s.total=all.size();
  if(!enabled||density==0)return s;
  for(std::size_t i=0;i<all.size();++i) {
-   if((density==1&&i%4)||(density==2&&i%2))continue;
+   const std::uint32_t seed=seeds[i];
+   if((density==1&&seed%4)||(density==2&&seed%2))continue;
    auto d=point(all[i].matrix,{})-camera.position;float distance=std::sqrt(dot(d,d));
    float limit=density==1?12.f:18.f;
    float projected=height*(bounds[i].hi.y-bounds[i].lo.y)/std::max(distance,.5f);
@@ -109,7 +119,7 @@ MeshVisibility MeshClumps::select(const Camera &camera,const Frustum &f,int heig
    if(options.lod&&hasLods) {
      // Deterministic staggered bands and hysteresis avoid a synchronized ring
      // or rapid toggling while strafing across a boundary. No density thinning.
-     float offset=(float((i*2654435761u)&1023)/1023.f-.5f)*.50f;
+     float offset=(float((seed*2654435761u)&1023)/1023.f-.5f)*.50f;
      level=lodState[i]==255?(distance<lodDistances[0]+offset?0:distance<lodDistances[1]+offset?1:2):int(lodState[i]);
      while(level<2&&distance>lodDistances[level]+offset+.35f)level++;
      while(level>0&&distance<lodDistances[level-1]+offset-.35f)level--;

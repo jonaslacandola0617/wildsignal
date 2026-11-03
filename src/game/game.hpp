@@ -29,6 +29,9 @@ struct Follower {
 };
 void configureWorld(float halfExtent, const std::filesystem::path &heightGrid,
                     float tileSpacing = 12);
+// Same height lattice handed over directly (REGION-001 chunks rebuild it).
+void configureHeights(float halfExtent, std::vector<float> values,
+                      float tileSpacing);
 float terrain(float x, float z);
 float pathX(float z);
 bool meadow(float x, float z, const std::vector<Solid> &);
