@@ -111,10 +111,12 @@ layout(location=1) in vec3 normal;
 layout(location=2) in vec2 texcoord;
 layout(location=3) in vec4 vertexColor;
 layout(location=4) in vec4 jointIndices;layout(location=5) in vec4 jointWeights;
-uniform int skinned;uniform mat4 bones[24];uniform float pilotWind,pilotTime;uniform int pilotCards;uniform vec3 pilotRight,pilotUp,sunDirection;uniform vec2 pilotPixels;flat out vec3 pilotCenter;
+uniform int skinned;uniform mat4 bones[24];uniform float pilotWind,pilotTime;uniform int pilotCards,pilotSnapModel;uniform mat4 pilotLayout;uniform vec3 pilotRight,pilotUp,sunDirection;uniform vec2 pilotPixels;flat out vec3 pilotCenter;
 uniform mat4 model,viewProjection;uniform float normalYCorrection;
 out vec3 worldPosition;out vec3 worldNormal;out vec2 uv;out vec4 tint;
 void main(){mat4 skin=mat4(1);if(skinned!=0)skin=bones[int(jointIndices.x)]*jointWeights.x+bones[int(jointIndices.y)]*jointWeights.y+bones[int(jointIndices.z)]*jointWeights.z+bones[int(jointIndices.w)]*jointWeights.w;vec4 p=model*skin*vec4(position,1);pilotCenter=p.xyz;if(pilotWind>0.){float h=max(0.,position.y);p.xz+=pilotWind*h*h*vec2(sin(pilotTime*1.3+p.x*.4+p.z*.3),cos(pilotTime*1.1+p.z*.5));}float puff=1.;if(pilotCards==2){float life=fract(pilotTime*.08+normal.x*.5+.5);float k=length(model[0].xyz);p.xyz+=vec3(life*life*1.6+sin(life*6.+normal.z*9.)*.14,life*4.2,life*.5)*k;puff=.5+life*1.5;pilotCenter=vec3(life);}vec3 swayed=p.xyz;if(pilotCards!=0){vec2 c=vertexColor.rg-.5;float s=vertexColor.b*2.*length(model[0].xyz)*puff;p.xyz+=(pilotRight*c.x+pilotUp*c.y)*s;}worldPosition=p.xyz;worldNormal=mat3(model)*mat3(skin)*normal;worldNormal.y*=normalYCorrection;uv=texcoord;tint=vertexColor;gl_Position=viewProjection*p;
+ // The solid trunk and crown move in the same whole-pixel steps as the tree's leaf cards.
+ if(pilotSnapModel!=0&&pilotCards==0){vec4 o=viewProjection*model[3];vec2 origin=(o.xy/o.w*.5+.5)*pilotPixels;gl_Position.xy+=(floor(origin)-origin)/pilotPixels*2.*gl_Position.w;}
  // Leaf cards are drawn as pixel sprites: a whole-pixel position and whole-pixel
  // size, so their texels stop flickering as the camera or wind moves them.
  // Leaves size, sort and snap from their resting place: a card snaps relative to its
@@ -124,8 +126,12 @@ void main(){mat4 skin=mat4(1);if(skinned!=0)skin=bones[int(jointIndices.x)]*join
  if(pilotCards!=0){vec2 c=vertexColor.rg;vec3 rest=pilotCards==1?pilotCenter:swayed;vec4 h=viewProjection*vec4(rest,1),t=viewProjection*vec4(rest+pilotUp*vertexColor.b*2.*length(model[0].xyz)*puff,1);
   float px=max(2.,floor(abs(t.y/t.w-h.y/h.w)*.5*pilotPixels.y+.5));
   vec2 at=(h.xy/h.w*.5+.5)*pilotPixels,q=floor(at);
-  if(pilotCards==1){vec4 o=viewProjection*model[3],w=viewProjection*vec4(swayed,1);vec2 origin=(o.xy/o.w*.5+.5)*pilotPixels;
-   q=floor(origin)+floor(at-origin+.5)+floor((w.xy/w.w-h.xy/h.w)*.5*pilotPixels+.5);}
+  // Cards are laid out from the camera snapped to a half-metre grid (pilotLayout), then
+  // follow their tree's whole-pixel origin: a walking camera moves each crown in whole
+  // pixels, and its cards relay only when the camera crosses a grid line, all together.
+  if(pilotCards==1){vec4 o=viewProjection*model[3],w=viewProjection*vec4(swayed,1),lo=pilotLayout*model[3],lh=pilotLayout*vec4(rest,1),lt=pilotLayout*vec4(rest+pilotUp*vertexColor.b*2.*length(model[0].xyz),1);vec2 origin=(o.xy/o.w*.5+.5)*pilotPixels;
+   px=max(2.,floor(abs(lt.y/lt.w-lh.y/lh.w)*.5*pilotPixels.y+.5));
+   q=floor(origin)+floor((lh.xy/lh.w-lo.xy/lo.w)*.5*pilotPixels+.5)+floor((w.xy/w.w-h.xy/h.w)*.5*pilotPixels+.5);}
   q+=c*px-floor(px*.5);
   // Lighter clusters sit nearer the camera, so each band's edge shows whole cluster outlines.
   float z=h.z;if(pilotCards==1){vec3 wn=normalize(mat3(model)*normal),ld=normalize(sunDirection+vec3(0,.8,0));
@@ -1465,6 +1471,10 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
   gl::Disable(GL_BLEND);
   gl::UseProgram(p->mesh);
   gl::UniformMatrix4fv(p->vpLoc, 1, GL_FALSE, vp.data());
+  // Leaf layout camera: position on a half-metre grid, yaw and pitch in 1/64 rad steps.
+  {Camera c=effective;auto step=[](float v,float s){return std::floor(v/s+.5f)*s;};
+   c.position={step(c.position.x,.5f),step(c.position.y,.5f),step(c.position.z,.5f)};c.yaw=step(c.yaw,1.f/64);c.pitch=step(c.pitch,1.f/64);
+   auto layout=perspective(60*pi/180,static_cast<float>(w)/h)*c.view();gl::UniformMatrix4fv(p->location(p->mesh,"pilotLayout"),1,GL_FALSE,layout.data());}
   gl::Uniform1i(p->modeLoc, mode);
   gl::Uniform1i(p->bandsLoc, bands ? 1 : 0);
   gl::Uniform3f(p->eyeLoc, effective.position.x, effective.position.y,
@@ -1550,6 +1560,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
       uniformInt(p->mesh, "pixelMaterial",
                  p->style.materials && !mat.styleTexture.empty());
       uniformInt(p->mesh, "kind", mat.kind);
+      uniformInt(p->mesh, "pilotSnapModel", p->pilot.enabled && !p->sourceView && model.id.starts_with("WSP_"));
       uniformInt(p->mesh, "pilotCards", !p->pilot.enabled || p->sourceView ? 0 : model.id.starts_with("WSP_") ? (mat.name == "Leaf" ? 1 : mat.name == "Smoke" ? 2 : 0) : 0);
       uniformInt(p->mesh, "pilotGlow", p->pilot.enabled && !p->sourceView && mat.name == "Glow");
       uniformInt(p->mesh, "architecture", mat.architecture);
