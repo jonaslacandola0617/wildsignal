@@ -140,7 +140,7 @@ void main(){mat4 skin=mat4(1);if(skinned!=0)skin=bones[int(jointIndices.x)]*join
   gl_Position=pilotCards==1&&pilotLeafSnap==0?vec4(gl_Position.xy,z/h.w*gl_Position.w,gl_Position.w):vec4((q/pilotPixels*2.-1.)*h.w,z,h.w);
   // Leaf cards on the far side of a crown sit behind its dark core: drop them before they
   // cost any pixels (tiny dream leaves are dense, and this halves their work).
-  if(pilotCards==1&&dot(normalize(mat3(model)*normal),cross(pilotRight,pilotUp))<-.35)gl_Position=vec4(2,2,2,1);}}
+  if(pilotCards==1&&dot(normalize(mat3(model)*normal),cross(pilotRight,pilotUp))<-.5)gl_Position=vec4(2,2,2,1);}}
 )GLSL";
 // Optional canopy transmittance proxy, anchored in the fixed sun projection.
 // The same ray samples the same authored alpha through front/back surfaces.
