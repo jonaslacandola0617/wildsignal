@@ -207,7 +207,7 @@ Locked in [GDD chapter 2](../gdd/02_CORE_GAMEPLAY.md); the chapter holds the det
 
 | Decision ID | Decision | Status | Source/impact |
 |---|---|---|---|
-| D-086 | Art and audio locked in [GDD chapter 6](../gdd/06_ART_AUDIO_AND_ASSETS.md): zero budget; all world, character and UI assets made for Wildsignal (current packs are placeholders); look development with three style directions decides the style guide; music from free royalty-free sources and AI instrumentals with terms recorded; free CC0 sound effects plus synthesis | **CONFIRMED 2026-11-02; style guide OPEN until LOOKDEV-001** | all art, audio, licences |
+| D-086 | Art and audio locked in [GDD chapter 6](../gdd/06_ART_AUDIO_AND_ASSETS.md): zero budget; all world, character and UI assets made for Wildsignal (current packs are placeholders); look development with three style directions decides the style guide; music from free royalty-free sources and AI instrumentals with terms recorded; free CC0 sound effects plus synthesis | **CONFIRMED 2026-11-02; style guide resolved by D-089 (2026-11-04)** | all art, audio, licences |
 
 
 ## 17. Technical and production plan — 2026-11-02
@@ -216,3 +216,12 @@ Locked in [GDD chapter 2](../gdd/02_CORE_GAMEPLAY.md); the chapter holds the det
 |---|---|---|---|
 | D-087 | Technical plan locked in [GDD chapter 7](../gdd/07_TECHNICAL_PLAN.md): new source tree, validated data files, chunk streaming, save contents, performance budgets, Android after region 1, a `develop` branch for approved work | **CONFIRMED 2026-11-02** | all engineering |
 | D-088 | Production plan locked in [GDD chapter 8](../gdd/08_PRODUCTION_PLAN.md): milestone flow, phases 0–5, region 1 vertical slice with a playtest gate; FOUND-001 first | **CONFIRMED 2026-11-02** | all work; supersedes DEVELOPMENT_BACKLOG milestone lists |
+
+## 18. Approved look — 2026-11-04
+
+Owner approved build 014 (LOOKDEV-003, -004, -005) as the game's look on 2026-11-04, after playing it.
+
+| Decision ID | Decision | Status | Source/impact |
+|---|---|---|---|
+| D-089 | The game's look is the LOOKDEV-005 "dream" look of build 014: flat (orthographic) camera locked to the pixel grid, looking down from one of four corners, turned only with Z/X (no mouse turning, no automatic turns; fights zoom in only); few light bands with a teal-shade / warm-gold palette, soft haze, drifting round cloud shade with clean edges; trees and bushes of small pointed plain-colour leaf slivers, packed in a crown's middle and scattered at its edges, lit by the whole crown; lawns with lighter blade tips and tiny lilac three-petal flowers; rounded faceted purple-grey boulders with mossy tops; the approved houses from the house models folder (approved set 001–019) shown in the scene's light; characters cast shadows; objects fade only when they really hide the player, as a round see-through window | **CONFIRMED 2026-11-04** | all regions follow these rules; each region gets its own palette, haze, plants and props; resolves the OPEN style guide in D-086 |
+| D-090 | Hills, cliffs and raised meadows, closing the map edge, and cheaper shadows come with the chunked world format (D-073), not as more look tests | **CONFIRMED 2026-11-04 (order)** | world format, region 1 |
