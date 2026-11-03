@@ -112,7 +112,7 @@ layout(location=1) in vec3 normal;
 layout(location=2) in vec2 texcoord;
 layout(location=3) in vec4 vertexColor;
 layout(location=4) in vec4 jointIndices;layout(location=5) in vec4 jointWeights;
-uniform int skinned;uniform mat4 bones[24];uniform float pilotWind,pilotTime;uniform int pilotCards;uniform vec3 pilotRight,pilotUp,sunDirection;uniform vec2 pilotPixels;flat out vec3 pilotCenter;
+uniform int skinned;uniform mat4 bones[24];uniform float pilotWind,pilotTime;uniform int pilotCards,pilotLeafSnap;uniform vec3 pilotRight,pilotUp,sunDirection;uniform vec2 pilotPixels;flat out vec3 pilotCenter;
 uniform mat4 model,viewProjection;uniform float normalYCorrection;
 out vec3 worldPosition;out vec3 worldNormal;out vec2 uv;out vec4 tint;
 void main(){mat4 skin=mat4(1);if(skinned!=0)skin=bones[int(jointIndices.x)]*jointWeights.x+bones[int(jointIndices.y)]*jointWeights.y+bones[int(jointIndices.z)]*jointWeights.z+bones[int(jointIndices.w)]*jointWeights.w;vec4 p=model*skin*vec4(position,1);pilotCenter=p.xyz;if(pilotWind>0.){float h=max(0.,position.y);p.xz+=pilotWind*h*h*vec2(sin(pilotTime*1.3+p.x*.4+p.z*.3),cos(pilotTime*1.1+p.z*.5));}float puff=1.;if(pilotCards==2){float life=fract(pilotTime*.08+normal.x*.5+.5);float k=length(model[0].xyz);p.xyz+=vec3(life*life*1.6+sin(life*6.+normal.z*9.)*.14,life*4.2,life*.5)*k;puff=.5+life*1.5;pilotCenter=vec3(life);}vec3 swayed=p.xyz;if(pilotCards!=0){vec2 c=vertexColor.rg-.5;float s=vertexColor.b*2.*length(model[0].xyz)*puff;p.xyz+=(pilotRight*c.x+pilotUp*c.y)*s;}worldPosition=p.xyz;worldNormal=mat3(model)*mat3(skin)*normal;worldNormal.y*=normalYCorrection;uv=texcoord;tint=vertexColor;gl_Position=viewProjection*p;
@@ -132,7 +132,10 @@ void main(){mat4 skin=mat4(1);if(skinned!=0)skin=bones[int(jointIndices.x)]*join
   float z=h.z;if(pilotCards==1){vec3 wn=normalize(mat3(model)*normal),ld=normalize(sunDirection+vec3(0,.8,0));
    float k=dot(wn,ld)+(fract(sin(dot(pilotCenter.xz+pilotCenter.yy,vec2(41.3,289.1)))*43758.5453)-.5)*.10;
    float lift=k<-.25?0.:k<.22?1.:k<.62?2.:3.;vec4 f=viewProjection*vec4(rest+cross(pilotRight,pilotUp)*lift*.45,1);z=f.z/f.w*h.w;}
-  gl_Position=vec4((q/pilotPixels*2.-1.)*h.w,z,h.w);}}
+  // Snapped cards jump a pixel at random as the player walks toward or away from a
+  // tree, so by default tree leaves keep their smooth place like the trunk and ground
+  // and take only the lit-cluster depth order (F7 brings the snap back to compare).
+  gl_Position=pilotCards==1&&pilotLeafSnap==0?vec4(gl_Position.xy,z/h.w*gl_Position.w,gl_Position.w):vec4((q/pilotPixels*2.-1.)*h.w,z,h.w);}}
 )GLSL";
 // Optional canopy transmittance proxy, anchored in the fixed sun projection.
 // The same ray samples the same authored alpha through front/back surfaces.
@@ -361,7 +364,7 @@ struct Gpu::Impl {
   std::unique_ptr<TreeStudy> tree;
   std::vector<Part> treeParts, rimParts;
   GLuint treeInstanceBuffer=0, rimInstanceBuffer=0;
-  int treeMode=0;bool plainLeaves=true;bool meadowExtras=true;
+  int treeMode=0;bool plainLeaves=true;bool meadowExtras=true;bool leafSnap=false;
   std::map<std::filesystem::path, GLuint> textures;
   std::vector<Draw> blends;
   std::vector<Material> materials;
@@ -940,6 +943,7 @@ void Gpu::setShadowClean(bool v){p->shadowClean=v;}
 void Gpu::setTerrainRelief(float v){if(!std::isfinite(v)||v<.75f||v>1)throw std::runtime_error("terrain instance relief range");p->terrainRelief=v;}
 void Gpu::setPlainLeaves(bool value){p->plainLeaves=value;}
 void Gpu::setMeadowExtras(bool value){p->meadowExtras=value;}
+void Gpu::setLeafSnap(bool value){p->leafSnap=value;}
 void Gpu::setTreeTreatment(int mode){
  if(mode<0||mode>4||(!p->tree&&mode!=0))throw std::runtime_error("tree treatment requires verified private study");
  if(mode==4&&!p->tree->attached)throw std::runtime_error("hybrid requires verified branch-rooted leaf attachment data");
@@ -1519,6 +1523,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     int family=model.rig||model.id.starts_with("WS0")?-1:model.id.starts_with("WSP_")||model.id.starts_with("EA_TREE")||model.id.starts_with("EA_BUSH")||model.id.starts_with("EA_REED")?1:model.id.starts_with("EA_ROCK")?4:model.id.starts_with("EA_PATH")||model.id=="EA_COBBLE"||model.id.starts_with("HG_PATH")?3:model.id=="EA_GROUND"||model.id.starts_with("HG_GROUND")||model.id.starts_with("HG_GREEN")||model.id.starts_with("EA_GREEN")?5:model.id.starts_with("EA_GREEN")||model.id.starts_with("HG_GREEN")||model.id=="EA_MOSS"?0:2;
     uniformInt(p->mesh,"profileFamily",family);
     uniformInt(p->mesh,"pilotMeadow",isMeadowExtra(model.id));
+    uniformInt(p->mesh,"pilotLeafSnap",p->leafSnap);
     uniformInt(p->mesh,"pilotPlain",model.id.starts_with("HAWTOR"));
     uniformFloat(p->mesh,"screenDoor",index<p->fades.size()?p->fades[index]:0.f);
     uniformFloat(p->mesh,"pilotWind",p->pilot.enabled&&!p->sourceView&&family==1?.003f:0.f);

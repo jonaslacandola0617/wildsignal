@@ -50,6 +50,7 @@ struct Gpu {
   void setPlainLeaves(bool);
   // LOOKDEV-003 small flowers and edge-tuft rings (WSP_FLOWER_*, WSP_TUFT_*) on or off.
   void setMeadowExtras(bool);
+  void setLeafSnap(bool);
   void setIntegration(const Integration &);
   void setSurfacePolicy(std::size_t model, const SurfacePolicy &);
   void setGrass(MeshClumps *, const std::filesystem::path &,
