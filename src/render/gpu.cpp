@@ -289,7 +289,8 @@ if(pilotSurface){
  } else if(pilotCards!=0){
   // One flat tone per leaf card, read at its centre, so the crown stays clean.
   // The nudge only matters near a band edge, which gives leafy clusters there.
-  float nudge=(pilotHash(pilotCenter.xz+pilotCenter.yy)-.5)*.10;
+  // The dream look has no random nudge: neighbouring leaves share the crown's light and merge.
+  float nudge=pilotDream!=0?0.:(pilotHash(pilotCenter.xz+pilotCenter.yy)-.5)*.10;
   display=pilotRamp(3,pilotLeafTone(dot(n,normalize(sd+vec3(0,.8,0)))+nudge,visibility));
  } else if(pilotMeadow!=0){
   // LOOKDEV-003 flowers and edge tufts: green parts take the meadow's own grass tone, so
