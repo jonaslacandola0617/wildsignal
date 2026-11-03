@@ -112,17 +112,19 @@ layout(location=1) in vec3 normal;
 layout(location=2) in vec2 texcoord;
 layout(location=3) in vec4 vertexColor;
 layout(location=4) in vec4 jointIndices;layout(location=5) in vec4 jointWeights;
-uniform int skinned;uniform mat4 bones[24];uniform float pilotWind,pilotTime;uniform int pilotCards,pilotLeafSnap;uniform vec3 pilotRight,pilotUp,sunDirection;uniform vec2 pilotPixels;flat out vec3 pilotCenter;
+uniform int skinned;uniform mat4 bones[24];uniform float pilotWind,pilotTime;uniform int pilotCards,pilotLeafSnap,pilotDream;uniform vec3 pilotRight,pilotUp,sunDirection;uniform vec2 pilotPixels;flat out vec3 pilotCenter;
 uniform mat4 model,viewProjection;uniform float normalYCorrection;
 out vec3 worldPosition;out vec3 worldNormal;out vec2 uv;out vec4 tint;
-void main(){mat4 skin=mat4(1);if(skinned!=0)skin=bones[int(jointIndices.x)]*jointWeights.x+bones[int(jointIndices.y)]*jointWeights.y+bones[int(jointIndices.z)]*jointWeights.z+bones[int(jointIndices.w)]*jointWeights.w;vec4 p=model*skin*vec4(position,1);pilotCenter=p.xyz;if(pilotWind>0.){float h=max(0.,position.y);p.xz+=pilotWind*h*h*vec2(sin(pilotTime*1.3+p.x*.4+p.z*.3),cos(pilotTime*1.1+p.z*.5));}float puff=1.;if(pilotCards==2){float life=fract(pilotTime*.08+normal.x*.5+.5);float k=length(model[0].xyz);p.xyz+=vec3(life*life*1.6+sin(life*6.+normal.z*9.)*.14,life*4.2,life*.5)*k;puff=.5+life*1.5;pilotCenter=vec3(life);}vec3 swayed=p.xyz;if(pilotCards!=0){vec2 c=vertexColor.rg-.5;float s=vertexColor.b*2.*length(model[0].xyz)*puff;p.xyz+=(pilotRight*c.x+pilotUp*c.y)*s;}worldPosition=p.xyz;worldNormal=mat3(model)*mat3(skin)*normal;worldNormal.y*=normalYCorrection;uv=texcoord;tint=vertexColor;gl_Position=viewProjection*p;
+void main(){mat4 skin=mat4(1);if(skinned!=0)skin=bones[int(jointIndices.x)]*jointWeights.x+bones[int(jointIndices.y)]*jointWeights.y+bones[int(jointIndices.z)]*jointWeights.z+bones[int(jointIndices.w)]*jointWeights.w;vec4 p=model*skin*vec4(position,1);pilotCenter=p.xyz;if(pilotWind>0.){float h=max(0.,position.y);p.xz+=pilotWind*h*h*vec2(sin(pilotTime*1.3+p.x*.4+p.z*.3),cos(pilotTime*1.1+p.z*.5));}float puff=1.;if(pilotCards==2){float life=fract(pilotTime*.08+normal.x*.5+.5);float k=length(model[0].xyz);p.xyz+=vec3(life*life*1.6+sin(life*6.+normal.z*9.)*.14,life*4.2,life*.5)*k;puff=.5+life*1.5;pilotCenter=vec3(life);}vec3 swayed=p.xyz;// Dream leaf bunches keep their drawn size (16 pixels) on any tree, however it is scaled.
+ float cardScale=pilotCards==1&&pilotDream!=0?1.:length(model[0].xyz);
+ if(pilotCards!=0){vec2 c=vertexColor.rg-.5;float s=vertexColor.b*2.*cardScale*puff;p.xyz+=(pilotRight*c.x+pilotUp*c.y)*s;}worldPosition=p.xyz;worldNormal=mat3(model)*mat3(skin)*normal;worldNormal.y*=normalYCorrection;uv=texcoord;tint=vertexColor;gl_Position=viewProjection*p;
  // Leaf cards are drawn as pixel sprites: a whole-pixel position and whole-pixel
  // size, so their texels stop flickering as the camera or wind moves them.
  // Leaves size, sort and snap from their resting place: a card snaps relative to its
  // tree's snapped origin, then moves by its own wind step in whole pixels. Flooring
  // each card's absolute position made any sub-pixel sway or camera glide flip a random
  // scatter of cards every frame; now crowns and height bands step together.
- if(pilotCards!=0){vec2 c=vertexColor.rg;vec3 rest=pilotCards==1?pilotCenter:swayed;vec4 h=viewProjection*vec4(rest,1),t=viewProjection*vec4(rest+pilotUp*vertexColor.b*2.*length(model[0].xyz)*puff,1);
+ if(pilotCards!=0){vec2 c=vertexColor.rg;vec3 rest=pilotCards==1?pilotCenter:swayed;vec4 h=viewProjection*vec4(rest,1),t=viewProjection*vec4(rest+pilotUp*vertexColor.b*2.*cardScale*puff,1);
   float px=max(2.,floor(abs(t.y/t.w-h.y/h.w)*.5*pilotPixels.y+.5));
   vec2 at=(h.xy/h.w*.5+.5)*pilotPixels,q=floor(at);
   if(pilotCards==1){vec4 o=viewProjection*model[3],w=viewProjection*vec4(swayed,1);vec2 origin=(o.xy/o.w*.5+.5)*pilotPixels;
