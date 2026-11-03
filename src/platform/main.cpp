@@ -656,9 +656,8 @@ int main(int argc, char **argv) {
     float fightTurn = 0, fightZoom = 0;
     // Flat camera: one of four diagonal views; a turn swings over a quarter second.
     int quarter = game::nearestQuarter(game.state.yaw);
-    float viewYaw = game::quarterYaw(quarter), flick = 0, flickAge = 0, latchedYaw = 0;
+    float viewYaw = game::quarterYaw(quarter), latchedYaw = 0, turnRest = 0;
     bool latched = false;
-    game::FightCamera fightCamera;
     p3::Vec fightFoe{};
     std::vector<std::size_t> viewBlockers;
     std::vector<std::pair<std::size_t, std::size_t>> viewFollowers; // Window, chimney or smoke, and its building.
@@ -825,15 +824,17 @@ int main(int argc, char **argv) {
     };
     bool run = true, paused = false, relative = true;
     std::array<bool, 4> held{};
-    auto turnView = [&](int steps, bool byHand) {
+    auto turnView = [&](int steps) {
+      // One turn at a time: a new one waits until the last swing has settled.
+      if (turnRest > 0)
+        return;
+      turnRest = .5f;
       if (held[0] || held[1] || held[2] || held[3]) {
         if (!latched)
           latchedYaw = game::quarterYaw(quarter);
         latched = true;
       }
       quarter = game::wrapQuarter(quarter + steps);
-      if (byHand)
-        fightCamera.manualTurn();
     };
     bool sneaking = false;
     SDL_SetWindowRelativeMouseMode(screen.window, true);
@@ -907,15 +908,8 @@ int main(int argc, char **argv) {
         } else if (e.type == SDL_EVENT_MOUSE_MOTION &&
                    (relative || !o.replay.empty()) && !paused &&
                    (game.phase == game::Phase::Explore || (scene && scene->active()))) {
-          if (dream && o.raisedCamera) {
-            // A quick flick sideways turns the flat camera one quarter.
-            flick += e.motion.xrel;
-            flickAge = 0;
-            if (std::abs(flick) >= 90) {
-              turnView(flick > 0 ? 1 : -1, true);
-              flick = 0;
-            }
-          } else {
+          // The flat camera turns only with Z and X, never with the mouse.
+          if (!(dream && o.raisedCamera)) {
             game.state.yaw = std::remainder(
                 game.state.yaw + e.motion.xrel * .0025f, 2 * p3::pi);
             game.state.pitch = std::clamp(
@@ -973,7 +967,7 @@ int main(int argc, char **argv) {
             continue;
           }
           if ((e.key.key == SDLK_Z || e.key.key == SDLK_X) && !paused && dream && o.raisedCamera) {
-            turnView(e.key.key == SDLK_X ? 1 : -1, true);
+            turnView(e.key.key == SDLK_X ? 1 : -1);
             continue;
           }
           if (e.key.key == SDLK_F7 && !paused) {
@@ -1151,9 +1145,7 @@ int main(int argc, char **argv) {
         game.state.yaw = latched ? latchedYaw : game::quarterYaw(quarter);
         float target = game::quarterYaw(quarter), gap = std::remainder(target - viewYaw, 2 * p3::pi);
         viewYaw = std::abs(gap) <= dt * 6.3f ? target : std::remainder(viewYaw + std::copysign(dt * 6.3f, gap), 2 * p3::pi);
-        flickAge += dt;
-        if (flickAge > .25f)
-          flick = 0;
+        turnRest = std::max(0.f, turnRest - dt);
       }
       if (!paused && !o.benchmark && !reading && game.phase == game::Phase::Explore && !(wilds && wilds->busy())) {
         float f = float(held[0]) - float(held[1]),
@@ -1278,17 +1270,6 @@ int main(int argc, char **argv) {
         // The camera leans in for a fight or a quiet watch, and eases back out afterwards.
         bool leaning = fighting || watching;
         fightZoom += std::clamp(float(leaning) - fightZoom, -dt * 2.5f, dt * 2.5f);
-        if (flat && fighting && !paused) {
-          std::vector<p3::Box> blocks;
-          for (auto index : viewBlockers)
-            blocks.push_back(world.instances[index].bounds);
-          int best = game::betterFightQuarter(quarter, game.state.player, fightFoe, blocks, dreamPitch);
-          int pick = fightCamera.pick(quarter, best, scene->youClip() == "Tuck", dt);
-          if (pick != quarter) {
-            turnView(pick - quarter, false);
-            event(frame, "camera_auto_turn");
-          }
-        }
         if (fightZoom > 0 && !flat && (fighting || (o.raisedCamera && game.phase == game::Phase::Explore))) {
           float k = fightZoom * fightZoom * (3 - 2 * fightZoom), y = game.state.yaw;
           // It gives back a little distance when the wild Signari backs off, to keep both in frame.
