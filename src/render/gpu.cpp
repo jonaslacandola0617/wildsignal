@@ -135,7 +135,10 @@ void main(){mat4 skin=mat4(1);if(skinned!=0)skin=bones[int(jointIndices.x)]*join
   // Snapped cards jump a pixel at random as the player walks toward or away from a
   // tree, so by default tree leaves keep their smooth place like the trunk and ground
   // and take only the lit-cluster depth order (F7 brings the snap back to compare).
-  gl_Position=pilotCards==1&&pilotLeafSnap==0?vec4(gl_Position.xy,z/h.w*gl_Position.w,gl_Position.w):vec4((q/pilotPixels*2.-1.)*h.w,z,h.w);}}
+  gl_Position=pilotCards==1&&pilotLeafSnap==0?vec4(gl_Position.xy,z/h.w*gl_Position.w,gl_Position.w):vec4((q/pilotPixels*2.-1.)*h.w,z,h.w);
+  // Leaf cards on the far side of a crown sit behind its dark core: drop them before they
+  // cost any pixels (tiny dream leaves are dense, and this halves their work).
+  if(pilotCards==1&&dot(normalize(mat3(model)*normal),cross(pilotRight,pilotUp))<-.35)gl_Position=vec4(2,2,2,1);}}
 )GLSL";
 // Optional canopy transmittance proxy, anchored in the fixed sun projection.
 // The same ray samples the same authored alpha through front/back surfaces.
@@ -231,6 +234,7 @@ vec3 shadowPoint=pilotCards!=0?pilotCenter:pilotSurface?pilotSnap(worldPosition,
 float visibility=1.;
 if(receiveShadows!=0&&(shadowMode==1||shadowMode==2))visibility=stableShadow!=0?stableReceiver(shadowPoint,normalize(cross(dFdx(worldPosition),dFdy(worldPosition))),biasScale*.000015):receiverCorrection!=0?receiverShadow(worldPosition,biasScale*.00006):sunlight(worldPosition,biasScale*max(.00055,.0010*(1.-max(0.,dot(n,sunDirection)))));
 else if(shadowMode==3&&ground!=0&&all(lessThan(abs(worldPosition.xz),vec2(24))))visibility=texture(groundShadow,worldPosition.xz/48.+.5).r;
+if(pilotOn!=0)visibility=pilotCloudVis(visibility,pilotCards!=0?pilotCenter.xz:shadowPoint.xz);
 if(diagnostic==9){vec3 g=normalize(cross(dFdx(worldPosition),dFdy(worldPosition)));float before=legacyStableReceiver(worldPosition,g,biasScale*.000015),after=cleanReceiver(worldPosition,g,biasScale*.000015);color=vec4(1.-before,1.-after,0,1);normals=vec4(n*.5+.5,1);return;}
 if(diagnostic==4){color=vec4(vec3(visibility),1);normals=vec4(n*.5+.5,1);return;}
 vec3 direct=mix(vec3(dot(sunColor,vec3(.2126,.7152,.0722))),sunColor,surfaceSunTint);vec3 light=ambient+direct*sun*mix(surfaceShadowFloor,1.,visibility);
@@ -272,7 +276,6 @@ vec3 display=pow(clamp(lit,0.,1.),vec3(1./2.2));
 if(profileActive!=0&&greenTerrain&&meadowPatchOn!=0&&meadowLightingOn!=0)
  display=meadowBeamOn!=0?meadowBeamLit(originalAlbedo,worldPosition,max(0.,dot(shadeNormal,normalize(sunDirection))),visibility,direct,exposure,false):meadowLit(originalAlbedo,max(0.,dot(shadeNormal,normalize(sunDirection))),visibility,direct,exposure);
 if(pilotSurface){
- visibility=pilotCloudVis(visibility,pilotCards!=0?pilotCenter.xz:shadowPoint.xz);
  vec3 base=srgbEncode(clamp(originalAlbedo,0.,1.)),hsv=rgbHSV(base);
  bool green=hsv.x>=.18&&hsv.x<=.46&&hsv.y>=.12;
  vec3 sd=normalize(sunDirection);
@@ -290,10 +293,13 @@ if(pilotSurface){
   // LOOKDEV-003 flowers and edge tufts: green parts take the meadow's own grass tone, so
   // they melt into the ground; petals keep their colour, stepped by the same light.
   float t=pilotGreenTone(max(0.,sd.y),visibility,shadowPoint.xz);
+  // Dream lawns mark blade tips in vertex alpha: the upper part of a blade is one band lighter.
+  if(green&&pilotDream!=0&&tint.a<.6)t+=.17;
   display=green?pilotRamp(0,t):base*(t<.32?.72:t<.50?.86:1.);
  } else if(profileFamily==4){
-  // Dream rocks: faceted stone from the rock ramp, with moss on the faces that look up.
-  float t=pilotTone(max(0.,dot(pilotG,sd)),visibility,shadowPoint.xz,0.);
+  // Dream rocks: each facet takes one clear band of the rock ramp (shade, mid, light, and a
+  // warm top band for faces turned right at the sun), with moss on the faces that look up.
+  float f=dot(pilotG,sd),t=visibility<.5?(f<.3?.10:.25):f<.25?.25:f<.6?.42:f<.82?.58:f<.93?.74:.90;
   float moss=pilotG.y-.58+(pilotNoise(shadowPoint.xz*2.3+shadowPoint.y*1.7)-.5)*.45;
   display=moss>0.?pilotRamp(0,pilotGreenTone(max(0.,sd.y),visibility,shadowPoint.xz)-.16):pilotRamp(2,t);
  } else if(profileFamily==1){
@@ -308,6 +314,14 @@ if(pilotSurface){
    display=pilotRamp(1,t);
   }
  }
+}
+// Dream look: houses and props keep their own hue but move into the scene's palette:
+// a little less saturated, lit in the same few bands, shade cool and light warm.
+if(pilotOn!=0&&pilotDream!=0&&profileFamily==2&&pilotGlow==0){
+ vec3 base=srgbEncode(clamp(originalAlbedo,0.,1.));base=mix(base,vec3(dot(base,vec3(.299,.587,.114))),.32)*vec3(.97,.93,.98);
+ float d=max(0.,dot(pilotG,normalize(sunDirection)));
+ float t=mix(.20,.30+.48*(d<.2?0.:d<.55?.5:1.),visibility);
+ display=pilotShift(base,t);
 }
 if(diagnostic==11){float b=greenTerrain?beamField(worldPosition):0.;color=vec4(b,greenTerrain?visibility:0.,b*visibility,1);normals=vec4(n*.5+.5,ground!=0?.05:.85);return;}
 float haze=smoothstep(hazeStart,hazeEnd,length(worldPosition-eye))*hazeStrength;
@@ -1165,8 +1179,11 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     if (p->previousMatrices.size() != world.instances.size()) {
       p->previousMatrices.resize(world.instances.size());
       p->dynamicCasters.assign(world.instances.size(), false);
-      for (std::size_t i = 0; i < world.instances.size(); ++i)
+      for (std::size_t i = 0; i < world.instances.size(); ++i) {
         p->previousMatrices[i] = world.instances[i].matrix;
+        // Characters always move: they cast from the per-frame layer from the start.
+        p->dynamicCasters[i] = bool(world.models[world.instances[i].model].rig);
+      }
       p->shadowValid = false;
     }
     for (std::size_t i = 0; i < world.instances.size(); ++i) {
@@ -1257,7 +1274,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
         if (!p->policies[instance.model].casts)
           continue;
         if (world.models[instance.model].rig &&
-            p->effects.shadow != Shadow::Live)
+            p->effects.shadow != Shadow::Live && !(splitShadows && dynamic))
           continue;
         uniformInt(p->shadowProgram, "skinned", !instance.palette.empty());
         if (!instance.palette.empty())
@@ -1563,7 +1580,9 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     int family=model.rig||model.id.starts_with("WS0")?-1:model.id.starts_with("WSP_CLIFF")?4:model.id.starts_with("WSP_")||model.id.starts_with("EA_TREE")||model.id.starts_with("EA_BUSH")||model.id.starts_with("EA_REED")?1:model.id.starts_with("EA_ROCK")?4:model.id.starts_with("EA_PATH")||model.id=="EA_COBBLE"||model.id.starts_with("HG_PATH")?3:model.id=="EA_GROUND"||model.id.starts_with("HG_GROUND")||model.id.starts_with("HG_GREEN")||model.id.starts_with("EA_GREEN")?5:model.id.starts_with("EA_GREEN")||model.id.starts_with("HG_GREEN")||model.id=="EA_MOSS"?0:2;
     uniformInt(p->mesh,"profileFamily",family);
     uniformInt(p->mesh,"pilotMeadow",isMeadowExtra(model.id));
-    uniformInt(p->mesh,"pilotLeafSnap",p->leafSnap);
+    // Under the flat camera the whole image moves in whole pixels, so snapped leaf cards stay
+    // still while walking and each tiny leaf sprite is drawn pixel for pixel.
+    uniformInt(p->mesh,"pilotLeafSnap",p->leafSnap||p->orthoHalf>0);
     uniformInt(p->mesh,"pilotPlain",model.id.starts_with("HAWTOR"));
     uniformFloat(p->mesh,"screenDoor",index<p->fades.size()?p->fades[index]:0.f);
     uniformFloat(p->mesh,"pilotWind",p->pilot.enabled&&!p->sourceView&&family==1?.003f:0.f);

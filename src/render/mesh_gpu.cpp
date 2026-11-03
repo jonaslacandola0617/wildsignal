@@ -96,10 +96,11 @@ void main(){
   vec3 sp=pilotSnap(pilotRoot,vec3(0,1,0));float v=shadowMode!=0?stableReceiver(sp,vec3(0,1,0),bias*.000015):1.;
   v=pilotCloudVis(v,sp.xz);
   float t=pilotGreenTone(max(0.,sd.y),v,sp.xz);if(pilotTuft3d==0)t+=(pilotMask.r-.5)*.7;
-  // Dream look: blades at the sunny edge of a shadow catch one band more light.
-  if(pilotDream!=0&&v>.5){vec2 e=normalize(sd.xz+vec2(1e-4))*.45;vec3 a=sp-vec3(e.x,0,e.y),b=sp+vec3(e.x,0,e.y);
-   float edge=min(pilotCloudVis(shadowMode!=0?stableReceiver(a,vec3(0,1,0),bias*.000015):1.,a.xz),pilotCloudVis(shadowMode!=0?stableReceiver(b,vec3(0,1,0),bias*.000015):1.,b.xz));
-   if(edge<.5)t+=.17;}
+  // Dream look: blades at the sunny edge of a still shadow (trees, houses) catch one band
+  // more light. Drifting cloud shade never does this, so passing clouds cannot flash grass.
+  // One extra shadow read, half a metre away from the sun: shaded there means a sunny edge.
+  if(pilotDream!=0&&v>.5&&shadowMode!=0){vec2 e=normalize(sd.xz+vec2(1e-4))*.45;
+   if(stableReceiver(sp-vec3(e.x,0,e.y),vec3(0,1,0),bias*.000015)<.5)t+=.17;}
   display=pilotRamp(0,t);
  }
  float haze=smoothstep(hazeStart,hazeEnd,length(worldPosition-eye))*hazeStrength;
