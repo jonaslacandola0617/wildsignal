@@ -76,6 +76,7 @@ struct Options {
        fragmentReceiver = true, cacheProbe = false;
   int receiveGrass = -1, diagnostic = 0, scaleFamily = 0, canopyMask = -1;
   std::filesystem::path lookdev; int lookdevStyle = 0, lookdevShot = -1; // LOOKDEV-001 test plot, its first style, a fixed review camera.
+  int pixelTree = 1; // LOOKDEV-002 pixel tree colours: 0 flat, 1 engine ramps, 2 pack colours.
 };
 int integer(const std::string &s, int lo, int hi) {
   std::size_t n = 0;
@@ -113,11 +114,13 @@ Options options(int argc, char **argv) {
                    "--shafts on|off --haze on|off --quality low|medium|high --shaft-strength 0..3\n";
       std::cout<<"--tilt-shift on|off (F8 toggles; paused during fights) --highlight-strength 0..1 --leaf-rims on|off\nF6 cycles the render size 480/640/1280\n";
       std::cout<<"--lookdev DIR --lookdev-style A|B|C|D --lookdev-shot N (LOOKDEV-001 test plot; F7 cycles the style)\n";
+      std::cout<<"--pixel-tree flat|ramps|pack (LOOKDEV-002 tree colours; F7 cycles them outside the test plot)\n";
       std::cout<<"--render-reference (comparison only; disables optimized shadow cache)\n--tree-scene --tree-study original|shader|clusters|billboards|hybrid --leaf-color plain|source (T tree options, M leaf color)\n";
       std::exit(0);
     } else if (a == "--assets")
       o.assets = value();
     else if(a=="--lookdev")o.lookdev=value();
+    else if(a=="--pixel-tree"){auto v=value();if(v!="flat"&&v!="ramps"&&v!="pack")throw std::runtime_error("pixel-tree flat|ramps|pack");o.pixelTree=v=="flat"?0:v=="ramps"?1:2;}
     else if(a=="--lookdev-shot")o.lookdevShot=integer(value(),0,15);
     else if(a=="--lookdev-style"){auto v=value();if(v.size()!=1||v[0]<'A'||v[0]>'D')throw std::runtime_error("lookdev-style A|B|C|D");o.lookdevStyle=v[0]-'A';}
     else if(a=="--shadow-policy"){auto v=value();if(v!="clean"&&v!="legacy")throw std::runtime_error("shadow-policy clean|legacy");o.cleanShadow=v=="clean";}
@@ -687,7 +690,7 @@ int main(int argc, char **argv) {
     if (!screen.context || !SDL_GL_MakeCurrent(screen.window, screen.context))
       throw std::runtime_error(SDL_GetError());
     SDL_GL_SetSwapInterval(0);
-    p3::Gpu gpu(world, o.allow,tree.get());gpu.setTreeTreatment(o.treeMode);gpu.setPlainLeaves(o.leafPlain);gpu.setTerrainRelief(relief);gpu.setDiagnosticView(o.diagnostic);gpu.setShadowClean(o.cleanShadow);gpu.setSourceView(o.original);gpu.setHighlights(o.highlightLimit,o.leafRims);
+    p3::Gpu gpu(world, o.allow,tree.get());gpu.setTreeTreatment(o.treeMode);gpu.setPlainLeaves(o.leafPlain);gpu.setPixelTree(o.pixelTree);gpu.setTerrainRelief(relief);gpu.setDiagnosticView(o.diagnostic);gpu.setShadowClean(o.cleanShadow);gpu.setSourceView(o.original);gpu.setHighlights(o.highlightLimit,o.leafRims);
     log<<"terrain_instance_y_scale="<<relief<<"\nshadow_policy="<<(o.cleanShadow?"clean_object_external":"legacy_full_self")<<"\n";
     auto baselineLook = p3::Look::load(o.assets / "look.json");
     auto profile=p3::StyleProfile::load(o.styleSettings.empty()?o.assets/"style_profiles.json":o.styleSettings,o.preset,baselineLook);
@@ -1005,6 +1008,18 @@ int main(int argc, char **argv) {
             o.lookdevStyle = (o.lookdevStyle + 1) % int(lookdevNames.size());
             showLookdev(o.lookdevStyle);
             event(frame, "lookdev_" + std::string(1, char('A' + o.lookdevStyle)));
+            continue;
+          }
+          if (e.key.key == SDLK_F7 && !lookdev && !paused) {
+            static const char *names[] = {"Pixel tree: flat game tones", "Pixel tree: game colours", "Pixel tree: pack colours"};
+            o.pixelTree = (o.pixelTree + 1) % 3;
+            gpu.setPixelTree(o.pixelTree);
+            if (scene) {
+              scene->announce(names[o.pixelTree]);
+              wilds->announce(names[o.pixelTree]);
+            } else
+              game.message = names[o.pixelTree];
+            event(frame, "pixel_tree_" + std::to_string(o.pixelTree));
             continue;
           }
           if (book && book->open()) {

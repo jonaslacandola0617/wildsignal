@@ -141,7 +141,7 @@ in vec2 uv,canopyUV;in float alpha;uniform sampler2D albedo;uniform int textured
 void main(){casterOwner=uint(shadowCasterID);if(alphaMode==1){float a=factorAlpha*alpha;if(textured!=0)a*=texture(albedo,leafProxy!=0?fract(canopyUV*8.):uv).a;if(a<cutoff)discard;}}
 )GLSL";
 static constexpr const char *meshFS = R"GLSL(#version 330 core
-in vec3 worldPosition;in vec3 worldNormal;in vec2 uv;in vec4 tint;flat in vec3 pilotCenter;uniform int pilotCards,pilotGlow;
+in vec3 worldPosition;in vec3 worldNormal;in vec2 uv;in vec4 tint;flat in vec3 pilotCenter;uniform int pilotCards,pilotGlow,pixelTree;
 uniform int coverage,meadowSolidCount;uniform vec4 meadowSolids[16];uniform sampler2D leafCoverage;
 bool designated(vec2 p){float path=.68*sin(-p.y*.57)-.13*p.y;if(abs(p.x)>5.8||abs(p.y)>5.8||abs(p.x-path)<.78)return false;if(p.x> -4.5&&p.x<.6&&abs(p.y-.25)<.8)return false;if(length(p-vec2(2.6,-2.3))<1.05)return false;for(int i=0;i<meadowSolidCount;i++)if(all(lessThan(abs(p-meadowSolids[i].xy),meadowSolids[i].zw+vec2(.18))))return false;return true;}
 uniform sampler2D albedo;uniform vec4 factor;uniform vec3 emission;uniform int textured,mode,bands,alphaMode;uniform float cutoff;
@@ -286,10 +286,22 @@ if(pilotSurface){
   // One flat tone per leaf card, read at its centre, so the crown stays clean.
   // The nudge only matters near a band edge, which gives leafy clusters there.
   float nudge=(pilotHash(pilotCenter.xz+pilotCenter.yy)-.5)*.10;
-  display=pilotRamp(3,pilotLeafTone(dot(n,normalize(sd+vec3(0,.8,0)))+nudge,visibility));
+  float tone=pilotLeafTone(dot(n,normalize(sd+vec3(0,.8,0)))+nudge,visibility);
+  display=pilotRamp(3,tone);
+  // LOOKDEV-002 pixel tree: the card's sun band stays; the pack cluster's own pixels either
+  // step the leaf ramp by their brightness (1) or keep their colour under that band (2).
+  // The texel is read on its own: card vertex colours hold layout data, not tint.
+  vec3 cluster=srgbEncode(clamp(texture(albedo,uv).rgb,0.,1.));
+  if(pixelTree==1&&textured!=0)display=pilotRamp(3,tone+(dot(cluster,vec3(.2126,.7152,.0722))-.50)*.7);
+  else if(pixelTree==2&&textured!=0)display=cluster*(.55+.75*tone);
  } else if(profileFamily==1){
   if(green)display=pilotRamp(3,pilotLeafTone(dot(n,normalize(sd+vec3(0,.8,0))),visibility));
-  else display=pilotRamp(4,min(mix(.12,.24+.56*max(0.,dot(pilotG,sd)),visibility),.82));
+  else{
+   float tone=min(mix(.12,.24+.56*max(0.,dot(pilotG,sd)),visibility),.82);
+   display=pilotRamp(4,tone);
+   if(pixelTree==1&&textured!=0)display=pilotRamp(4,tone+(dot(base,vec3(.2126,.7152,.0722))-.35)*.9);
+   else if(pixelTree==2&&textured!=0)display=base*(.64+.65*tone);
+  }
  } else {
   if(green)display=pilotRamp(0,pilotGreenTone(max(0.,sd.y),visibility,shadowPoint.xz));
   else{
@@ -366,7 +378,7 @@ struct Gpu::Impl {
   std::unique_ptr<TreeStudy> tree;
   std::vector<Part> treeParts, rimParts;
   GLuint treeInstanceBuffer=0, rimInstanceBuffer=0;
-  int treeMode=0;bool plainLeaves=true;
+  int treeMode=0;bool plainLeaves=true;int pixelTree=1;
   std::map<std::filesystem::path, GLuint> textures;
   std::vector<Draw> blends;
   std::vector<Material> materials;
@@ -703,7 +715,7 @@ void main(){ivec2 size=textureSize(image,0),p=ivec2(gl_FragCoord.xy);vec4 base=t
           gl::TexImage2D(GL_TEXTURE_2D, 0, GL_SRGB8_ALPHA8, im.w, im.h, 0,
                          GL_RGBA, GL_UNSIGNED_BYTE, im.rgba.data());
           gl::TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
-                            GL_NEAREST_MIPMAP_NEAREST);
+                            model.id.starts_with("WSP_PX_") ? GL_NEAREST : GL_NEAREST_MIPMAP_NEAREST);
           gl::TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
           gl::TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, mat.wrapS);
           gl::TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, mat.wrapT);
@@ -944,6 +956,7 @@ void Gpu::setSourceView(bool v){p->sourceView=v;}
 void Gpu::setShadowClean(bool v){p->shadowClean=v;}
 void Gpu::setTerrainRelief(float v){if(!std::isfinite(v)||v<.75f||v>1)throw std::runtime_error("terrain instance relief range");p->terrainRelief=v;}
 void Gpu::setPlainLeaves(bool value){p->plainLeaves=value;}
+void Gpu::setPixelTree(int mode){if(mode<0||mode>2)throw std::runtime_error("pixel tree mode");p->pixelTree=mode;}
 void Gpu::setTreeTreatment(int mode){
  if(mode<0||mode>4||(!p->tree&&mode!=0))throw std::runtime_error("tree treatment requires verified private study");
  if(mode==4&&!p->tree->attached)throw std::runtime_error("hybrid requires verified branch-rooted leaf attachment data");
@@ -1530,6 +1543,9 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     // stands the card up facing the camera, so a pack sprite keeps its own drawn pixels.
     uniformInt(p->mesh,"billboard",lookStyle&&model.id.find("_BB_")!=std::string::npos);
     uniformInt(p->mesh,"profileFamily",family);
+    // LOOKDEV-002 pixel tree: its pack pixels are read whole, never blended or mipmapped.
+    bool pixelTree=model.id.starts_with("WSP_PX_");
+    uniformInt(p->mesh,"pixelTree",pixelTree?p->pixelTree:0);
     uniformInt(p->mesh,"pilotPlain",model.id.starts_with("HAWTOR"));
     uniformFloat(p->mesh,"screenDoor",index<p->fades.size()?p->fades[index]:0.f);
     uniformFloat(p->mesh,"pilotWind",p->pilot.enabled&&!p->sourceView&&family==1?.003f:0.f);
@@ -1550,7 +1566,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
                            i.palette.front().data());
     if (currentMaterial != part.material) {
       gl::BindSampler(
-          0, !mat.ground && !lookStyle && p->style.sampling == 2 ? p->linearSampler : 0);
+          0, !mat.ground && !lookStyle && !pixelTree && p->style.sampling == 2 ? p->linearSampler : 0);
       currentMaterial = part.material;
       gl::Uniform4fv(p->factorLoc, 1, mat.color.data());
       gl::Uniform3f(p->location(p->mesh, "emission"),
