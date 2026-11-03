@@ -601,8 +601,15 @@ int main(int argc, char **argv) {
       });
       auto plot = p3::World::load(o.lookdev / "pack.json", o.lookdev / "scene.json", false);
       auto base = world.models.size();
-      for (auto &m : plot.models)
+      for (auto &m : plot.models) {
+        // Camera-facing cards keep every corner at the card's foot, so their stored
+        // bounds are flat; give them room for a standing card up to a tall tree.
+        if (m.id.find("_BB_") != std::string::npos)
+          m.bounds.add(m.bounds.hi + p3::Vec{4, 11, 4}), m.bounds.add(m.bounds.lo - p3::Vec{4, 0, 4});
         world.models.push_back(std::move(m));
+      }
+      for (auto &i : plot.instances)
+        i.bounds = p3::transformed(world.models[base + i.model].bounds, i.matrix);
       for (auto &i : plot.instances) {
         if (!i.id.starts_with("lookdev_") || i.id.size() < 9 || i.id[8] < 'A' || i.id[8] >= 'A' + int(lookdevNames.size()))
           throw std::runtime_error("lookdev instance style");
@@ -744,7 +751,7 @@ int main(int argc, char **argv) {
       for(std::size_t i=0;i<world.instances.size();i++){
         const auto &model=world.models[world.instances[i].model];const auto &b=world.instances[i].bounds;
         if(model.id=="WSP_WINDOWS"||model.id=="PILOT_CHIMNEY"||model.id=="WSP_SMOKE"){details.push_back(i);continue;}
-        if(model.rig||model.id.starts_with("WS0")||model.materials.front().ground||model.id.starts_with("EA_GREEN")||model.id.starts_with("EA_PATH"))continue;
+        if(model.rig||model.id.starts_with("WS0")||model.materials.front().ground||model.id.starts_with("EA_GREEN")||model.id.starts_with("EA_PATH")||model.id.find("_BB_")!=std::string::npos)continue;
         if(b.hi.y-b.lo.y>=.9f)viewBlockers.push_back(i);
       }
       for(auto i:details){

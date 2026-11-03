@@ -111,10 +111,10 @@ layout(location=1) in vec3 normal;
 layout(location=2) in vec2 texcoord;
 layout(location=3) in vec4 vertexColor;
 layout(location=4) in vec4 jointIndices;layout(location=5) in vec4 jointWeights;
-uniform int skinned;uniform mat4 bones[24];uniform float pilotWind,pilotTime;uniform int pilotCards;uniform vec3 pilotRight,pilotUp,sunDirection;uniform vec2 pilotPixels;flat out vec3 pilotCenter;
+uniform int skinned,billboard;uniform mat4 bones[24];uniform float pilotWind,pilotTime;uniform int pilotCards;uniform vec3 pilotRight,pilotUp,sunDirection;uniform vec2 pilotPixels;flat out vec3 pilotCenter;
 uniform mat4 model,viewProjection;uniform float normalYCorrection;
 out vec3 worldPosition;out vec3 worldNormal;out vec2 uv;out vec4 tint;
-void main(){mat4 skin=mat4(1);if(skinned!=0)skin=bones[int(jointIndices.x)]*jointWeights.x+bones[int(jointIndices.y)]*jointWeights.y+bones[int(jointIndices.z)]*jointWeights.z+bones[int(jointIndices.w)]*jointWeights.w;vec4 p=model*skin*vec4(position,1);pilotCenter=p.xyz;if(pilotWind>0.){float h=max(0.,position.y);p.xz+=pilotWind*h*h*vec2(sin(pilotTime*1.3+p.x*.4+p.z*.3),cos(pilotTime*1.1+p.z*.5));}float puff=1.;if(pilotCards==2){float life=fract(pilotTime*.08+normal.x*.5+.5);float k=length(model[0].xyz);p.xyz+=vec3(life*life*1.6+sin(life*6.+normal.z*9.)*.14,life*4.2,life*.5)*k;puff=.5+life*1.5;pilotCenter=vec3(life);}vec3 swayed=p.xyz;if(pilotCards!=0){vec2 c=vertexColor.rg-.5;float s=vertexColor.b*2.*length(model[0].xyz)*puff;p.xyz+=(pilotRight*c.x+pilotUp*c.y)*s;}worldPosition=p.xyz;worldNormal=mat3(model)*mat3(skin)*normal;worldNormal.y*=normalYCorrection;uv=texcoord;tint=vertexColor;gl_Position=viewProjection*p;
+void main(){mat4 skin=mat4(1);if(skinned!=0)skin=bones[int(jointIndices.x)]*jointWeights.x+bones[int(jointIndices.y)]*jointWeights.y+bones[int(jointIndices.z)]*jointWeights.z+bones[int(jointIndices.w)]*jointWeights.w;vec4 p=model*skin*vec4(position,1);pilotCenter=p.xyz;if(pilotWind>0.){float h=max(0.,position.y);p.xz+=pilotWind*h*h*vec2(sin(pilotTime*1.3+p.x*.4+p.z*.3),cos(pilotTime*1.1+p.z*.5));}float puff=1.;if(pilotCards==2){float life=fract(pilotTime*.08+normal.x*.5+.5);float k=length(model[0].xyz);p.xyz+=vec3(life*life*1.6+sin(life*6.+normal.z*9.)*.14,life*4.2,life*.5)*k;puff=.5+life*1.5;pilotCenter=vec3(life);}vec3 swayed=p.xyz;bool card=billboard!=0;if(card){float k=length(model[0].xyz);vec3 r=normalize(vec3(pilotRight.x,0.,pilotRight.z));p.xyz+=(r*(vertexColor.r-.5)*vertexColor.b+vec3(0,1,0)*vertexColor.g*vertexColor.a)*16.*k;}if(pilotCards!=0){vec2 c=vertexColor.rg-.5;float s=vertexColor.b*2.*length(model[0].xyz)*puff;p.xyz+=(pilotRight*c.x+pilotUp*c.y)*s;}worldPosition=p.xyz;worldNormal=mat3(model)*mat3(skin)*normal;worldNormal.y*=normalYCorrection;uv=texcoord;tint=vertexColor;if(card){worldNormal=vec3(0,1,0);tint=vec4(1);}gl_Position=viewProjection*p;
  // Leaf cards are drawn as pixel sprites: a whole-pixel position and whole-pixel
  // size, so their texels stop flickering as the camera or wind moves them.
  // Leaves size, sort and snap from their resting place: a card snaps relative to its
@@ -1525,6 +1525,10 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     int lookStyle=model.id.starts_with("LD_")&&model.id.size()>4?model.id[3]-'A'+1:0;
     if(lookStyle)family=-2;
     uniformInt(p->mesh,"lookStyle",lookStyle);
+    // Look-development cards (_BB_): every corner sits at the card's foot; COLOR_0 holds the
+    // corner (r,g) and width and height in sixteenths of a metre (b,a). The vertex shader
+    // stands the card up facing the camera, so a pack sprite keeps its own drawn pixels.
+    uniformInt(p->mesh,"billboard",lookStyle&&model.id.find("_BB_")!=std::string::npos);
     uniformInt(p->mesh,"profileFamily",family);
     uniformInt(p->mesh,"pilotPlain",model.id.starts_with("HAWTOR"));
     uniformFloat(p->mesh,"screenDoor",index<p->fades.size()?p->fades[index]:0.f);
