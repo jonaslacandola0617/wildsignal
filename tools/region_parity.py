@@ -2,6 +2,9 @@
 
 Usage: python -I tools/region_parity.py PLAY_FOLDER BASE_EXE NEW_EXE OUT_DIR [REGION_ID]
 
+The dream look (--dream assets/pilot/pilot_dream.json) is used when that file
+exists; a play folder without it is compared in the base pilot look.
+
 For each start spot, runs BASE_EXE (old files) and NEW_EXE twice (old files,
 then --region) with the same fixed-step replay: stand, quarter turn, walk.
 Captured frames are compared byte for byte, plus a BASE vs BASE control run
@@ -48,9 +51,11 @@ def run(exe, folder, out, spot, region):
            "--grass-outlines", "off", "--shaft-profile", "defined", "--shadow", "on",
            "--shadow-policy", "clean", "--grass-cast", "off", "--hud", "off",
            "--pilot", str(folder / "assets/pilot/pilot_warm3d.json"),
-           "--dream", str(folder / "assets/pilot/pilot_dream.json"),
            "--replay", str(replay), "--frames", str(FRAMES), "--capture-every", str(EVERY),
            "--hidden", "--output", str(out)]
+    dream = folder / "assets/pilot/pilot_dream.json"
+    if dream.exists():
+        cmd += ["--dream", str(dream)]
     if region:
         cmd += ["--region", region]
     r = subprocess.run(cmd, cwd=exe.parent, capture_output=True, text=True, timeout=600)
