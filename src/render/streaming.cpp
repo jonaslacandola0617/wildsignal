@@ -78,6 +78,65 @@ RegionStream::ModelData RegionStream::loadModel(const std::string &id) const {
         out.images.emplace(file, loadImage(file));
   return out;
 }
+bool RegionStream::neighboursKnown(int entry) const {
+  const auto &f = region_.chunkFiles[std::size_t(entry)];
+  for (int dz = -1; dz <= 1; dz++)
+    for (int dx = -1; dx <= 1; dx++)
+      if (int n = region_.entryAt(f.x + dx, f.z + dz); n >= 0 && !heightsKnown_.contains(n))
+        return false;
+  return true;
+}
+std::string RegionStream::terrainName(int entry) const {
+  const auto &f = region_.chunkFiles[std::size_t(entry)];
+  return std::to_string(f.x) + "_" + std::to_string(f.z);
+}
+bool RegionStream::terrainResident(int entry, const World &world) const {
+  auto it = world.modelIds.find("WS_TERRAIN_" + terrainName(entry));
+  return it != world.modelIds.end() && world.models[it->second].resident;
+}
+TerrainModels RegionStream::buildChunkTerrain(int entry) const {
+  const auto &f = region_.chunkFiles[std::size_t(entry)];
+  TerrainSettings s;
+  s.step = region_.terrain.step;
+  s.cliffNormalY = region_.terrain.cliffNormalY;
+  s.lawn = region_.terrain.lawn;
+  s.rock = region_.terrain.rock;
+  auto m = buildTerrain(terrainName(entry), region_.originX + float(f.x) * region_.chunkSize,
+                        region_.originZ + float(f.z) * region_.chunkSize, region_.chunkSize, s,
+                        [](float x, float z) { return game::terrain(x, z); });
+  if (hooks_.prepare) {
+    hooks_.prepare(m.lawn);
+    if (m.hasRock)
+      hooks_.prepare(m.rock);
+  }
+  return m;
+}
+void RegionStream::placeTerrain(int entry, World &world, Live &live) {
+  std::vector<std::string> ids{"WS_TERRAIN_" + terrainName(entry)};
+  if (auto r = world.modelIds.find("WS_TERRAIN_ROCK_" + terrainName(entry));
+      r != world.modelIds.end() && world.models[r->second].resident)
+    ids.push_back(r->first);
+  for (std::size_t k = 0; k < ids.size(); k++) {
+    Placement p;
+    p.model = p.id = ids[k];
+    p.matrix = Mat::identity(); // the ground is built in world space
+    p.order = -1e9 + double(entry) * 2 + double(k); // ground first, fixed by chunk
+    auto inst = world.instanceAt(p);
+    std::size_t slot;
+    if (!freeSlots_.empty()) {
+      std::sort(freeSlots_.begin(), freeSlots_.end(), std::greater<>());
+      slot = freeSlots_.back();
+      freeSlots_.pop_back();
+      world.instances[slot] = std::move(inst);
+    } else {
+      slot = world.instances.size();
+      world.instances.push_back(std::move(inst));
+    }
+    live.slots.push_back(slot);
+    live.models[world.instances[slot].model]++;
+    modelRefs_[world.instances[slot].model]++;
+  }
+}
 World RegionStream::start(Vec at, std::shared_ptr<const Pack> pack) {
   pack_ = std::move(pack);
   if (region_.legacyHeight)
@@ -151,6 +210,31 @@ World RegionStream::start(Vec at, std::shared_ptr<const Pack> pack) {
     activeChunks_[e].solids = cached_[e].solids;
     applyHeights(cached_[e]);
     stats_.chunkLoads++;
+  }
+  if (region_.terrain.on) {
+    // The start chunks' ground needs the ring around them: read only its heights
+    // now (the chunks themselves are read ahead as usual once the game runs).
+    for (int e : entries)
+      heightsKnown_.insert(e);
+    for (int e : window(cx, cz, 2))
+      if (!heightsKnown_.contains(e)) {
+        Prepared ring;
+        auto d = region_.readChunk(std::size_t(e));
+        ring.i0 = d.i0;
+        ring.j0 = d.j0;
+        ring.ni = d.ni;
+        ring.nj = d.nj;
+        ring.heights = std::move(d.heights);
+        applyHeights(ring);
+        heightsKnown_.insert(e);
+      }
+    for (int e : entries) {
+      auto m = buildChunkTerrain(e);
+      w.addModel(std::move(m.lawn));
+      if (m.hasRock)
+        w.addModel(std::move(m.rock));
+      placeTerrain(e, w, activeChunks_[e]);
+    }
   }
   if (region_.legacyHeight)
     game::configureHeights(region_.heightHalf, legacyHeights_, region_.groundSpacing);
@@ -244,6 +328,8 @@ void RegionStream::activate(int entry, World &world) {
   applyHeights(d);
   if (region_.legacyHeight)
     game::configureHeights(region_.heightHalf, legacyHeights_, region_.groundSpacing);
+  if (region_.terrain.on)
+    placeTerrain(entry, world, live);
   stats_.chunkLoads++;
 }
 void RegionStream::deactivate(int entry, World &world) {
@@ -298,9 +384,13 @@ bool RegionStream::update(Vec player, World &world) {
   std::vector<Prepared> dropped;
   for (auto &[e, d] : chunks) {
     requested_.erase(e);
-    if (keep.contains(e))
+    if (keep.contains(e)) {
       cached_[e] = std::move(d);
-    else
+      if (region_.terrain.on) { // neighbours' ground needs these border heights
+        applyHeights(cached_[e]);
+        heightsKnown_.insert(e);
+      }
+    } else
       dropped.push_back(std::move(d));
   }
   for (auto &[id, m] : models) {
@@ -345,6 +435,8 @@ bool RegionStream::update(Vec player, World &world) {
   for (int e : desired) {
     if (stepped || activeChunks_.contains(e) || !cached_.contains(e))
       continue;
+    if (region_.terrain.on && !neighboursKnown(e))
+      continue;
     bool missing = false;
     for (auto &id : cached_[e].models) {
       if (auto m = world.modelIds.find(id); m != world.modelIds.end() && world.models[m->second].resident)
@@ -371,6 +463,22 @@ bool RegionStream::update(Vec player, World &world) {
         modelsRequested_.insert(id);
         request({-1, id});
       }
+    }
+    if (!missing && !stepped && region_.terrain.on && !terrainResident(e, world)) {
+      // Building and uploading a chunk's ground is this frame's heavy step.
+      auto t = Clock::now();
+      auto m = buildChunkTerrain(e);
+      for (Model *part : {&m.lawn, m.hasRock ? &m.rock : nullptr})
+        if (part) {
+          auto slot = world.addModel(std::move(*part));
+          gpu_->uploadModel(world, slot, nullptr, true);
+          if (hooks_.uploaded)
+            hooks_.uploaded(slot);
+          stats_.modelLoads++;
+        }
+      stats_.maxUploadMs = std::max(stats_.maxUploadMs, msSince(t));
+      stepped = true;
+      continue;
     }
     if (!missing && !stepped) {
       auto t = Clock::now();

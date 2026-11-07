@@ -509,7 +509,7 @@ int main(int argc, char **argv) {
         mat.architecture=p3::building(m.id)||m.id.starts_with("EA_FENCE")||m.id=="EA_BENCH"||m.id=="EA_BARREL";
         mat.foliage=m.id.starts_with("EA_TREE_")||m.id.starts_with("EA_BUSH_")||m.id.starts_with("EA_REED_");
         mat.leafy=mat.foliage;
-        mat.ground=(m.id=="EA_GROUND"||m.id.starts_with("HG_GROUND")||m.id.starts_with("HG_GREEN")||m.id.starts_with("HG_PATH"))||m.id.starts_with("EA_GREEN_")||m.id.starts_with("EA_PATH_")||m.id=="EA_COBBLE"||m.id=="EA_MOSS";
+        mat.ground=(m.id=="EA_GROUND"||(m.id.starts_with("WS_TERRAIN_")&&!m.id.starts_with("WS_TERRAIN_ROCK_"))||m.id.starts_with("HG_GROUND")||m.id.starts_with("HG_GREEN")||m.id.starts_with("HG_PATH"))||m.id.starts_with("EA_GREEN_")||m.id.starts_with("EA_PATH_")||m.id=="EA_COBBLE"||m.id=="EA_MOSS";
         mat.studyKind=mat.ground?4:mat.architecture?1:mat.foliage?2:3;
       }
     };
@@ -776,7 +776,7 @@ int main(int argc, char **argv) {
         if(!world.instances[i].active)continue;
         const auto &model=world.models[world.instances[i].model];const auto &b=world.instances[i].bounds;
         if(model.id=="WSP_WINDOWS"||model.id=="PILOT_CHIMNEY"||model.id=="WSP_SMOKE"){details.push_back(i);continue;}
-        if(model.rig||model.id.starts_with("WS0")||model.materials.front().ground||model.id.starts_with("EA_GREEN")||model.id.starts_with("EA_PATH"))continue;
+        if(model.rig||model.id.starts_with("WS0")||model.id.starts_with("WS_TERRAIN_")||model.materials.front().ground||model.id.starts_with("EA_GREEN")||model.id.starts_with("EA_PATH"))continue;
         if(b.hi.y-b.lo.y>=.9f)viewBlockers.push_back(i);
       }
       for(auto i:details){
