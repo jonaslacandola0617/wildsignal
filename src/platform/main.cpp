@@ -4,9 +4,11 @@
 #include "wild_scene.hpp"
 #include "followers.hpp"
 #include "game.hpp"
+#include "view_angles.hpp"
 #include "gpu.hpp"
 #include "json.hpp"
 #include "kit_terrain.hpp"
+#include "region.hpp"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include <algorithm>
@@ -14,6 +16,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <optional>
 #include <sstream>
 #include <thread>
 #ifdef _WIN32
@@ -74,6 +77,10 @@ struct Options {
   bool shadows = true, forceLegacyGrass = false, requireAuthored = false,
        fragmentReceiver = true, cacheProbe = false;
   int receiveGrass = -1, diagnostic = 0, scaleFamily = 0, canopyMask = -1;
+  bool meadowExtras = true; // LOOKDEV-003 flowers and edge tufts (F10).
+  bool leafSnap = false; // LOOKDEV-004: old whole-pixel leaf cards, for comparison (F7).
+  std::filesystem::path dream; bool dreamOn = true; // LOOKDEV-005 dream look file; F4 compares.
+  std::string region; // REGION-001: assets/regions/<id>/ instead of game.json + scene.json.
 };
 int integer(const std::string &s, int lo, int hi) {
   std::size_t n = 0;
@@ -110,6 +117,7 @@ Options options(int argc, char **argv) {
                    "--shadow-cache-probe (isolated technical test only)\n"
                    "--shafts on|off --haze on|off --quality low|medium|high --shaft-strength 0..3\n";
       std::cout<<"--tilt-shift on|off (F8 toggles; paused during fights) --highlight-strength 0..1 --leaf-rims on|off\nF6 cycles the render size 480/640/1280\n";
+      std::cout<<"--meadow-extras on|off (LOOKDEV-003 flowers and edge tufts; F10 toggles)\n--dream FILE --dream-look on|off (LOOKDEV-005 look and flat camera; F4 toggles, Z/X turn)\n--region ID (REGION-001: load assets/regions/ID/ chunk files)\n--leaf-snap on|off (old whole-pixel leaf cards; F7 toggles)\n";
       std::cout<<"--render-reference (comparison only; disables optimized shadow cache)\n--tree-scene --tree-study original|shader|clusters|billboards|hybrid --leaf-color plain|source (T tree options, M leaf color)\n";
       std::exit(0);
     } else if (a == "--assets")
@@ -117,6 +125,11 @@ Options options(int argc, char **argv) {
     else if(a=="--shadow-policy"){auto v=value();if(v!="clean"&&v!="legacy")throw std::runtime_error("shadow-policy clean|legacy");o.cleanShadow=v=="clean";}
     else if(a=="--tree-study"){auto v=value();if(v!="original"&&v!="shader"&&v!="clusters"&&v!="billboards"&&v!="hybrid")throw std::runtime_error("tree-study original|shader|clusters|billboards|hybrid");o.treeEnabled=true;o.treeMode=v=="original"?0:v=="shader"?1:v=="clusters"?2:v=="billboards"?3:4;}
     else if(a=="--leaf-color"){auto v=value();if(v!="plain"&&v!="source")throw std::runtime_error("leaf-color plain|source");o.leafPlain=v=="plain";}
+    else if(a=="--meadow-extras"){auto v=value();if(v!="on"&&v!="off")throw std::runtime_error("meadow-extras on|off");o.meadowExtras=v=="on";}
+    else if(a=="--dream")o.dream=value();
+    else if(a=="--region")o.region=value();
+    else if(a=="--dream-look"){auto v=value();if(v!="on"&&v!="off")throw std::runtime_error("dream-look on|off");o.dreamOn=v=="on";}
+    else if(a=="--leaf-snap"){auto v=value();if(v!="on"&&v!="off")throw std::runtime_error("leaf-snap on|off");o.leafSnap=v=="on";}
     else if(a=="--tree-scene"){o.treeScene=true;o.treeEnabled=true;}
     else if(a=="--tilt-shift"||a=="--leaf-rims"){auto v=value();if(v!="on"&&v!="off")throw std::runtime_error(a.substr(2)+" on|off");(a=="--tilt-shift"?o.tiltShift:o.leafRims)=v=="on";if(a=="--tilt-shift")o.tiltShiftGiven=true;}
     else if(a=="--highlight-strength"){auto v=value();std::size_t used=0;o.highlightLimit=std::stof(v,&used);if(used!=v.size()||!std::isfinite(o.highlightLimit)||o.highlightLimit<0||o.highlightLimit>1)throw std::runtime_error("highlight-strength 0..1");}
@@ -303,6 +316,8 @@ Options options(int argc, char **argv) {
   }
   if (o.cacheProbe && !o.benchmark)
     throw std::runtime_error("shadow-cache-probe requires --benchmark");
+  if (!o.region.empty() && o.treeScene)
+    throw std::runtime_error("--region and --tree-scene are separate worlds");
   if(o.preset=="baseline"){if(!o.shadowSet)o.shadows=true;if(!o.shaftSet)o.shafts=true;if(!o.hazeSet)o.haze=true;}
   return o;
 }
@@ -417,12 +432,30 @@ int main(int argc, char **argv) {
     std::ofstream log(o.out / "run.log");
     log << "source=" << PIXEL3D_SOURCE_ID << "\nrender_optimizations=" << (!o.renderReference) << "\n";
     game::Game game;
-    auto cfg = ws::parseJson(p3::readText(o.assets / (o.treeScene?"tree_game.json":"game.json")));
-    if (cfg.at("revision").number() != 1)
-      throw std::runtime_error("game manifest revision");
-    game::configureWorld(float(cfg.at("world_half_extent").number()),
-                         o.assets / "terrain_height.bin",
-                         float(cfg.at("ground_spacing").number()));
+    std::optional<world::Region> region;
+    ws::Json cfg;
+    if (!o.region.empty()) {
+      auto start = Clock::now();
+      region = world::Region::load(o.assets, o.region);
+      if (region->walkHalf != region->heightHalf)
+        throw std::runtime_error("region walk and height extents must match in REGION-001");
+      game::configureHeights(region->heightHalf, region->heights, region->groundSpacing);
+      cfg = region->config;
+      log << "region=" << region->id << "\nregion_chunks=" << region->chunksLoaded
+          << "\nregion_grid=" << region->columns << "x" << region->rows
+          << "\nregion_instances=" << region->instances.size()
+          << "\nregion_solids=" << region->solids.size()
+          << "\nregion_grass=" << region->grass.size()
+          << "\nregion_bytes=" << region->bytesRead
+          << "\nregion_load_ms=" << ms(start, Clock::now()) << "\n";
+    } else {
+      cfg = ws::parseJson(p3::readText(o.assets / (o.treeScene?"tree_game.json":"game.json")));
+      if (cfg.at("revision").number() != 1)
+        throw std::runtime_error("game manifest revision");
+      game::configureWorld(float(cfg.at("world_half_extent").number()),
+                           o.assets / "terrain_height.bin",
+                           float(cfg.at("ground_spacing").number()));
+    }
     auto vector3 = [](const ws::Json &v) {
       auto &a = v.array();
       if (a.size() != 3)
@@ -443,13 +476,17 @@ int main(int argc, char **argv) {
     game.message = "HEARTHGROVE EMACEART: explore the green. E rests at cottage doors / "
                    "meets wild Petalyn. F5 saves.";
 
-    for (auto &v : cfg.at("solids").array()) {
-      auto &a = v.array();
-      if (a.size() != 4)
-        throw std::runtime_error("solid arity");
-      game.solids.push_back({float(a[0].number()), float(a[1].number()),
-                             float(a[2].number()), float(a[3].number())});
-    }
+    if (region)
+      for (auto &s : region->solids)
+        game.solids.push_back(s.box);
+    else
+      for (auto &v : cfg.at("solids").array()) {
+        auto &a = v.array();
+        if (a.size() != 4)
+          throw std::runtime_error("solid arity");
+        game.solids.push_back({float(a[0].number()), float(a[1].number()),
+                               float(a[2].number()), float(a[3].number())});
+      }
     for (const auto &s : game.solids)
       if (!std::isfinite(s.x) || !std::isfinite(s.z) || !std::isfinite(s.hx) ||
           !std::isfinite(s.hz) || s.hx <= 0 || s.hz <= 0 || s.hx > 12 ||
@@ -460,13 +497,18 @@ int main(int argc, char **argv) {
     auto grassSolids = game.solids;
     if (!o.house) {
       std::vector<std::size_t> indices;
-      for (auto &v : cfg.at("house_solids").array()) {
-        double index = v.number();
-        if (index < 0 || index >= game.solids.size() ||
-            index != std::floor(index))
-          throw std::runtime_error("house collider index");
-        indices.push_back(std::size_t(index));
-      }
+      if (region)
+        for (std::size_t i = 0; i < region->solids.size(); i++)
+          if (region->solids[i].house)
+            indices.push_back(i);
+      else
+        for (auto &v : cfg.at("house_solids").array()) {
+          double index = v.number();
+          if (index < 0 || index >= game.solids.size() ||
+              index != std::floor(index))
+            throw std::runtime_error("house collider index");
+          indices.push_back(std::size_t(index));
+        }
       std::sort(indices.rbegin(), indices.rend());
       if (std::adjacent_find(indices.begin(), indices.end()) != indices.end())
         throw std::runtime_error("duplicate house collider");
@@ -493,11 +535,20 @@ int main(int argc, char **argv) {
         game::move(game.state.player, {-.8f, 0, .6f}, game.solids);
     game::Followers followers;
     followers.reset(game);
-    auto world = p3::World::load(
-        o.assets / (o.sourceTextures   ? "pack_source.json"
-                    : o.pixelMaterials ? "pack_style.json"
-                                       : "pack.json"),
-        o.assets / (o.treeScene?"tree_scene.json":o.house ? "scene.json" : "scene_nohouse.json"), false);
+    auto worldStart = Clock::now();
+    auto world = region
+        ? p3::World::load(
+              p3::safePath(o.assets, o.sourceTextures   ? region->sourcePack
+                                     : o.pixelMaterials ? region->stylePack
+                                                        : region->pack),
+              region->instances, false)
+        : p3::World::load(
+              o.assets / (o.sourceTextures   ? "pack_source.json"
+                          : o.pixelMaterials ? "pack_style.json"
+                                             : "pack.json"),
+              o.assets / (o.treeScene?"tree_scene.json":o.house ? "scene.json" : "scene_nohouse.json"), false);
+    log << "world_models=" << world.models.size() << "\nworld_instances=" << world.instances.size()
+        << "\nworld_load_ms=" << ms(worldStart, Clock::now()) << "\n";
     // Select existing approved components without rewriting source asset files.
     for (const auto &entry : cfg.at("exclude_materials").array()) {
       bool found = false;
@@ -552,8 +603,16 @@ int main(int argc, char **argv) {
     auto &rig = world.models[world.instances[actors[0]].model].rig;
     for (auto clip : {"Idle", "Fly", "Attack"})
       rig->sample(clip, 0);
+    if (region && region->vegetation != "vegetation.json")
+      throw std::runtime_error("REGION-001 shares the assets' vegetation.json");
     p3::MeshClumps grass(o.assets, grassSolids, o.legacyGrass,
-                         o.forceLegacyGrass, o.scaleFamily);
+                         o.forceLegacyGrass, o.scaleFamily,
+                         region ? &region->grass : nullptr);
+    if (region) { // Built into the world and grass now; the file rows are not needed.
+      ws::Json::Array().swap(region->instances);
+      ws::Json::Array().swap(region->grass);
+      std::vector<float>().swap(region->heights);
+    }
     if (o.requireAuthored && !grass.authored)
       throw std::runtime_error("EmaceArt revision2 vegetation.json required");
     if (grass.authored && o.coverage)
@@ -610,15 +669,31 @@ int main(int argc, char **argv) {
     float authoredHaze=look.hazeStrength;
     if(!o.haze)look.hazeStrength=0;
     gpu.setLook(look);
-    if(!o.pilot.empty()){
-      auto j=ws::parseJson(p3::readText(o.pilot));p3::PilotLook pilot;pilot.enabled=true;pilot.tiles=o.pilot.parent_path();
+    auto colour=[](const std::string &h){auto v=std::stoul(h.substr(1),nullptr,16);return p3::Vec{float((v>>16)&255)/255.f,float((v>>8)&255)/255.f,float(v&255)/255.f};};
+    auto readPilot=[&](const ws::Json &j){p3::PilotLook pilot;pilot.enabled=true;pilot.tiles=o.pilot.parent_path();
       pilot.density=float(j.at("density").number());pilot.pools=float(j.at("pools").number());pilot.sweep=float(j.at("sweep").number());pilot.tuft3d=int(j.at("tuft3d").number());pilot.rays=float(j.at("rays").number());
-      auto colour=[](const std::string &h){auto v=std::stoul(h.substr(1),nullptr,16);return p3::Vec{float((v>>16)&255)/255.f,float((v>>8)&255)/255.f,float(v&255)/255.f};};
       const char *names[]={"grass","soil","rock","leaf","bark"};
       for(int f=0;f<5;f++){auto &r=j.at("ramps").at(names[f]).array();for(int i=0;i<6;i++)pilot.ramps[f*6+i]=colour(r.at(i).string());}
       auto &amps=j.at("amps").array();for(int i=0;i<6;i++)pilot.amps[i]=float(amps.at(i).number());
-      pilot.lichen=colour(j.at("lichen").string());gpu.setPilot(pilot);
+      pilot.lichen=colour(j.at("lichen").string());return pilot;};
+    p3::PilotLook basePilot,dreamPilot;
+    if(!o.pilot.empty()){basePilot=readPilot(ws::parseJson(p3::readText(o.pilot)));gpu.setPilot(basePilot);}
+    // LOOKDEV-005 dream look: its own ramps, cloud shade, light and haze, and the flat camera.
+    p3::Look dreamLook=look;float dreamHalf=6.5f,dreamFightHalf=5.2f,dreamPitch=-.70f;
+    const bool hasDream=!o.dream.empty()&&basePilot.enabled;
+    if(hasDream){
+      auto j=ws::parseJson(p3::readText(o.dream));dreamPilot=readPilot(j);dreamPilot.dream=1;
+      dreamPilot.cloud=std::clamp(float(j.at("cloud").number()),0.f,1.f);
+      auto &l=j.at("look");auto vec3=[&](const char *k){auto &a=l.at(k).array();return p3::Vec{float(a.at(0).number()),float(a.at(1).number()),float(a.at(2).number())};};
+      dreamLook.hazeColor=vec3("haze_color");dreamLook.skyTop=vec3("sky_top");dreamLook.skyHorizon=vec3("sky_horizon");
+      dreamLook.ambientSky=vec3("ambient_sky");dreamLook.ambientGround=vec3("ambient_ground");dreamLook.sunColor=vec3("sun_color");
+      dreamLook.hazeStart=float(l.at("haze_start").number());dreamLook.hazeEnd=float(l.at("haze_end").number());dreamLook.hazeStrength=std::clamp(float(l.at("haze_strength").number()),0.f,1.f);
+      if(dreamLook.hazeEnd<=dreamLook.hazeStart)throw std::runtime_error("dream haze interval");
+      auto &c=j.at("camera");dreamHalf=std::clamp(float(c.at("half").number()),3.f,14.f);dreamFightHalf=std::clamp(float(c.at("fight_half").number()),3.f,14.f);dreamPitch=-std::clamp(float(c.at("pitch").number()),.35f,1.2f);
     }
+    bool dream=hasDream&&o.dreamOn;
+    auto applyDream=[&]{if(!basePilot.enabled)return;gpu.setPilot(dream?dreamPilot:basePilot);gpu.setLook(dream?dreamLook:look);if(!dream)gpu.setOrtho(0,0);};
+    applyDream();
     // Fight test: real-time rules, ground markers and pixel HUD, staged with existing creature models.
     std::unique_ptr<p3::PixelUi> pixelUi;
     std::unique_ptr<p3::FightScene> scene;
@@ -629,6 +704,10 @@ int main(int argc, char **argv) {
     std::map<std::string, p3::Mat> stageHome;
     bool stageSet = false;
     float fightTurn = 0, fightZoom = 0;
+    // Flat camera: one of four diagonal views; a turn swings over a quarter second.
+    int quarter = game::nearestQuarter(game.state.yaw);
+    float viewYaw = game::quarterYaw(quarter), latchedYaw = 0, turnRest = 0;
+    bool latched = false;
     p3::Vec fightFoe{};
     std::vector<std::size_t> viewBlockers;
     std::vector<std::pair<std::size_t, std::size_t>> viewFollowers; // Window, chimney or smoke, and its building.
@@ -707,8 +786,12 @@ int main(int argc, char **argv) {
     gpu.setIntegration(integration);updateEffects();
     for(std::size_t i=0;i<world.models.size();++i) {
       bool ground=!world.models[i].materials.empty()&&world.models[i].materials[0].ground;
-      gpu.setSurfacePolicy(i,{!ground,true,1,0,false});
+      // Flowers and edge tufts cast no shadow, like the grass they stand in.
+      bool extra=world.models[i].id.starts_with("WSP_FLOWER_")||world.models[i].id.starts_with("WSP_TUFT_");
+      gpu.setSurfacePolicy(i,{!ground&&!extra,true,1,0,false});
     }
+    gpu.setMeadowExtras(o.meadowExtras);
+    gpu.setLeafSnap(o.leafSnap);
     gpu.setGrass(&grass,{},{});
     log << "vendor=" << gpu.vendor << "\nrenderer=" << gpu.renderer
         << "\nversion=" << gpu.version << "\nsoftware=" << gpu.software
@@ -791,6 +874,18 @@ int main(int argc, char **argv) {
     };
     bool run = true, paused = false, relative = true;
     std::array<bool, 4> held{};
+    auto turnView = [&](int steps) {
+      // One turn at a time: a new one waits until the last swing has settled.
+      if (turnRest > 0)
+        return;
+      turnRest = .5f;
+      if (held[0] || held[1] || held[2] || held[3]) {
+        if (!latched)
+          latchedYaw = game::quarterYaw(quarter);
+        latched = true;
+      }
+      quarter = game::wrapQuarter(quarter + steps);
+    };
     bool sneaking = false;
     SDL_SetWindowRelativeMouseMode(screen.window, true);
     int frame = 0;
@@ -863,10 +958,13 @@ int main(int argc, char **argv) {
         } else if (e.type == SDL_EVENT_MOUSE_MOTION &&
                    (relative || !o.replay.empty()) && !paused &&
                    (game.phase == game::Phase::Explore || (scene && scene->active()))) {
-          game.state.yaw = std::remainder(
-              game.state.yaw + e.motion.xrel * .0025f, 2 * p3::pi);
-          game.state.pitch = std::clamp(
-              game.state.pitch - e.motion.yrel * .0025f, -1.25f, 1.25f);
+          // The flat camera turns only with Z and X, never with the mouse.
+          if (!(dream && o.raisedCamera)) {
+            game.state.yaw = std::remainder(
+                game.state.yaw + e.motion.xrel * .0025f, 2 * p3::pi);
+            game.state.pitch = std::clamp(
+                game.state.pitch - e.motion.yrel * .0025f, -1.25f, 1.25f);
+          }
         } else if (e.type == SDL_EVENT_KEY_DOWN || e.type == SDL_EVENT_KEY_UP) {
           bool down = e.type == SDL_EVENT_KEY_DOWN;
           int at = e.key.key == SDLK_W   ? 0
@@ -900,6 +998,50 @@ int main(int argc, char **argv) {
               wilds->announce(text);
             } else
               game.message = text;
+            continue;
+          }
+          if (e.key.key == SDLK_F4 && !paused && hasDream) {
+            dream = !dream;
+            applyDream();
+            if (dream) {
+              quarter = game::nearestQuarter(game.state.yaw);
+              viewYaw = game::quarterYaw(quarter);
+            }
+            std::string text = dream ? "Dream look" : "Old look";
+            if (scene) {
+              scene->announce(text);
+              wilds->announce(text);
+            } else
+              game.message = text;
+            event(frame, dream ? "dream_on" : "dream_off");
+            continue;
+          }
+          if ((e.key.key == SDLK_Z || e.key.key == SDLK_X) && !paused && dream && o.raisedCamera) {
+            turnView(e.key.key == SDLK_X ? 1 : -1);
+            continue;
+          }
+          if (e.key.key == SDLK_F7 && !paused) {
+            o.leafSnap = !o.leafSnap;
+            gpu.setLeafSnap(o.leafSnap);
+            std::string text = o.leafSnap ? "Leaves snapped (old)" : "Leaves smooth";
+            if (scene) {
+              scene->announce(text);
+              wilds->announce(text);
+            } else
+              game.message = text;
+            event(frame, o.leafSnap ? "leaf_snap_on" : "leaf_snap_off");
+            continue;
+          }
+          if (e.key.key == SDLK_F10 && !paused) {
+            o.meadowExtras = !o.meadowExtras;
+            gpu.setMeadowExtras(o.meadowExtras);
+            std::string text = o.meadowExtras ? "Flowers and tufts on" : "Flowers and tufts off";
+            if (scene) {
+              scene->announce(text);
+              wilds->announce(text);
+            } else
+              game.message = text;
+            event(frame, o.meadowExtras ? "meadow_extras_on" : "meadow_extras_off");
             continue;
           }
           if (book && book->open()) {
@@ -978,7 +1120,7 @@ int main(int argc, char **argv) {
             } else if(e.key.key==SDLK_O) {
               o.shadows=!o.shadows;updateEffects();event(frame,"shadows_toggle");
             } else if(e.key.key==SDLK_H) {
-              o.haze=!o.haze;look.hazeStrength=o.haze?authoredHaze:0;gpu.setLook(look);event(frame,"haze_toggle");
+              o.haze=!o.haze;look.hazeStrength=o.haze?authoredHaze:0;gpu.setLook(dream?dreamLook:look);event(frame,"haze_toggle");
             } else if(e.key.key==SDLK_F&&!wilds) { // F means friendly fight in the pilot corner.
               o.original=!o.original;style.highlights=!o.original&&o.edgeHighlights;style.outlines=!o.original&&o.edgeOutlines;gpu.setSourceView(o.original);gpu.setStyle(style);event(frame,"source_toon_toggle");
             } else if(e.key.key==SDLK_L) {
@@ -1045,6 +1187,16 @@ int main(int argc, char **argv) {
         }
       }
       bool reading = book && book->open();
+      const bool flat = dream && o.raisedCamera && !o.benchmark;
+      if (flat) {
+        // W is always up the screen; a key held through a turn keeps its old way until let go.
+        if (!(held[0] || held[1] || held[2] || held[3]))
+          latched = false;
+        game.state.yaw = latched ? latchedYaw : game::quarterYaw(quarter);
+        float target = game::quarterYaw(quarter), gap = std::remainder(target - viewYaw, 2 * p3::pi);
+        viewYaw = std::abs(gap) <= dt * 6.3f ? target : std::remainder(viewYaw + std::copysign(dt * 6.3f, gap), 2 * p3::pi);
+        turnRest = std::max(0.f, turnRest - dt);
+      }
       if (!paused && !o.benchmark && !reading && game.phase == game::Phase::Explore && !(wilds && wilds->busy())) {
         float f = float(held[0]) - float(held[1]),
               side = float(held[3]) - float(held[2]);
@@ -1124,7 +1276,7 @@ int main(int argc, char **argv) {
         } else if (watching)
           fightFoe = wilds->watchAt();
         // The camera swings round to face the creature, then the mouse keeps control.
-        if (fightTurn > 0 && (fighting || watching)) {
+        if (fightTurn > 0 && (fighting || watching) && !flat) {
           fightTurn = std::max(0.f, fightTurn - dt);
           float want = std::atan2(fightFoe.x - game.state.player.x, game.state.player.z - fightFoe.z);
           game.state.yaw += std::remainder(want - game.state.yaw, 2 * p3::pi) * std::min(1.f, dt * 7);
@@ -1168,7 +1320,7 @@ int main(int argc, char **argv) {
         // The camera leans in for a fight or a quiet watch, and eases back out afterwards.
         bool leaning = fighting || watching;
         fightZoom += std::clamp(float(leaning) - fightZoom, -dt * 2.5f, dt * 2.5f);
-        if (fightZoom > 0 && (fighting || (o.raisedCamera && game.phase == game::Phase::Explore))) {
+        if (fightZoom > 0 && !flat && (fighting || (o.raisedCamera && game.phase == game::Phase::Explore))) {
           float k = fightZoom * fightZoom * (3 - 2 * fightZoom), y = game.state.yaw;
           // It gives back a little distance when the wild Signari backs off, to keep both in frame.
           float spread = std::hypot(fightFoe.x - game.state.player.x, fightFoe.z - game.state.player.z);
@@ -1179,6 +1331,18 @@ int main(int argc, char **argv) {
           camera.aim(middle + p3::Vec{0, 1.5f - .8f * k, 0});
         }
       }
+      float flatHalf = 0;
+      if (flat && (game.phase == game::Phase::Explore || (scene && scene->active()))) {
+        // Flat view from the current quarter, leaning toward the fight and zooming a little in.
+        float k = fightZoom * fightZoom * (3 - 2 * fightZoom);
+        bool fight = scene && (scene->active() || wilds->watching());
+        p3::Vec middle = game.state.player + (fight ? (fightFoe - game.state.player) * (.5f * k) : p3::Vec{});
+        flatHalf = dreamHalf + (dreamFightHalf - dreamHalf) * k;
+        camera.yaw = viewYaw;
+        camera.pitch = dreamPitch;
+        camera.position = middle + p3::Vec{0, 1, 0} - camera.forward() * 4.f;
+      }
+      gpu.setOrtho(flatHalf, flatHalf > 0 ? 40.f : 0.f);
       if (o.benchmark) {
         if (o.pose >= 0)
           camera = pose(o.pose, cfg, game.solids);
@@ -1276,18 +1440,25 @@ int main(int argc, char **argv) {
       }
       auto animateEnd = Clock::now();
       world.partition(3);
-      auto vp = p3::perspective(p3::pi / 3, 16.f / 9) * camera.view();
+      // The eye the flat view is really drawn from sits far back along the view line.
+      p3::Camera sight = camera;
+      if (flatHalf > 0)
+        sight.position = camera.position - camera.forward() * 40.f;
+      auto vp = flatHalf > 0 ? p3::orthographic(flatHalf * 16.f / 9, flatHalf) * sight.view()
+                             : p3::perspective(p3::pi / 3, 16.f / 9) * camera.view();
       if (scene) {
-        // In the raised view and in fights, whatever stands between the camera and the action dissolves in a pixel pattern.
+        // In the raised view and in fights, whatever really hides the action opens a round window around it.
         bool fighting = scene->active(), dissolving = !o.benchmark && (fighting || o.raisedCamera);
         std::vector<p3::Vec> watched{game.state.player + p3::Vec{0, .9f, 0}};
         if (fighting) {
           watched.push_back(scene->wildAt() + p3::Vec{0, .5f, 0});
           watched.push_back(scene->creature(true).at + p3::Vec{0, .5f, 0});
         }
-        auto crosses = [&](const p3::Box &b, p3::Vec from, p3::Vec to) {
-          float enter = 0, leave = 1;
-          for (auto [a, d, lo, hi] : {std::array{from.x, to.x - from.x, b.lo.x - .4f, b.hi.x + .4f}, std::array{from.y, to.y - from.y, b.lo.y, b.hi.y}, std::array{from.z, to.z - from.z, b.lo.z - .4f, b.hi.z + .4f}}) {
+        // The box is shrunk toward its middle, so only the solid heart of a crown or a
+        // house counts: standing near its edge, or near the camera, no longer fades it.
+        auto crosses = [&](const p3::Box &b, p3::Vec from, p3::Vec to, float shrink) {
+          float enter = 0, leave = 1, sx = (b.hi.x - b.lo.x) * shrink, sz = (b.hi.z - b.lo.z) * shrink;
+          for (auto [a, d, lo, hi] : {std::array{from.x, to.x - from.x, b.lo.x + sx, b.hi.x - sx}, std::array{from.y, to.y - from.y, b.lo.y, b.hi.y}, std::array{from.z, to.z - from.z, b.lo.z + sz, b.hi.z - sz}}) {
             if (std::abs(d) < 1e-5f) {
               if (a < lo || a > hi)
                 return false;
@@ -1303,13 +1474,11 @@ int main(int argc, char **argv) {
           const auto &b = world.instances[index].bounds;
           float want = 0;
           if (dissolving) {
-            auto within = [&](float margin) {
-              return camera.position.x > b.lo.x - margin && camera.position.x < b.hi.x + margin && camera.position.y < b.hi.y + margin && camera.position.z > b.lo.z - margin && camera.position.z < b.hi.z + margin;
-            };
+            float shrink = p3::building(world.models[world.instances[index].model].id) ? .1f : .25f;
             bool blocks = false;
             for (auto at : watched)
-              blocks = blocks || crosses(b, camera.position, at);
-            want = within(1.5f) ? 1.f : blocks ? .8f : 0.f; // Beside the lens even a faint pattern would fill the frame.
+              blocks = blocks || crosses(b, sight.position, at, shrink);
+            want = blocks ? 1.f : 0.f;
           }
           auto &fade = viewFades[index];
           fade += std::clamp(want - fade, -dt * 3.5f, dt * 3.5f);
@@ -1317,6 +1486,7 @@ int main(int argc, char **argv) {
         for (auto [detail, home] : viewFollowers)
           viewFades[detail] = viewFades[home];
         gpu.setFades(viewFades);
+        gpu.setSeeThrough(dissolving ? watched : std::vector<p3::Vec>{});
       }
       if (groundMarks) {
         groundMarks->clear();

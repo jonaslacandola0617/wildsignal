@@ -1,4 +1,5 @@
 #pragma once
+#include "json.hpp"
 #include <array>
 #include <cmath>
 #include <cstdint>
@@ -31,6 +32,8 @@ Mat inverse(const Mat &);
 Mat transpose(const Mat &);
 Mat transform(Vec, float, float);
 Mat perspective(float, float, float = .1f, float = 350.f);
+// Flat (orthographic) view: half width and half height of the view in metres.
+Mat orthographic(float, float, float = .1f, float = 350.f);
 Mat lookAt(Vec, Vec);
 struct Box {
   Vec lo{INFINITY, INFINITY, INFINITY}, hi{-INFINITY, -INFINITY, -INFINITY};
@@ -111,6 +114,10 @@ struct World {
   Visibility visible(const Frustum &, bool, std::vector<std::size_t> &) const;
   static World load(const std::filesystem::path &pack,
                     const std::filesystem::path &scene, bool stress);
+  // Instance rows already gathered (REGION-001 chunk files), scene.json's shape.
+  static World load(const std::filesystem::path &pack,
+                    const ws::Json::Array &instances, bool stress,
+                    float groundExtent = 18);
 };
 struct Camera {
   Vec position{9, 4, 12};

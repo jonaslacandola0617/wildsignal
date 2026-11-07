@@ -48,6 +48,12 @@ struct Gpu {
   Gpu(World &, bool allowSoftware, const TreeStudy *treeStudy = nullptr);
   void setTreeTreatment(int);
   void setPlainLeaves(bool);
+  // LOOKDEV-003 small flowers and edge-tuft rings (WSP_FLOWER_*, WSP_TUFT_*) on or off.
+  void setMeadowExtras(bool);
+  void setLeafSnap(bool);
+  // LOOKDEV-005 flat camera: half height of the view in metres (0 = perspective) and how far
+  // the drawing eye sits behind the given camera, so nothing in front of it is clipped.
+  void setOrtho(float halfHeight, float pullBack);
   void setIntegration(const Integration &);
   void setSurfacePolicy(std::size_t model, const SurfacePolicy &);
   void setGrass(MeshClumps *, const std::filesystem::path &,
@@ -59,6 +65,8 @@ struct Gpu {
   void setOverlay(std::function<void(const Mat &)>);
   // Per-instance pixel dissolve, 0 solid to 1 gone; the shadow pass ignores it.
   void setFades(const std::vector<float> &);
+  // Faded objects open a round window around these points (up to 3) instead of dissolving whole.
+  void setSeeThrough(const std::vector<Vec> &);
   void setLook(const Look &);
   void setProfile(const StyleProfile &);
   void setSourceView(bool);

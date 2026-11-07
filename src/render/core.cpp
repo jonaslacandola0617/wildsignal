@@ -106,6 +106,17 @@ Mat perspective(float fov, float aspect, float near, float far) {
   m.v[14] = 2 * far * near / (near - far);
   return m;
 }
+Mat orthographic(float halfWidth, float halfHeight, float near, float far) {
+  if (!(halfWidth > 0 && halfHeight > 0 && near > 0 && far > near))
+    throw std::runtime_error("invalid projection");
+  Mat m;
+  m.v[0] = 1 / halfWidth;
+  m.v[5] = 1 / halfHeight;
+  m.v[10] = -2 / (far - near);
+  m.v[14] = -(far + near) / (far - near);
+  m.v[15] = 1;
+  return m;
+}
 Mat lookAt(Vec eye, Vec target) {
   Vec f = normalized(target - eye), s = normalized(cross(f, {0, 1, 0})),
       u = cross(s, f);
@@ -251,6 +262,18 @@ Visibility World::visible(const Frustum &f, bool on,
 }
 World World::load(const std::filesystem::path &pack,
                   const std::filesystem::path &scene, bool stress) {
+  auto s = ws::parseJson(readText(scene));
+  if (s.at("revision").number() != 1)
+    throw std::runtime_error("scene revision");
+  float extent = 18;
+  const auto &sceneObject = std::get<ws::Json::Object>(s.value);
+  if (auto e = sceneObject.find("ground_extent"); e != sceneObject.end())
+    extent = float(e->second.number());
+  return load(pack, s.at("instances").array(), stress, extent);
+}
+World World::load(const std::filesystem::path &pack,
+                  const ws::Json::Array &instances, bool stress,
+                  float groundExtent) {
   World w;
   auto j = ws::parseJson(readText(pack));
   if (j.at("revision").number() != 1)
@@ -258,11 +281,8 @@ World World::load(const std::filesystem::path &pack,
   auto &arr = j.at("models").array();
   if (arr.empty() || arr.size() > 64)
     throw std::runtime_error("model count");
-  auto s = ws::parseJson(readText(scene));
-  if (s.at("revision").number() != 1)
-    throw std::runtime_error("scene revision");
   std::map<std::string, bool> required;
-  for (auto &i : s.at("instances").array())
+  for (auto &i : instances)
     required[i.at("model").string()] = true;
   if (required.contains("ground"))
     required["Grass_Common_Short"] = true;
@@ -359,14 +379,9 @@ World World::load(const std::filesystem::path &pack,
         w.models[ids.at("Grass_Common_Short")].materials.at(0));
     ground.materials[0].ground = true;
     ground.materials[0].foliage = false;
-    float extent = 18;
-    const auto &sceneObject = std::get<ws::Json::Object>(s.value);
-    if (auto e = sceneObject.find("ground_extent"); e != sceneObject.end()) {
-      double n = e->second.number();
-      if (!std::isfinite(n) || n < 18 || n > 128)
-        throw std::runtime_error("ground extent");
-      extent = static_cast<float>(n);
-    }
+    float extent = groundExtent;
+    if (!std::isfinite(extent) || extent < 18 || extent > 128)
+      throw std::runtime_error("ground extent");
     Primitive q;
     q.vertices = {{{-extent, -.04f, -extent}, {0, 1, 0}, .19f, .45f},
                   {{-extent, -.04f, extent}, {0, 1, 0}, .19f, .45f},
@@ -381,7 +396,7 @@ World World::load(const std::filesystem::path &pack,
     w.models.push_back(std::move(ground));
   }
 
-  for (auto &i : s.at("instances").array()) {
+  for (auto &i : instances) {
     if (w.instances.size() >= 4096)
       throw std::runtime_error("instance limit");
     auto id = i.at("model").string();

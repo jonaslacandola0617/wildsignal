@@ -13,5 +13,8 @@ struct PilotLook {
   std::array<float, 6> amps{};
   Vec lichen{}, right{1, 0, 0};
   int tuft3d = 0;
+  // LOOKDEV-005: drifting cloud shade (0 = off) and the dream look's rocks and grass light.
+  float cloud = 0;
+  int dream = 0;
 };
 } // namespace p3

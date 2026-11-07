@@ -5,6 +5,7 @@ namespace p3 {
 static constexpr const char *pilotGLSL=R"GLSL(
 uniform int pilotOn;uniform sampler2DArray pilotTiles;uniform vec3 pilotRamps[36];uniform vec3 pilotLichen;
 uniform int pilotPlain;uniform float pilotAmps[6];uniform float pilotDensity,pilotTime,pilotPoolStrength,pilotSweepStrength;
+uniform float pilotCloud;uniform int pilotDream;
 float pilotHash(vec2 p){return fract(sin(dot(p,vec2(41.3,289.1)))*43758.5453);}
 float pilotNoise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(pilotHash(i),pilotHash(i+vec2(1,0)),f.x),mix(pilotHash(i+vec2(0,1)),pilotHash(i+vec2(1,1)),f.x),f.y);}
 vec2 pilotPlane(vec3 p,vec3 g){vec3 a=abs(g);if(a.y>=a.x&&a.y>=a.z)return p.xz;if(a.x>=a.z)return p.zy;return p.xy;}
@@ -16,6 +17,14 @@ vec3 pilotSnap(vec3 p,vec3 g){vec3 a=abs(g);float d=pilotDensity;
  vec2 s=(floor(p.xy*d)+.5)/d-p.xy;return p+vec3(s.x,s.y,-(g.x*s.x+g.y*s.y)/g.z);}
 vec4 pilotTile(int layer,vec2 q){return texture(pilotTiles,vec3(q*pilotDensity/128.,float(layer)));}
 vec3 pilotRamp(int ramp,float t){return pilotRamps[ramp*6+int(clamp(t,0.,.999)*6.)];}
+// Slow cloud shade drifting over the world. The field is warped and rotated so its
+// outline is round with no straight grid edges; the edge itself is clean (no dither),
+// stepped only by the world pixel grid.
+float pilotCloudField(vec2 p){vec2 q=(p+pilotTime*vec2(.32,.18))*.05;
+ q+=vec2(pilotNoise(q*2.1+vec2(3.7,1.2)),pilotNoise(q*2.3+vec2(9.1,4.4)))*.9;
+ return .62*pilotNoise(q+vec2(5.3,1.7))+.38*pilotNoise(mat2(.8,.6,-.6,.8)*q*2.03+vec2(2.2,8.1));}
+float pilotClouds(vec2 p){return pilotCloudField((floor(p*16.)+.5)/16.)<.58?1.:0.;}
+float pilotCloudVis(float v,vec2 p){return pilotCloud>0.?min(v,mix(1.,pilotClouds(p),pilotCloud)):v;}
 float pilotPools(vec2 p){return smoothstep(.56,.70,.65*pilotNoise(p*.13+vec2(3.1,7.7))+.35*pilotNoise(p*.41+vec2(9.2,1.4)));}
 // The same beams as the post pass, so each ray lands in its own pool of light.
 float pilotBeam(vec2 q,vec2 sun){vec2 c=q/8.5,g=floor(c),f=fract(c)-.5;float h=fract(sin(dot(g,vec2(127.1,311.7)))*43758.5453);if(h<.60)return 0.;

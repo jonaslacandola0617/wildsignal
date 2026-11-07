@@ -3,17 +3,20 @@
 #include <stdexcept>
 namespace p3 {
 PixelCamera pixelCamera(const Camera &c, int w, int h, PixelCameraMode mode,
-                        float depth) {
+                        float depth, float orthoHalf) {
   if (w < 2 || h < 2 || w > 16384 || h > 16384 || !finite(c.position) ||
       std::max({std::abs(c.position.x),std::abs(c.position.y),std::abs(c.position.z)}) > 1000000 ||
       !std::isfinite(c.yaw) || !std::isfinite(c.pitch) ||
       std::abs(c.pitch) >= pi * .5f - .001f ||
       !std::isfinite(depth) || depth < .2f || depth > 200.f ||
+      !std::isfinite(orthoHalf) || orthoHalf < 0 || orthoHalf > 100 ||
       int(mode) < 0 || int(mode) > 2)
     throw std::runtime_error("invalid pixel camera/resolution/reference depth");
   PixelCamera p;
   p.render = c;
-  p.worldPerPixel = 2 * depth * std::tan(60 * pi / 360) / float(h);
+  // A flat view has one pixel size at every depth, so one snap holds the whole image still.
+  p.worldPerPixel = orthoHalf > 0 ? 2 * orthoHalf / float(h)
+                                  : 2 * depth * std::tan(60 * pi / 360) / float(h);
   if (mode == PixelCameraMode::Off)
     return p;
   auto f = c.forward(), r = normalized(cross(f, {0, 1, 0})), u = cross(r, f);

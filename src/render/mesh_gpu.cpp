@@ -94,7 +94,13 @@ void main(){
  if(pilotOn!=0){
   // Evenly lit from the root so a tuft melts into the ground around it.
   vec3 sp=pilotSnap(pilotRoot,vec3(0,1,0));float v=shadowMode!=0?stableReceiver(sp,vec3(0,1,0),bias*.000015):1.;
+  v=pilotCloudVis(v,sp.xz);
   float t=pilotGreenTone(max(0.,sd.y),v,sp.xz);if(pilotTuft3d==0)t+=(pilotMask.r-.5)*.7;
+  // Dream look: blades at the sunny edge of a still shadow (trees, houses) catch one band
+  // more light. Drifting cloud shade never does this, so passing clouds cannot flash grass.
+  // One extra shadow read, half a metre away from the sun: shaded there means a sunny edge.
+  if(pilotDream!=0&&v>.5&&shadowMode!=0){vec2 e=normalize(sd.xz+vec2(1e-4))*.45;
+   if(stableReceiver(sp-vec3(e.x,0,e.y),vec3(0,1,0),bias*.000015)<.5)t+=.17;}
   display=pilotRamp(0,t);
  }
  float haze=smoothstep(hazeStart,hazeEnd,length(worldPosition-eye))*hazeStrength;
@@ -319,7 +325,7 @@ MeshVisibility MeshRenderer::draw(MeshClumps &m, const Camera &camera,
       mg::Uniform3f(mg::GetUniformLocation(p->shader,"pilotRight"),p->pilot.right.x,p->pilot.right.y,p->pilot.right.z);
       mg::Uniform1f(mg::GetUniformLocation(p->shader,"pilotWide"),p->pilot.wide);mg::Uniform1f(mg::GetUniformLocation(p->shader,"pilotHigh"),p->pilot.high);
       mg::Uniform1f(mg::GetUniformLocation(p->shader,"pilotDensity"),p->pilot.density);mg::Uniform1f(mg::GetUniformLocation(p->shader,"pilotTime"),p->pilot.time);
-      mg::Uniform1f(mg::GetUniformLocation(p->shader,"pilotPoolStrength"),p->pilot.pools);mg::Uniform1f(mg::GetUniformLocation(p->shader,"pilotSweepStrength"),p->pilot.sweep);
+      mg::Uniform1f(mg::GetUniformLocation(p->shader,"pilotPoolStrength"),p->pilot.pools);mg::Uniform1f(mg::GetUniformLocation(p->shader,"pilotCloud"),p->pilot.cloud);mg::Uniform1i(mg::GetUniformLocation(p->shader,"pilotDream"),p->pilot.dream);mg::Uniform1f(mg::GetUniformLocation(p->shader,"pilotSweepStrength"),p->pilot.sweep);
       for(int i=0;i<36;i++){auto c=p->pilot.ramps[i];auto name="pilotRamps["+std::to_string(i)+"]";mg::Uniform3f(mg::GetUniformLocation(p->shader,name.c_str()),c.x,c.y,c.z);}
       for(int i=0;i<6;i++){auto name="pilotAmps["+std::to_string(i)+"]";mg::Uniform1f(mg::GetUniformLocation(p->shader,name.c_str()),p->pilot.amps[i]);}
     }

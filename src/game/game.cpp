@@ -26,20 +26,29 @@ void configureWorld(float extent, const std::filesystem::path &path,
     throw std::runtime_error("world extent");
   std::ifstream f(path, std::ios::binary);
   std::vector<unsigned char> bytes((std::istreambuf_iterator<char>(f)), {});
-  if (bytes.size() != 97 * 97 * 4 && bytes.size() != 257 * 257 * 4)
-    throw std::runtime_error("existing terrain grid size");
   std::vector<float> values;
-  values.reserve(97 * 97);
-  for (std::size_t i = 0; i < bytes.size(); i += 4) {
+  values.reserve(bytes.size() / 4);
+  for (std::size_t i = 0; i + 3 < bytes.size(); i += 4) {
     std::uint32_t word = std::uint32_t(bytes[i]) |
                          (std::uint32_t(bytes[i + 1]) << 8) |
                          (std::uint32_t(bytes[i + 2]) << 16) |
                          (std::uint32_t(bytes[i + 3]) << 24);
-    float h = std::bit_cast<float>(word);
+    values.push_back(std::bit_cast<float>(word));
+  }
+  if (bytes.size() % 4)
+    throw std::runtime_error("existing terrain grid size");
+  configureHeights(extent, std::move(values), spacing);
+}
+void configureHeights(float extent, std::vector<float> values, float spacing) {
+  if (!std::isfinite(spacing) || spacing < 11.5f || spacing > 20)
+    throw std::runtime_error("terrain spacing");
+  if (!std::isfinite(extent) || extent < 5.85f || extent > 48)
+    throw std::runtime_error("world extent");
+  if (values.size() != 97 * 97 && values.size() != 257 * 257)
+    throw std::runtime_error("existing terrain grid size");
+  for (float h : values)
     if (!std::isfinite(h) || std::abs(h) > 3)
       throw std::runtime_error("terrain grid height");
-    values.push_back(h);
-  }
   heights = std::move(values);
   worldHalf = extent;
   tileStep = spacing;

@@ -1,6 +1,7 @@
 #pragma once
 #include "core.hpp"
 #include "game.hpp"
+#include "json.hpp"
 #include "meadow_patches.hpp"
 namespace p3 {
 struct MeshOptions {
@@ -23,6 +24,9 @@ struct MeshClumps {
   Vec baseAlbedo{.16f, .3f, .08f};
   std::vector<MeshTransform> all;
   std::vector<int> variants;
+  // Stable per-clump seed for density thinning and detail bands, so chunk
+  // order never changes which clumps thin out (REGION-001).
+  std::vector<std::uint32_t> seeds;
   std::vector<Box> bounds;
   std::vector<std::vector<MeshTransform>> batches;
   std::vector<std::array<int,3>> lodModels;
@@ -47,7 +51,8 @@ struct MeshClumps {
   explicit MeshClumps(const std::filesystem::path &,
                       const std::vector<game::Solid> &,
                       bool legacyLayout = false, bool forceLegacy = false,
-                      int scaleFamily = 0);
+                      int scaleFamily = 0,
+                      const ws::Json::Array *regionRows = nullptr);
   MeshVisibility select(const Camera &, const Frustum &, int height);
 };
 } // namespace p3

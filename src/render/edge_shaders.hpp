@@ -12,8 +12,9 @@ uniform int profileActive,profileInk,majorWidth,profileGreenOnly,organicEdges;un
 uniform float architectureStrength,foliageStrength,sunThreshold;
 uniform int luminousRims,leafRims;uniform float rimSaturation,architectureRim,highlightLimit;
 uniform vec3 highlightColor,skyTop,skyHorizon,sunDirection,cameraRight,cameraUp;uniform int pilotOn;uniform float pilotRays,pilotTime;
-uniform mat4 inverseVP;
-float linearDepth(float z){return .2*350./(350.1-(z*2.-1.)*349.9);}
+uniform mat4 inverseVP;uniform float orthoSpan,orthoBase,orthoPixel;
+// A flat view stores depth linearly; distances count from the given camera, not the pulled-back eye.
+float linearDepth(float z){return orthoSpan>0.?.1+z*orthoSpan-orthoBase:.2*350./(350.1-(z*2.-1.)*349.9);}
 vec3 position(vec2 q,float z){vec4 h=inverseVP*vec4(q*2.-1.,z*2.-1.,1);return h.xyz/h.w;}
 vec3 rays(float d){ivec2 low=textureSize(shaftImage,0);vec2 coord=uv*vec2(low)-.5;ivec2 base=ivec2(floor(coord));vec2 f=fract(coord);vec3 r=vec3(0);float total=0.;
  for(int y=0;y<2;y++)for(int x=0;x<2;x++){vec4 a=texelFetch(shaftImage,clamp(base+ivec2(x,y),ivec2(0),low-1),0);float gap=abs(a.a*350.-(shaftMethod==2?min(d,30.):d));float w=(x==0?1.-f.x:f.x)*(y==0?1.-f.y:f.y);w*=1.-smoothstep(max(.15,d*.015),max(.3,d*.05),gap);r+=a.rgb*w;total+=w;}return total>.001?r/total:vec3(0);}
@@ -38,7 +39,7 @@ void main(){ivec2 size=textureSize(sceneColor,0),p=clamp(ivec2(gl_FragCoord.xy),
  bool stone=enc.a>.24&&enc.a<.29,grass=enc.a>.60&&enc.a<.70;
  float silhouette=0.,crease=0.,shine=0.;
  if(raw<.99999&&!ground&&(edgeMask!=0||(edgeMode==3&&outline!=0)||(edgeMode>=2&&highlights!=0))){
-  vec3 here=position(uv,raw);float pw=2.*d*.577350269/float(size.y),tol=max(.003,pw*.075);
+  vec3 here=position(uv,raw);float pw=orthoSpan>0.?orthoPixel:2.*d*.577350269/float(size.y),tol=max(.003,pw*.075);
   vec2 projectedSun=vec2(dot(sunDirection,cameraRight),dot(sunDirection,cameraUp));
   float facing=dot(n,sunDirection);
   ivec2 dirs[4]=ivec2[4](ivec2(-1,0),ivec2(1,0),ivec2(0,-1),ivec2(0,1));
