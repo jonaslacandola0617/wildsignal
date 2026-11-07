@@ -324,7 +324,7 @@ MeshVisibility MeshRenderer::draw(MeshClumps &m, const Camera &camera,
   auto s = m.select(camera, Frustum(vp), height);
   if (s.visible) {
     mg::UseProgram(p->shader);
-    mg::Uniform1i(mg::GetUniformLocation(p->shader,"pilotOn"),p->pilot.enabled&&p->toon);mg::Uniform1i(mg::GetUniformLocation(p->shader,"pilotTiles"),13);mg::Uniform1i(mg::GetUniformLocation(p->shader,"pilotTuft3d"),p->pilot.tuft3d);
+    mg::Uniform1i(mg::GetUniformLocation(p->shader,"pilotOn"),p->pilot.enabled&&p->toon);mg::Uniform1i(mg::GetUniformLocation(p->shader,"pilotTiles"),13);mg::Uniform1i(mg::GetUniformLocation(p->shader,"pilotCloudTex"),14);mg::Uniform1i(mg::GetUniformLocation(p->shader,"pilotGrassTex"),15);mg::Uniform1i(mg::GetUniformLocation(p->shader,"pilotTuft3d"),p->pilot.tuft3d);
     if(p->pilot.enabled){
       mg::Uniform3f(mg::GetUniformLocation(p->shader,"pilotRight"),p->pilot.right.x,p->pilot.right.y,p->pilot.right.z);
       mg::Uniform1f(mg::GetUniformLocation(p->shader,"pilotWide"),p->pilot.wide);mg::Uniform1f(mg::GetUniformLocation(p->shader,"pilotHigh"),p->pilot.high);

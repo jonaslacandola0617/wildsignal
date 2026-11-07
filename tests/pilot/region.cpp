@@ -94,7 +94,15 @@ int main() {
     check(fails(), "height sample owned twice");
     heights("c_1_0.height.bin", 128, 129);
     check(!fails(), "fixture restored");
-    std::cout << "region format: lattice exact, ownership, coverage and bad files checked\n";
+    // Build 019: edge-ring chunks are flagged in the listing; others are not.
+    check(!r.chunkFiles[0].ring && !r.chunkFiles[1].ring, "plain chunks are not ring scenery");
+    region(R"([{"x":0,"z":0,"file":"chunks/c_0_0.json"},{"x":1,"z":0,"file":"chunks/c_1_0.json","ring":true}])");
+    auto ringed = world::Region::open(root, "test_vale");
+    check(!ringed.chunkFiles[0].ring && ringed.chunkFiles[1].ring, "ring chunk flagged");
+    region(R"([{"x":0,"z":0,"file":"chunks/c_0_0.json"},{"x":1,"z":0,"file":"chunks/c_1_0.json","ring":1}])");
+    check(fails(), "ring flag must be true or false");
+    region(both);
+    std::cout << "region format: lattice exact, ownership, coverage, ring flag and bad files checked\n";
   } catch (const std::exception &e) {
     std::cerr << e.what() << '\n';
     return 1;

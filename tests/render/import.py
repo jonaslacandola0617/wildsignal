@@ -32,6 +32,20 @@ def main(exe):
         root=Path(tmp);d,b=fixture(root)
         got=run(exe,root,d)
         assert got['triangles']==1 and got['bounds']==[[-1,2,3],[3,4,3]]
+        # Opt-in painted lighting must not be inferred from names or unknown
+        # third-party metadata, nor accept truthy strings/numbers by mistake.
+        assert got['material_data'][0]['painted_form'] is False
+        for extra, expected in [
+            ({'wildsignal': {'painted_form': True}}, True),
+            ({'wildsignal': {'painted_form': False}}, False),
+            ({'author': 'unrelated'}, False),
+            (['valid', 'unrelated', 'extras'], False),
+        ]:
+            x=copy.deepcopy(d);x['materials'][0]['extras']=extra
+            assert run(exe,root,x)['material_data'][0]['painted_form'] is expected
+        for extra in [{'wildsignal': 'invalid'},
+                      *[{'wildsignal': {'painted_form': v}} for v in [1,0,'true',None,[]]]]:
+            x=copy.deepcopy(d);x['materials'][0]['extras']=extra;run(exe,root,x,False)
         # Normalized unsigned COLOR_0 is a base-color multiplier, not a
         # disposable editor channel. Preserve three/four components correctly.
         x=copy.deepcopy(d);col=struct.pack('<12H',*([32768,16384,65535,65535]*3))

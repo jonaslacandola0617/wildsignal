@@ -86,6 +86,7 @@ struct Options {
   bool leafSnap = false; // LOOKDEV-004: old whole-pixel leaf cards, for comparison (F7).
   std::filesystem::path dream; bool dreamOn = true; // LOOKDEV-005 dream look file; F4 compares.
   std::string region; // REGION-001: assets/regions/<id>/ instead of game.json + scene.json.
+  bool markVoid = false; // REGION-001 build 019 test aid: empty space beyond the world is magenta.
 };
 int integer(const std::string &s, int lo, int hi) {
   std::size_t n = 0;
@@ -122,7 +123,7 @@ Options options(int argc, char **argv) {
                    "--shadow-cache-probe (isolated technical test only)\n"
                    "--shafts on|off --haze on|off --quality low|medium|high --shaft-strength 0..3\n";
       std::cout<<"--tilt-shift on|off (F8 toggles; paused during fights) --highlight-strength 0..1 --leaf-rims on|off\nF6 cycles the render size 480/640/1280\n";
-      std::cout<<"--meadow-extras on|off (LOOKDEV-003 flowers and edge tufts; F10 toggles)\n--dream FILE --dream-look on|off (LOOKDEV-005 look and flat camera; F4 toggles, Z/X turn)\n--region ID (REGION-001: load assets/regions/ID/ chunk files)\n--leaf-snap on|off (old whole-pixel leaf cards; F7 toggles)\n";
+      std::cout<<"--meadow-extras on|off (LOOKDEV-003 flowers and edge tufts; F10 toggles)\n--dream FILE --dream-look on|off (LOOKDEV-005 look and flat camera; F4 toggles, Z/X turn)\n--region ID (REGION-001: load assets/regions/ID/ chunk files)\n--leaf-snap on|off (old whole-pixel leaf cards; F7 toggles)\n--mark-void (test aid: empty space beyond the world is drawn magenta)\n";
       std::cout<<"--render-reference (comparison only; disables optimized shadow cache)\n--tree-scene --tree-study original|shader|clusters|billboards|hybrid --leaf-color plain|source (T tree options, M leaf color)\n";
       std::exit(0);
     } else if (a == "--assets")
@@ -133,6 +134,7 @@ Options options(int argc, char **argv) {
     else if(a=="--meadow-extras"){auto v=value();if(v!="on"&&v!="off")throw std::runtime_error("meadow-extras on|off");o.meadowExtras=v=="on";}
     else if(a=="--dream")o.dream=value();
     else if(a=="--region")o.region=value();
+    else if(a=="--mark-void")o.markVoid=true;
     else if(a=="--dream-look"){auto v=value();if(v!="on"&&v!="off")throw std::runtime_error("dream-look on|off");o.dreamOn=v=="on";}
     else if(a=="--leaf-snap"){auto v=value();if(v!="on"&&v!="off")throw std::runtime_error("leaf-snap on|off");o.leafSnap=v=="on";}
     else if(a=="--tree-scene"){o.treeScene=true;o.treeEnabled=true;}
@@ -509,7 +511,7 @@ int main(int argc, char **argv) {
         mat.architecture=p3::building(m.id)||m.id.starts_with("EA_FENCE")||m.id=="EA_BENCH"||m.id=="EA_BARREL";
         mat.foliage=m.id.starts_with("EA_TREE_")||m.id.starts_with("EA_BUSH_")||m.id.starts_with("EA_REED_");
         mat.leafy=mat.foliage;
-        mat.ground=(m.id=="EA_GROUND"||m.id.starts_with("HG_GROUND")||m.id.starts_with("HG_GREEN")||m.id.starts_with("HG_PATH"))||m.id.starts_with("EA_GREEN_")||m.id.starts_with("EA_PATH_")||m.id=="EA_COBBLE"||m.id=="EA_MOSS";
+        mat.ground=(m.id=="EA_GROUND"||(m.id.starts_with("WS_TERRAIN_")&&!m.id.starts_with("WS_TERRAIN_ROCK_"))||m.id.starts_with("HG_GROUND")||m.id.starts_with("HG_GREEN")||m.id.starts_with("HG_PATH"))||m.id.starts_with("EA_GREEN_")||m.id.starts_with("EA_PATH_")||m.id=="EA_COBBLE"||m.id=="EA_MOSS";
         mat.studyKind=mat.ground?4:mat.architecture?1:mat.foliage?2:3;
       }
     };
@@ -704,7 +706,7 @@ int main(int argc, char **argv) {
     if (!screen.context || !SDL_GL_MakeCurrent(screen.window, screen.context))
       throw std::runtime_error(SDL_GetError());
     SDL_GL_SetSwapInterval(0);
-    p3::Gpu gpu(world, o.allow,tree.get());gpu.setTreeTreatment(o.treeMode);gpu.setPlainLeaves(o.leafPlain);gpu.setTerrainRelief(relief);gpu.setDiagnosticView(o.diagnostic);gpu.setShadowClean(o.cleanShadow);gpu.setSourceView(o.original);gpu.setHighlights(o.highlightLimit,o.leafRims);
+    p3::Gpu gpu(world, o.allow,tree.get());gpu.setTreeTreatment(o.treeMode);gpu.setPlainLeaves(o.leafPlain);gpu.setTerrainRelief(relief);gpu.setDiagnosticView(o.diagnostic);gpu.setVoidMark(o.markVoid);gpu.setShadowClean(o.cleanShadow);gpu.setSourceView(o.original);gpu.setHighlights(o.highlightLimit,o.leafRims);
     log<<"terrain_instance_y_scale="<<relief<<"\nshadow_policy="<<(o.cleanShadow?"clean_object_external":"legacy_full_self")<<"\n";
     auto baselineLook = p3::Look::load(o.assets / "look.json");
     auto profile=p3::StyleProfile::load(o.styleSettings.empty()?o.assets/"style_profiles.json":o.styleSettings,o.preset,baselineLook);
@@ -776,7 +778,7 @@ int main(int argc, char **argv) {
         if(!world.instances[i].active)continue;
         const auto &model=world.models[world.instances[i].model];const auto &b=world.instances[i].bounds;
         if(model.id=="WSP_WINDOWS"||model.id=="PILOT_CHIMNEY"||model.id=="WSP_SMOKE"){details.push_back(i);continue;}
-        if(model.rig||model.id.starts_with("WS0")||model.materials.front().ground||model.id.starts_with("EA_GREEN")||model.id.starts_with("EA_PATH"))continue;
+        if(model.rig||model.id.starts_with("WS0")||model.id.starts_with("WS_TERRAIN_")||model.materials.front().ground||model.id.starts_with("EA_GREEN")||model.id.starts_with("EA_PATH"))continue;
         if(b.hi.y-b.lo.y>=.9f)viewBlockers.push_back(i);
       }
       for(auto i:details){
@@ -1558,6 +1560,10 @@ int main(int argc, char **argv) {
           float want = 0;
           if (dissolving) {
             float shrink = p3::building(world.models[world.instances[index].model].id) ? .1f : .25f;
+            // Edge-ring scenery (build 019) stands where nobody walks, so its whole box counts:
+            // in a dense forest the view line can slip between crown hearts and still be hidden.
+            if (stream && stream->ringScenery(index))
+              shrink = 0;
             bool blocks = false;
             for (auto at : watched)
               blocks = blocks || crosses(b, sight.position, at, shrink);

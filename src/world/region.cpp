@@ -116,6 +116,28 @@ Region Region::open(const std::filesystem::path &assets, const std::string &id) 
     r.shadowFollow = std::get<bool>(f->value);
   if (auto f = field(c, "persistent"))
     r.persistent = f->array();
+  if (auto t = field(c, "terrain")) {
+    if (r.legacyHeight)
+      throw std::runtime_error("region terrain needs a height lattice (origin, step, count)");
+    r.terrain.on = true;
+    r.terrain.step = finiteNumber(t->at("step"), "terrain step");
+    const float cells = r.chunkSize / r.terrain.step;
+    if (r.terrain.step < .25f || r.terrain.step > 4 || cells != std::floor(cells) || cells > 256)
+      throw std::runtime_error("region terrain step must divide the chunk size");
+    r.terrain.cliffNormalY = finiteNumber(t->at("cliff_normal_y"), "terrain cliff_normal_y");
+    if (r.terrain.cliffNormalY < .1f || r.terrain.cliffNormalY > .99f)
+      throw std::runtime_error("region terrain cliff_normal_y must be .1 to .99");
+    for (auto [name, out] : {std::pair{"lawn", &r.terrain.lawn}, std::pair{"rock", &r.terrain.rock}}) {
+      const auto &rgb = t->at(name).array();
+      if (rgb.size() != 3)
+        throw std::runtime_error(std::string("region terrain ") + name + " colour");
+      for (int k = 0; k < 3; k++) {
+        (*out)[k] = finiteNumber(rgb[k], "terrain colour");
+        if ((*out)[k] < 0 || (*out)[k] > 1)
+          throw std::runtime_error(std::string("region terrain ") + name + " colour");
+      }
+    }
+  }
   std::set<std::pair<int, int>> seen;
   for (const auto &entry : c.at("chunks").array()) {
     Entry e;
@@ -124,6 +146,8 @@ Region Region::open(const std::filesystem::path &assets, const std::string &id) 
     if (!seen.insert({e.x, e.z}).second)
       throw std::runtime_error("region chunk listed twice");
     e.file = p3::safePath(r.dir, entry.at("file").string());
+    if (auto ring = field(entry, "ring"))
+      e.ring = std::get<bool>(ring->value);
     r.chunkFiles.push_back(e);
   }
   if (r.chunkFiles.empty())

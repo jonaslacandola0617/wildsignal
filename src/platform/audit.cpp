@@ -83,7 +83,8 @@ int main(int argc, char **argv) {
         for(int k=0;k<4;k++){if(k)std::cout<<',';std::cout<<a.color[k];}
         std::cout<<"],\"emissive\":[";
         for(int k=0;k<3;k++){if(k)std::cout<<',';std::cout<<a.emissive[k];}
-        std::cout<<"],\"alpha\":"<<int(a.alpha)<<'}';
+        std::cout<<"],\"alpha\":"<<int(a.alpha)
+                 <<",\"painted_form\":"<<(a.paintedForm?"true":"false")<<'}';
       }
       std::cout<<"],\"groups\":[";
       for(std::size_t i=0;i<m.parts.size();i++){

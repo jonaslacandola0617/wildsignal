@@ -12,7 +12,7 @@ uniform int profileActive,profileInk,majorWidth,profileGreenOnly,organicEdges;un
 uniform float architectureStrength,foliageStrength,sunThreshold;
 uniform int luminousRims,leafRims;uniform float rimSaturation,architectureRim,highlightLimit;
 uniform vec3 highlightColor,skyTop,skyHorizon,sunDirection,cameraRight,cameraUp;uniform int pilotOn;uniform float pilotRays,pilotTime;
-uniform mat4 inverseVP;uniform float orthoSpan,orthoBase,orthoPixel;
+uniform mat4 inverseVP;uniform float orthoSpan,orthoBase,orthoPixel;uniform int voidMark;
 // A flat view stores depth linearly; distances count from the given camera, not the pulled-back eye.
 float linearDepth(float z){return orthoSpan>0.?.1+z*orthoSpan-orthoBase:.2*350./(350.1-(z*2.-1.)*349.9);}
 vec3 position(vec2 q,float z){vec4 h=inverseVP*vec4(q*2.-1.,z*2.-1.,1);return h.xyz/h.w;}
@@ -90,6 +90,8 @@ void main(){ivec2 size=textureSize(sceneColor,0),p=clamp(ivec2(gl_FragCoord.xy),
  // Only radiance is reconstructed; material color and pixel edges stay sharp.
  if(shaftEnabled!=0)c=1.-(1.-c)*exp(-rays(d));
  if(pilotOn!=0&&pilotRays>0.)c=1.-(1.-c)*(1.-vec3(1.,.88,.62)*pilotShafts(raw)*pilotRays);
+ // Test aid (--mark-void): empty space beyond the world shows as pure magenta.
+ if(voidMark!=0&&raw>=.99999)c=vec3(1,0,1);
  color=vec4(c,1);}
 )GLSL";
 } // namespace p3

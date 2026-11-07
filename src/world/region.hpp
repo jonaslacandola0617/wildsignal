@@ -1,6 +1,7 @@
 #pragma once
 #include "game.hpp"
 #include "json.hpp"
+#include <array>
 #include <filesystem>
 #include <string>
 #include <utility>
@@ -35,11 +36,19 @@ struct Region {
   float walkMinX = 0, walkMinZ = 0, walkMaxX = 0, walkMaxZ = 0;
   std::string pack, sourcePack, stylePack, vegetation;
   bool shadowFollow = false; // shadow area follows the player (bigger regions)
+  // REGION-001 build 018: ground drawn from the height lattice instead of
+  // ground tiles. Faces steeper than cliffNormalY are rock (cliff faces).
+  struct Terrain {
+    bool on = false;
+    float step = .5f, cliffNormalY = .6f;
+    std::array<float, 4> lawn{.40f, .62f, .20f, 1}, rock{.48f, .45f, .50f, 1};
+  } terrain;
   ws::Json config;              // region.json: spawn, wild, rest spots, cameras, exclusions
   ws::Json::Array persistent;   // rows that never unload (the characters)
   struct Entry {
     int x = 0, z = 0;
     std::filesystem::path file;
+    bool ring = false; // build 019: scenery chunk of the edge ring, outside the walk bounds
   };
   std::vector<Entry> chunkFiles;
   int entryAt(int x, int z) const; // -1 when the grid has no chunk there

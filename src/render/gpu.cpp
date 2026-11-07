@@ -11,6 +11,7 @@
 #include "sunbeam_glsl.hpp"
 #include "tree_study_glsl.hpp"
 #include "pilot_glsl.hpp"
+#include "pilot_fields.hpp"
 #include <SDL3/SDL.h>
 #define GL_GLEXT_PROTOTYPES 1
 #include <SDL3/SDL_opengl.h>
@@ -154,7 +155,7 @@ in vec3 worldPosition;in vec3 worldNormal;in vec2 uv;in vec4 tint;flat in vec3 p
 uniform int coverage,meadowSolidCount;uniform vec4 meadowSolids[16];uniform sampler2D leafCoverage;
 bool designated(vec2 p){float path=.68*sin(-p.y*.57)-.13*p.y;if(abs(p.x)>5.8||abs(p.y)>5.8||abs(p.x-path)<.78)return false;if(p.x> -4.5&&p.x<.6&&abs(p.y-.25)<.8)return false;if(length(p-vec2(2.6,-2.3))<1.05)return false;for(int i=0;i<meadowSolidCount;i++)if(all(lessThan(abs(p-meadowSolids[i].xy),meadowSolids[i].zw+vec2(.18))))return false;return true;}
 uniform sampler2D albedo;uniform vec4 factor;uniform vec3 emission;uniform int textured,mode,bands,alphaMode;uniform float cutoff;
-uniform int studyMode,studyKind,stableShadow,wordlineContacts;
+uniform int studyMode,studyKind,stableShadow,wordlineContacts,paintedForm;
 uniform int cozy,ground,foliage,contactCount;
 uniform vec3 sunDirection,sunColor,ambientSky,ambientGround,eye,hazeColor;
 uniform float exposure,bandSoftness,contactStrength,hazeStart,hazeEnd,hazeStrength;
@@ -325,6 +326,14 @@ if(pilotOn!=0&&pilotDream!=0&&profileFamily==2&&pilotGlow==0){
  float d=max(0.,dot(pilotG,normalize(sunDirection)));
  float t=mix(.20,.30+.48*(d<.2?0.:d<.55?.5:1.),visibility);
  display=pilotShift(base,t);
+ if(paintedForm!=0){
+  // The texture supplies the main form bands. Keep the scene's shadow tint
+  // and visibility, with only a small additional normal-light response.
+  // This avoids imposing a second high-contrast band on every triangle.
+  float facing=max(0.,dot(n,normalize(sunDirection)));
+  float gentle=facing<.2?.94:facing<.55?.97:1.;
+  display=base*mix(pilotShift(vec3(1),.20),vec3(1),visibility)*gentle;
+ }
 }
 if(diagnostic==11){float b=greenTerrain?beamField(worldPosition):0.;color=vec4(b,greenTerrain?visibility:0.,b*visibility,1);normals=vec4(n*.5+.5,ground!=0?.05:.85);return;}
 float haze=smoothstep(hazeStart,hazeEnd,length(worldPosition-eye))*hazeStrength;
@@ -341,7 +350,7 @@ out vec2 uv;
 void main(){vec2 p=vec2((gl_VertexID<<1)&2,gl_VertexID&2);uv=p;gl_Position=vec4(p*2.-1.,0,1);}
 )GLSL";
 static constexpr const char *postFS = R"GLSL(#version 330 core
-in vec2 uv;out vec4 color;uniform sampler2D sceneColor,sceneNormal,sceneDepth;uniform int outline,cozy;uniform sampler2D shaftImage;uniform int shaftEnabled,shaftMethod;uniform vec3 skyTop,skyHorizon;uniform float outlineStrength,foliageOutlineStrength;
+in vec2 uv;out vec4 color;uniform sampler2D sceneColor,sceneNormal,sceneDepth;uniform int outline,cozy;uniform sampler2D shaftImage;uniform int shaftEnabled,shaftMethod;uniform vec3 skyTop,skyHorizon;uniform float outlineStrength,foliageOutlineStrength;uniform int voidMark;
 float linearDepth(float z){float v=z*2.-1.;return (2.*.1*350.)/(350.+.1-v*(350.-.1));}
 void main(){ivec2 size=textureSize(sceneColor,0);ivec2 p=clamp(ivec2(gl_FragCoord.xy),ivec2(0),size-1);vec3 c=texelFetch(sceneColor,p,0).rgb;
 float raw=texelFetch(sceneDepth,p,0).r;if(cozy!=0&&raw>=.99999)c=mix(skyHorizon,skyTop,smoothstep(.10,.92,gl_FragCoord.y/float(size.y)));float d=linearDepth(raw);vec3 n=texelFetch(sceneNormal,p,0).rgb*2.-1.;
@@ -359,12 +368,14 @@ if(shaftEnabled!=0){
  for(int y=0;y<2;y++)for(int x=0;x<2;x++){ivec2 q=clamp(base+ivec2(x,y),ivec2(0),low-1);vec4 a=texelFetch(shaftImage,q,0);float compareDepth=shaftMethod==2?min(d,30.):d;float gap=abs(a.a*350.-compareDepth);float w=(x==0?1.-f.x:f.x)*(y==0?1.-f.y:f.y);w*=1.-smoothstep(max(.15,d*.015),max(.3,d*.05),gap);rays+=a.rgb*w;weight+=w;}
  if(weight>.001)c=1.-(1.-c)*exp(-rays/weight);
 }
+if(voidMark!=0&&raw>=.99999)c=vec3(1,0,1); // test aid: empty space beyond the world
 color=vec4(c,1);}
 )GLSL";
 static Mat villageLightProjection(Vec sun);
 struct Gpu::Impl {
   PilotLook pilot;
   GLuint pilotTiles = 0;
+  GLuint pilotCloudTex = 0, pilotGrassTex = 0; // baked repeating cloud and grass patterns
   std::unique_ptr<HudRenderer> hud;
   int coverage = 0, solidCount = 0;
   std::array<std::array<float, 4>, 16> meadowSolids{};
@@ -403,7 +414,7 @@ struct Gpu::Impl {
   using MaterialKey =
       std::tuple<std::filesystem::path, std::array<float, 4>, Alpha, float,
                  bool, int, int, bool, bool, std::filesystem::path, int, bool,
-                 bool, std::array<float, 3>, int>;
+                 bool, std::array<float, 3>, int, bool>;
   std::map<MaterialKey, std::size_t> materialPool;
   std::map<std::filesystem::path, int> textureRefs;
   std::map<std::filesystem::path, std::size_t> textureSizes, textureMips;
@@ -430,7 +441,7 @@ struct Gpu::Impl {
   std::function<void(const Mat &)> overlay;
   std::vector<float> fades;
   std::vector<Vec> seeThrough;
-  bool sourceView=false,shadowClean=true;float terrainRelief=1;int diagnosticView=0;
+  bool sourceView=false,shadowClean=true;float terrainRelief=1;int diagnosticView=0;bool voidMark=false;
   Integration integration;
   GLuint edgePost = 0;
   int study = 0;
@@ -786,7 +797,8 @@ void Gpu::uploadModel(World &world, std::size_t index,
                       mat.cutoff,       mat.doubleSided, mat.wrapS,
                       mat.wrapT,        mat.ground,      mat.foliage,
                       mat.styleTexture, mat.kind,        mat.architecture,
-                      mat.leafy,        mat.emissive,    mat.studyKind};
+                      mat.leafy,        mat.emissive,    mat.studyKind,
+                      mat.paintedForm};
       auto [it, added] = p->materialPool.emplace(key, p->materials.size());
       if (added)
         p->materials.push_back(mat);
@@ -1087,6 +1099,7 @@ void Gpu::setIntegration(const Integration &v) {
   p->integration = v;
   p->lightVP = p->light(p->look.sunDirection);
 }
+void Gpu::setVoidMark(bool on){p->voidMark=on;}
 void Gpu::setDiagnosticView(int v){if(v<0||v>11||v==8)throw std::runtime_error("diagnostic view range");p->diagnosticView=v;}
 void Gpu::setSourceView(bool v){p->sourceView=v;}
 void Gpu::setShadowClean(bool v){p->shadowClean=v;}
@@ -1206,6 +1219,20 @@ void Gpu::setPilot(const PilotLook &v) {
   gl::TexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
   gl::TexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   gl::GenerateMipmap(GL_TEXTURE_2D_ARRAY);
+  // Cloud shade and grass light patches: worked out once, then read as one texture each.
+  auto field = [&](GLuint &id, int unit, int size, float period, float scale, float (*f)(float, float)) {
+    auto values = bakeField(size, period, scale, f);
+    gl::GenTextures(1, &id);
+    gl::ActiveTexture(GL_TEXTURE0 + unit);
+    gl::BindTexture(GL_TEXTURE_2D, id);
+    gl::TexImage2D(GL_TEXTURE_2D, 0, GL_R16, size, size, 0, GL_RED, GL_UNSIGNED_SHORT, values.data());
+    gl::TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    gl::TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    gl::TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    gl::TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  };
+  field(p->pilotCloudTex, 14, 448, CloudPeriod, 2, cloudField);
+  field(p->pilotGrassTex, 15, 512, GrassPeriod, 1, grassField);
   gl::ActiveTexture(GL_TEXTURE0);
   check("pilot tiles");
 }
@@ -1677,11 +1704,20 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     uniformInt(p->mesh, "seeCount", count);
   }
   uniformInt(p->mesh, "pilotTiles", 13);
+  uniformInt(p->mesh, "pilotCloudTex", 14);
+  uniformInt(p->mesh, "pilotGrassTex", 15);
   gl::Uniform2f(p->location(p->mesh, "pilotPixels"), float(w), float(h));
   if (p->pilot.enabled) {
     gl::ActiveTexture(GL_TEXTURE0 + 13);
     gl::BindTexture(GL_TEXTURE_2D_ARRAY, p->pilotTiles);
     gl::BindSampler(13, 0);
+    // Units 14 and 15 stay bound for the grass pass too (it reads the same patterns).
+    gl::ActiveTexture(GL_TEXTURE0 + 14);
+    gl::BindTexture(GL_TEXTURE_2D, p->pilotCloudTex);
+    gl::BindSampler(14, 0);
+    gl::ActiveTexture(GL_TEXTURE0 + 15);
+    gl::BindTexture(GL_TEXTURE_2D, p->pilotGrassTex);
+    gl::BindSampler(15, 0);
     gl::ActiveTexture(GL_TEXTURE0);
     {auto right=direction(inverse(camera.view()),{1,0,0}),up=direction(inverse(camera.view()),{0,1,0});gl::Uniform3f(p->location(p->mesh,"pilotRight"),right.x,right.y,right.z);gl::Uniform3f(p->location(p->mesh,"pilotUp"),up.x,up.y,up.z);}
     uniformFloat(p->mesh, "pilotDensity", p->pilot.density);
@@ -1761,7 +1797,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
      auto right=direction(inverse(effective.view()),{1,0,0}),up=direction(inverse(effective.view()),{0,1,0});gl::Uniform3f(p->location(p->mesh,"treeCameraRight"),right.x,right.y,right.z);gl::Uniform3f(p->location(p->mesh,"treeCameraUp"),up.x,up.y,up.z);gl::ActiveTexture(GL_TEXTURE0);
     }
     // LOOKDEV-005 ledges (WSP_CLIFF) are stone: shaded like the rocks, mossy where they face up.
-    int family=model.rig||model.id.starts_with("WS0")?-1:model.id.starts_with("WSP_CLIFF")?4:model.id.starts_with("WSP_")||model.id.starts_with("EA_TREE")||model.id.starts_with("EA_BUSH")||model.id.starts_with("EA_REED")?1:model.id.starts_with("EA_ROCK")?4:model.id.starts_with("EA_PATH")||model.id=="EA_COBBLE"||model.id.starts_with("HG_PATH")?3:model.id=="EA_GROUND"||model.id.starts_with("HG_GROUND")||model.id.starts_with("HG_GREEN")||model.id.starts_with("EA_GREEN")?5:model.id.starts_with("EA_GREEN")||model.id.starts_with("HG_GREEN")||model.id=="EA_MOSS"?0:2;
+    int family=model.rig||model.id.starts_with("WS0")?-1:model.id.starts_with("WSP_CLIFF")||model.id.starts_with("WS_TERRAIN_ROCK_")?4:model.id.starts_with("WS_TERRAIN_")?5:model.id.starts_with("WSP_")||model.id.starts_with("EA_TREE")||model.id.starts_with("EA_BUSH")||model.id.starts_with("EA_REED")?1:model.id.starts_with("EA_ROCK")?4:model.id.starts_with("EA_PATH")||model.id=="EA_COBBLE"||model.id.starts_with("HG_PATH")?3:model.id=="EA_GROUND"||model.id.starts_with("HG_GROUND")||model.id.starts_with("HG_GREEN")||model.id.starts_with("EA_GREEN")?5:model.id.starts_with("EA_GREEN")||model.id.starts_with("HG_GREEN")||model.id=="EA_MOSS"?0:2;
     uniformInt(p->mesh,"profileFamily",family);
     uniformInt(p->mesh,"pilotMeadow",isMeadowExtra(model.id));
     // Under the flat camera the whole image moves in whole pixels, so snapped leaf cards stay
@@ -1793,6 +1829,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
       gl::Uniform3f(p->location(p->mesh, "emission"),
                     mat.emissive[0], mat.emissive[1], mat.emissive[2]);
       uniformInt(p->mesh, "studyKind", mat.studyKind);
+      uniformInt(p->mesh, "paintedForm", mat.paintedForm);
       gl::Uniform1i(p->texLoc, mat.texture.empty() ? 0 : 1);
       gl::Uniform1i(p->alphaLoc, static_cast<int>(mat.alpha));
       gl::Uniform1f(p->cutoffLoc, mat.cutoff);
@@ -2003,6 +2040,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
   gl::UseProgram(postProgram);
   const auto &integration = p->integration;
   uniformInt(postProgram,"profileActive",p->profile.active);
+  uniformInt(postProgram,"voidMark",p->voidMark);
   uniformInt(postProgram,"profileGreenOnly",p->profile.greenOnly);
   uniformInt(postProgram,"luminousRims",p->profile.luminousRims);
   uniformInt(postProgram,"leafRims",p->leafRims);uniformFloat(postProgram,"highlightLimit",p->highlightLimit);
