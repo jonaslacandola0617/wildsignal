@@ -15,7 +15,7 @@
 
 **Not decided.** The owner is unsure about the look and has no suitable free art. Plan until it is decided: a clean style drawn by the engine in code (simple rounded panels, soft colours, crisp text, simple icons), so the game always looks tidy; it can later be swapped for a paid UI pack or commissioned art without changing screen code, because layouts are locked. The current paper skin is a placeholder only. The notes below record the existing pieces and their licences.
 
-- **Panels and buttons:** Humble Pixel *Paper UI System* (commercial use allowed, modification allowed, no redistribution: the files stay in the private art repo; credit "@Humblepixel" given anyway).
+- **Panels and buttons:** Humble Pixel *Paper UI System* (commercial use allowed, modification allowed, no redistribution: the kit, the atlas built from it and the m5x7 and m6x11 fonts stay on the owner's machine only and never go into either repository, not even the private art repo; credit "@Humblepixel" given anyway).
 - **Fonts:** m5x7 for body text and m6x11 for titles, by Daniel Linssen (credit required; confirm commercial use with the author before release — see 5.9).
 - **Type icons:** eight simple shapes, each with its own colour (leaf, drop, flame, rock, swirl, star, crescent, paw), used everywhere a type appears.
 - **Palette:** warm paper, ink brown, lantern gold for highlights and the recruit line, coral for danger, teal for calm.
@@ -118,3 +118,4 @@ This replaces the pilot's fight keys (1–5 moves, Q dodge, R reach out). In fig
 
 - 2026-11-02 — First draft.
 - 2026-11-02 — Owner locked the functional parts; the visual style stays OPEN with an interim code-drawn style.
+- 2026-11-07 — Corrected 5.2: the paper kit and fonts stay out of both repositories (licence: no redistribution).
