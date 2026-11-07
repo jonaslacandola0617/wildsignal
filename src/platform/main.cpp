@@ -645,9 +645,11 @@ int main(int argc, char **argv) {
     float playerFacing = 0, playerStride = 0;
     if (actors.size() != 2)
       throw std::runtime_error("two genuine skinned Petalyn actors required");
-    auto &rig = world.models[world.instances[actors[0]].model].rig;
+    // Keep the model's index, not a reference: streaming adds models while
+    // you walk, and a reference into world.models would dangle when it grows.
+    const std::size_t rigModel = world.instances[actors[0]].model;
     for (auto clip : {"Idle", "Fly", "Attack"})
-      rig->sample(clip, 0);
+      world.models[rigModel].rig->sample(clip, 0);
     if (region && region->vegetation != "vegetation.json")
       throw std::runtime_error("REGION-001 shares the assets' vegetation.json");
     const ws::Json::Array noRows;
@@ -1467,7 +1469,7 @@ int main(int argc, char **argv) {
         i.bounds = p3::transformed(world.models[i.model].bounds, i.matrix);
         i.bounds.lo = i.bounds.lo - p3::Vec{.3f, .3f, .3f};
         i.bounds.hi = i.bounds.hi + p3::Vec{.3f, .3f, .3f};
-        i.palette = rig->sample(
+        i.palette = world.models[rigModel].rig->sample(
             clip, clip == "Attack" ? attackTime : animation + float(j) * .173f,
             clip != "Attack");
       }
