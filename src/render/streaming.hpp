@@ -35,6 +35,10 @@ public:
     std::function<void(Model &)> prepare;                 // classify materials before upload
     std::function<void(const World &, Instance &)> place; // per-object fix-ups (kit relief)
     std::function<void(std::size_t model)> uploaded;      // surface policy etc.
+    // Called only for objects that belong to a chunk (they unload, and their
+    // slot is reused). The game rejects actors here: anything it moves by slot
+    // must be a persistent row.
+    std::function<void(const World &, const Instance &)> streamed;
   };
   RegionStream(world::Region region, bool houses, Hooks hooks);
   ~RegionStream();
@@ -50,6 +54,8 @@ public:
   // Colliders of the active chunks in their fixed order (houses dropped when off).
   std::vector<game::Solid> solids() const;
   const StreamStats &stats() const { return stats_; }
+  // True for the slots of persistent rows: they are never switched off or reused.
+  bool persistent(std::size_t slot) const { return persistentSlots_.contains(slot); }
   // Text map for the F11 overlay: one character per chunk.
   std::vector<std::string> overlay(Vec player) const;
 
@@ -96,6 +102,7 @@ private:
   std::map<int, Live> activeChunks_;
   std::map<std::size_t, int> modelRefs_;
   std::vector<std::size_t> freeSlots_;
+  std::set<std::size_t> persistentSlots_;
   std::set<int> requested_;
   std::set<std::string> modelsRequested_;
   std::map<std::string, ModelData> pendingModels_; // read ahead, waiting to upload

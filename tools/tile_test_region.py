@@ -135,7 +135,8 @@ def main():
     for h in EXTRA_HOUSES:
         if h in used_houses and h not in have:
             for f in (h + ".glb", h + "_atlas.png"):
-                shutil.copy(houses / f, assets / f)
+                if not (assets / f).exists():  # HOUSES_DIR may be the assets folder itself
+                    shutil.copy(houses / f, assets / f)
             pack["models"].append({"id": h, "path": h + ".glb"})
     pack_name = "pack_%s.json" % region_id
     (assets / pack_name).write_text(json.dumps(pack, indent=1))

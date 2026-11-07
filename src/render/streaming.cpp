@@ -137,10 +137,13 @@ World RegionStream::start(Vec at, std::shared_ptr<const Pack> pack) {
     const std::size_t slot = w.instances.size();
     modelRefs_[inst.model]++;
     if (owner[k] >= 0) {
+      if (hooks_.streamed)
+        hooks_.streamed(w, inst);
       activeChunks_[owner[k]].slots.push_back(slot);
       activeChunks_[owner[k]].models[inst.model]++;
     } else {
       modelRefs_[inst.model]++; // the characters' models never unload
+      persistentSlots_.insert(slot);
     }
     w.instances.push_back(std::move(inst));
   }
@@ -216,6 +219,8 @@ void RegionStream::activate(int entry, World &world) {
     auto inst = world.instanceAt(p);
     if (hooks_.place)
       hooks_.place(world, inst);
+    if (hooks_.streamed)
+      hooks_.streamed(world, inst);
     std::size_t slot;
     if (!freeSlots_.empty()) {
       slot = freeSlots_.back();

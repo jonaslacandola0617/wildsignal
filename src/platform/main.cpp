@@ -55,6 +55,10 @@ std::uint64_t memory(bool peak = false) {
 }
 // F6 render sizes, smallest first: 480 is the light setting for low-end devices.
 int nextWidth(int w) { return w == 480 ? 640 : w == 640 ? 1280 : 480; }
+// Signari whose scene object the game moves around as a party member or a wild.
+bool stageSignari(const std::string &id) {
+  return id == "WS004" || id == "WS005" || id == "WS008" || id == "WS012";
+}
 struct Options {
   std::filesystem::path assets = "assets", save = "saves/hearthgrove_emaceart.json",
                         out = "runs/play", replay;
@@ -528,6 +532,15 @@ int main(int argc, char **argv) {
         }
       };
       hooks.uploaded = [&](std::size_t m) { if (modelUploaded) modelUploaded(m); };
+      // A chunk object unloads and its slot is reused, so a Signari the game
+      // moves must be a persistent row; otherwise followers draw as whatever
+      // object reuses the slot.
+      hooks.streamed = [&](const p3::World &w, const p3::Instance &i) {
+        const auto &id = w.models.at(i.model).id;
+        if (stageSignari(id))
+          throw std::runtime_error("region " + o.region + ": Signari " + id +
+                                   " is in a chunk; list it under \"persistent\" (rebuild with tools/village_to_region.py)");
+      };
       stream = std::make_unique<p3::RegionStream>(*region, o.house, hooks);
       auto start = Clock::now();
       auto pack = p3::Pack::open(p3::safePath(o.assets, o.sourceTextures   ? region->sourcePack
@@ -790,7 +803,7 @@ int main(int argc, char **argv) {
       gpu.setOverlay([&](const p3::Mat &m){groundMarks->draw(m);});
       for(std::size_t i=0;i<world.instances.size();i++){
         const auto &model=world.models[world.instances[i].model];
-        if(model.id=="WS004"||model.id=="WS005"||model.id=="WS008"||model.id=="WS012"){stageModels[model.id]=i;stageHome[model.id]=world.instances[i].matrix;}
+        if(stageSignari(model.id)&&(!stream||stream->persistent(i))){stageModels[model.id]=i;stageHome[model.id]=world.instances[i].matrix;}
       }
       rebuildViewSets();
     }

@@ -18,7 +18,14 @@ from pathlib import Path
 
 CHUNK = 32.0
 # The characters follow the player everywhere, so they never unload with a chunk.
+# That includes the Signari scene objects ("pilot_ws004" and so on): the game
+# moves them as party members and wilds, and a chunk's slots are reused.
 PERSISTENT_IDS = ("player_actor", "companion", "wild")
+PERSISTENT_PREFIXES = ("pilot_ws",)
+
+
+def persistent_row(row):
+    return row["id"] in PERSISTENT_IDS or row["id"].startswith(PERSISTENT_PREFIXES)
 
 
 def main():
@@ -58,7 +65,7 @@ def main():
     # always draw the same way, whichever chunk loads first.
     persistent = []
     for order, r in enumerate(scene["instances"]):
-        if r["id"] in PERSISTENT_IDS:
+        if persistent_row(r):
             persistent.append({**r, "order": order})
         else:
             chunks[cell(r["position"][0], r["position"][2])]["instances"].append({**r, "order": order})
