@@ -1,7 +1,10 @@
 """REGION-001 walk test: walk a long recorded path through a region and report
 frame times around chunk changes, memory and streaming counts.
 
-Usage: python -I tools/stream_walk.py PLAY_FOLDER EXE OUT_DIR REGION_ID [X Z]
+Usage: python -I tools/stream_walk.py PLAY_FOLDER EXE OUT_DIR REGION_ID [X Z] [-- GAME FLAGS]
+
+Anything after "--" is passed to the game last, so it overrides the defaults
+(for example -- --shadow off).
 
 Uses the play folder's assets and look settings with the real 30 FPS cap.
 The walk holds W for 40 s, turning a quarter every 10 s (X), so it crosses
@@ -22,9 +25,10 @@ REPLAY = "10 down W\n300 down X\n302 up X\n600 down X\n602 up X\n900 down Z\n902
 
 
 def main():
-    folder, exe, out = (Path(a).resolve() for a in sys.argv[1:4])
-    region = sys.argv[4]
-    x, z = (float(sys.argv[5]), float(sys.argv[6])) if len(sys.argv) > 6 else (-1.0, 8.0)
+    argv, extra = (sys.argv[:sys.argv.index("--")], sys.argv[sys.argv.index("--") + 1:]) if "--" in sys.argv else (sys.argv, [])
+    folder, exe, out = (Path(a).resolve() for a in argv[1:4])
+    region = argv[4]
+    x, z = (float(argv[5]), float(argv[6])) if len(argv) > 6 else (-1.0, 8.0)
     if out.exists():
         shutil.rmtree(out)
     (out / "save").mkdir(parents=True)
@@ -44,7 +48,7 @@ def main():
            "--pilot", str(folder / "assets/pilot/pilot_warm3d.json"),
            "--dream", str(folder / "assets/pilot/pilot_dream.json"),
            "--region", region, "--replay", str(out / "replay.txt"), "--frames", str(FRAMES),
-           "--hidden", "--output", str(out / "run")]
+           "--hidden", "--output", str(out / "run")] + extra
     r = subprocess.run(cmd, cwd=exe.parent, capture_output=True, text=True, timeout=900)
     if r.returncode:
         raise SystemExit("run failed\n" + r.stdout[-2000:] + r.stderr[-2000:])

@@ -85,7 +85,10 @@ void main(){
  vec3 albedo=texture(pixelGround,uv).rgb*colour.rgb;vec3 originalAlbedo=albedo;
  albedo=meadowPatchOn!=0?meadowSurface(albedo,worldPosition.xz):profileColor(albedo,0)*instanceGrades[clamp(colorVariant,0,2)];
  if(meadowBeamOn!=0&&meadowPatchOn!=0){albedo=beamColors[1];originalAlbedo=albedo;}
- float visibility=shadowMode!=0?stableReceiver(worldPosition,vec3(0,1,0),bias*.000015):1.;
+ // The pilot look replaces this lighting with the root shadow below, so the
+ // per-pixel shadow read is only needed outside it or for the shadow diagnostics.
+ bool pixelShadow=shadowMode!=0&&(pilotOn==0||diagnostic==4||diagnostic==11);
+ float visibility=pixelShadow?stableReceiver(worldPosition,vec3(0,1,0),bias*.000015):1.;
  vec3 ambient=mix(ambientGround,ambientSky,clamp(litNormal.y*.5+.5,0.,1.));
  vec3 light=ambient+sunColor*sun*visibility;
  vec3 lit=max(vec3(0),albedo*mix(light,vec3(1),profileActive!=0?min(ambientLift,.08):ambientLift)*exposure);lit=lit/(1.+lit*.18);
