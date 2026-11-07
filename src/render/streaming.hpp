@@ -3,6 +3,7 @@
 #include "gpu.hpp"
 #include "mesh_clumps.hpp"
 #include "region.hpp"
+#include "terrain_mesh.hpp"
 #include <condition_variable>
 #include <deque>
 #include <functional>
@@ -89,8 +90,16 @@ private:
   void activate(int entry, World &world);
   void deactivate(int entry, World &world);
   ModelData loadModel(const std::string &id) const;
+  // Build 018 terrain: a chunk's ground needs its neighbours' border heights,
+  // so it switches on only once every neighbour's heights are in the lattice.
+  bool neighboursKnown(int entry) const;
+  std::string terrainName(int entry) const;
+  bool terrainResident(int entry, const World &world) const;
+  TerrainModels buildChunkTerrain(int entry) const;
+  void placeTerrain(int entry, World &world, Live &live);
 
   world::Region region_;
+  std::set<int> heightsKnown_; // chunks whose heights are in the lattice
   bool houses_ = true;
   Hooks hooks_;
   Gpu *gpu_ = nullptr;
