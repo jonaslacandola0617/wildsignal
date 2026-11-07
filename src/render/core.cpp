@@ -289,7 +289,9 @@ std::shared_ptr<const Pack> Pack::open(const std::filesystem::path &pack) {
   if (j.at("revision").number() != 1)
     throw std::runtime_error("pack revision");
   auto &arr = j.at("models").array();
-  // No model-count cap: a region's models are budgeted by bytes when loaded.
+  // The old 64-model cap is gone: models load and free with the chunks that use
+  // them. 4096 only rejects broken packs; memory is measured by the walk test
+  // (tools/stream_walk.py), not enforced here.
   if (arr.empty() || arr.size() > 4096)
     throw std::runtime_error("model count");
   const auto &obj = std::get<ws::Json::Object>(j.value);
