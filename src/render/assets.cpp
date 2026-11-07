@@ -1,5 +1,6 @@
 #include "core.hpp"
 #include "animation.hpp"
+#include "json.hpp"
 #define CGLTF_IMPLEMENTATION
 #include <algorithm>
 #include <cgltf.h>
@@ -60,6 +61,22 @@ Model Model::load(const std::filesystem::path &path) {
     auto &m = d.materials[i];
     Material mat;
     mat.name = m.name ? m.name : "unnamed";
+    if (m.extras.data) {
+      const auto extras = ws::parseJson(m.extras.data);
+      if (const auto *object = std::get_if<ws::Json::Object>(&extras.value)) {
+        if (const auto entry = object->find("wildsignal"); entry != object->end()) {
+          const auto *settings = std::get_if<ws::Json::Object>(&entry->second.value);
+          if (!settings)
+            throw std::runtime_error("wildsignal material extras must be an object");
+          if (const auto flag = settings->find("painted_form"); flag != settings->end()) {
+            const auto *enabled = std::get_if<bool>(&flag->second.value);
+            if (!enabled)
+              throw std::runtime_error("painted_form must be a boolean");
+            mat.paintedForm = *enabled;
+          }
+        }
+      }
+    }
     if (!m.has_pbr_metallic_roughness || m.has_transmission || m.has_volume ||
         m.has_clearcoat || m.has_specular || m.has_ior || m.unlit)
       throw std::runtime_error("unsupported material");
