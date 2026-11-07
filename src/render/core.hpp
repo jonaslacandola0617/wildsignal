@@ -68,6 +68,8 @@ struct Material {
   float cutoff = .5f;
   bool doubleSided = false;
   bool ground = false, foliage = false;
+  // Opt-in for textures that already describe form with painted light/shade.
+  bool paintedForm = false;
   int wrapS = 10497, wrapT = 10497;
 };
 struct Primitive {

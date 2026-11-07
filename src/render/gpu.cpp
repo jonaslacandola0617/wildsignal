@@ -155,7 +155,7 @@ in vec3 worldPosition;in vec3 worldNormal;in vec2 uv;in vec4 tint;flat in vec3 p
 uniform int coverage,meadowSolidCount;uniform vec4 meadowSolids[16];uniform sampler2D leafCoverage;
 bool designated(vec2 p){float path=.68*sin(-p.y*.57)-.13*p.y;if(abs(p.x)>5.8||abs(p.y)>5.8||abs(p.x-path)<.78)return false;if(p.x> -4.5&&p.x<.6&&abs(p.y-.25)<.8)return false;if(length(p-vec2(2.6,-2.3))<1.05)return false;for(int i=0;i<meadowSolidCount;i++)if(all(lessThan(abs(p-meadowSolids[i].xy),meadowSolids[i].zw+vec2(.18))))return false;return true;}
 uniform sampler2D albedo;uniform vec4 factor;uniform vec3 emission;uniform int textured,mode,bands,alphaMode;uniform float cutoff;
-uniform int studyMode,studyKind,stableShadow,wordlineContacts;
+uniform int studyMode,studyKind,stableShadow,wordlineContacts,paintedForm;
 uniform int cozy,ground,foliage,contactCount;
 uniform vec3 sunDirection,sunColor,ambientSky,ambientGround,eye,hazeColor;
 uniform float exposure,bandSoftness,contactStrength,hazeStart,hazeEnd,hazeStrength;
@@ -326,6 +326,14 @@ if(pilotOn!=0&&pilotDream!=0&&profileFamily==2&&pilotGlow==0){
  float d=max(0.,dot(pilotG,normalize(sunDirection)));
  float t=mix(.20,.30+.48*(d<.2?0.:d<.55?.5:1.),visibility);
  display=pilotShift(base,t);
+ if(paintedForm!=0){
+  // The texture supplies the main form bands. Keep the scene's shadow tint
+  // and visibility, with only a small additional normal-light response.
+  // This avoids imposing a second high-contrast band on every triangle.
+  float facing=max(0.,dot(n,normalize(sunDirection)));
+  float gentle=facing<.2?.94:facing<.55?.97:1.;
+  display=base*mix(pilotShift(vec3(1),.20),vec3(1),visibility)*gentle;
+ }
 }
 if(diagnostic==11){float b=greenTerrain?beamField(worldPosition):0.;color=vec4(b,greenTerrain?visibility:0.,b*visibility,1);normals=vec4(n*.5+.5,ground!=0?.05:.85);return;}
 float haze=smoothstep(hazeStart,hazeEnd,length(worldPosition-eye))*hazeStrength;
@@ -405,7 +413,7 @@ struct Gpu::Impl {
   using MaterialKey =
       std::tuple<std::filesystem::path, std::array<float, 4>, Alpha, float,
                  bool, int, int, bool, bool, std::filesystem::path, int, bool,
-                 bool, std::array<float, 3>, int>;
+                 bool, std::array<float, 3>, int, bool>;
   std::map<MaterialKey, std::size_t> materialPool;
   std::map<std::filesystem::path, int> textureRefs;
   std::map<std::filesystem::path, std::size_t> textureSizes, textureMips;
@@ -788,7 +796,8 @@ void Gpu::uploadModel(World &world, std::size_t index,
                       mat.cutoff,       mat.doubleSided, mat.wrapS,
                       mat.wrapT,        mat.ground,      mat.foliage,
                       mat.styleTexture, mat.kind,        mat.architecture,
-                      mat.leafy,        mat.emissive,    mat.studyKind};
+                      mat.leafy,        mat.emissive,    mat.studyKind,
+                      mat.paintedForm};
       auto [it, added] = p->materialPool.emplace(key, p->materials.size());
       if (added)
         p->materials.push_back(mat);
@@ -1818,6 +1827,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
       gl::Uniform3f(p->location(p->mesh, "emission"),
                     mat.emissive[0], mat.emissive[1], mat.emissive[2]);
       uniformInt(p->mesh, "studyKind", mat.studyKind);
+      uniformInt(p->mesh, "paintedForm", mat.paintedForm);
       gl::Uniform1i(p->texLoc, mat.texture.empty() ? 0 : 1);
       gl::Uniform1i(p->alphaLoc, static_cast<int>(mat.alpha));
       gl::Uniform1f(p->cutoffLoc, mat.cutoff);
