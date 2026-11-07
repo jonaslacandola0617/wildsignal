@@ -33,6 +33,7 @@ PLATEAU_HEIGHT = 3.0
 LEDGE = 1.5  # a lower step along the south side, so the cliff reads as stepped rock
 RAMP = (2.0, 19.0, -23.0, -17.0)  # x0, x1, z0, z1; rises from 0 to the plateau going east
 HILL = (-30.0, 26.0, 18.0, 4.0)  # x, z, radius, height
+SPAWN = (-3.0, -20.0)  # a new game starts just west of the ramp foot, facing it
 TERRAIN = {"step": STEP, "cliff_normal_y": 0.6, "lawn": [0.40, 0.62, 0.20], "rock": [0.48, 0.45, 0.50]}
 
 
@@ -140,7 +141,8 @@ def main():
         while count and tries < count * 200:
             tries += 1
             x, z = rng.uniform(lo, hi), rng.uniform(lo, hi)
-            if math.hypot(x, z) < 12 or near_steep(x, z, keep_out) or on_ramp(x, z, keep_out + 1):
+            if (math.hypot(x, z) < 12 or near_steep(x, z, keep_out) or on_ramp(x, z, keep_out + 1)
+                    or math.hypot(x - SPAWN[0], z - SPAWN[1]) < 4):
                 continue
             if any(math.hypot(x - px, z - pz) < keep_out + pr for px, pz, pr in placed):
                 continue
@@ -215,6 +217,7 @@ def main():
                                       "rest_spots", "review_cameras", "exclude_materials")}
     region.update({
         "revision": 1, "id": region_id, "name": "Height test (hill, raised meadow, cliffs)",
+        "spawn": [SPAWN[0], height(*SPAWN), SPAWN[1]],
         "chunk_size": CHUNK, "grid": {"origin": [ORIGIN, ORIGIN], "columns": COLS, "rows": ROWS},
         "height": {"origin": [ORIGIN, ORIGIN], "step": STEP, "count": [n, n]},
         "walk": {"min": [-walk, -walk], "max": [walk, walk]},

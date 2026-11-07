@@ -11,6 +11,7 @@
 #include "sunbeam_glsl.hpp"
 #include "tree_study_glsl.hpp"
 #include "pilot_glsl.hpp"
+#include "pilot_fields.hpp"
 #include <SDL3/SDL.h>
 #define GL_GLEXT_PROTOTYPES 1
 #include <SDL3/SDL_opengl.h>
@@ -365,6 +366,7 @@ static Mat villageLightProjection(Vec sun);
 struct Gpu::Impl {
   PilotLook pilot;
   GLuint pilotTiles = 0;
+  GLuint pilotCloudTex = 0, pilotGrassTex = 0; // baked repeating cloud and grass patterns
   std::unique_ptr<HudRenderer> hud;
   int coverage = 0, solidCount = 0;
   std::array<std::array<float, 4>, 16> meadowSolids{};
@@ -1206,6 +1208,20 @@ void Gpu::setPilot(const PilotLook &v) {
   gl::TexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
   gl::TexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   gl::GenerateMipmap(GL_TEXTURE_2D_ARRAY);
+  // Cloud shade and grass light patches: worked out once, then read as one texture each.
+  auto field = [&](GLuint &id, int unit, int size, float period, float scale, float (*f)(float, float)) {
+    auto values = bakeField(size, period, scale, f);
+    gl::GenTextures(1, &id);
+    gl::ActiveTexture(GL_TEXTURE0 + unit);
+    gl::BindTexture(GL_TEXTURE_2D, id);
+    gl::TexImage2D(GL_TEXTURE_2D, 0, GL_R16, size, size, 0, GL_RED, GL_UNSIGNED_SHORT, values.data());
+    gl::TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    gl::TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    gl::TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    gl::TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  };
+  field(p->pilotCloudTex, 14, 448, CloudPeriod, 2, cloudField);
+  field(p->pilotGrassTex, 15, 512, GrassPeriod, 1, grassField);
   gl::ActiveTexture(GL_TEXTURE0);
   check("pilot tiles");
 }
@@ -1677,11 +1693,20 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     uniformInt(p->mesh, "seeCount", count);
   }
   uniformInt(p->mesh, "pilotTiles", 13);
+  uniformInt(p->mesh, "pilotCloudTex", 14);
+  uniformInt(p->mesh, "pilotGrassTex", 15);
   gl::Uniform2f(p->location(p->mesh, "pilotPixels"), float(w), float(h));
   if (p->pilot.enabled) {
     gl::ActiveTexture(GL_TEXTURE0 + 13);
     gl::BindTexture(GL_TEXTURE_2D_ARRAY, p->pilotTiles);
     gl::BindSampler(13, 0);
+    // Units 14 and 15 stay bound for the grass pass too (it reads the same patterns).
+    gl::ActiveTexture(GL_TEXTURE0 + 14);
+    gl::BindTexture(GL_TEXTURE_2D, p->pilotCloudTex);
+    gl::BindSampler(14, 0);
+    gl::ActiveTexture(GL_TEXTURE0 + 15);
+    gl::BindTexture(GL_TEXTURE_2D, p->pilotGrassTex);
+    gl::BindSampler(15, 0);
     gl::ActiveTexture(GL_TEXTURE0);
     {auto right=direction(inverse(camera.view()),{1,0,0}),up=direction(inverse(camera.view()),{0,1,0});gl::Uniform3f(p->location(p->mesh,"pilotRight"),right.x,right.y,right.z);gl::Uniform3f(p->location(p->mesh,"pilotUp"),up.x,up.y,up.z);}
     uniformFloat(p->mesh, "pilotDensity", p->pilot.density);
