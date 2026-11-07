@@ -48,6 +48,7 @@ struct Region {
   struct Entry {
     int x = 0, z = 0;
     std::filesystem::path file;
+    bool ring = false; // build 019: scenery chunk of the edge ring, outside the walk bounds
   };
   std::vector<Entry> chunkFiles;
   int entryAt(int x, int z) const; // -1 when the grid has no chunk there

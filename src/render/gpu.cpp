@@ -350,7 +350,7 @@ out vec2 uv;
 void main(){vec2 p=vec2((gl_VertexID<<1)&2,gl_VertexID&2);uv=p;gl_Position=vec4(p*2.-1.,0,1);}
 )GLSL";
 static constexpr const char *postFS = R"GLSL(#version 330 core
-in vec2 uv;out vec4 color;uniform sampler2D sceneColor,sceneNormal,sceneDepth;uniform int outline,cozy;uniform sampler2D shaftImage;uniform int shaftEnabled,shaftMethod;uniform vec3 skyTop,skyHorizon;uniform float outlineStrength,foliageOutlineStrength;
+in vec2 uv;out vec4 color;uniform sampler2D sceneColor,sceneNormal,sceneDepth;uniform int outline,cozy;uniform sampler2D shaftImage;uniform int shaftEnabled,shaftMethod;uniform vec3 skyTop,skyHorizon;uniform float outlineStrength,foliageOutlineStrength;uniform int voidMark;
 float linearDepth(float z){float v=z*2.-1.;return (2.*.1*350.)/(350.+.1-v*(350.-.1));}
 void main(){ivec2 size=textureSize(sceneColor,0);ivec2 p=clamp(ivec2(gl_FragCoord.xy),ivec2(0),size-1);vec3 c=texelFetch(sceneColor,p,0).rgb;
 float raw=texelFetch(sceneDepth,p,0).r;if(cozy!=0&&raw>=.99999)c=mix(skyHorizon,skyTop,smoothstep(.10,.92,gl_FragCoord.y/float(size.y)));float d=linearDepth(raw);vec3 n=texelFetch(sceneNormal,p,0).rgb*2.-1.;
@@ -368,6 +368,7 @@ if(shaftEnabled!=0){
  for(int y=0;y<2;y++)for(int x=0;x<2;x++){ivec2 q=clamp(base+ivec2(x,y),ivec2(0),low-1);vec4 a=texelFetch(shaftImage,q,0);float compareDepth=shaftMethod==2?min(d,30.):d;float gap=abs(a.a*350.-compareDepth);float w=(x==0?1.-f.x:f.x)*(y==0?1.-f.y:f.y);w*=1.-smoothstep(max(.15,d*.015),max(.3,d*.05),gap);rays+=a.rgb*w;weight+=w;}
  if(weight>.001)c=1.-(1.-c)*exp(-rays/weight);
 }
+if(voidMark!=0&&raw>=.99999)c=vec3(1,0,1); // test aid: empty space beyond the world
 color=vec4(c,1);}
 )GLSL";
 static Mat villageLightProjection(Vec sun);
@@ -440,7 +441,7 @@ struct Gpu::Impl {
   std::function<void(const Mat &)> overlay;
   std::vector<float> fades;
   std::vector<Vec> seeThrough;
-  bool sourceView=false,shadowClean=true;float terrainRelief=1;int diagnosticView=0;
+  bool sourceView=false,shadowClean=true;float terrainRelief=1;int diagnosticView=0;bool voidMark=false;
   Integration integration;
   GLuint edgePost = 0;
   int study = 0;
@@ -1098,6 +1099,7 @@ void Gpu::setIntegration(const Integration &v) {
   p->integration = v;
   p->lightVP = p->light(p->look.sunDirection);
 }
+void Gpu::setVoidMark(bool on){p->voidMark=on;}
 void Gpu::setDiagnosticView(int v){if(v<0||v>11||v==8)throw std::runtime_error("diagnostic view range");p->diagnosticView=v;}
 void Gpu::setSourceView(bool v){p->sourceView=v;}
 void Gpu::setShadowClean(bool v){p->shadowClean=v;}
@@ -2038,6 +2040,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
   gl::UseProgram(postProgram);
   const auto &integration = p->integration;
   uniformInt(postProgram,"profileActive",p->profile.active);
+  uniformInt(postProgram,"voidMark",p->voidMark);
   uniformInt(postProgram,"profileGreenOnly",p->profile.greenOnly);
   uniformInt(postProgram,"luminousRims",p->profile.luminousRims);
   uniformInt(postProgram,"leafRims",p->leafRims);uniformFloat(postProgram,"highlightLimit",p->highlightLimit);

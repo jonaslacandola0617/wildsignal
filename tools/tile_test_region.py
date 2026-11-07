@@ -1,6 +1,6 @@
 """REGION-001 step 2: a bigger streaming test region made from the test village.
 
-Usage: python -I tools/tile_test_region.py ASSETS_DIR HOUSES_DIR [REGION_ID]
+Usage: python -I tools/tile_test_region.py ASSETS_DIR HOUSES_DIR [REGION_ID] [--no-ring]
 
 Lays 3 x 3 copies of regions/hearthgrove_test side by side (one copy every
 59.7 m, three ground tiles), about 180 m across, cut into 32 m chunks. The
@@ -21,6 +21,9 @@ import struct
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))  # edge_ring.py beside this tool
+import edge_ring  # noqa: E402
+
 CHUNK = 32.0
 PERIOD = 59.7  # three 19.9 m ground tiles
 STEP = 0.25
@@ -28,8 +31,9 @@ EXTRA_HOUSES = ["WS_HOUSE_%03d" % n for n in (2, 4, 5, 6, 7, 8, 9, 10, 12, 13, 1
 
 
 def main():
-    assets, houses = Path(sys.argv[1]), Path(sys.argv[2])
-    region_id = sys.argv[3] if len(sys.argv) > 3 else "streaming_test"
+    args = [a for a in sys.argv[1:] if a != "--no-ring"]
+    assets, houses = Path(args[0]), Path(args[1])
+    region_id = args[2] if len(args) > 2 else "streaming_test"
     src = assets / "regions" / "hearthgrove_test"
     village = json.loads((src / "region.json").read_text())
     rows, solids, grass = [], [], []
@@ -37,8 +41,10 @@ def main():
     hn = village["height"]["samples"]
     heights = [0.0] * (hn * hn)
     for entry in village["chunks"]:
+        if entry.get("ring"):  # the village's own edge ring is not tiled
+            continue
         c = json.loads((src / entry["file"]).read_text())
-        rows += c["instances"]
+        rows += [r for r in c["instances"] if not r["id"].startswith("ring_")]
         solids += c["solids"]
         grass += c["grass"]
         if "height" in c:
@@ -160,6 +166,8 @@ def main():
     print("region", region_id, "grid", cols, "x", rows_n, "objects",
           sum(len(c["instances"]) for c in chunks.values()), "grass",
           sum(len(c["grass"]) for c in chunks.values()), "models", len(models), "pack", len(pack["models"]))
+    if "--no-ring" not in sys.argv:
+        edge_ring.add_ring(assets, region_id)
 
 
 if __name__ == "__main__":
