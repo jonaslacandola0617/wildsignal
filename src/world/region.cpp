@@ -146,6 +146,8 @@ Region Region::open(const std::filesystem::path &assets, const std::string &id) 
     if (!seen.insert({e.x, e.z}).second)
       throw std::runtime_error("region chunk listed twice");
     e.file = p3::safePath(r.dir, entry.at("file").string());
+    if (auto ring = field(entry, "ring"))
+      e.ring = std::get<bool>(ring->value);
     r.chunkFiles.push_back(e);
   }
   if (r.chunkFiles.empty())

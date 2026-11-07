@@ -133,6 +133,8 @@ void RegionStream::placeTerrain(int entry, World &world, Live &live) {
       world.instances.push_back(std::move(inst));
     }
     live.slots.push_back(slot);
+    if (region_.chunkFiles[std::size_t(entry)].ring)
+      ringSlots_.insert(slot);
     live.models[world.instances[slot].model]++;
     modelRefs_[world.instances[slot].model]++;
   }
@@ -199,6 +201,8 @@ World RegionStream::start(Vec at, std::shared_ptr<const Pack> pack) {
       if (hooks_.streamed)
         hooks_.streamed(w, inst);
       activeChunks_[owner[k]].slots.push_back(slot);
+      if (region_.chunkFiles[std::size_t(owner[k])].ring)
+        ringSlots_.insert(slot);
       activeChunks_[owner[k]].models[inst.model]++;
     } else {
       modelRefs_[inst.model]++; // the characters' models never unload
@@ -315,6 +319,8 @@ void RegionStream::activate(int entry, World &world) {
       world.instances.push_back(std::move(inst));
     }
     live.slots.push_back(slot);
+    if (region_.chunkFiles[std::size_t(entry)].ring)
+      ringSlots_.insert(slot);
     live.models[world.instances[slot].model]++;
     modelRefs_[world.instances[slot].model]++;
   }
@@ -340,6 +346,7 @@ void RegionStream::deactivate(int entry, World &world) {
     auto &inst = world.instances[slot];
     inst.active = false;
     inst.palette.clear();
+    ringSlots_.erase(slot);
     freeSlots_.push_back(slot);
   }
   for (auto [model, count] : it->second.models)

@@ -83,6 +83,8 @@ struct Gpu {
   void setProfile(const StyleProfile &);
   void setSourceView(bool);
   void setDiagnosticView(int);
+  // Test aid: paint empty space beyond the world magenta (REGION-001 build 019 edge checks).
+  void setVoidMark(bool);
   void setShadowClean(bool);
   void setTerrainRelief(float);
   void setStyle(const Style &);

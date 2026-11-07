@@ -1,20 +1,25 @@
 """REGION-001: split today's single-file test village into region + chunk files.
 
-Usage: python -I tools/village_to_region.py ASSETS_DIR [REGION_ID]
+Usage: python -I tools/village_to_region.py ASSETS_DIR [REGION_ID] [--no-ring]
 
 Reads game.json, scene.json, vegetation.json (+ its grass files) and
 terrain_height.bin from ASSETS_DIR and writes ASSETS_DIR/regions/REGION_ID/:
   region.json                 grid, shared assets, spawn, rest spots, cameras
   chunks/c_X_Z.json           instances, colliders, grass of one 32 m chunk
   chunks/c_X_Z.height.bin     the height samples that chunk owns
-Nothing is moved or edited; the original files stay beside it. The output is
+Build 019: a ring of forest chunks closes the map edge (tools/edge_ring.py;
+--no-ring leaves it out). Nothing is moved or edited; the original files stay beside it. The output is
 derived from private art data, so it belongs in the private asset folder.
 """
 import json
 import math
+import shutil
 import struct
 import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))  # edge_ring.py beside this tool
+import edge_ring  # noqa: E402
 
 CHUNK = 32.0
 # The characters follow the player everywhere, so they never unload with a chunk.
@@ -29,8 +34,9 @@ def persistent_row(row):
 
 
 def main():
-    assets = Path(sys.argv[1])
-    region_id = sys.argv[2] if len(sys.argv) > 2 else "hearthgrove_test"
+    args = [a for a in sys.argv[1:] if a != "--no-ring"]
+    assets = Path(args[0])
+    region_id = args[1] if len(args) > 1 else "hearthgrove_test"
     game = json.loads((assets / "game.json").read_text())
     scene = json.loads((assets / "scene.json").read_text())
     vegetation = json.loads((assets / "vegetation.json").read_text())
@@ -85,6 +91,8 @@ def main():
             owned[key] = (min(lo_i, i), min(lo_j, j), max(hi_i, i), max(hi_j, j))
 
     out = assets / "regions" / region_id
+    if (out / "chunks").exists():  # no chunk files left over from an older grid
+        shutil.rmtree(out / "chunks")
     (out / "chunks").mkdir(parents=True, exist_ok=True)
     listing = []
     for (cx, cz), c in sorted(chunks.items(), key=lambda kv: (kv[0][1], kv[0][0])):
@@ -126,6 +134,8 @@ def main():
     counts = {k: sum(len(c[k]) for c in chunks.values()) for k in ("instances", "solids", "grass")}
     counts["persistent"] = len(persistent)
     print("region", region_id, "grid", cols, "x", rows, "origin", ox, oz, counts)
+    if "--no-ring" not in sys.argv:
+        edge_ring.add_ring(assets, region_id)
 
 
 if __name__ == "__main__":

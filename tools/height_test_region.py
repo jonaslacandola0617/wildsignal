@@ -1,6 +1,6 @@
 """REGION-001 build 018: a test region with real height, made from the village.
 
-Usage: python -I tools/height_test_region.py ASSETS_DIR [REGION_ID]
+Usage: python -I tools/height_test_region.py ASSETS_DIR [REGION_ID] [--no-ring]
 
 Builds ASSETS_DIR/regions/REGION_ID/ (default height_test): 4 x 4 chunks of
 32 m with the ground drawn from the height lattice ("terrain" in region.json),
@@ -22,6 +22,9 @@ import shutil
 import struct
 import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))  # edge_ring.py beside this tool
+import edge_ring  # noqa: E402
 
 CHUNK = 32.0
 COLS = ROWS = 4
@@ -62,15 +65,19 @@ def height(x, z):
 
 
 def main():
-    assets = Path(sys.argv[1])
-    region_id = sys.argv[2] if len(sys.argv) > 2 else "height_test"
+    args = [a for a in sys.argv[1:] if a != "--no-ring"]
+    assets = Path(args[0])
+    region_id = args[1] if len(args) > 1 else "height_test"
     src = assets / "regions" / "hearthgrove_test"
     village = json.loads((src / "region.json").read_text())
     rows_by_model, grass_rows = {}, []
     for entry in village["chunks"]:
+        if entry.get("ring"):  # sizes come from the village itself, not its edge ring
+            continue
         c = json.loads((src / entry["file"]).read_text())
         for r in c["instances"]:
-            rows_by_model.setdefault(r["model"], []).append(r)
+            if not r["id"].startswith("ring_"):
+                rows_by_model.setdefault(r["model"], []).append(r)
         grass_rows += c["grass"]
     rng = random.Random(18)
 
@@ -232,6 +239,8 @@ def main():
     print("region", region_id, "grid", COLS, "x", ROWS, "objects",
           sum(len(c["instances"]) for c in chunks.values()), "colliders",
           sum(len(c["solids"]) for c in chunks.values()), "cliff cells", cliff_cells, "grass", seed)
+    if "--no-ring" not in sys.argv:
+        edge_ring.add_ring(assets, region_id)
 
 
 if __name__ == "__main__":

@@ -7,7 +7,8 @@ with village_to_region.py, then runs height_test_region.py. Checks that
 region.json asks for drawn terrain, that the chunk height blocks cover the
 lattice exactly once, that every steep cell lies inside a collider, that no
 object stands on a steep cell or the ramp, that objects and grass sit on the
-ground, and that the actors stay persistent.
+ground, and that the actors stay persistent. The edge ring (build 019) is left
+out here; tests/pilot/edge_ring.py checks it.
 """
 import json
 import math
@@ -45,7 +46,7 @@ def main():
         (assets / "vegetation.json").write_text(json.dumps({"instance_files": ["grass_00.json"]}))
         (assets / "terrain_height.bin").write_bytes(struct.pack("<%df" % (257 * 257), *([0.0] * 257 * 257)))
         for cmd in ([sys.executable, "-I", str(tools / "village_to_region.py"), str(assets)],
-                    [sys.executable, "-I", str(tools / "height_test_region.py"), str(assets)]):
+                    [sys.executable, "-I", str(tools / "height_test_region.py"), str(assets), "--no-ring"]):
             r = subprocess.run(cmd, capture_output=True, text=True)
             check(r.returncode == 0, "%s failed\n%s%s" % (Path(cmd[2]).name, r.stdout, r.stderr))
 

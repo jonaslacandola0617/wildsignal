@@ -57,6 +57,8 @@ public:
   const StreamStats &stats() const { return stats_; }
   // True for the slots of persistent rows: they are never switched off or reused.
   bool persistent(std::size_t slot) const { return persistentSlots_.contains(slot); }
+  // True for objects of edge-ring chunks (build 019): scenery beyond the walk bounds.
+  bool ringScenery(std::size_t slot) const { return ringSlots_.contains(slot); }
   // Text map for the F11 overlay: one character per chunk.
   std::vector<std::string> overlay(Vec player) const;
 
@@ -112,6 +114,7 @@ private:
   std::map<std::size_t, int> modelRefs_;
   std::vector<std::size_t> freeSlots_;
   std::set<std::size_t> persistentSlots_;
+  std::set<std::size_t> ringSlots_;
   std::set<int> requested_;
   std::set<std::string> modelsRequested_;
   std::map<std::string, ModelData> pendingModels_; // read ahead, waiting to upload
