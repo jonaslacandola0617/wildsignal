@@ -10,6 +10,7 @@ struct MeadowPatches {
  int beamCount=0;std::array<std::array<float,4>,4> apertures{};std::array<Vec,3> beamColors{};
  std::array<Vec,3> lightColors{}; // lit / base / shadow, linear RGB
  int width=0,height=0;
+ bool repeat=false; // REGION-001 test region: the village mask tiles across its copies
  std::array<float,4> world{}; // minimum XZ, inverse world dimensions
  std::array<Vec,3> colors{}; // linear light/standard/teal albedos
  std::vector<unsigned char> weights;

@@ -59,15 +59,29 @@ MeshClumps::MeshClumps(const std::filesystem::path &r,
  if(cfg.at("instance_files").array().size()>96) throw std::runtime_error("grass chunk budget");
  std::vector<ws::Json> files;
  if(!regionRows)for(auto &file:cfg.at("instance_files").array())files.push_back(ws::parseJson(readText(safePath(r,file.string()))));
- auto addRows=[&](const ws::Json::Array &rows) {
+ if(regionRows){addRows(*regionRows,-1);order();}else for(auto &f:files)addRows(f.array(),-1);
+ // A region's grass arrives chunk by chunk; the old single file must not be empty.
+ if(!regionRows&&all.empty()) throw std::runtime_error("empty grass placement");
+ if(auto it=fields.find("expected_instances");!regionRows&&it!=fields.end())
+   if(it->second.number()!=double(all.size())) throw std::runtime_error("grass placement count differs from manifest");
+ batches.resize(models.size());
+ std::vector<std::size_t> capacities(models.size());
+ lodState.assign(all.size(),255);
+ for(int v:variants)for(int level=0;level<3;level++)if(level==0||lodModels[v][level]!=lodModels[v][level-1])capacities[lodModels[v][level]]++;
+ for(std::size_t i=0;i<batches.size();++i) batches[i].reserve(capacities[i]);
+}
+// Reads rows into ready transforms. Only reads start-up state (models, LOD
+// table), so the region loading thread may call it while the game draws.
+MeshClumps::Prepared MeshClumps::prepare(const ws::Json::Array &rows, std::uint32_t firstSeed) const {
+   Prepared out;
+   out.all.reserve(rows.size());out.variants.reserve(rows.size());out.bounds.reserve(rows.size());out.seeds.reserve(rows.size());
    for(auto &e:rows) {
-     if(all.size()>=16000) throw std::runtime_error("grass population budget");
      auto &p=e.at("position").array(); auto &n=e.at("normal").array();
      double v=e.at("variant").number();
      float scale=float(e.at("scale").number()), yaw=float(e.at("yaw").number());
      if(p.size()!=3||n.size()!=3||v!=std::floor(v)||v<0||v>=lodModels.size()||!std::isfinite(scale)||scale<.2f||scale>1.5f||!std::isfinite(yaw)) throw std::runtime_error("source grass transform");
      Vec pos{float(p[0].number()),float(p[1].number()),float(p[2].number())},normal{float(n[0].number()),float(n[1].number()),float(n[2].number())};
-     if(!finite(pos)||std::abs(pos.x)>48||std::abs(pos.z)>48||std::abs(pos.y)>3||!finite(normal)||dot(normal,normal)<.9f||dot(normal,normal)>1.1f) throw std::runtime_error("source grass bounds");
+     if(!finite(pos)||std::abs(pos.x)>1024||std::abs(pos.z)>1024||std::abs(pos.y)>200||!finite(normal)||dot(normal,normal)<.9f||dot(normal,normal)>1.1f) throw std::runtime_error("source grass bounds");
      auto mat=transform(pos,yaw,scale);
      if(alignToSurface) {
        normal=normalized(normal);
@@ -85,25 +99,46 @@ MeshClumps::MeshClumps(const std::filesystem::path &r,
        if(!std::isfinite(n)||n!=std::floor(n)||n<0||n>2) throw std::runtime_error("grass color variant");
        colorVariant=int(n);
      }
-     std::uint32_t seed=std::uint32_t(all.size());
+     std::uint32_t seed=firstSeed+std::uint32_t(out.all.size());
      if(auto it=row.find("seed");it!=row.end()) {
        double n=it->second.number();
        if(!std::isfinite(n)||n!=std::floor(n)||n<0||n>1e9) throw std::runtime_error("grass seed");
        seed=std::uint32_t(n);
      }
-     all.push_back({mat,{float(colorVariant),normal.x,normal.y,normal.z}});
-     variants.push_back(int(v)); bounds.push_back(transformed(models[int(v)].bounds,mat)); seeds.push_back(seed);
+     out.all.push_back({mat,{float(colorVariant),normal.x,normal.y,normal.z}});
+     out.variants.push_back(int(v)); out.bounds.push_back(transformed(models[int(v)].bounds,mat)); out.seeds.push_back(seed);
    }
- };
- if(regionRows)addRows(*regionRows);else for(auto &f:files)addRows(f.array());
- if(all.empty()) throw std::runtime_error("empty grass placement");
- if(auto it=fields.find("expected_instances");it!=fields.end())
-   if(it->second.number()!=double(all.size())) throw std::runtime_error("grass placement count differs from manifest");
- batches.resize(models.size());
- std::vector<std::size_t> capacities(models.size());
- lodState.assign(all.size(),255);
- for(int v:variants)for(int level=0;level<3;level++)if(level==0||lodModels[v][level]!=lodModels[v][level-1])capacities[lodModels[v][level]]++;
- for(std::size_t i=0;i<batches.size();++i) batches[i].reserve(capacities[i]);
+   return out;
+}
+void MeshClumps::addPrepared(const Prepared &rows, int chunk) {
+ if(all.size()+rows.all.size()>48000) throw std::runtime_error("grass population budget");
+ all.insert(all.end(),rows.all.begin(),rows.all.end());
+ variants.insert(variants.end(),rows.variants.begin(),rows.variants.end());
+ bounds.insert(bounds.end(),rows.bounds.begin(),rows.bounds.end());
+ seeds.insert(seeds.end(),rows.seeds.begin(),rows.seeds.end());
+ chunks.insert(chunks.end(),rows.all.size(),chunk);
+ lodState.insert(lodState.end(),rows.all.size(),255);
+}
+void MeshClumps::addRows(const ws::Json::Array &rows, int chunk) {
+ addPrepared(prepare(rows,std::uint32_t(all.size())),chunk);
+}
+// REGION-001: a chunk left the loaded area; its clumps go with it.
+void MeshClumps::removeChunk(int chunk) {
+ std::size_t out=0;
+ for(std::size_t i=0;i<all.size();++i) {
+   if(chunks[i]==chunk) continue;
+   all[out]=all[i];variants[out]=variants[i];bounds[out]=bounds[i];seeds[out]=seeds[i];chunks[out]=chunks[i];lodState[out]=lodState[i];++out;
+ }
+ all.resize(out);variants.resize(out);bounds.resize(out);seeds.resize(out);chunks.resize(out);lodState.resize(out);
+}
+// Clumps stay in seed order whichever chunk loaded first, so draws never
+// depend on loading history.
+void MeshClumps::order() {
+ std::vector<std::size_t> k(all.size());
+ for(std::size_t i=0;i<k.size();++i)k[i]=i;
+ std::stable_sort(k.begin(),k.end(),[&](std::size_t a,std::size_t b){return seeds[a]<seeds[b];});
+ auto apply=[&](auto &v){auto copy=v;for(std::size_t i=0;i<k.size();++i)v[i]=copy[k[i]];};
+ apply(all);apply(variants);apply(bounds);apply(seeds);apply(chunks);apply(lodState);
 }
 MeshVisibility MeshClumps::select(const Camera &camera,const Frustum &f,int height) {
  for(auto &b:batches)b.clear(); MeshVisibility s; s.total=all.size();

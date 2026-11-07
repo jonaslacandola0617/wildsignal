@@ -90,3 +90,7 @@ The order above front-loads the decisions that unblock everything else: foundati
 - 2026-11-02 — First draft.
 - 2026-11-02 — Owner accepted all choices. Locked.
 - 2026-11-02 — FOUND-001 done: `develop` created (field-kit UI, leaf fix, house, direction docs, recruit rule, docs/gdd); 18/18 tests pass; PR #71 closed as superseded.
+- 2026-11-02 — FOUND-002 (#72), FOUND-003 (#73), FIGHT-002 (#74) and FIGHT-003 (#75) merged into `develop`; 22/22 tests reported. Phase 0 is done.
+- 2026-11-03 — LOOKDEV-001 (#76, draft) showed looks A–D in a test plot; LOOKDEV-002 to LOOKDEV-005 followed on branches without PRs.
+- 2026-11-04 — Look development decided: the owner chose the LOOKDEV-005 "dream" look (D-089, D-090). The chapter 6 style guide is still to be written from D-089.
+- 2026-11-04 — REGION-001 plan approved (D-091). Step 1 (build 015, the village from region and chunk files) is on `region-001-world-format`, not yet merged; step 2 (build 016, streaming and no model cap) is next.

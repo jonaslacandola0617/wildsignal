@@ -1,4 +1,5 @@
 #pragma once
+#include <map>
 #include "atmosphere.hpp"
 #include "core.hpp"
 #include "integration.hpp"
@@ -46,6 +47,17 @@ struct Gpu {
               texturesLoaded = 0, styledTextureBytes = 0, materialsUnique = 0,
               materialsOriginal = 0, cpuGeometryReleased = 0;
   Gpu(World &, bool allowSoftware, const TreeStudy *treeStudy = nullptr);
+  // REGION-001 streaming. uploadModel fills one model slot (images already
+  // decoded by the loading thread when given); releaseModel frees its buffers
+  // and any texture no other resident model uses, and empties the slot.
+  void uploadModel(World &, std::size_t model,
+                   const std::map<std::filesystem::path, Image> *decoded = nullptr,
+                   bool releaseCpu = true);
+  void releaseModel(World &, std::size_t model);
+  // Objects were switched on or off: contact shading and cached shadows follow.
+  void worldChanged(const World &);
+  // Centre of the shadow area (0, 0 keeps the village's fixed area).
+  void setShadowCenter(float x, float z);
   void setTreeTreatment(int);
   void setPlainLeaves(bool);
   // LOOKDEV-003 small flowers and edge-tuft rings (WSP_FLOWER_*, WSP_TUFT_*) on or off.

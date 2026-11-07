@@ -361,6 +361,7 @@ if(shaftEnabled!=0){
 }
 color=vec4(c,1);}
 )GLSL";
+static Mat villageLightProjection(Vec sun);
 struct Gpu::Impl {
   PilotLook pilot;
   GLuint pilotTiles = 0;
@@ -397,6 +398,28 @@ struct Gpu::Impl {
   std::vector<Draw> blends;
   std::vector<Material> materials;
   std::vector<SurfacePolicy> policies;
+  // REGION-001 streamed models: textures shared between models are counted
+  // and freed when no resident model uses them.
+  using MaterialKey =
+      std::tuple<std::filesystem::path, std::array<float, 4>, Alpha, float,
+                 bool, int, int, bool, bool, std::filesystem::path, int, bool,
+                 bool, std::array<float, 3>, int>;
+  std::map<MaterialKey, std::size_t> materialPool;
+  std::map<std::filesystem::path, int> textureRefs;
+  std::map<std::filesystem::path, std::size_t> textureSizes, textureMips;
+  std::vector<std::vector<std::filesystem::path>> modelTextures;
+  std::vector<std::size_t> modelBytes;
+  float shadowCenterX = 0, shadowCenterZ = 0;
+  Mat light(Vec sun) const { return lightAt(sun, shadowCenterX, shadowCenterZ); }
+  Mat lightAt(Vec sun, float x, float z) const;
+  // After streaming changes the still shadows are rebuilt into a second map a
+  // few milliseconds per frame and swapped in when complete; the old map stays
+  // in use (with its own light) until then, so a chunk change never stalls.
+  GLuint buildShadowFbo = 0, buildShadowDepth = 0, buildShadowOwners = 0;
+  bool progressive = false, rebuilding = false, staticReady = false;
+  std::size_t buildCursor = 0, shadowGeneration = 0, buildGeneration = 0;
+  float pendingCenterX = 0, pendingCenterZ = 0;
+  Mat buildVP;
   Look look;
   std::vector<std::array<float, 4>> contacts, wordlineContacts,emaceContacts;
   std::uint64_t shadowSignature = 0;
@@ -455,6 +478,9 @@ struct Gpu::Impl {
     gl::DeleteFramebuffers(1, &staticShadowFbo);
     gl::DeleteTextures(1, &staticShadowDepth);
     gl::DeleteTextures(1, &staticShadowOwners);
+    gl::DeleteFramebuffers(1, &buildShadowFbo);
+    gl::DeleteTextures(1, &buildShadowDepth);
+    gl::DeleteTextures(1, &buildShadowOwners);
     gl::DeleteTextures(1, &leafCoverage);
     if (!grassGroundBorrowed)
       gl::DeleteTextures(1, &grassGround);
@@ -685,24 +711,83 @@ void main(){ivec2 size=textureSize(image,0),p=ivec2(gl_FragCoord.xy);vec4 base=t
       if (world.models[i.model].materials[part.material].alpha == Alpha::Blend)
         blendCount++;
   p->blends.reserve(blendCount);
-  using MaterialKey =
-      std::tuple<std::filesystem::path, std::array<float, 4>, Alpha, float,
-                 bool, int, int, bool, bool, std::filesystem::path, int, bool,
-                 bool, std::array<float, 3>, int>;
-  std::map<MaterialKey, std::size_t> materialPool;
-  for (auto &model : world.models) {
-    p->policies.push_back({});
-    p->models.emplace_back();
-    auto &parts = p->models.back();
+  for (std::size_t i = 0; i < world.models.size(); i++)
+    uploadModel(world, i, nullptr, false);
+  if(treeStudy){
+    p->tree=std::make_unique<TreeStudy>(*treeStudy);
+    auto texture=treeStudy->texture;auto image=loadImage(texture);
+    if(image.w>2048||image.h>2048||textureBytes+image.rgba.size()>256*1024*1024)throw std::runtime_error("tree leaf texture budget");
+    if(p->textures.count(texture))throw std::runtime_error("tree study requires separate licensed leaf texture");
+    GLuint id=0;gl::GenTextures(1,&id);gl::BindTexture(GL_TEXTURE_2D,id);
+    gl::TexImage2D(GL_TEXTURE_2D,0,GL_SRGB8_ALPHA8,image.w,image.h,0,GL_RGBA,GL_UNSIGNED_BYTE,image.rgba.data());
+    gl::TexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST_MIPMAP_NEAREST);gl::TexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
+    gl::TexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);gl::TexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);gl::GenerateMipmap(GL_TEXTURE_2D);
+    p->textures.emplace(texture,id);textureBytes+=image.rgba.size();texturesLoaded++;
+    for(int w=image.w,h=image.h;;w=std::max(1,w/2),h=std::max(1,h/2)){textureMipBytes+=std::size_t(w)*h*4;if(w==1&&h==1)break;}
+    auto attributes=[](){
+      for(int a=0;a<6;a++){int sizes[]={3,3,2,4,4,4};std::size_t offsets[]={offsetof(Vertex,p),offsetof(Vertex,n),offsetof(Vertex,u),offsetof(Vertex,color),offsetof(Vertex,joints),offsetof(Vertex,weights)};gl::EnableVertexAttribArray(a);gl::VertexAttribPointer(a,sizes[a],GL_FLOAT,GL_FALSE,sizeof(Vertex),reinterpret_cast<void*>(offsets[a]));}
+    };
+    for(std::size_t i=0;i<treeStudy->trunk.size();i++){
+      const auto &indices=treeStudy->trunk[i];if(indices.empty())continue;
+      Impl::Part part=p->models[treeStudy->model][i];part.vao=part.ebo=0;part.borrowedVbo=true;part.count=GLsizei(indices.size());
+      gl::GenVertexArrays(1,&part.vao);gl::BindVertexArray(part.vao);gl::BindBuffer(GL_ARRAY_BUFFER,part.vbo);attributes();
+      gl::GenBuffers(1,&part.ebo);gl::BindBuffer(GL_ELEMENT_ARRAY_BUFFER,part.ebo);gl::BufferData(GL_ELEMENT_ARRAY_BUFFER,GLsizeiptr(indices.size()*4),indices.data(),GL_STATIC_DRAW);bufferBytes+=indices.size()*4;p->treeParts.push_back(part);
+    }
+    Material leaf;leaf.name="EXPERIMENT_LICENSED_LEAF_CUTOUT";leaf.texture=texture;leaf.doubleSided=true;leaf.foliage=leaf.leafy=true;leaf.studyKind=2;leaf.alpha=Alpha::Mask;leaf.cutoff=.35f;leaf.wrapS=leaf.wrapT=GL_CLAMP_TO_EDGE;
+    const auto leafMaterial=p->materials.size();p->materials.push_back(leaf);
+    auto uploadCards=[&](const std::vector<TreeCard> &cards,GLuint &instanceBuffer){
+    Impl::Part part;part.material=leafMaterial;part.instances=GLsizei(cards.size());part.count=6;
+    std::array<Vertex,4> quad{};for(int i=0;i<4;i++){quad[i].p={i&1?.5f:-.5f,i&2?.5f:-.5f,0};quad[i].n={0,0,1};quad[i].u=i&1?1.f:0.f;quad[i].v=i&2?0.f:1.f;}
+    std::array<std::uint32_t,6> indices{0,1,2,2,1,3};
+    gl::GenVertexArrays(1,&part.vao);gl::BindVertexArray(part.vao);gl::GenBuffers(1,&part.vbo);gl::BindBuffer(GL_ARRAY_BUFFER,part.vbo);gl::BufferData(GL_ARRAY_BUFFER,sizeof(quad),quad.data(),GL_STATIC_DRAW);attributes();
+    gl::GenBuffers(1,&part.ebo);gl::BindBuffer(GL_ELEMENT_ARRAY_BUFFER,part.ebo);gl::BufferData(GL_ELEMENT_ARRAY_BUFFER,sizeof(indices),indices.data(),GL_STATIC_DRAW);
+    gl::GenBuffers(1,&instanceBuffer);gl::BindBuffer(GL_ARRAY_BUFFER,instanceBuffer);gl::BufferData(GL_ARRAY_BUFFER,GLsizeiptr(cards.size()*sizeof(TreeCard)),cards.data(),GL_STATIC_DRAW);
+    for(int i=0;i<4;i++){gl::EnableVertexAttribArray(6+i);gl::VertexAttribPointer(6+i,4,GL_FLOAT,GL_FALSE,sizeof(TreeCard),reinterpret_cast<void*>(std::size_t(i)*sizeof(std::array<float,4>)));gl::VertexAttribDivisor(6+i,1);}
+    bufferBytes+=sizeof(quad)+sizeof(indices)+cards.size()*sizeof(TreeCard);return part;
+    };
+    p->treeParts.push_back(uploadCards(treeStudy->cards,p->treeInstanceBuffer));
+    if(!treeStudy->rimCards.empty())p->rimParts.push_back(uploadCards(treeStudy->rimCards,p->rimInstanceBuffer));
+  }
+  GLint counterBits = 0;
+  gl::GetQueryiv(GL_TIME_ELAPSED, GL_QUERY_COUNTER_BITS, &counterBits);
+  timer = p->validTimer = counterBits > 0;
+  if (timer)
+    for (auto &q : p->queries)
+      gl::GenQueries(1, &q.id);
+  GLint bits = 0;
+  gl::GetIntegerv(GL_MAX_DRAW_BUFFERS, &bits);
+  if (bits < 3)
+    throw std::runtime_error("three color attachments required");
+
+  worldChanged(world);
+  materialsUnique = p->materials.size();
+  cpuGeometryReleased = world.cpuGeometryBytes();
+  world.releaseGeometry();
+  setStyle(Style{});
+  check("GPU resource creation");
+}
+void Gpu::uploadModel(World &world, std::size_t index,
+                      const std::map<std::filesystem::path, Image> *decoded, bool releaseCpu) {
+    auto &model = world.models.at(index);
+    if (index >= p->models.size()) {
+      p->policies.resize(index + 1);
+      p->models.resize(index + 1);
+      p->modelTextures.resize(index + 1);
+      p->modelBytes.resize(index + 1);
+    }
+    if (!p->models[index].empty())
+      throw std::runtime_error("model slot already uploaded");
+    auto &parts = p->models[index];
+    std::size_t before = bufferBytes;
     std::vector<std::size_t> materialRemap;
     for (auto &mat : model.materials) {
       materialsOriginal++;
-      MaterialKey key{mat.texture,      mat.color,       mat.alpha,
+      Impl::MaterialKey key{mat.texture,      mat.color,       mat.alpha,
                       mat.cutoff,       mat.doubleSided, mat.wrapS,
                       mat.wrapT,        mat.ground,      mat.foliage,
                       mat.styleTexture, mat.kind,        mat.architecture,
                       mat.leafy,        mat.emissive,    mat.studyKind};
-      auto [it, added] = materialPool.emplace(key, p->materials.size());
+      auto [it, added] = p->materialPool.emplace(key, p->materials.size());
       if (added)
         p->materials.push_back(mat);
       materialRemap.push_back(it->second);
@@ -710,10 +795,16 @@ void main(){ivec2 size=textureSize(image,0),p=ivec2(gl_FragCoord.xy);vec4 base=t
     for (auto &mat : model.materials)
       for (auto &file : {mat.texture, mat.styleTexture})
         if (!file.empty() && !p->textures.contains(file)) {
-          auto im = loadImage(file);
+          const Image *ready = nullptr;
+          if (decoded)
+            if (auto found = decoded->find(file); found != decoded->end())
+              ready = &found->second;
+          Image im = ready ? *ready : loadImage(file);
           if (textureBytes + im.rgba.size() > 256 * 1024 * 1024)
             throw std::runtime_error("texture budget");
           textureBytes += im.rgba.size();
+          p->textureSizes[file] = im.rgba.size();
+          const auto mipsBefore = textureMipBytes;
           if (file == mat.styleTexture)
             styledTextureBytes += im.rgba.size();
           texturesLoaded++;
@@ -726,6 +817,7 @@ void main(){ivec2 size=textureSize(image,0),p=ivec2(gl_FragCoord.xy);vec4 base=t
           GLuint id = 0;
           gl::GenTextures(1, &id);
           p->textures.emplace(file, id);
+          p->textureMips[file] = textureMipBytes - mipsBefore;
           gl::BindTexture(GL_TEXTURE_2D, id);
           gl::TexImage2D(GL_TEXTURE_2D, 0, GL_SRGB8_ALPHA8, im.w, im.h, 0,
                          GL_RGBA, GL_UNSIGNED_BYTE, im.rgba.data());
@@ -779,54 +871,57 @@ void main(){ivec2 size=textureSize(image,0),p=ivec2(gl_FragCoord.xy);vec4 base=t
           5, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex),
           reinterpret_cast<void *>(offsetof(Vertex, weights)));
     }
+    std::vector<std::filesystem::path> files;
+    for (auto &mat : model.materials)
+      for (auto &file : {mat.texture, mat.styleTexture})
+        if (!file.empty() && std::find(files.begin(), files.end(), file) == files.end())
+          files.push_back(file);
+    for (auto &file : files)
+      p->textureRefs[file]++;
+    p->modelTextures[index] = std::move(files);
+    p->modelBytes[index] = bufferBytes - before;
+    if (releaseCpu)
+      for (auto &part : model.parts) {
+        part.retainedIndexCount = part.indices.empty() ? part.retainedIndexCount : part.indices.size();
+        std::vector<Vertex>().swap(part.vertices);
+        std::vector<std::uint32_t>().swap(part.indices);
+      }
+}
+void Gpu::releaseModel(World &world, std::size_t index) {
+  if (index >= p->models.size())
+    return;
+  for (auto &part : p->models[index]) {
+    gl::DeleteVertexArrays(1, &part.vao);
+    if (!part.borrowedVbo)
+      gl::DeleteBuffers(1, &part.vbo);
+    gl::DeleteBuffers(1, &part.ebo);
   }
-  if(treeStudy){
-    p->tree=std::make_unique<TreeStudy>(*treeStudy);
-    auto texture=treeStudy->texture;auto image=loadImage(texture);
-    if(image.w>2048||image.h>2048||textureBytes+image.rgba.size()>256*1024*1024)throw std::runtime_error("tree leaf texture budget");
-    if(p->textures.count(texture))throw std::runtime_error("tree study requires separate licensed leaf texture");
-    GLuint id=0;gl::GenTextures(1,&id);gl::BindTexture(GL_TEXTURE_2D,id);
-    gl::TexImage2D(GL_TEXTURE_2D,0,GL_SRGB8_ALPHA8,image.w,image.h,0,GL_RGBA,GL_UNSIGNED_BYTE,image.rgba.data());
-    gl::TexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST_MIPMAP_NEAREST);gl::TexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
-    gl::TexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);gl::TexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);gl::GenerateMipmap(GL_TEXTURE_2D);
-    p->textures.emplace(texture,id);textureBytes+=image.rgba.size();texturesLoaded++;
-    for(int w=image.w,h=image.h;;w=std::max(1,w/2),h=std::max(1,h/2)){textureMipBytes+=std::size_t(w)*h*4;if(w==1&&h==1)break;}
-    auto attributes=[](){
-      for(int a=0;a<6;a++){int sizes[]={3,3,2,4,4,4};std::size_t offsets[]={offsetof(Vertex,p),offsetof(Vertex,n),offsetof(Vertex,u),offsetof(Vertex,color),offsetof(Vertex,joints),offsetof(Vertex,weights)};gl::EnableVertexAttribArray(a);gl::VertexAttribPointer(a,sizes[a],GL_FLOAT,GL_FALSE,sizeof(Vertex),reinterpret_cast<void*>(offsets[a]));}
-    };
-    for(std::size_t i=0;i<treeStudy->trunk.size();i++){
-      const auto &indices=treeStudy->trunk[i];if(indices.empty())continue;
-      Impl::Part part=p->models[treeStudy->model][i];part.vao=part.ebo=0;part.borrowedVbo=true;part.count=GLsizei(indices.size());
-      gl::GenVertexArrays(1,&part.vao);gl::BindVertexArray(part.vao);gl::BindBuffer(GL_ARRAY_BUFFER,part.vbo);attributes();
-      gl::GenBuffers(1,&part.ebo);gl::BindBuffer(GL_ELEMENT_ARRAY_BUFFER,part.ebo);gl::BufferData(GL_ELEMENT_ARRAY_BUFFER,GLsizeiptr(indices.size()*4),indices.data(),GL_STATIC_DRAW);bufferBytes+=indices.size()*4;p->treeParts.push_back(part);
+  p->models[index].clear();
+  bufferBytes -= p->modelBytes[index];
+  p->modelBytes[index] = 0;
+  for (auto &file : p->modelTextures[index])
+    if (--p->textureRefs[file] == 0) {
+      if (auto t = p->textures.find(file); t != p->textures.end()) {
+        gl::DeleteTextures(1, &t->second);
+        p->textures.erase(t);
+      }
+      textureBytes -= p->textureSizes[file];
+      textureMipBytes -= p->textureMips[file];
+      texturesLoaded--;
+      p->textureRefs.erase(file);
     }
-    Material leaf;leaf.name="EXPERIMENT_LICENSED_LEAF_CUTOUT";leaf.texture=texture;leaf.doubleSided=true;leaf.foliage=leaf.leafy=true;leaf.studyKind=2;leaf.alpha=Alpha::Mask;leaf.cutoff=.35f;leaf.wrapS=leaf.wrapT=GL_CLAMP_TO_EDGE;
-    const auto leafMaterial=p->materials.size();p->materials.push_back(leaf);
-    auto uploadCards=[&](const std::vector<TreeCard> &cards,GLuint &instanceBuffer){
-    Impl::Part part;part.material=leafMaterial;part.instances=GLsizei(cards.size());part.count=6;
-    std::array<Vertex,4> quad{};for(int i=0;i<4;i++){quad[i].p={i&1?.5f:-.5f,i&2?.5f:-.5f,0};quad[i].n={0,0,1};quad[i].u=i&1?1.f:0.f;quad[i].v=i&2?0.f:1.f;}
-    std::array<std::uint32_t,6> indices{0,1,2,2,1,3};
-    gl::GenVertexArrays(1,&part.vao);gl::BindVertexArray(part.vao);gl::GenBuffers(1,&part.vbo);gl::BindBuffer(GL_ARRAY_BUFFER,part.vbo);gl::BufferData(GL_ARRAY_BUFFER,sizeof(quad),quad.data(),GL_STATIC_DRAW);attributes();
-    gl::GenBuffers(1,&part.ebo);gl::BindBuffer(GL_ELEMENT_ARRAY_BUFFER,part.ebo);gl::BufferData(GL_ELEMENT_ARRAY_BUFFER,sizeof(indices),indices.data(),GL_STATIC_DRAW);
-    gl::GenBuffers(1,&instanceBuffer);gl::BindBuffer(GL_ARRAY_BUFFER,instanceBuffer);gl::BufferData(GL_ARRAY_BUFFER,GLsizeiptr(cards.size()*sizeof(TreeCard)),cards.data(),GL_STATIC_DRAW);
-    for(int i=0;i<4;i++){gl::EnableVertexAttribArray(6+i);gl::VertexAttribPointer(6+i,4,GL_FLOAT,GL_FALSE,sizeof(TreeCard),reinterpret_cast<void*>(std::size_t(i)*sizeof(std::array<float,4>)));gl::VertexAttribDivisor(6+i,1);}
-    bufferBytes+=sizeof(quad)+sizeof(indices)+cards.size()*sizeof(TreeCard);return part;
-    };
-    p->treeParts.push_back(uploadCards(treeStudy->cards,p->treeInstanceBuffer));
-    if(!treeStudy->rimCards.empty())p->rimParts.push_back(uploadCards(treeStudy->rimCards,p->rimInstanceBuffer));
-  }
-  GLint counterBits = 0;
-  gl::GetQueryiv(GL_TIME_ELAPSED, GL_QUERY_COUNTER_BITS, &counterBits);
-  timer = p->validTimer = counterBits > 0;
-  if (timer)
-    for (auto &q : p->queries)
-      gl::GenQueries(1, &q.id);
-  GLint bits = 0;
-  gl::GetIntegerv(GL_MAX_DRAW_BUFFERS, &bits);
-  if (bits < 3)
-    throw std::runtime_error("three color attachments required");
-
+  p->modelTextures[index].clear();
+  world.dropModel(index);
+}
+// REGION-001: chunks switched objects on or off; contact shading, the
+// moving-caster record and the cached shadows follow the new set.
+void Gpu::worldChanged(const World &world) {
+  p->contacts.clear();
+  p->wordlineContacts.clear();
+  p->emaceContacts.clear();
   for (auto &i : world.instances) {
+    if (!i.active)
+      continue;
     auto &id = world.models[i.model].id;
 #ifndef PETALYN_RUNTIME
     // Driftfin's grounded contact approximation must not ground hovering
@@ -867,11 +962,36 @@ void main(){ivec2 size=textureSize(image,0),p=ivec2(gl_FragCoord.xy);vec4 base=t
       p->contacts.push_back({center.x, center.z, rx, rz});
     }
   }
-  materialsUnique = p->materials.size();
-  cpuGeometryReleased = world.cpuGeometryBytes();
-  world.releaseGeometry();
-  setStyle(Style{});
-  check("GPU resource creation");
+  p->previousMatrices.clear();
+  p->dynamicCasters.clear();
+  p->shadowValid = p->groundValid = false;
+  p->progressive = true;
+  p->shadowGeneration++;
+}
+Mat Gpu::Impl::lightAt(Vec sun, float x, float z) const {
+  if (x == 0 && z == 0)
+    return villageLightProjection(sun);
+  Mat shift = Mat::identity();
+  shift.v[12] = -x;
+  shift.v[14] = -z;
+  return villageLightProjection(sun) * shift;
+}
+void Gpu::setShadowCenter(float x, float z) {
+  if (!std::isfinite(x) || !std::isfinite(z))
+    throw std::runtime_error("shadow centre");
+  if (x == p->pendingCenterX && z == p->pendingCenterZ)
+    return;
+  p->pendingCenterX = x;
+  p->pendingCenterZ = z;
+  if (!p->staticReady) { // nothing drawn yet: take the new area at once
+    p->shadowCenterX = x;
+    p->shadowCenterZ = z;
+    p->lightVP = p->light(p->look.sunDirection);
+  }
+  p->progressive = true;
+  p->shadowGeneration++;
+  p->shadowValid = p->groundValid = false;
+  shadowCacheInvalidations++;
 }
 void Gpu::setOverlay(std::function<void(const Mat &)> f) { p->overlay = std::move(f); }
 void Gpu::setFades(const std::vector<float> &f) { p->fades = f; }
@@ -936,13 +1056,13 @@ void Gpu::setGrass(MeshClumps *m, const std::filesystem::path &ground,
       if(w==1&&h==1)break;
     }
   }
-  p->grassGround=found->second;p->grassGroundBorrowed=true;
+  p->grassGround=found->second;p->grassGroundBorrowed=true;p->textureRefs[m->sourcePalette]++;
   if(!m->patches.weights.empty()) {
     gl::DeleteTextures(1,&p->grassGroups);gl::GenTextures(1,&p->grassGroups);
     gl::BindTexture(GL_TEXTURE_2D,p->grassGroups);
     gl::TexImage2D(GL_TEXTURE_2D,0,GL_RGBA8,m->patches.width,m->patches.height,0,GL_RGBA,GL_UNSIGNED_BYTE,m->patches.weights.data());
     gl::TexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);gl::TexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
-    gl::TexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);gl::TexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
+    gl::TexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,m->patches.repeat?GL_REPEAT:GL_CLAMP_TO_EDGE);gl::TexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,m->patches.repeat?GL_REPEAT:GL_CLAMP_TO_EDGE);
     textureBytes+=m->patches.weights.size();textureMipBytes+=m->patches.weights.size();texturesLoaded++;
   }
   p->grassRenderer->setPixelSurface(p->grassGround,p->grassGroups,{});
@@ -965,7 +1085,7 @@ void Gpu::setIntegration(const Integration &v) {
     p->shadowValid = p->groundValid = false;
   }
   p->integration = v;
-  p->lightVP = villageLightProjection(p->look.sunDirection);
+  p->lightVP = p->light(p->look.sunDirection);
 }
 void Gpu::setDiagnosticView(int v){if(v<0||v>11||v==8)throw std::runtime_error("diagnostic view range");p->diagnosticView=v;}
 void Gpu::setSourceView(bool v){p->sourceView=v;}
@@ -989,8 +1109,7 @@ void Gpu::setLook(const Look &l) {
     p->groundValid = false;
   }
   p->look = l;
-  p->lightVP =
-      villageLightProjection(l.sunDirection);
+  p->lightVP = p->light(l.sunDirection);
   auto vec = [&](GLuint prog, const char *name, Vec v) {
     gl::Uniform3f(gl::GetUniformLocation(prog, name), v.x, v.y, v.z);
   };
@@ -1107,6 +1226,11 @@ void Gpu::setEffects(const Effects &e) {
     gl::DeleteTextures(1, &p->staticShadowDepth);
     gl::DeleteTextures(1, &p->staticShadowOwners);
     p->staticShadowFbo = p->staticShadowDepth = p->staticShadowOwners = 0;
+    gl::DeleteFramebuffers(1, &p->buildShadowFbo);
+    gl::DeleteTextures(1, &p->buildShadowDepth);
+    gl::DeleteTextures(1, &p->buildShadowOwners);
+    p->buildShadowFbo = p->buildShadowDepth = p->buildShadowOwners = 0;
+    p->staticReady = p->rebuilding = false;
     p->shadowValid = p->groundValid = false;
   }
   if (p->effects.soft != e.soft) {
@@ -1202,7 +1326,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
       signature =
           (signature ^ std::bit_cast<std::uint32_t>(f)) * 1099511628211ULL;
     for (const auto &i : world.instances) {
-      if (world.models[i.model].rig || !p->policies[i.model].casts ||
+      if (!i.active || world.models[i.model].rig || !p->policies[i.model].casts ||
           (splitShadows && p->dynamicCasters[std::size_t(&i-world.instances.data())]))
         continue;
       signature = (signature ^ i.model) * 1099511628211ULL;
@@ -1213,6 +1337,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     if (signature != p->shadowSignature) {
       p->shadowValid = p->groundValid = false;
       p->shadowSignature = signature;
+      p->shadowGeneration++;
       shadowCacheInvalidations++;
     }
   }
@@ -1259,7 +1384,11 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
       p->shadowValid = false;
     }
     if (splitShadows || !p->shadowValid || p->effects.shadow == Shadow::Live) {
-      auto drawCasters = [&](bool dynamic) {
+      // Draws the casters from *cursor on; with a budget it stops once the
+      // time is used up and returns false (resume next frame).
+      auto drawCasters = [&](bool dynamic, const Mat &vp, std::size_t *cursor = nullptr,
+                             double budgetMs = 0) -> bool {
+      const auto sliceStart = Clock::now();
       gl::Viewport(0, 0, p->mapSize, p->mapSize);
       gl::Enable(GL_DEPTH_TEST);
       gl::DepthFunc(GL_LESS);
@@ -1268,10 +1397,17 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
       gl::Disable(GL_CULL_FACE);
 
       gl::UseProgram(p->shadowProgram);
-      uniformMatrix(p->shadowProgram, "lightVP", p->lightVP);
+      uniformMatrix(p->shadowProgram, "lightVP", vp);
       uniformInt(p->shadowProgram, "albedo", 0);
-      Frustum lightFrustum(p->lightVP);
-      for (auto &instance : world.instances) {
+      Frustum lightFrustum(vp);
+      for (std::size_t k = cursor ? *cursor : 0; k < world.instances.size(); k++) {
+        if (cursor && budgetMs > 0 && k > *cursor && ms(sliceStart, Clock::now()) > budgetMs) {
+          *cursor = k;
+          return false;
+        }
+        auto &instance = world.instances[k];
+        if (!instance.active)
+          continue;
         if (splitShadows && p->dynamicCasters[std::size_t(&instance-world.instances.data())] != dynamic)
           continue;
         if (!p->policies[instance.model].casts)
@@ -1362,29 +1498,74 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
           stats.shadowTriangles += std::size_t(part.count) / 3*std::size_t(std::max(1,part.instances));
         }
       }
+      if (cursor)
+        *cursor = world.instances.size();
+      return true;
       };
       auto clearShadow = [&] {
         gl::DepthMask(GL_TRUE);
         gl::Clear(GL_DEPTH_BUFFER_BIT);
         const GLuint empty[] = {0,0,0,0}; gl::ClearBufferuiv(GL_COLOR, 0, empty);
       };
+      bool complete = true;
       if (splitShadows) {
-        if (!p->shadowValid) {
+        if (!p->shadowValid && p->progressive && p->staticReady) {
+          if (!p->buildShadowFbo) {
+            gl::GenTextures(1, &p->buildShadowDepth);
+            bind(3, p->buildShadowDepth);
+            gl::TexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, p->mapSize, p->mapSize,
+                           0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, nullptr);
+            configureTexture(GL_NEAREST);
+            gl::GenTextures(1, &p->buildShadowOwners);
+            bind(9, p->buildShadowOwners);
+            gl::TexImage2D(GL_TEXTURE_2D, 0, GL_R16UI, p->mapSize, p->mapSize,
+                           0, GL_RED_INTEGER, GL_UNSIGNED_SHORT, nullptr);
+            configureTexture(GL_NEAREST);
+            gl::GenFramebuffers(1, &p->buildShadowFbo);
+            gl::BindFramebuffer(GL_FRAMEBUFFER, p->buildShadowFbo);
+            gl::FramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, p->buildShadowDepth, 0);
+            gl::FramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, p->buildShadowOwners, 0);
+            GLenum attachment = GL_COLOR_ATTACHMENT0;
+            gl::DrawBuffers(1, &attachment); gl::ReadBuffer(attachment);
+            if (gl::CheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+              throw std::runtime_error("shadow rebuild framebuffer incomplete");
+          }
+          gl::BindFramebuffer(GL_FRAMEBUFFER, p->buildShadowFbo);
+          if (!p->rebuilding || p->buildGeneration != p->shadowGeneration) {
+            p->rebuilding = true;
+            p->buildGeneration = p->shadowGeneration;
+            p->buildCursor = 0;
+            p->buildVP = p->lightAt(p->look.sunDirection, p->pendingCenterX, p->pendingCenterZ);
+            clearShadow();
+          }
+          if (drawCasters(false, p->buildVP, &p->buildCursor, 3.0)) {
+            std::swap(p->staticShadowFbo, p->buildShadowFbo);
+            std::swap(p->staticShadowDepth, p->buildShadowDepth);
+            std::swap(p->staticShadowOwners, p->buildShadowOwners);
+            p->shadowCenterX = p->pendingCenterX;
+            p->shadowCenterZ = p->pendingCenterZ;
+            p->lightVP = p->buildVP;
+            p->rebuilding = p->progressive = false;
+          } else
+            complete = false;
+        } else if (!p->shadowValid) {
           gl::BindFramebuffer(GL_FRAMEBUFFER, p->staticShadowFbo);
-          clearShadow(); drawCasters(false);
+          clearShadow(); drawCasters(false, p->lightVP);
+          p->rebuilding = p->progressive = false;
         }
+        p->staticReady = true;
         // Copy depth and exact caster IDs together, then overlay moving casters.
         gl::BindFramebuffer(GL_READ_FRAMEBUFFER, p->staticShadowFbo);
         gl::BindFramebuffer(GL_DRAW_FRAMEBUFFER, p->shadowFbo);
         gl::BlitFramebuffer(0,0,p->mapSize,p->mapSize,0,0,p->mapSize,p->mapSize,
                            GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
         gl::BindFramebuffer(GL_FRAMEBUFFER, p->shadowFbo);
-        drawCasters(true);
+        drawCasters(true, p->lightVP);
       } else {
         gl::BindFramebuffer(GL_FRAMEBUFFER, p->shadowFbo);
-        clearShadow(); drawCasters(false);
+        clearShadow(); drawCasters(false, p->lightVP);
       }
-      p->shadowValid = true;
+      p->shadowValid = complete;
       p->groundValid = false;
     }
     if (p->effects.shadow == Shadow::Ground && !p->groundValid) {
@@ -1448,7 +1629,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     uniformInt(p->mesh,"beamCount",patch.beamCount);
     gl::Uniform4fv(p->location(p->mesh,"beamApertures[0]"),4,patch.apertures[0].data());
     for(int i=0;i<3;i++){auto v=patch.beamColors[i];auto name="beamColors["+std::to_string(i)+"]";gl::Uniform3f(p->location(p->mesh,name.c_str()),v.x,v.y,v.z);}
-    gl::Uniform4fv(p->location(p->mesh,"meadowWorld"),1,patch.world.data());
+    gl::Uniform4fv(p->location(p->mesh,"meadowWorld"),1,patch.world.data());uniformInt(p->mesh,"meadowRepeat",patch.repeat);
     for(int i=0;i<3;i++){auto c=patch.lightColors[i];auto uniform="meadowLightColors["+std::to_string(i)+"]";gl::Uniform3f(p->location(p->mesh,uniform.c_str()),c.x,c.y,c.z);auto v=patch.colors[i];auto name="meadowColors["+std::to_string(i)+"]";gl::Uniform3f(p->location(p->mesh,name.c_str()),v.x,v.y,v.z);}
   }
   uniformFloat(p->mesh,"groundAnchor",p->profile.groundAnchor);uniformFloat(p->mesh,"groundContrast",p->profile.groundContrast);

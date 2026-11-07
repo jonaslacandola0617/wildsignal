@@ -17,7 +17,44 @@ namespace game {
 namespace {
 float worldHalf = 5.85f, tileStep = 12;
 std::vector<float> heights;
+// Where the player may stand; the legacy village keeps +-worldHalf.
+float walkMinX = -5.85f, walkMaxX = 5.85f, walkMinZ = -5.85f, walkMaxZ = 5.85f;
+// REGION-001 general height lattice (any size, any origin), filled per chunk.
+bool latticeMode = false;
+float latticeX = 0, latticeZ = 0, latticeStep = 1;
+int latticeNX = 0, latticeNZ = 0;
 } // namespace
+void configureLattice(float originX, float originZ, float step, int nx, int nz,
+                      float minX, float minZ, float maxX, float maxZ) {
+  if (!std::isfinite(originX) || !std::isfinite(originZ) || !std::isfinite(step) ||
+      step < .05f || step > 8 || nx < 2 || nz < 2 || nx > 4096 || nz > 4096)
+    throw std::runtime_error("height lattice");
+  if (!(minX < maxX) || !(minZ < maxZ) || !std::isfinite(minX + minZ + maxX + maxZ))
+    throw std::runtime_error("walk bounds");
+  latticeMode = true;
+  latticeX = originX;
+  latticeZ = originZ;
+  latticeStep = step;
+  latticeNX = nx;
+  latticeNZ = nz;
+  heights.assign(std::size_t(nx) * std::size_t(nz), 0.f);
+  walkMinX = minX;
+  walkMaxX = maxX;
+  walkMinZ = minZ;
+  walkMaxZ = maxZ;
+}
+void setLatticeBlock(int i0, int j0, int ni, int nj, const float *values) {
+  if (!latticeMode || i0 < 0 || j0 < 0 || ni < 1 || nj < 1 || i0 + ni > latticeNX ||
+      j0 + nj > latticeNZ)
+    throw std::runtime_error("height block outside lattice");
+  for (int j = 0; j < nj; j++)
+    for (int i = 0; i < ni; i++) {
+      float h = values[j * ni + i];
+      if (!std::isfinite(h) || std::abs(h) > 200)
+        throw std::runtime_error("terrain grid height");
+      heights[std::size_t(j0 + j) * std::size_t(latticeNX) + std::size_t(i0 + i)] = h;
+    }
+}
 void configureWorld(float extent, const std::filesystem::path &path,
                     float spacing) {
   if (!std::isfinite(spacing) || spacing < 11.5f || spacing > 20)
@@ -52,8 +89,20 @@ void configureHeights(float extent, std::vector<float> values, float spacing) {
   heights = std::move(values);
   worldHalf = extent;
   tileStep = spacing;
+  latticeMode = false;
+  walkMinX = walkMinZ = -extent;
+  walkMaxX = walkMaxZ = extent;
 }
 float terrain(float x, float z) {
+  if (latticeMode) {
+    float u = std::clamp((x - latticeX) / latticeStep, 0.f, float(latticeNX - 1)),
+          v = std::clamp((z - latticeZ) / latticeStep, 0.f, float(latticeNZ - 1));
+    int i = std::min(int(u), latticeNX - 2), j = std::min(int(v), latticeNZ - 2);
+    float a = u - i, b = v - j;
+    const std::size_t n = std::size_t(latticeNX), at = std::size_t(j) * n + std::size_t(i);
+    return (1 - b) * ((1 - a) * heights[at] + a * heights[at + 1]) +
+           b * ((1 - a) * heights[at + n] + a * heights[at + n + 1]);
+  }
   if (heights.size() == 257 * 257) {
     float u = std::clamp((x + worldHalf) / (2 * worldHalf), 0.f, 1.f) * 256,
           v = std::clamp((z + worldHalf) / (2 * worldHalf), 0.f, 1.f) * 256;
@@ -101,8 +150,8 @@ bool meadow(float x, float z, const std::vector<Solid> &solids) {
   return true;
 }
 bool freeAt(p3::Vec p, const std::vector<Solid> &s, float r) {
-  if (!p3::finite(p) || std::abs(p.x) > worldHalf - r ||
-      std::abs(p.z) > worldHalf - r)
+  if (!p3::finite(p) || p.x > walkMaxX - r || p.x < walkMinX + r ||
+      p.z > walkMaxZ - r || p.z < walkMinZ + r)
     return false;
   for (auto &a : s) {
     float x = std::max(std::abs(p.x - a.x) - a.hx, 0.f),
@@ -230,8 +279,8 @@ void Game::rest() {
       "Cottage shelter: companions rested. Exterior-only playtest; F5 saves.";
 }
 static std::string encode(const State &s) {
-  if (!p3::finite(s.player) || std::abs(s.player.x) > worldHalf ||
-      std::abs(s.player.z) > worldHalf || !std::isfinite(s.yaw) ||
+  if (!p3::finite(s.player) || s.player.x > walkMaxX || s.player.x < walkMinX ||
+      s.player.z > walkMaxZ || s.player.z < walkMinZ || !std::isfinite(s.yaw) ||
       std::abs(s.yaw) > 10000 || !std::isfinite(s.pitch) ||
       std::abs(s.pitch) > 1.25f || s.hp < 1 || s.hp > 30)
     throw std::runtime_error("invalid save state");

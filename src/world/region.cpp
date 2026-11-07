@@ -20,14 +20,18 @@ int whole(const ws::Json &j, int lo, int hi, const char *what) {
     throw std::runtime_error(std::string("region ") + what);
   return int(v);
 }
+const ws::Json *field(const ws::Json &j, const char *name) {
+  const auto &fields = std::get<ws::Json::Object>(j.value);
+  auto it = fields.find(name);
+  return it == fields.end() ? nullptr : &it->second;
+}
 // Rows keep a fixed "order" so draws and collisions never depend on which
 // chunk was read first; rows without one follow in file order.
 double order(const ws::Json &row) {
-  const auto &fields = std::get<ws::Json::Object>(row.value);
-  auto it = fields.find("order");
-  if (it == fields.end())
+  auto o = field(row, "order");
+  if (!o)
     return 1e18;
-  double n = it->second.number();
+  double n = o->number();
   if (!std::isfinite(n) || n < 0 || n != std::floor(n))
     throw std::runtime_error("region row order");
   return n;
@@ -39,13 +43,22 @@ std::uint32_t u32(const std::string &b, std::size_t at) {
   return n;
 }
 } // namespace
-Region Region::load(const std::filesystem::path &assets, const std::string &id) {
+std::pair<int, int> Region::chunkOf(float x, float z) const {
+  return {int(std::floor((x - originX) / chunkSize)), int(std::floor((z - originZ) / chunkSize))};
+}
+int Region::entryAt(int x, int z) const {
+  for (std::size_t i = 0; i < chunkFiles.size(); i++)
+    if (chunkFiles[i].x == x && chunkFiles[i].z == z)
+      return int(i);
+  return -1;
+}
+Region Region::open(const std::filesystem::path &assets, const std::string &id) {
   if (id.empty() || id.size() > 64 ||
       id.find_first_not_of("abcdefghijklmnopqrstuvwxyz0123456789_") != std::string::npos)
     throw std::runtime_error("region id");
-  const auto dir = p3::safePath(assets, "regions/" + id);
   Region r;
-  const auto text = p3::readText(dir / "region.json", 1024 * 1024);
+  r.dir = p3::safePath(assets, "regions/" + id);
+  const auto text = p3::readText(r.dir / "region.json", 1024 * 1024);
   r.bytesRead += text.size();
   r.config = ws::parseJson(text);
   const auto &c = r.config;
@@ -66,77 +79,131 @@ Region Region::load(const std::filesystem::path &assets, const std::string &id) 
   r.originZ = finiteNumber(origin[1], "grid origin");
   r.columns = whole(grid.at("columns"), 1, 64, "grid columns");
   r.rows = whole(grid.at("rows"), 1, 64, "grid rows");
-  r.walkHalf = finiteNumber(c.at("walk_half_extent"), "walk extent");
   r.groundSpacing = finiteNumber(c.at("ground_spacing"), "ground spacing");
-  r.heightHalf = finiteNumber(c.at("height").at("half_extent"), "height extent");
-  r.heightSamples = whole(c.at("height").at("samples"), 2, 1025, "height samples");
+  const auto &height = c.at("height");
+  if (field(height, "half_extent")) {
+    r.legacyHeight = true;
+    r.heightHalf = finiteNumber(height.at("half_extent"), "height extent");
+    r.heightNX = r.heightNZ = whole(height.at("samples"), 2, 1025, "height samples");
+    r.walkHalf = finiteNumber(c.at("walk_half_extent"), "walk extent");
+    r.walkMinX = r.walkMinZ = -r.walkHalf;
+    r.walkMaxX = r.walkMaxZ = r.walkHalf;
+  } else {
+    r.legacyHeight = false;
+    const auto &o = height.at("origin").array(), &n = height.at("count").array();
+    if (o.size() != 2 || n.size() != 2)
+      throw std::runtime_error("region height lattice");
+    r.heightOriginX = finiteNumber(o[0], "height origin");
+    r.heightOriginZ = finiteNumber(o[1], "height origin");
+    r.heightStep = finiteNumber(height.at("step"), "height step");
+    r.heightNX = whole(n[0], 2, 4096, "height count");
+    r.heightNZ = whole(n[1], 2, 4096, "height count");
+    const auto &walk = c.at("walk");
+    const auto &lo = walk.at("min").array(), &hi = walk.at("max").array();
+    if (lo.size() != 2 || hi.size() != 2)
+      throw std::runtime_error("region walk bounds");
+    r.walkMinX = finiteNumber(lo[0], "walk bounds");
+    r.walkMinZ = finiteNumber(lo[1], "walk bounds");
+    r.walkMaxX = finiteNumber(hi[0], "walk bounds");
+    r.walkMaxZ = finiteNumber(hi[1], "walk bounds");
+  }
   const auto &shared = c.at("shared");
   r.pack = shared.at("packs").at("default").string();
   r.sourcePack = shared.at("packs").at("source").string();
   r.stylePack = shared.at("packs").at("style").string();
   r.vegetation = shared.at("vegetation").string();
-
-  const float x0 = r.originX, z0 = r.originZ, size = r.chunkSize;
-  auto owner = [&](float x, float z) {
-    return std::pair{int(std::floor((x - x0) / size)), int(std::floor((z - z0) / size))};
-  };
-  const std::size_t n = std::size_t(r.heightSamples);
-  r.heights.assign(n * n, 0);
-  std::vector<unsigned char> covered(n * n, 0);
+  if (auto f = field(c, "shadow_follow"))
+    r.shadowFollow = std::get<bool>(f->value);
+  if (auto f = field(c, "persistent"))
+    r.persistent = f->array();
   std::set<std::pair<int, int>> seen;
-  std::vector<std::pair<double, RegionSolid>> solids;
   for (const auto &entry : c.at("chunks").array()) {
-    const int cx = whole(entry.at("x"), 0, r.columns - 1, "chunk x"),
-              cz = whole(entry.at("z"), 0, r.rows - 1, "chunk z");
-    if (!seen.insert({cx, cz}).second)
+    Entry e;
+    e.x = whole(entry.at("x"), 0, r.columns - 1, "chunk x");
+    e.z = whole(entry.at("z"), 0, r.rows - 1, "chunk z");
+    if (!seen.insert({e.x, e.z}).second)
       throw std::runtime_error("region chunk listed twice");
-    const auto file = p3::safePath(dir, entry.at("file").string());
-    const auto chunkText = p3::readText(file, 4 * 1024 * 1024);
-    r.bytesRead += chunkText.size();
-    const auto chunk = ws::parseJson(chunkText);
-    if (chunk.at("revision").number() != 1 || chunk.at("x").number() != cx ||
-        chunk.at("z").number() != cz)
-      throw std::runtime_error("chunk header " + file.filename().string());
-    // Everything in a chunk file must stand inside that chunk's square.
-    auto inside = [&](const ws::Json::Array &p, std::size_t xi, std::size_t zi) {
-      if (owner(float(p.at(xi).number()), float(p.at(zi).number())) != std::pair{cx, cz})
-        throw std::runtime_error("chunk content outside its square: " + file.filename().string());
-    };
-    for (const auto &row : chunk.at("instances").array()) {
-      inside(row.at("position").array(), 0, 2);
-      r.instances.push_back(row);
-    }
-    for (const auto &row : chunk.at("solids").array()) {
-      const auto &b = row.at("box").array();
-      if (b.size() != 4)
-        throw std::runtime_error("solid arity");
-      inside(b, 0, 1);
-      solids.push_back({order(row),
+    e.file = p3::safePath(r.dir, entry.at("file").string());
+    r.chunkFiles.push_back(e);
+  }
+  if (r.chunkFiles.empty())
+    throw std::runtime_error("region has no chunks");
+  return r;
+}
+ChunkData Region::readChunk(std::size_t index) const {
+  const auto &entry = chunkFiles.at(index);
+  const auto &file = entry.file;
+  ChunkData d;
+  d.x = entry.x;
+  d.z = entry.z;
+  const auto chunkText = p3::readText(file, 4 * 1024 * 1024);
+  d.bytes += chunkText.size();
+  const auto chunk = ws::parseJson(chunkText);
+  if (chunk.at("revision").number() != 1 || chunk.at("x").number() != d.x ||
+      chunk.at("z").number() != d.z)
+    throw std::runtime_error("chunk header " + file.filename().string());
+  // Everything in a chunk file must stand inside that chunk's square.
+  auto inside = [&](const ws::Json::Array &p, std::size_t xi, std::size_t zi) {
+    if (chunkOf(float(p.at(xi).number()), float(p.at(zi).number())) != std::pair{d.x, d.z})
+      throw std::runtime_error("chunk content outside its square: " + file.filename().string());
+  };
+  for (const auto &row : chunk.at("instances").array()) {
+    inside(row.at("position").array(), 0, 2);
+    d.instances.push_back(row);
+  }
+  for (const auto &row : chunk.at("solids").array()) {
+    const auto &b = row.at("box").array();
+    if (b.size() != 4)
+      throw std::runtime_error("solid arity");
+    inside(b, 0, 1);
+    d.solids.push_back({order(row),
                         {{float(b[0].number()), float(b[1].number()),
                           float(b[2].number()), float(b[3].number())},
                          std::get<bool>(row.at("house").value)}});
-    }
-    for (const auto &row : chunk.at("grass").array()) {
-      inside(row.at("position").array(), 0, 2);
-      r.grass.push_back(row);
-    }
-    const auto &fields = std::get<ws::Json::Object>(chunk.value);
-    if (auto h = fields.find("height"); h != fields.end()) {
-      const auto bytes = p3::readText(p3::safePath(file.parent_path(), h->second.string()), 4 * 1024 * 1024);
-      r.bytesRead += bytes.size();
-      if (bytes.size() < 20 || bytes.substr(0, 4) != "WSH1")
-        throw std::runtime_error("chunk height header");
-      const std::size_t i0 = u32(bytes, 4), j0 = u32(bytes, 8), ni = u32(bytes, 12), nj = u32(bytes, 16);
-      if (ni == 0 || nj == 0 || i0 + ni > n || j0 + nj > n || bytes.size() != 20 + ni * nj * 4)
-        throw std::runtime_error("chunk height size");
-      for (std::size_t j = 0; j < nj; j++)
-        for (std::size_t i = 0; i < ni; i++) {
-          const std::size_t at = (j0 + j) * n + i0 + i;
-          if (covered[at]++)
-            throw std::runtime_error("height sample owned twice");
-          r.heights[at] = std::bit_cast<float>(u32(bytes, 20 + (j * ni + i) * 4));
-        }
-    }
+  }
+  for (const auto &row : chunk.at("grass").array()) {
+    inside(row.at("position").array(), 0, 2);
+    d.grass.push_back(row);
+  }
+  if (auto h = field(chunk, "height")) {
+    const auto bytes = p3::readText(p3::safePath(file.parent_path(), h->string()), 16 * 1024 * 1024);
+    d.bytes += bytes.size();
+    if (bytes.size() < 20 || bytes.substr(0, 4) != "WSH1")
+      throw std::runtime_error("chunk height header");
+    const std::size_t i0 = u32(bytes, 4), j0 = u32(bytes, 8), ni = u32(bytes, 12), nj = u32(bytes, 16);
+    if (ni == 0 || nj == 0 || i0 + ni > std::size_t(heightNX) || j0 + nj > std::size_t(heightNZ) ||
+        bytes.size() != 20 + ni * nj * 4)
+      throw std::runtime_error("chunk height size");
+    d.i0 = int(i0);
+    d.j0 = int(j0);
+    d.ni = int(ni);
+    d.nj = int(nj);
+    d.heights.resize(ni * nj);
+    for (std::size_t k = 0; k < ni * nj; k++)
+      d.heights[k] = std::bit_cast<float>(u32(bytes, 20 + k * 4));
+  }
+  return d;
+}
+Region Region::load(const std::filesystem::path &assets, const std::string &id) {
+  Region r = open(assets, id);
+  const std::size_t nx = std::size_t(r.heightNX), nz = std::size_t(r.heightNZ);
+  r.heights.assign(nx * nz, 0);
+  std::vector<unsigned char> covered(nx * nz, 0);
+  std::vector<std::pair<double, RegionSolid>> solids;
+  r.instances = r.persistent;
+  for (std::size_t e = 0; e < r.chunkFiles.size(); e++) {
+    auto d = r.readChunk(e);
+    r.bytesRead += d.bytes;
+    r.instances.insert(r.instances.end(), d.instances.begin(), d.instances.end());
+    r.grass.insert(r.grass.end(), d.grass.begin(), d.grass.end());
+    solids.insert(solids.end(), d.solids.begin(), d.solids.end());
+    for (int j = 0; j < d.nj; j++)
+      for (int i = 0; i < d.ni; i++) {
+        const std::size_t at = std::size_t(d.j0 + j) * nx + std::size_t(d.i0 + i);
+        if (covered[at]++)
+          throw std::runtime_error("height sample owned twice");
+        r.heights[at] = d.heights[std::size_t(j * d.ni + i)];
+      }
     r.chunksLoaded++;
   }
   for (auto k : covered)
