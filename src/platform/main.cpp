@@ -9,6 +9,7 @@
 #include "json.hpp"
 #include "kit_terrain.hpp"
 #include "region.hpp"
+#include "streaming.hpp"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include <algorithm>
@@ -433,21 +434,22 @@ int main(int argc, char **argv) {
     log << "source=" << PIXEL3D_SOURCE_ID << "\nrender_optimizations=" << (!o.renderReference) << "\n";
     game::Game game;
     std::optional<world::Region> region;
+    std::unique_ptr<p3::RegionStream> stream;
     ws::Json cfg;
     if (!o.region.empty()) {
-      auto start = Clock::now();
-      region = world::Region::load(o.assets, o.region);
-      if (region->walkHalf != region->heightHalf)
-        throw std::runtime_error("region walk and height extents must match in REGION-001");
-      game::configureHeights(region->heightHalf, region->heights, region->groundSpacing);
+      region = world::Region::open(o.assets, o.region);
       cfg = region->config;
-      log << "region=" << region->id << "\nregion_chunks=" << region->chunksLoaded
-          << "\nregion_grid=" << region->columns << "x" << region->rows
-          << "\nregion_instances=" << region->instances.size()
-          << "\nregion_solids=" << region->solids.size()
-          << "\nregion_grass=" << region->grass.size()
-          << "\nregion_bytes=" << region->bytesRead
-          << "\nregion_load_ms=" << ms(start, Clock::now()) << "\n";
+      // Walk bounds before the save is read; the heights come with the chunks.
+      if (region->legacyHeight) {
+        if (region->walkHalf != region->heightHalf)
+          throw std::runtime_error("region walk and height extents must match in REGION-001");
+        game::configureHeights(region->heightHalf,
+                               std::vector<float>(std::size_t(region->heightNX) * std::size_t(region->heightNZ), 0.f),
+                               region->groundSpacing);
+      } else
+        game::configureLattice(region->heightOriginX, region->heightOriginZ, region->heightStep,
+                               region->heightNX, region->heightNZ, region->walkMinX,
+                               region->walkMinZ, region->walkMaxX, region->walkMaxZ);
     } else {
       cfg = ws::parseJson(p3::readText(o.assets / (o.treeScene?"tree_game.json":"game.json")));
       if (cfg.at("revision").number() != 1)
@@ -476,10 +478,70 @@ int main(int argc, char **argv) {
     game.message = "HEARTHGROVE EMACEART: explore the green. E rests at cottage doors / "
                    "meets wild Petalyn. F5 saves.";
 
-    if (region)
-      for (auto &s : region->solids)
-        game.solids.push_back(s.box);
-    else
+    // Model and object fix-ups, used for start-up and for every streamed model.
+    auto excludeMaterials = [&](p3::Model &model) {
+      bool found = false;
+      for (const auto &entry : cfg.at("exclude_materials").array())
+        if (model.id == entry.at("model").string()) {
+          for (const auto &name : entry.at("materials").array()) {
+            bool matched = false;
+            std::erase_if(model.parts, [&](const p3::Primitive &part) {
+              bool remove =
+                  model.materials.at(part.material).name == name.string();
+              matched |= remove;
+              return remove;
+            });
+            if (!matched)
+              throw std::runtime_error("excluded source material not found");
+          }
+          if (model.parts.empty())
+            throw std::runtime_error("source selection removed entire model");
+          found = true;
+        }
+      return found;
+    };
+    auto classify = [](p3::Model &m) {
+      for(auto &mat:m.materials) {
+        mat.architecture=p3::building(m.id)||m.id.starts_with("EA_FENCE")||m.id=="EA_BENCH"||m.id=="EA_BARREL";
+        mat.foliage=m.id.starts_with("EA_TREE_")||m.id.starts_with("EA_BUSH_")||m.id.starts_with("EA_REED_");
+        mat.leafy=mat.foliage;
+        mat.ground=(m.id=="EA_GROUND"||m.id.starts_with("HG_GROUND")||m.id.starts_with("HG_GREEN")||m.id.starts_with("HG_PATH"))||m.id.starts_with("EA_GREEN_")||m.id.starts_with("EA_PATH_")||m.id=="EA_COBBLE"||m.id=="EA_MOSS";
+        mat.studyKind=mat.ground?4:mat.architecture?1:mat.foliage?2:3;
+      }
+    };
+    float relief=1;
+    if(auto at=std::get<ws::Json::Object>(cfg.value).find("terrain_instance_y_scale");at!=std::get<ws::Json::Object>(cfg.value).end())relief=float(at->second.number());
+    p3::World world;
+    std::function<void(std::size_t)> modelUploaded; // set once the GPU exists
+    if (region) {
+      p3::Vec at = game.state.player;
+      if (!o.fresh && !o.benchmark)
+        if (auto peek = game::load(o.save); peek.loaded)
+          at = peek.state.player;
+      p3::RegionStream::Hooks hooks;
+      hooks.prepare = [&](p3::Model &m) { excludeMaterials(m); classify(m); };
+      hooks.place = [&](const p3::World &w, p3::Instance &i) {
+        if (p3::kitSurface(w.models.at(i.model).id)) {
+          for (int k : {1, 5, 9, 13})
+            i.matrix.v[k] *= relief;
+          i.bounds = p3::transformed(w.models[i.model].bounds, i.matrix);
+        }
+      };
+      hooks.uploaded = [&](std::size_t m) { if (modelUploaded) modelUploaded(m); };
+      stream = std::make_unique<p3::RegionStream>(*region, o.house, hooks);
+      auto start = Clock::now();
+      auto pack = p3::Pack::open(p3::safePath(o.assets, o.sourceTextures   ? region->sourcePack
+                                                       : o.pixelMaterials ? region->stylePack
+                                                                          : region->pack));
+      world = stream->start(at, pack);
+      game.solids = stream->solids();
+      const auto &st = stream->stats();
+      log << "region=" << region->id << "\nregion_grid=" << region->columns << "x" << region->rows
+          << "\nregion_start_chunks=" << st.chunkLoads << "\nregion_start_models=" << world.models.size()
+          << "\nregion_start_instances=" << world.instances.size()
+          << "\nregion_start_solids=" << game.solids.size()
+          << "\nregion_load_ms=" << ms(start, Clock::now()) << "\n";
+    } else
       for (auto &v : cfg.at("solids").array()) {
         auto &a = v.array();
         if (a.size() != 4)
@@ -492,17 +554,12 @@ int main(int argc, char **argv) {
           !std::isfinite(s.hz) || s.hx <= 0 || s.hz <= 0 || s.hx > 12 ||
           s.hz > 12)
         throw std::runtime_error("invalid solid");
-    if (game.solids.size() > 128)
+    if (game.solids.size() > (region ? 2048u : 128u))
       throw std::runtime_error("solid budget");
     auto grassSolids = game.solids;
-    if (!o.house) {
+    if (!o.house && !region) { // a region drops its house colliders as chunks load
       std::vector<std::size_t> indices;
-      if (region)
-        for (std::size_t i = 0; i < region->solids.size(); i++)
-          if (region->solids[i].house)
-            indices.push_back(i);
-      else
-        for (auto &v : cfg.at("house_solids").array()) {
+      for (auto &v : cfg.at("house_solids").array()) {
           double index = v.number();
           if (index < 0 || index >= game.solids.size() ||
               index != std::floor(index))
@@ -536,57 +593,32 @@ int main(int argc, char **argv) {
     game::Followers followers;
     followers.reset(game);
     auto worldStart = Clock::now();
-    auto world = region
-        ? p3::World::load(
-              p3::safePath(o.assets, o.sourceTextures   ? region->sourcePack
-                                     : o.pixelMaterials ? region->stylePack
-                                                        : region->pack),
-              region->instances, false)
-        : p3::World::load(
-              o.assets / (o.sourceTextures   ? "pack_source.json"
-                          : o.pixelMaterials ? "pack_style.json"
-                                             : "pack.json"),
-              o.assets / (o.treeScene?"tree_scene.json":o.house ? "scene.json" : "scene_nohouse.json"), false);
+    if (!region) {
+      world = p3::World::load(
+          o.assets / (o.sourceTextures   ? "pack_source.json"
+                      : o.pixelMaterials ? "pack_style.json"
+                                         : "pack.json"),
+          o.assets / (o.treeScene?"tree_scene.json":o.house ? "scene.json" : "scene_nohouse.json"), false);
+      // Select existing approved components without rewriting source asset files.
+      for (const auto &entry : cfg.at("exclude_materials").array()) {
+        bool found = false;
+        for (auto &model : world.models)
+          if (model.id == entry.at("model").string())
+            found = true;
+        if (!found)
+          throw std::runtime_error("source selection model missing");
+      }
+      for (auto &model : world.models)
+        excludeMaterials(model);
+      if (!o.house)
+        std::erase_if(world.instances,
+                      [](auto &i) { return i.id.starts_with("house_"); });
+      p3::applyKitRelief(world,relief);
+      for(auto &m:world.models) classify(m);
+    }
+    world.partition(3);
     log << "world_models=" << world.models.size() << "\nworld_instances=" << world.instances.size()
         << "\nworld_load_ms=" << ms(worldStart, Clock::now()) << "\n";
-    // Select existing approved components without rewriting source asset files.
-    for (const auto &entry : cfg.at("exclude_materials").array()) {
-      bool found = false;
-      for (auto &model : world.models)
-        if (model.id == entry.at("model").string()) {
-          for (const auto &name : entry.at("materials").array()) {
-            bool matched = false;
-            std::erase_if(model.parts, [&](const p3::Primitive &part) {
-              bool remove =
-                  model.materials.at(part.material).name == name.string();
-              matched |= remove;
-              return remove;
-            });
-            if (!matched)
-              throw std::runtime_error("excluded source material not found");
-          }
-          if (model.parts.empty())
-            throw std::runtime_error("source selection removed entire model");
-          found = true;
-        }
-      if (!found)
-        throw std::runtime_error("source selection model missing");
-    }
-    if (!o.house)
-      std::erase_if(world.instances,
-                    [](auto &i) { return i.id.starts_with("house_"); });
-    float relief=1;
-    const auto &config=std::get<ws::Json::Object>(cfg.value);
-    if(auto at=config.find("terrain_instance_y_scale");at!=config.end())relief=float(at->second.number());
-    p3::applyKitRelief(world,relief);
-    world.partition(3);
-    for(auto &m:world.models) for(auto &mat:m.materials) {
-      mat.architecture=p3::building(m.id)||m.id.starts_with("EA_FENCE")||m.id=="EA_BENCH"||m.id=="EA_BARREL";
-      mat.foliage=m.id.starts_with("EA_TREE_")||m.id.starts_with("EA_BUSH_")||m.id.starts_with("EA_REED_");
-      mat.leafy=mat.foliage;
-      mat.ground=(m.id=="EA_GROUND"||m.id.starts_with("HG_GROUND")||m.id.starts_with("HG_GREEN")||m.id.starts_with("HG_PATH"))||m.id.starts_with("EA_GREEN_")||m.id.starts_with("EA_PATH_")||m.id=="EA_COBBLE"||m.id=="EA_MOSS";
-      mat.studyKind=mat.ground?4:mat.architecture?1:mat.foliage?2:3;
-    }
     std::vector<std::size_t> actors;
     std::size_t playerActor = world.instances.size();
     for (std::size_t i = 0; i < world.instances.size(); i++)
@@ -605,13 +637,20 @@ int main(int argc, char **argv) {
       rig->sample(clip, 0);
     if (region && region->vegetation != "vegetation.json")
       throw std::runtime_error("REGION-001 shares the assets' vegetation.json");
+    const ws::Json::Array noRows;
     p3::MeshClumps grass(o.assets, grassSolids, o.legacyGrass,
                          o.forceLegacyGrass, o.scaleFamily,
-                         region ? &region->grass : nullptr);
-    if (region) { // Built into the world and grass now; the file rows are not needed.
-      ws::Json::Array().swap(region->instances);
-      ws::Json::Array().swap(region->grass);
-      std::vector<float>().swap(region->heights);
+                         region ? &noRows : nullptr);
+    if (stream) {
+      stream->attachGrass(&grass);
+      const auto &fields = std::get<ws::Json::Object>(cfg.value);
+      if (auto m = fields.find("meadow"); m != fields.end()) {
+        // A region can lay the meadow colour mask over its own area (and tile it).
+        const auto &lo = m->second.at("world_min").array(), &size = m->second.at("world_size").array();
+        grass.patches.world = {float(lo.at(0).number()), float(lo.at(1).number()),
+                               1 / float(size.at(0).number()), 1 / float(size.at(1).number())};
+        grass.patches.repeat = std::get<bool>(m->second.at("repeat").value);
+      }
     }
     if (o.requireAuthored && !grass.authored)
       throw std::runtime_error("EmaceArt revision2 vegetation.json required");
@@ -712,6 +751,30 @@ int main(int argc, char **argv) {
     std::vector<std::size_t> viewBlockers;
     std::vector<std::pair<std::size_t, std::size_t>> viewFollowers; // Window, chimney or smoke, and its building.
     std::vector<float> viewFades(world.instances.size(), 0.f);
+    auto rebuildViewSets = [&] {
+      viewBlockers.clear();
+      viewFollowers.clear();
+      viewFades.resize(world.instances.size(), 0.f);
+      // Anything tall enough to hide the Wayfinder can dissolve; ground, characters and building details cannot.
+      std::vector<std::size_t> details;
+      for(std::size_t i=0;i<world.instances.size();i++){
+        if(!world.instances[i].active)continue;
+        const auto &model=world.models[world.instances[i].model];const auto &b=world.instances[i].bounds;
+        if(model.id=="WSP_WINDOWS"||model.id=="PILOT_CHIMNEY"||model.id=="WSP_SMOKE"){details.push_back(i);continue;}
+        if(model.rig||model.id.starts_with("WS0")||model.materials.front().ground||model.id.starts_with("EA_GREEN")||model.id.starts_with("EA_PATH"))continue;
+        if(b.hi.y-b.lo.y>=.9f)viewBlockers.push_back(i);
+      }
+      for(auto i:details){
+        auto at=(world.instances[i].bounds.lo+world.instances[i].bounds.hi)*.5f;float best=1e9f;std::size_t home=i;
+        for(auto b:viewBlockers){
+          const auto &id=world.models[world.instances[b].model].id;
+          if(!p3::building(id))continue;
+          auto c=(world.instances[b].bounds.lo+world.instances[b].bounds.hi)*.5f;float d=std::hypot(c.x-at.x,c.z-at.z);
+          if(d<best)best=d,home=b;
+        }
+        if(home!=i)viewFollowers.emplace_back(i,home);
+      }
+    };
     if(!o.pilot.empty()){
       pixelUi=std::make_unique<p3::PixelUi>(o.pilot.parent_path());
       log<<"ui_texture_bytes="<<pixelUi->textureBytes()<<"\n";
@@ -729,24 +792,7 @@ int main(int argc, char **argv) {
         const auto &model=world.models[world.instances[i].model];
         if(model.id=="WS004"||model.id=="WS005"||model.id=="WS008"||model.id=="WS012"){stageModels[model.id]=i;stageHome[model.id]=world.instances[i].matrix;}
       }
-      // Anything tall enough to hide the Wayfinder can dissolve; ground, characters and building details cannot.
-      std::vector<std::size_t> details;
-      for(std::size_t i=0;i<world.instances.size();i++){
-        const auto &model=world.models[world.instances[i].model];const auto &b=world.instances[i].bounds;
-        if(model.id=="WSP_WINDOWS"||model.id=="PILOT_CHIMNEY"||model.id=="WSP_SMOKE"){details.push_back(i);continue;}
-        if(model.rig||model.id.starts_with("WS0")||model.materials.front().ground||model.id.starts_with("EA_GREEN")||model.id.starts_with("EA_PATH"))continue;
-        if(b.hi.y-b.lo.y>=.9f)viewBlockers.push_back(i);
-      }
-      for(auto i:details){
-        auto at=(world.instances[i].bounds.lo+world.instances[i].bounds.hi)*.5f;float best=1e9f;std::size_t home=i;
-        for(auto b:viewBlockers){
-          const auto &id=world.models[world.instances[b].model].id;
-          if(!p3::building(id))continue;
-          auto c=(world.instances[b].bounds.lo+world.instances[b].bounds.hi)*.5f;float d=std::hypot(c.x-at.x,c.z-at.z);
-          if(d<best)best=d,home=b;
-        }
-        if(home!=i)viewFollowers.emplace_back(i,home);
-      }
+      rebuildViewSets();
     }
     p3::Style style;
     style.mode = 2;
@@ -790,9 +836,17 @@ int main(int argc, char **argv) {
       bool extra=world.models[i].id.starts_with("WSP_FLOWER_")||world.models[i].id.starts_with("WSP_TUFT_");
       gpu.setSurfacePolicy(i,{!ground&&!extra,true,1,0,false});
     }
+    modelUploaded = [&](std::size_t i) {
+      bool ground=!world.models[i].materials.empty()&&world.models[i].materials[0].ground;
+      bool extra=world.models[i].id.starts_with("WSP_FLOWER_")||world.models[i].id.starts_with("WSP_TUFT_");
+      gpu.setSurfacePolicy(i,{!ground&&!extra,true,1,0,false});
+    };
     gpu.setMeadowExtras(o.meadowExtras);
     gpu.setLeafSnap(o.leafSnap);
     gpu.setGrass(&grass,{},{});
+    bool chunkOverlay = false;
+    if (stream)
+      stream->attachGpu(&gpu);
     log << "vendor=" << gpu.vendor << "\nrenderer=" << gpu.renderer
         << "\nversion=" << gpu.version << "\nsoftware=" << gpu.software
         << "\ntexture_bytes=" << gpu.textureBytes
@@ -831,7 +885,7 @@ int main(int argc, char **argv) {
               "second_state,player_yaw,grass_total,grass_culled,grass_shadow_"
               "draws,grass_shadow_triangles,tree_caster_draws,rock_caster_"
               "draws,building_caster_draws,shadow_cache_invalidations,shadow_"
-              "cpu_ms,internal_width,internal_height,grass_density,grass_lod,grass_lod0,grass_lod1,grass_lod2,meadow_patches,shadow_enabled,shafts_enabled,haze_enabled,source_mode,quality,shadow_size,shaft_steps,shaft_divisor,air_proof,atmosphere_width,atmosphere_height,meadow_lighting,defined_shafts,meadow_response,grass_outlines,beam_count,tree_mode,tree_leaf_cards,plain_leaves\n";
+              "cpu_ms,internal_width,internal_height,grass_density,grass_lod,grass_lod0,grass_lod1,grass_lod2,meadow_patches,shadow_enabled,shafts_enabled,haze_enabled,source_mode,quality,shadow_size,shaft_steps,shaft_divisor,air_proof,atmosphere_width,atmosphere_height,meadow_lighting,defined_shafts,meadow_response,grass_outlines,beam_count,tree_mode,tree_leaf_cards,plain_leaves,chunks_active,chunk_loads,chunk_unloads,models_resident,models_freed,stream_ms\n";
     timers << "frame,gpu_elapsed_ms\n";
     events << "frame,event,phase,hp,enemy_hp,recruited,x,z\n";
     auto event = [&](int f, const std::string &name) {
@@ -1107,6 +1161,7 @@ int main(int argc, char **argv) {
               followers.reset(game);
               game.message = l.message;
               event(frame, l.recovered ? "recover" : "load");
+            } else if(e.key.key==SDLK_F11&&stream){chunkOverlay=!chunkOverlay;event(frame,"chunk_overlay");
             } else if(e.key.key==SDLK_F2){o.hudMode=(o.hudMode+1)%3;event(frame,"hud_toggle");
             } else if (e.key.key == SDLK_F3) {
               o.debugFollow = !o.debugFollow;
@@ -1439,6 +1494,19 @@ int main(int argc, char **argv) {
           i.palette = world.models[i.model].rig->sample(moving ? "Walk" : "Idle", moving ? playerStride : animation, true);
       }
       auto animateEnd = Clock::now();
+      double streamMs = 0;
+      if (stream) {
+        auto t = Clock::now();
+        if (stream->update(game.state.player, world)) {
+          game.solids = stream->solids();
+          gpu.worldChanged(world);
+          rebuildViewSets();
+          event(frame, "chunks_changed");
+        }
+        if (region->shadowFollow) // shadow area follows in 8 m steps
+          gpu.setShadowCenter(8 * std::round(game.state.player.x / 8), 8 * std::round(game.state.player.z / 8));
+        streamMs = ms(t, Clock::now());
+      }
       world.partition(3);
       // The eye the flat view is really drawn from sits far back along the view line.
       p3::Camera sight = camera;
@@ -1567,7 +1635,12 @@ int main(int argc, char **argv) {
         else compact.push_back(game.state.recruited?"EXPLORE / F5 SAVE / F2 HUD":game.state.visited?"E ENCOUNTER / F5 SAVE / F2 HUD":"E COTTAGE REST / F5 SAVE / F2 HUD");
         if(!game.message.empty())compact.push_back(game.message.substr(0,68));hud=std::move(compact);}
       if(tree)hud.push_back(std::string("T TREE ")+p3::treeModeName(o.treeMode)+" / M "+(o.treeMode==4?"PLAIN LOCKED":o.leafPlain?"PLAIN":"SOURCE"));
-      if (!o.coverage&&o.hudMode!=0)
+      if (stream && chunkOverlay) {
+        auto lines = stream->overlay(game.state.player);
+        if (o.hudMode != 0)
+          lines.insert(lines.begin(), hud.begin(), hud.end());
+        gpu.hud(lines, ow, oh);
+      } else if (!o.coverage&&o.hudMode!=0)
         gpu.hud(hud, ow, oh);
       if (pixelUi && scene) {
         auto toCanvas = [&](p3::Vec at) {
@@ -1664,7 +1737,10 @@ int main(int argc, char **argv) {
              << ',' << o.quality << ',' << effects.shadowSize << ',' << effects.steps << ',' << effects.divisor
              << ',' << (o.boundedAir?"bounded":"legacy") << ',' << (o.shafts?(o.boundedAir?o.w/effects.divisor:style.atmosphereWidth):0)
              << ',' << (o.shafts?(o.boundedAir?(o.w*9/16)/effects.divisor:style.atmosphereWidth*9/16):0)
-             << ',' << grass.patches.lightDriven << ',' << o.definedShafts << ',' << o.meadowResponse << ',' << o.grassOutlines << ',' << grass.patches.beamCount << ',' << o.treeMode << ',' << stats.treeLeafCards << ',' << o.leafPlain << '\n';
+             << ',' << grass.patches.lightDriven << ',' << o.definedShafts << ',' << o.meadowResponse << ',' << o.grassOutlines << ',' << grass.patches.beamCount << ',' << o.treeMode << ',' << stats.treeLeafCards << ',' << o.leafPlain
+             << ',' << (stream ? stream->stats().chunksActive : 0) << ',' << (stream ? stream->stats().chunkLoads : 0)
+             << ',' << (stream ? stream->stats().chunkUnloads : 0) << ',' << (stream ? stream->stats().modelsResident : 0)
+             << ',' << (stream ? stream->stats().modelUnloads : 0) << ',' << streamMs << '\n';
       lastSwap = swapped;
       if (frame % 120 == 0) {
         frames.flush();
@@ -1672,12 +1748,26 @@ int main(int argc, char **argv) {
       }
       frame++;
     }
+    if (stream) // the loading thread uses the grass, which goes before the stream
+      stream->stop();
     gpu.finish();
     int qi;
     double qms;
     while (gpu.pollTimer(qi, qms))
       timers << qi << ',' << qms << '\n';
     gpu.save(o.out / "final_world.ppm");
+    if (stream) {
+      const auto &st = stream->stats();
+      log << "stream_chunk_loads=" << st.chunkLoads << "\nstream_chunk_unloads=" << st.chunkUnloads
+          << "\nstream_model_loads=" << st.modelLoads << "\nstream_model_frees=" << st.modelUnloads
+          << "\nstream_models_resident=" << st.modelsResident << "\nstream_slots=" << st.slots
+          << "\nstream_max_read_ms=" << st.maxReadMs << "\nstream_max_upload_ms=" << st.maxUploadMs
+          << "\nstream_max_activate_ms=" << st.maxActivateMs << "\nstream_max_deactivate_ms=" << st.maxDeactivateMs
+          << "\nstream_max_release_ms=" << st.maxReleaseMs << "\nstream_max_step_ms=" << st.maxApplyMs
+          << "\nstream_max_drop_ms=" << st.maxDropMs << "\nstream_max_grass_ms=" << st.maxGrassMs
+          << "\nstream_max_collect_ms=" << st.maxCollectMs
+          << "\ntexture_bytes_end=" << gpu.textureBytes << "\ngpu_buffer_bytes_end=" << gpu.bufferBytes << "\n";
+    }
     if(o.diagnostic>=4){gpu.saveObjectIDs(o.out);std::ofstream ids(o.out/"object_ids.csv");ids<<"owner,instance,model\n";for(std::size_t i=0;i<world.instances.size();i++)ids<<i+1<<','<<world.instances[i].id<<','<<world.models[world.instances[i].model].id<<'\n';}
     if(o.diagnostic==4||o.diagnostic==9||o.cacheProbe)gpu.saveDiagnostics(o.out);
     log<<"ownership_target_bytes="<<gpu.ownershipBytes()<<"\n";

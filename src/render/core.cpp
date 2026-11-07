@@ -1,4 +1,5 @@
 #include "core.hpp"
+#include <set>
 #include "json.hpp"
 #include <algorithm>
 #include <fstream>
@@ -223,7 +224,17 @@ void World::partition(float size) {
     throw std::runtime_error("invalid chunk size");
   chunks.clear();
   std::map<std::pair<int, int>, std::size_t> index;
-  for (std::size_t i = 0; i < instances.size(); i++) {
+  // Fixed draw order (REGION-001): chunk read order and reused slots never
+  // change which of two touching objects draws first.
+  std::vector<std::size_t> sequence;
+  sequence.reserve(instances.size());
+  for (std::size_t i = 0; i < instances.size(); i++)
+    if (instances[i].active)
+      sequence.push_back(i);
+  std::stable_sort(sequence.begin(), sequence.end(), [&](std::size_t a, std::size_t b) {
+    return instances[a].order < instances[b].order;
+  });
+  for (std::size_t i : sequence) {
     auto &b = instances[i].bounds;
     Vec c = (b.lo + b.hi) * .5f;
     auto key = std::pair{static_cast<int>(std::floor(c.x / size)),
@@ -271,33 +282,26 @@ World World::load(const std::filesystem::path &pack,
     extent = float(e->second.number());
   return load(pack, s.at("instances").array(), stress, extent);
 }
-World World::load(const std::filesystem::path &pack,
-                  const ws::Json::Array &instances, bool stress,
-                  float groundExtent) {
-  World w;
+std::shared_ptr<const Pack> Pack::open(const std::filesystem::path &pack) {
+  auto out = std::make_shared<Pack>();
+  out->root = pack.parent_path();
   auto j = ws::parseJson(readText(pack));
   if (j.at("revision").number() != 1)
     throw std::runtime_error("pack revision");
   auto &arr = j.at("models").array();
-  if (arr.empty() || arr.size() > 64)
+  // No model-count cap: a region's models are budgeted by bytes when loaded.
+  if (arr.empty() || arr.size() > 4096)
     throw std::runtime_error("model count");
-  std::map<std::string, bool> required;
-  for (auto &i : instances)
-    required[i.at("model").string()] = true;
-  if (required.contains("ground"))
-    required["Grass_Common_Short"] = true;
-  std::map<std::string, std::filesystem::path> overrides;
   const auto &obj = std::get<ws::Json::Object>(j.value);
   if (auto it = obj.find("texture_overrides"); it != obj.end())
     for (auto &t : it->second.array()) {
       auto from = safePath(pack.parent_path(), t.at("source").string());
       auto to = safePath(pack.parent_path(), t.at("file").string());
-      if (!overrides.emplace(from.string(), to).second)
+      if (!out->overrides.emplace(from.string(), to).second)
         throw std::runtime_error("duplicate texture override");
       if (!std::filesystem::is_regular_file(to))
         throw std::runtime_error("missing derived texture");
     }
-  std::map<std::string, std::pair<std::filesystem::path, int>> variants;
   if (auto it = obj.find("texture_styles"); it != obj.end())
     for (auto &t : it->second.array()) {
       auto from = safePath(pack.parent_path(), t.at("source").string());
@@ -305,66 +309,142 @@ World World::load(const std::filesystem::path &pack,
       double kind = t.at("kind").number();
       if (kind < 1 || kind > 4 || kind != std::floor(kind) ||
           !std::filesystem::is_regular_file(to) ||
-          !variants.emplace(from.string(), std::pair{to, int(kind)}).second)
+          !out->variants.emplace(from.string(), std::pair{to, int(kind)}).second)
         throw std::runtime_error("invalid texture style");
     }
-  std::map<std::string, std::size_t> ids;
+  std::set<std::string> seen;
   for (auto &m : arr) {
     auto id = m.at("id").string();
-    if (ids.contains(id))
+    if (!seen.insert(id).second)
       throw std::runtime_error("duplicate model");
-    if (!required.contains(id))
-      continue;
-    ids[id] = w.models.size();
-    auto model =
-        Model::load(safePath(pack.parent_path(), m.at("path").string()));
-    model.id = id;
-    // Extra semantic channel used only by the new B1/B2 post pass. Preserve
-    // all inherited classifications/lighting for exact B0 parity.
-    for (auto &mat : model.materials) {
-      if (id == "RURAL_05") mat.studyKind = 1;
-      else if (id.starts_with("PLANT_") || id.starts_with("TREE_")) {
-        auto name = mat.name;
-        std::transform(name.begin(), name.end(), name.begin(),
-                       [](unsigned char c) { return char(std::tolower(c)); });
-        mat.studyKind = name.find("trunk") != name.npos ||
-                                name.find("bark") != name.npos ||
-                                name.find("soil") != name.npos ? 3 : 2;
-      } else if (id == "TERRAIN_01") mat.studyKind = 3;
-      else if (id == "TEST_GROUND") mat.studyKind = 4;
-    }
-    for (auto &mat : model.materials)
-      mat.foliage = id.starts_with("CommonTree") || id.starts_with("Bush_") ||
-                    id.starts_with("Flower_") || id.starts_with("Fern_") ||
-                    id.starts_with("Grass_");
-    for (auto &mat : model.materials) {
-      auto textureName = mat.texture.filename().string();
-      mat.kind = textureName == "T_WoodTrim_BaseColor.png"     ? 1
-                 : textureName == "T_Plaster_BaseColor.png"    ? 2
-                 : textureName == "T_RoundTiles_BaseColor.png" ? 3
-                 : (textureName == "T_RockTrim_BaseColor.png" ||
-                    textureName == "T_Brick_BaseColor.png" ||
-                    textureName == "T_UnevenBrick_BaseColor.png" ||
-                    textureName == "Rocks_Diffuse.png")
-                     ? 4
-                     : 0;
-      mat.leafy = mat.foliage && !textureName.starts_with("Bark");
-      mat.architecture = id.starts_with("Wall_") || id.starts_with("Roof_") ||
-                         id.starts_with("Corner_") || id.starts_with("Door") ||
-                         id.starts_with("Window") || id == "Prop_Chimney";
-      if (auto found = variants.find(mat.texture.string());
-          found != variants.end()) {
-        mat.styleTexture = found->second.first;
-        mat.kind = found->second.second;
-      }
-    }
-    for (auto &mat : model.materials)
-      if (!mat.texture.empty())
-        if (auto it = overrides.find(mat.texture.string());
-            it != overrides.end())
-          mat.texture = it->second;
-    w.models.push_back(std::move(model));
+    out->entries.emplace_back(id, safePath(pack.parent_path(), m.at("path").string()));
   }
+  return out;
+}
+bool Pack::has(const std::string &id) const {
+  return std::any_of(entries.begin(), entries.end(),
+                     [&](const auto &e) { return e.first == id; });
+}
+Model Pack::load(const std::string &id) const {
+  auto entry = std::find_if(entries.begin(), entries.end(),
+                            [&](const auto &e) { return e.first == id; });
+  if (entry == entries.end())
+    throw std::runtime_error("missing model " + id);
+  auto model = Model::load(entry->second);
+  model.id = id;
+  // Extra semantic channel used only by the new B1/B2 post pass. Preserve
+  // all inherited classifications/lighting for exact B0 parity.
+  for (auto &mat : model.materials) {
+    if (id == "RURAL_05") mat.studyKind = 1;
+    else if (id.starts_with("PLANT_") || id.starts_with("TREE_")) {
+      auto name = mat.name;
+      std::transform(name.begin(), name.end(), name.begin(),
+                     [](unsigned char c) { return char(std::tolower(c)); });
+      mat.studyKind = name.find("trunk") != name.npos ||
+                              name.find("bark") != name.npos ||
+                              name.find("soil") != name.npos ? 3 : 2;
+    } else if (id == "TERRAIN_01") mat.studyKind = 3;
+    else if (id == "TEST_GROUND") mat.studyKind = 4;
+  }
+  for (auto &mat : model.materials)
+    mat.foliage = id.starts_with("CommonTree") || id.starts_with("Bush_") ||
+                  id.starts_with("Flower_") || id.starts_with("Fern_") ||
+                  id.starts_with("Grass_");
+  for (auto &mat : model.materials) {
+    auto textureName = mat.texture.filename().string();
+    mat.kind = textureName == "T_WoodTrim_BaseColor.png"     ? 1
+               : textureName == "T_Plaster_BaseColor.png"    ? 2
+               : textureName == "T_RoundTiles_BaseColor.png" ? 3
+               : (textureName == "T_RockTrim_BaseColor.png" ||
+                  textureName == "T_Brick_BaseColor.png" ||
+                  textureName == "T_UnevenBrick_BaseColor.png" ||
+                  textureName == "Rocks_Diffuse.png")
+                   ? 4
+                   : 0;
+    mat.leafy = mat.foliage && !textureName.starts_with("Bark");
+    mat.architecture = id.starts_with("Wall_") || id.starts_with("Roof_") ||
+                       id.starts_with("Corner_") || id.starts_with("Door") ||
+                       id.starts_with("Window") || id == "Prop_Chimney";
+    if (auto found = variants.find(mat.texture.string());
+        found != variants.end()) {
+      mat.styleTexture = found->second.first;
+      mat.kind = found->second.second;
+    }
+  }
+  for (auto &mat : model.materials)
+    if (!mat.texture.empty())
+      if (auto it = overrides.find(mat.texture.string());
+          it != overrides.end())
+        mat.texture = it->second;
+  return model;
+}
+Placement placementOf(const ws::Json &i, double fallbackOrder) {
+  Placement out;
+  out.model = i.at("model").string();
+  out.id = i.at("id").string();
+  auto &a = i.at("position").array();
+  if (a.size() != 3)
+    throw std::runtime_error("position size");
+  out.matrix = transform({static_cast<float>(a[0].number()),
+                          static_cast<float>(a[1].number()),
+                          static_cast<float>(a[2].number())},
+                         static_cast<float>(i.at("yaw").number()) * pi / 180,
+                         static_cast<float>(i.at("scale").number()));
+  out.order = fallbackOrder;
+  const auto &fields = std::get<ws::Json::Object>(i.value);
+  if (auto o = fields.find("order"); o != fields.end()) {
+    double n = o->second.number();
+    if (!std::isfinite(n) || n < 0 || n != std::floor(n))
+      throw std::runtime_error("instance order");
+    out.order = n;
+  }
+  return out;
+}
+Instance World::instanceAt(const Placement &p) const {
+  auto found = modelIds.find(p.model);
+  if (found == modelIds.end() || !models[found->second].resident)
+    throw std::runtime_error("missing model " + p.model);
+  Instance out{found->second, p.matrix,
+               transformed(models[found->second].bounds, p.matrix), p.id};
+  out.order = p.order;
+  return out;
+}
+Instance World::instanceFrom(const ws::Json &i, double fallbackOrder) const {
+  return instanceAt(placementOf(i, fallbackOrder));
+}
+std::size_t World::addModel(Model model) {
+  model.resident = true;
+  if (auto found = modelIds.find(model.id); found != modelIds.end()) {
+    if (models[found->second].resident)
+      throw std::runtime_error("model already resident " + model.id);
+    models[found->second] = std::move(model);
+    return found->second;
+  }
+  modelIds[model.id] = models.size();
+  models.push_back(std::move(model));
+  return models.size() - 1;
+}
+void World::dropModel(std::size_t index) {
+  Model empty;
+  empty.id = models.at(index).id;
+  empty.resident = false;
+  models[index] = std::move(empty);
+}
+World World::load(const std::filesystem::path &pack,
+                  const ws::Json::Array &instances, bool stress,
+                  float groundExtent) {
+  World w;
+  w.pack = Pack::open(pack);
+  std::map<std::string, bool> required;
+  for (auto &i : instances)
+    required[i.at("model").string()] = true;
+  if (required.contains("ground"))
+    required["Grass_Common_Short"] = true;
+  const auto &variants = w.pack->variants;
+  auto &ids = w.modelIds;
+  for (auto &entry : w.pack->entries)
+    if (required.contains(entry.first))
+      w.addModel(w.pack->load(entry.first));
   w.styleMaterialsReady = !variants.empty();
   for (auto &model : w.models)
     for (auto &material : model.materials)
@@ -399,20 +479,7 @@ World World::load(const std::filesystem::path &pack,
   for (auto &i : instances) {
     if (w.instances.size() >= 4096)
       throw std::runtime_error("instance limit");
-    auto id = i.at("model").string();
-    if (!ids.contains(id))
-      throw std::runtime_error("missing model " + id);
-    auto &a = i.at("position").array();
-    if (a.size() != 3)
-      throw std::runtime_error("position size");
-    auto matrix = transform({static_cast<float>(a[0].number()),
-                             static_cast<float>(a[1].number()),
-                             static_cast<float>(a[2].number())},
-                            static_cast<float>(i.at("yaw").number()) * pi / 180,
-                            static_cast<float>(i.at("scale").number()));
-    w.instances.push_back({ids[id], matrix,
-                           transformed(w.models[ids[id]].bounds, matrix),
-                           i.at("id").string()});
+    w.instances.push_back(w.instanceFrom(i, double(w.instances.size())));
   }
   if (stress) {
     auto original = w.instances;

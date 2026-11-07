@@ -1,6 +1,8 @@
 """REGION-001 parity: the village from region files must render exactly as before.
 
-Usage: python -I tools/region_parity.py PLAY_FOLDER BASE_EXE NEW_EXE OUT_DIR [REGION_ID]
+Usage: python -I tools/region_parity.py PLAY_FOLDER BASE_EXE NEW_EXE OUT_DIR [REGION_ID] [SPOTS]
+
+SPOTS is an optional comma list of spot numbers (default: all 12).
 
 For each start spot, runs BASE_EXE (old files) and NEW_EXE twice (old files,
 then --region) with the same fixed-step replay: stand, quarter turn, walk.
@@ -62,8 +64,10 @@ def run(exe, folder, out, spot, region):
 def main():
     folder, base, new, out = (Path(a).resolve() for a in sys.argv[1:5])
     region = sys.argv[5] if len(sys.argv) > 5 else "hearthgrove_test"
+    pick = [int(x) for x in sys.argv[6].split(",")] if len(sys.argv) > 6 else range(len(SPOTS))
     lines, ok = [], True
-    for n, spot in enumerate(SPOTS):
+    for n in pick:
+        spot = SPOTS[n]
         runs = {
             "base": run(base, folder, out / ("%02d_base" % n), spot, None),
             "control": run(base, folder, out / ("%02d_control" % n), spot, None),

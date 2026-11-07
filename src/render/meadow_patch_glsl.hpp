@@ -3,7 +3,7 @@ namespace p3 {
 static constexpr const char *meadowPatchGLSL=R"GLSL(
 uniform sampler2D meadowPatches;
 uniform int meadowPatchOn;
-uniform vec4 meadowWorld;
+uniform vec4 meadowWorld;uniform int meadowRepeat;
 uniform vec3 meadowColors[3],meadowLightColors[3];
 uniform int meadowLightingOn;
 // Palette is display-directed: avoid multiplying the authored ramp by a
@@ -27,7 +27,7 @@ vec3 meadowBeamLit(vec3 originalColor,vec3 world,float incidence,float visibilit
  return srgbEncode(clamp(ramp*tone,0.,1.));
 }
 vec3 meadowColor(vec2 worldXZ){
- vec2 q=clamp((worldXZ-meadowWorld.xy)*meadowWorld.zw,vec2(0),vec2(1));
+ vec2 q=meadowRepeat!=0?fract((worldXZ-meadowWorld.xy)*meadowWorld.zw):clamp((worldXZ-meadowWorld.xy)*meadowWorld.zw,vec2(0),vec2(1));
  vec3 weights=texture(meadowPatches,q).rgb;
  weights/=max(.001,weights.r+weights.g+weights.b);
  return meadowColors[0]*weights.r+meadowColors[1]*weights.g+meadowColors[2]*weights.b;

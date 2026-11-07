@@ -27,6 +27,7 @@ struct MeshClumps {
   // Stable per-clump seed for density thinning and detail bands, so chunk
   // order never changes which clumps thin out (REGION-001).
   std::vector<std::uint32_t> seeds;
+  std::vector<int> chunks; // REGION-001: the chunk each clump came from (-1 = start-up rows)
   std::vector<Box> bounds;
   std::vector<std::vector<MeshTransform>> batches;
   std::vector<std::array<int,3>> lodModels;
@@ -54,5 +55,16 @@ struct MeshClumps {
                       int scaleFamily = 0,
                       const ws::Json::Array *regionRows = nullptr);
   MeshVisibility select(const Camera &, const Frustum &, int height);
+  struct Prepared {
+    std::vector<MeshTransform> all;
+    std::vector<int> variants;
+    std::vector<Box> bounds;
+    std::vector<std::uint32_t> seeds;
+  };
+  Prepared prepare(const ws::Json::Array &rows, std::uint32_t firstSeed) const;
+  void addPrepared(const Prepared &, int chunk);
+  void addRows(const ws::Json::Array &rows, int chunk);
+  void removeChunk(int chunk);
+  void order();
 };
 } // namespace p3

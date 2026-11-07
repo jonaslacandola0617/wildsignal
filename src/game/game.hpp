@@ -32,6 +32,11 @@ void configureWorld(float halfExtent, const std::filesystem::path &heightGrid,
 // Same height lattice handed over directly (REGION-001 chunks rebuild it).
 void configureHeights(float halfExtent, std::vector<float> values,
                       float tileSpacing);
+// REGION-001 general lattice: samples at origin + (i, j) * step, all zero
+// until chunks fill their blocks; the player stays inside the walk bounds.
+void configureLattice(float originX, float originZ, float step, int nx, int nz,
+                      float minX, float minZ, float maxX, float maxZ);
+void setLatticeBlock(int i0, int j0, int ni, int nj, const float *values);
 float terrain(float x, float z);
 float pathX(float z);
 bool meadow(float x, float z, const std::vector<Solid> &);

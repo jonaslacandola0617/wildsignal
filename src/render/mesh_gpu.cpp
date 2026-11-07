@@ -294,10 +294,11 @@ void MeshRenderer::setPixelSurface(unsigned ground, unsigned groups,
 std::size_t MeshRenderer::bytes() const { return p->bytes; }
 static void submit(GLuint vao, GLuint stream, GLsizei indices,
                    const std::vector<MeshTransform> &data,
-                   std::size_t capacity) {
+                   std::size_t &capacity) {
   if (data.empty())
     return;
-  if(data.size()>capacity)throw std::runtime_error("grass instance stream capacity");
+  // Streamed chunks can bring more clumps than start-up had: grow the stream.
+  if(data.size()>capacity)capacity=data.size()+data.size()/2;
   mg::BindVertexArray(vao);
   mg::BindBuffer(GL_ARRAY_BUFFER, stream);
   mg::BufferData(GL_ARRAY_BUFFER, capacity * sizeof(MeshTransform), nullptr,
@@ -348,7 +349,7 @@ MeshVisibility MeshRenderer::draw(MeshClumps &m, const Camera &camera,
     mg::Uniform1i(mg::GetUniformLocation(p->shader,"meadowLightingOn"),m.patches.enabled&&m.patches.lightDriven&&p->toon);
     mg::Uniform1i(mg::GetUniformLocation(p->shader,"meadowPatchOn"),m.patches.enabled&&p->toon);
     mg::Uniform1i(mg::GetUniformLocation(p->shader,"meadowPatches"),7);
-    mg::Uniform4fv(mg::GetUniformLocation(p->shader,"meadowWorld"),1,m.patches.world.data());
+    mg::Uniform4fv(mg::GetUniformLocation(p->shader,"meadowWorld"),1,m.patches.world.data());mg::Uniform1i(mg::GetUniformLocation(p->shader,"meadowRepeat"),m.patches.repeat);
     for(int i=0;i<3;i++){auto c=m.patches.lightColors[i];auto uniform="meadowLightColors["+std::to_string(i)+"]";mg::Uniform3f(mg::GetUniformLocation(p->shader,uniform.c_str()),c.x,c.y,c.z);auto v=m.patches.colors[i];auto name="meadowColors["+std::to_string(i)+"]";mg::Uniform3f(mg::GetUniformLocation(p->shader,name.c_str()),v.x,v.y,v.z);}
     for(int i=0;i<3;i++){auto v=m.instanceGrades[i];auto name="instanceGrades["+std::to_string(i)+"]";mg::Uniform3f(mg::GetUniformLocation(p->shader,name.c_str()),v.x,v.y,v.z);}
     auto integer = [&](const char *n, int v) { mg::Uniform1i(loc(n), v); };

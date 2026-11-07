@@ -17,6 +17,8 @@ import sys
 from pathlib import Path
 
 CHUNK = 32.0
+# The characters follow the player everywhere, so they never unload with a chunk.
+PERSISTENT_IDS = ("player_actor", "companion", "wild")
 
 
 def main():
@@ -54,8 +56,12 @@ def main():
               for cz in range(rows) for cx in range(cols)}
     # "order" is a fixed draw order: objects that touch at the same depth
     # always draw the same way, whichever chunk loads first.
+    persistent = []
     for order, r in enumerate(scene["instances"]):
-        chunks[cell(r["position"][0], r["position"][2])]["instances"].append({**r, "order": order})
+        if r["id"] in PERSISTENT_IDS:
+            persistent.append({**r, "order": order})
+        else:
+            chunks[cell(r["position"][0], r["position"][2])]["instances"].append({**r, "order": order})
     houses = set(game["house_solids"])
     for index, (x, z, hx, hz) in enumerate(game["solids"]):
         chunks[cell(x, z)]["solids"].append({"box": [x, z, hx, hz], "house": index in houses, "order": index})
@@ -106,10 +112,12 @@ def main():
         "rest_spots": game["rest_spots"],
         "review_cameras": game["review_cameras"],
         "exclude_materials": game["exclude_materials"],
+        "persistent": persistent,
         "chunks": listing,
     }
     (out / "region.json").write_text(json.dumps(region, indent=1))
     counts = {k: sum(len(c[k]) for c in chunks.values()) for k in ("instances", "solids", "grass")}
+    counts["persistent"] = len(persistent)
     print("region", region_id, "grid", cols, "x", rows, "origin", ox, oz, counts)
 
 

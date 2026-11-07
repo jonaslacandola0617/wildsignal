@@ -1,5 +1,6 @@
 #pragma once
 #include "json.hpp"
+#include <map>
 #include <array>
 #include <cmath>
 #include <cstdint>
@@ -84,6 +85,8 @@ struct Model {
   std::vector<Material> materials;
   std::vector<Primitive> parts;
   Box bounds;
+  // REGION-001: false while a streamed model's slot waits empty (id kept).
+  bool resident = true;
   std::size_t triangles() const;
   static Model load(const std::filesystem::path &);
 };
@@ -93,6 +96,9 @@ struct Instance {
   Box bounds;
   std::string id;
   std::vector<Mat> palette;
+  // REGION-001: an unloaded chunk's objects stay in their slot, switched off.
+  bool active = true;
+  double order = 0; // fixed draw order across chunks
 };
 struct Chunk {
   Box bounds;
@@ -103,8 +109,28 @@ struct Visibility {
               objectsCulled = 0;
   std::uint64_t triangles = 0;
 };
+// One placed object read from a scene.json-shaped row (no model needed yet).
+struct Placement {
+  std::string model, id;
+  Mat matrix;
+  double order = 0;
+};
+Placement placementOf(const ws::Json &row, double fallbackOrder);
+// A model list (pack.json). Loading only reads files, so a streaming thread
+// may call load() while the game draws.
+struct Pack {
+  std::filesystem::path root;
+  std::vector<std::pair<std::string, std::filesystem::path>> entries; // file order
+  std::map<std::string, std::filesystem::path> overrides;
+  std::map<std::string, std::pair<std::filesystem::path, int>> variants;
+  static std::shared_ptr<const Pack> open(const std::filesystem::path &);
+  bool has(const std::string &id) const;
+  Model load(const std::string &id) const;
+};
 struct World {
   bool styleMaterialsReady = false;
+  std::shared_ptr<const Pack> pack;
+  std::map<std::string, std::size_t> modelIds; // id -> slot, kept while unloaded
   std::vector<Model> models;
   std::vector<Instance> instances;
   std::vector<Chunk> chunks;
@@ -112,6 +138,11 @@ struct World {
   std::size_t cpuGeometryBytes() const;
   void releaseGeometry();
   Visibility visible(const Frustum &, bool, std::vector<std::size_t> &) const;
+  // One scene.json-shaped row; its model must be resident.
+  Instance instanceFrom(const ws::Json &row, double fallbackOrder) const;
+  Instance instanceAt(const Placement &) const;
+  std::size_t addModel(Model); // reuses the id's slot if it had one
+  void dropModel(std::size_t);
   static World load(const std::filesystem::path &pack,
                     const std::filesystem::path &scene, bool stress);
   // Instance rows already gathered (REGION-001 chunk files), scene.json's shape.
