@@ -1865,7 +1865,9 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     }
     // LOOKDEV-005 ledges (WSP_CLIFF) are stone: shaded like the rocks, mossy where they face up.
     int family=model.rig||model.id.starts_with("WS0")?-1:model.id.starts_with("WSP_CLIFF")||model.id.starts_with("WS_TERRAIN_ROCK_")?4:model.id.starts_with("WS_TERRAIN_")?5:model.id.starts_with("WSP_")||model.id.starts_with("EA_TREE")||model.id.starts_with("EA_BUSH")||model.id.starts_with("EA_REED")?1:model.id.starts_with("EA_ROCK")?4:model.id.starts_with("EA_PATH")||model.id=="EA_COBBLE"||model.id.starts_with("HG_PATH")?3:model.id=="EA_GROUND"||model.id.starts_with("HG_GROUND")||model.id.starts_with("HG_GREEN")||model.id.starts_with("EA_GREEN")?5:model.id.starts_with("EA_GREEN")||model.id.starts_with("HG_GREEN")||model.id=="EA_MOSS"?0:2;
-    uniformInt(p->mesh,"profileFamily",family);
+    // R9 trunks (painted_form) under the tree IDs keep their approved painted shading, which
+    // the dream look gives the prop family; their leaves stay in the tree family.
+    uniformInt(p->mesh,"profileFamily",family==1&&mat.paintedForm?2:family);
     uniformInt(p->mesh,"pilotMeadow",isMeadowExtra(model.id));
     // Under the flat camera the whole image moves in whole pixels, so snapped leaf cards stay
     // still while walking and each tiny leaf sprite is drawn pixel for pixel.
