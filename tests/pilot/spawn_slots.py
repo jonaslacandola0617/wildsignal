@@ -66,6 +66,18 @@ def main():
         before = reg.read_text()
         add()
         check(reg.read_text() == before, "add_signari twice changes nothing")
+
+        # home_slots.py: hidden rows for the placeable pieces, only in a region with a site.
+        (assets / "pack_style.json").write_text(json.dumps({"models": [{"id": "EA_BARREL", "path": "b.gltf"}]}))
+        home = folder / "homestead.json"
+        home.write_text(json.dumps({"sites": [{"region": "r"}], "pieces": [{"id": "plot"}, {"id": "barrel", "model": "EA_BARREL", "limit": 3, "scale": 1}]}))
+        slots = lambda: subprocess.run([sys.executable, "-I", str(tools / "home_slots.py"), str(reg), str(home)], check=True, capture_output=True, text=True)
+        slots()
+        ids = [r["id"] for r in json.loads(reg.read_text())["persistent"] if r["model"] == "EA_BARREL"]
+        check(ids == ["home_barrel", "home_barrel#1", "home_barrel#2"], "a barrel row per allowed barrel")
+        before = reg.read_text()
+        slots()
+        check(reg.read_text() == before, "home_slots twice changes nothing")
     print("spawn slots ok")
 
 

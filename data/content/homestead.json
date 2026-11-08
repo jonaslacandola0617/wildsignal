@@ -1,0 +1,30 @@
+{
+  "schema": "wildsignal-homestead-v1",
+  "status": "PROPOSED - HOME-001 first version (GDD 2.10, D-081). Site spots, times and prices are placeholders; plots and crops are drawn as plain marks until the homestead art exists, and the placeable pieces are props already in the game.",
+  "grid": {"cells": 6, "cell": 1.5},
+  "sites": [
+    {"id": "hearth_meadow", "region": "hearthgrove_test", "name": "Your homestead", "at": [0.5, 0.5]},
+    {"id": "hearth_meadow", "region": "streaming_test", "name": "Your homestead", "at": [0.5, 0.5]}
+  ],
+  "crops": [
+    {"id": "BERRY_BUSH", "name": "Berries", "seed": "BERRY_SEED", "harvest": "WILD_BERRY", "seconds": 120, "amount": 3},
+    {"id": "HERB_PATCH", "name": "Herbs", "seed": "HERB_SEED", "harvest": "WILD_HERB", "seconds": 180, "amount": 2}
+  ],
+  "pieces": [
+    {"id": "plot", "name": "Farm plot", "role": "plot", "price": 20, "limit": 8, "solid": [0, 0], "scale": 1},
+    {"id": "workbench", "name": "Workbench", "role": "bench", "model": "EA_BENCH", "price": 40, "limit": 1, "solid": [0.6, 0.4], "scale": 1},
+    {"id": "barrel", "name": "Barrel", "role": "decor", "model": "EA_BARREL", "price": 15, "limit": 3, "solid": [0.35, 0.35], "scale": 1},
+    {"id": "fence", "name": "Fence", "role": "decor", "model": "EA_FENCE_A", "price": 10, "limit": 4, "solid": [0.6, 0.15], "scale": 1}
+  ],
+  "start": [
+    {"piece": "plot", "x": 1, "z": 1},
+    {"piece": "plot", "x": 2, "z": 1},
+    {"piece": "plot", "x": 1, "z": 2},
+    {"piece": "plot", "x": 2, "z": 2},
+    {"piece": "workbench", "x": 4, "z": 1}
+  ],
+  "recipes": [
+    {"id": "tonic", "result": "HERB_TONIC", "count": 1, "needs": [{"item": "WILD_HERB", "count": 2}, {"item": "WILD_BERRY", "count": 1}]},
+    {"id": "root", "result": "REVIVE_ROOT", "count": 1, "needs": [{"item": "WILD_HERB", "count": 3}, {"item": "BRIGHT_PEBBLE", "count": 2}]}
+  ]
+}
