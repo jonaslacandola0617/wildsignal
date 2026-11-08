@@ -38,6 +38,34 @@ def main():
         before = path.read_text()
         run()
         check(path.read_text() == before, "second run changes nothing")
+
+        # add_signari.py: pack entry + hidden row + copies, only for species in the region's table.
+        assets = folder / "assets"
+        (assets / "regions/r/chunks").mkdir(parents=True)
+        (assets / "regions/r/chunks/c_0_0.json").write_text(json.dumps({"instances": [{"id": "tree", "model": "T", "order": 500}]}))
+        (assets / "pack_style.json").write_text(json.dumps({"models": [{"id": "WS005", "path": "WS005.glb"}]}))
+        for m in ("WS013", "WS020"):
+            (assets / (m + ".glb")).write_bytes(b"glTF")
+        reg = assets / "regions/r/region.json"
+        reg.write_text(json.dumps({"id": "r", "shared": {"packs": {"default": "pack_style.json", "source": "pack_style.json", "style": "pack_style.json"}},
+                                   "persistent": [{"id": "pilot_ws005", "model": "WS005", "position": [0, 0, 0], "order": 10}],
+                                   "chunks": [{"x": 0, "z": 0, "file": "chunks/c_0_0.json"}]}))
+        manifest = folder / "manifest.json"
+        manifest.write_text(json.dumps([{"id": "WS013", "scale": 0.4}, {"id": "WS020", "scale": 0.5}]))
+        spawns = folder / "spawns.json"
+        spawns.write_text(json.dumps({"regions": {"r": {"zones": [{"entries": [{"species": "WS-013"}]}]}}}))
+        add = lambda: subprocess.run([sys.executable, "-I", str(tools / "add_signari.py"), str(reg), str(manifest), "--spawns", str(spawns)],
+                                     check=True, capture_output=True, text=True)
+        add()
+        rows = json.loads(reg.read_text())["persistent"]
+        pack = json.loads((assets / "pack_style.json").read_text())["models"]
+        check([r["id"] for r in rows if r["model"] == "WS013"] == ["wild_ws013", "wild_ws013#1", "wild_ws013#2"], "WS013 gets a row and 2 copies")
+        check(all(r["scale"] == 0.4 and r["order"] > 500 for r in rows if r["model"] == "WS013"), "manifest scale, drawn after the world")
+        check(not any(r["model"] == "WS020" for r in rows) and not any(m["id"] == "WS020" for m in pack), "species not in the table are left out")
+        check({"id": "WS013", "path": "WS013.glb"} in pack, "pack lists the model")
+        before = reg.read_text()
+        add()
+        check(reg.read_text() == before, "add_signari twice changes nothing")
     print("spawn slots ok")
 
 

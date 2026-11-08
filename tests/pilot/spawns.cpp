@@ -15,7 +15,11 @@ static int failures = 0;
       failures++;                                                                \
     }                                                                            \
   } while (0)
-static const std::vector<std::string> Known{"WS-004", "WS-005", "WS-008", "WS-012"};
+static const std::vector<std::string> Known = [] {
+  std::vector<std::string> ids;
+  for (int n = 1; n <= 20; n++) ids.push_back((n < 10 ? "WS-00" : "WS-0") + std::to_string(n));
+  return ids;
+}();
 static float flat(p3::Vec a, p3::Vec b) { return std::hypot(a.x - b.x, a.z - b.z); }
 static p3::Vec freeMove(p3::Vec, p3::Vec b) { return b; }
 static bool throws(const std::string &text) {

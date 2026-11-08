@@ -1,6 +1,6 @@
 {
  "schema": "wildsignal-kits-v1",
- "source": "docs/gdd/04_CREATURES.md 4.5-4.6. PROPOSED (FIGHT-002): the first nine, built from today's pilot moves with energy removed; ultimates are new. Tune by playing.",
+ "source": "docs/gdd/04_CREATURES.md 4.5-4.6. PROPOSED (FIGHT-002): the first nine, built from today's pilot moves with energy removed; ultimates are new. Tune by playing. SPAWN-002 (2026-11-08): placeholder kits and stats for WS-002, WS-007, WS-009, WS-010, WS-013, WS-003, WS-014, WS-015, WS-019, WS-020, WS-006, WS-011, WS-018, WS-016, WS-017 from the 4.5 role table, PROPOSED for the owner's batch review.",
  "kits": [
   {
    "species": "WS-004",
@@ -1293,6 +1293,2091 @@
       "kind": "status",
       "target": "enemy",
       "status": "Slow",
+      "durationMs": 4000
+     }
+    ]
+   }
+  },
+  {
+   "species": "WS-002",
+   "basic": {
+    "id": "BERRY_TOSS",
+    "name": "Berry Toss",
+    "shape": "dash",
+    "kind": "signal",
+    "rangeMm": 2400,
+    "sizeMm": 650,
+    "windupMs": 560,
+    "recoverMs": 400,
+    "cooldownMs": 1800,
+    "unlockLevel": 1,
+    "effects": [
+     {
+      "kind": "damage",
+      "target": "enemy",
+      "amount": 16
+     }
+    ]
+   },
+   "skills": [
+    {
+     "id": "SWEET_JUICE",
+     "name": "Sweet Juice",
+     "shape": "self",
+     "rangeMm": 0,
+     "sizeMm": 0,
+     "windupMs": 620,
+     "recoverMs": 420,
+     "cooldownMs": 9000,
+     "unlockLevel": 1,
+     "effects": [
+      {
+       "kind": "heal",
+       "target": "self",
+       "amount": 10
+      }
+     ],
+     "rankUps": [
+      {
+       "level": 15,
+       "powerPercent": 115
+      },
+      {
+       "level": 30,
+       "cooldownPercent": 85
+      }
+     ]
+    },
+    {
+     "id": "BRAMBLE_COVER",
+     "name": "Bramble Cover",
+     "shape": "self",
+     "rangeMm": 0,
+     "sizeMm": 0,
+     "windupMs": 420,
+     "recoverMs": 420,
+     "cooldownMs": 8000,
+     "unlockLevel": 1,
+     "effects": [
+      {
+       "kind": "status",
+       "target": "self",
+       "status": "Guard",
+       "durationMs": 3000
+      }
+     ],
+     "rankUps": [
+      {
+       "level": 15,
+       "cooldownPercent": 85
+      },
+      {
+       "level": 30,
+       "cooldownPercent": 85
+      }
+     ]
+    },
+    {
+     "id": "RIPENING",
+     "name": "Ripening",
+     "shape": "self",
+     "rangeMm": 0,
+     "sizeMm": 0,
+     "windupMs": 520,
+     "recoverMs": 420,
+     "cooldownMs": 11000,
+     "unlockLevel": 5,
+     "effects": [
+      {
+       "kind": "status",
+       "target": "self",
+       "status": "Regen",
+       "durationMs": 4000
+      }
+     ],
+     "rankUps": [
+      {
+       "level": 15,
+       "cooldownPercent": 85
+      },
+      {
+       "level": 30,
+       "cooldownPercent": 85
+      }
+     ]
+    }
+   ],
+   "ultimate": {
+    "id": "ORCHARD_FEAST",
+    "name": "Orchard Feast",
+    "shape": "self",
+    "rangeMm": 0,
+    "sizeMm": 0,
+    "windupMs": 900,
+    "recoverMs": 600,
+    "cooldownMs": 0,
+    "unlockLevel": 10,
+    "effects": [
+     {
+      "kind": "heal",
+      "target": "team",
+      "amount": 14
+     },
+     {
+      "kind": "status",
+      "target": "self",
+      "status": "Regen",
+      "durationMs": 4000
+     }
+    ]
+   }
+  },
+  {
+   "species": "WS-007",
+   "basic": {
+    "id": "HORN_POKE",
+    "name": "Horn Poke",
+    "shape": "dash",
+    "kind": "physical",
+    "rangeMm": 2400,
+    "sizeMm": 650,
+    "windupMs": 560,
+    "recoverMs": 400,
+    "cooldownMs": 1800,
+    "unlockLevel": 1,
+    "effects": [
+     {
+      "kind": "damage",
+      "target": "enemy",
+      "amount": 16
+     }
+    ]
+   },
+   "skills": [
+    {
+     "id": "RAM_RUSH",
+     "name": "Ram Rush",
+     "shape": "dash",
+     "kind": "physical",
+     "rangeMm": 2600,
+     "sizeMm": 700,
+     "windupMs": 700,
+     "recoverMs": 420,
+     "cooldownMs": 5000,
+     "unlockLevel": 1,
+     "effects": [
+      {
+       "kind": "damage",
+       "target": "enemy",
+       "amount": 24
+      }
+     ],
+     "rankUps": [
+      {
+       "level": 15,
+       "powerPercent": 115
+      },
+      {
+       "level": 30,
+       "cooldownPercent": 85
+      }
+     ]
+    },
+    {
+     "id": "BOUNDING_LEAP",
+     "name": "Bounding Leap",
+     "shape": "dash",
+     "kind": "physical",
+     "rangeMm": 5000,
+     "sizeMm": 650,
+     "windupMs": 500,
+     "recoverMs": 420,
+     "cooldownMs": 6500,
+     "unlockLevel": 1,
+     "effects": [
+      {
+       "kind": "damage",
+       "target": "enemy",
+       "amount": 14
+      }
+     ],
+     "rankUps": [
+      {
+       "level": 15,
+       "powerPercent": 115
+      },
+      {
+       "level": 30,
+       "cooldownPercent": 85
+      }
+     ]
+    },
+    {
+     "id": "TRAMPLE",
+     "name": "Trample",
+     "shape": "lane",
+     "kind": "signal",
+     "rangeMm": 6000,
+     "sizeMm": 560,
+     "windupMs": 800,
+     "recoverMs": 420,
+     "cooldownMs": 8000,
+     "unlockLevel": 5,
+     "effects": [
+      {
+       "kind": "damage",
+       "target": "enemy",
+       "amount": 10
+      },
+      {
+       "kind": "status",
+       "target": "enemy",
+       "status": "Slow",
+       "durationMs": 4000
+      }
+     ],
+     "rankUps": [
+      {
+       "level": 15,
+       "powerPercent": 115
+      },
+      {
+       "level": 30,
+       "cooldownPercent": 85
+      }
+     ]
+    }
+   ],
+   "ultimate": {
+    "id": "STAMPEDE",
+    "name": "Stampede",
+    "shape": "burst",
+    "kind": "physical",
+    "rangeMm": 3000,
+    "sizeMm": 2600,
+    "windupMs": 1000,
+    "recoverMs": 700,
+    "cooldownMs": 0,
+    "unlockLevel": 10,
+    "effects": [
+     {
+      "kind": "damage",
+      "target": "enemy",
+      "amount": 36
+     }
+    ]
+   }
+  },
+  {
+   "species": "WS-009",
+   "basic": {
+    "id": "FLUFF_PAT",
+    "name": "Fluff Pat",
+    "shape": "dash",
+    "kind": "physical",
+    "rangeMm": 2400,
+    "sizeMm": 650,
+    "windupMs": 560,
+    "recoverMs": 400,
+    "cooldownMs": 1800,
+    "unlockLevel": 1,
+    "effects": [
+     {
+      "kind": "damage",
+      "target": "enemy",
+      "amount": 16
+     }
+    ]
+   },
+   "skills": [
+    {
+     "id": "COSY_FLUFF",
+     "name": "Cosy Fluff",
+     "shape": "self",
+     "rangeMm": 0,
+     "sizeMm": 0,
+     "windupMs": 620,
+     "recoverMs": 420,
+     "cooldownMs": 9000,
+     "unlockLevel": 1,
+     "effects": [
+      {
+       "kind": "heal",
+       "target": "self",
+       "amount": 10
+      }
+     ],
+     "rankUps": [
+      {
+       "level": 15,
+       "powerPercent": 115
+      },
+      {
+       "level": 30,
+       "cooldownPercent": 85
+      }
+     ]
+    },
+    {
+     "id": "PUFFBALL_WALL",
+     "name": "Puffball Wall",
+     "shape": "self",
+     "rangeMm": 0,
+     "sizeMm": 0,
+     "windupMs": 420,
+     "recoverMs": 420,
+     "cooldownMs": 8000,
+     "unlockLevel": 1,
+     "effects": [
+      {
+       "kind": "status",
+       "target": "self",
+       "status": "Guard",
+       "durationMs": 3000
+      }
+     ],
+     "rankUps": [
+      {
+       "level": 15,
+       "cooldownPercent": 85
+      },
+      {
+       "level": 30,
+       "cooldownPercent": 85
+      }
+     ]
+    },
+    {
+     "id": "SNUGGLE",
+     "name": "Snuggle",
+     "shape": "self",
+     "rangeMm": 0,
+     "sizeMm": 0,
+     "windupMs": 520,
+     "recoverMs": 420,
+     "cooldownMs": 11000,
+     "unlockLevel": 5,
+     "effects": [
+      {
+       "kind": "status",
+       "target": "self",
+       "status": "Regen",
+       "durationMs": 4000
+      }
+     ],
+     "rankUps": [
+      {
+       "level": 15,
+       "cooldownPercent": 85
+      },
+      {
+       "level": 30,
+       "cooldownPercent": 85
+      }
+     ]
+    }
+   ],
+   "ultimate": {
+    "id": "DOWNY_CLOUD",
+    "name": "Downy Cloud",
+    "shape": "self",
+    "rangeMm": 0,
+    "sizeMm": 0,
+    "windupMs": 900,
+    "recoverMs": 600,
+    "cooldownMs": 0,
+    "unlockLevel": 10,
+    "effects": [
+     {
+      "kind": "heal",
+      "target": "team",
+      "amount": 14
+     },
+     {
+      "kind": "status",
+      "target": "self",
+      "status": "Regen",
+      "durationMs": 4000
+     }
+    ]
+   }
+  },
+  {
+   "species": "WS-010",
+   "basic": {
+    "id": "PETAL_FLUTTER",
+    "name": "Petal Flutter",
+    "shape": "dash",
+    "kind": "signal",
+    "rangeMm": 2400,
+    "sizeMm": 650,
+    "windupMs": 560,
+    "recoverMs": 400,
+    "cooldownMs": 1800,
+    "unlockLevel": 1,
+    "effects": [
+     {
+      "kind": "damage",
+      "target": "enemy",
+      "amount": 16
+     }
+    ]
+   },
+   "skills": [
+    {
+     "id": "POLLEN_DRIFT",
+     "name": "Pollen Drift",
+     "shape": "lane",
+     "kind": "signal",
+     "rangeMm": 7000,
+     "sizeMm": 560,
+     "windupMs": 800,
+     "recoverMs": 420,
+     "cooldownMs": 6000,
+     "unlockLevel": 1,
+     "gentle": true,
+     "effects": [
+      {
+       "kind": "damage",
+       "target": "enemy",
+       "amount": 10
+      },
+      {
+       "kind": "status",
+       "target": "enemy",
+       "status": "Slow",
+       "durationMs": 4000
+      }
+     ],
+     "rankUps": [
+      {
+       "level": 15,
+       "powerPercent": 115
+      },
+      {
+       "level": 30,
+       "cooldownPercent": 85
+      }
+     ]
+    },
+    {
+     "id": "WING_FLIT",
+     "name": "Wing Flit",
+     "shape": "dash",
+     "kind": "signal",
+     "rangeMm": 6000,
+     "sizeMm": 600,
+     "windupMs": 360,
+     "recoverMs": 420,
+     "cooldownMs": 7000,
+     "unlockLevel": 1,
+     "effects": [
+      {
+       "kind": "damage",
+       "target": "enemy",
+       "amount": 8
+      }
+     ],
+     "rankUps": [
+      {
+       "level": 15,
+       "powerPercent": 115
+      },
+      {
+       "level": 30,
+       "cooldownPercent": 85
+      }
+     ]
+    },
+    {
+     "id": "GUST_VEIL",
+     "name": "Gust Veil",
+     "shape": "self",
+     "rangeMm": 0,
+     "sizeMm": 0,
+     "windupMs": 400,
+     "recoverMs": 420,
+     "cooldownMs": 10000,
+     "unlockLevel": 5,
+     "effects": [
+      {
+       "kind": "status",
+       "target": "self",
+       "status": "Focus",
+       "durationMs": 4000
+      }
+     ],
+     "rankUps": [
+      {
+       "level": 15,
+       "cooldownPercent": 85
+      },
+      {
+       "level": 30,
+       "cooldownPercent": 85
+      }
+     ]
+    }
+   ],
+   "ultimate": {
+    "id": "PETAL_STORM",
+    "name": "Petal Storm",
+    "shape": "burst",
+    "kind": "signal",
+    "rangeMm": 4000,
+    "sizeMm": 3000,
+    "windupMs": 1100,
+    "recoverMs": 700,
+    "cooldownMs": 0,
+    "unlockLevel": 10,
+    "effects": [
+     {
+      "kind": "damage",
+      "target": "enemy",
+      "amount": 28
+     },
+     {
+      "kind": "status",
+      "target": "enemy",
+      "status": "Slow",
+      "durationMs": 5000
+     }
+    ]
+   }
+  },
+  {
+   "species": "WS-013",
+   "basic": {
+    "id": "EAR_FLICK",
+    "name": "Ear Flick",
+    "shape": "dash",
+    "kind": "physical",
+    "rangeMm": 2400,
+    "sizeMm": 650,
+    "windupMs": 560,
+    "recoverMs": 400,
+    "cooldownMs": 1800,
+    "unlockLevel": 1,
+    "effects": [
+     {
+      "kind": "damage",
+      "target": "enemy",
+      "amount": 16
+     }
+    ]
+   },
+   "skills": [
+    {
+     "id": "TANGLE_HOP",
+     "name": "Tangle Hop",
+     "shape": "lane",
+     "kind": "signal",
+     "rangeMm": 7000,
+     "sizeMm": 560,
+     "windupMs": 800,
+     "recoverMs": 420,
+     "cooldownMs": 6000,
+     "unlockLevel": 1,
+     "gentle": true,
+     "effects": [
+      {
+       "kind": "damage",
+       "target": "enemy",
+       "amount": 10
+      },
+      {
+       "kind": "status",
+       "target": "enemy",
+       "status": "Slow",
+       "durationMs": 4000
+      }
+     ],
+     "rankUps": [
+      {
+       "level": 15,
+       "powerPercent": 115
+      },
+      {
+       "level": 30,
+       "cooldownPercent": 85
+      }
+     ]
+    },
+    {
+     "id": "LONG_LEAP",
+     "name": "Long Leap",
+     "shape": "dash",
+     "kind": "physical",
+     "rangeMm": 6000,
+     "sizeMm": 600,
+     "windupMs": 360,
+     "recoverMs": 420,
+     "cooldownMs": 7000,
+     "unlockLevel": 1,
+     "effects": [
+      {
+       "kind": "damage",
+       "target": "enemy",
+       "amount": 8
+      }
+     ],
+     "rankUps": [
+      {
+       "level": 15,
+       "powerPercent": 115
+      },
+      {
+       "level": 30,
+       "cooldownPercent": 85
+      }
+     ]
+    },
+    {
+     "id": "DUST_KICK",
+     "name": "Dust Kick",
+     "shape": "self",
+     "rangeMm": 0,
+     "sizeMm": 0,
+     "windupMs": 400,
+     "recoverMs": 420,
+     "cooldownMs": 10000,
+     "unlockLevel": 5,
+     "effects": [
+      {
+       "kind": "status",
+       "target": "self",
+       "status": "Focus",
+       "durationMs": 4000
+      }
+     ],
+     "rankUps": [
+      {
+       "level": 15,
+       "cooldownPercent": 85
+      },
+      {
+       "level": 30,
+       "cooldownPercent": 85
+      }
+     ]
+    }
+   ],
+   "ultimate": {
+    "id": "MEADOW_MAZE",
+    "name": "Meadow Maze",
+    "shape": "burst",
+    "kind": "signal",
+    "rangeMm": 4000,
+    "sizeMm": 3000,
+    "windupMs": 1100,
+    "recoverMs": 700,
+    "cooldownMs": 0,
+    "unlockLevel": 10,
+    "effects": [
+     {
+      "kind": "damage",
+      "target": "enemy",
+      "amount": 28
+     },
+     {
+      "kind": "status",
+      "target": "enemy",
+      "status": "Slow",
+      "durationMs": 5000
+     }
+    ]
+   }
+  },
+  {
+   "species": "WS-003",
+   "basic": {
+    "id": "HOOD_SWIPE",
+    "name": "Hood Swipe",
+    "shape": "dash",
+    "kind": "signal",
+    "rangeMm": 2400,
+    "sizeMm": 650,
+    "windupMs": 560,
+    "recoverMs": 400,
+    "cooldownMs": 1800,
+    "unlockLevel": 1,
+    "effects": [
+     {
+      "kind": "damage",
+      "target": "enemy",
+      "amount": 16
+     }
+    ]
+   },
+   "skills": [
+    {
+     "id": "SNARING_SPROUT",
+     "name": "Snaring Sprout",
+     "shape": "lane",
+     "kind": "signal",
+     "rangeMm": 7000,
+     "sizeMm": 560,
+     "windupMs": 800,
+     "recoverMs": 420,
+     "cooldownMs": 6000,
+     "unlockLevel": 1,
+     "gentle": true,
+     "effects": [
+      {
+       "kind": "damage",
+       "target": "enemy",
+       "amount": 10
+      },
+      {
+       "kind": "status",
+       "target": "enemy",
+       "status": "Slow",
+       "durationMs": 4000
+      }
+     ],
+     "rankUps": [
+      {
+       "level": 15,
+       "powerPercent": 115
+      },
+      {
+       "level": 30,
+       "cooldownPercent": 85
+      }
+     ]
+    },
+    {
+     "id": "HOOD_HOP",
+     "name": "Hood Hop",
+     "shape": "dash",
+     "kind": "signal",
+     "rangeMm": 6000,
+     "sizeMm": 600,
+     "windupMs": 360,
+     "recoverMs": 420,
+     "cooldownMs": 7000,
+     "unlockLevel": 1,
+     "effects": [
+      {
+       "kind": "damage",
+       "target": "enemy",
+       "amount": 8
+      }
+     ],
+     "rankUps": [
+      {
+       "level": 15,
+       "powerPercent": 115
+      },
+      {
+       "level": 30,
+       "cooldownPercent": 85
+      }
+     ]
+    },
+    {
+     "id": "SPORE_HAZE",
+     "name": "Spore Haze",
+     "shape": "self",
+     "rangeMm": 0,
+     "sizeMm": 0,
+     "windupMs": 400,
+     "recoverMs": 420,
+     "cooldownMs": 10000,
+     "unlockLevel": 5,
+     "effects": [
+      {
+       "kind": "status",
+       "target": "self",
+       "status": "Focus",
+       "durationMs": 4000
+      }
+     ],
+     "rankUps": [
+      {
+       "level": 15,
+       "cooldownPercent": 85
+      },
+      {
+       "level": 30,
+       "cooldownPercent": 85
+      }
+     ]
+    }
+   ],
+   "ultimate": {
+    "id": "OVERGROWTH",
+    "name": "Overgrowth",
+    "shape": "burst",
+    "kind": "signal",
+    "rangeMm": 4000,
+    "sizeMm": 3000,
+    "windupMs": 1100,
+    "recoverMs": 700,
+    "cooldownMs": 0,
+    "unlockLevel": 10,
+    "effects": [
+     {
+      "kind": "damage",
+      "target": "enemy",
+      "amount": 28
+     },
+     {
+      "kind": "status",
+      "target": "enemy",
+      "status": "Slow",
+      "durationMs": 5000
+     }
+    ]
+   }
+  },
+  {
+   "species": "WS-014",
+   "basic": {
+    "id": "CAP_BONK",
+    "name": "Cap Bonk",
+    "shape": "dash",
+    "kind": "signal",
+    "rangeMm": 2400,
+    "sizeMm": 650,
+    "windupMs": 560,
+    "recoverMs": 400,
+    "cooldownMs": 1800,
+    "unlockLevel": 1,
+    "effects": [
+     {
+      "kind": "damage",
+      "target": "enemy",
+      "amount": 16
+     }
+    ]
+   },
+   "skills": [
+    {
+     "id": "STICKY_SPORES",
+     "name": "Sticky Spores",
+     "shape": "lane",
+     "kind": "signal",
+     "rangeMm": 7000,
+     "sizeMm": 560,
+     "windupMs": 800,
+     "recoverMs": 420,
+     "cooldownMs": 6000,
+     "unlockLevel": 1,
+     "gentle": true,
+     "effects": [
+      {
+       "kind": "damage",
+       "target": "enemy",
+       "amount": 10
+      },
+      {
+       "kind": "status",
+       "target": "enemy",
+       "status": "Slow",
+       "durationMs": 4000
+      }
+     ],
+     "rankUps": [
+      {
+       "level": 15,
+       "powerPercent": 115
+      },
+      {
+       "level": 30,
+       "cooldownPercent": 85
+      }
+     ]
+    },
+    {
+     "id": "CAP_ROLL",
+     "name": "Cap Roll",
+     "shape": "dash",
+     "kind": "signal",
+     "rangeMm": 6000,
+     "sizeMm": 600,
+     "windupMs": 360,
+     "recoverMs": 420,
+     "cooldownMs": 7000,
+     "unlockLevel": 1,
+     "effects": [
+      {
+       "kind": "damage",
+       "target": "enemy",
+       "amount": 8
+      }
+     ],
+     "rankUps": [
+      {
+       "level": 15,
+       "powerPercent": 115
+      },
+      {
+       "level": 30,
+       "cooldownPercent": 85
+      }
+     ]
+    },
+    {
+     "id": "DROWSE_PUFF",
+     "name": "Drowse Puff",
+     "shape": "self",
+     "rangeMm": 0,
+     "sizeMm": 0,
+     "windupMs": 400,
+     "recoverMs": 420,
+     "cooldownMs": 10000,
+     "unlockLevel": 5,
+     "effects": [
+      {
+       "kind": "status",
+       "target": "self",
+       "status": "Focus",
+       "durationMs": 4000
+      }
+     ],
+     "rankUps": [
+      {
+       "level": 15,
+       "cooldownPercent": 85
+      },
+      {
+       "level": 30,
+       "cooldownPercent": 85
+      }
+     ]
+    }
+   ],
+   "ultimate": {
+    "id": "FAIRY_RING",
+    "name": "Fairy Ring",
+    "shape": "burst",
+    "kind": "signal",
+    "rangeMm": 4000,
+    "sizeMm": 3000,
+    "windupMs": 1100,
+    "recoverMs": 700,
+    "cooldownMs": 0,
+    "unlockLevel": 10,
+    "effects": [
+     {
+      "kind": "damage",
+      "target": "enemy",
+      "amount": 28
+     },
+     {
+      "kind": "status",
+      "target": "enemy",
+      "status": "Slow",
+      "durationMs": 5000
+     }
+    ]
+   }
+  },
+  {
+   "species": "WS-015",
+   "basic": {
+    "id": "BURR_JAB",
+    "name": "Burr Jab",
+    "shape": "dash",
+    "kind": "signal",
+    "rangeMm": 2400,
+    "sizeMm": 650,
+    "windupMs": 560,
+    "recoverMs": 400,
+    "cooldownMs": 1800,
+    "unlockLevel": 1,
+    "effects": [
+     {
+      "kind": "damage",
+      "target": "enemy",
+      "amount": 16
+     }
+    ]
+   },
+   "skills": [
+    {
+     "id": "BRISTLE_UP",
+     "name": "Bristle Up",
+     "shape": "self",
+     "rangeMm": 0,
+     "sizeMm": 0,
+     "windupMs": 420,
+     "recoverMs": 420,
+     "cooldownMs": 9000,
+     "unlockLevel": 1,
+     "effects": [
+      {
+       "kind": "status",
+       "target": "self",
+       "status": "Guard",
+       "durationMs": 3000
+      }
+     ],
+     "rankUps": [
+      {
+       "level": 15,
+       "cooldownPercent": 85
+      },
+      {
+       "level": 30,
+       "cooldownPercent": 85
+      }
+     ]
+    },
+    {
+     "id": "SPINE_PUSH",
+     "name": "Spine Push",
+     "shape": "burst",
+     "kind": "signal",
+     "rangeMm": 1500,
+     "sizeMm": 1800,
+     "windupMs": 700,
+     "recoverMs": 420,
+     "cooldownMs": 7000,
+     "unlockLevel": 1,
+     "effects": [
+      {
+       "kind": "damage",
+       "target": "enemy",
+       "amount": 12
+      },
+      {
+       "kind": "status",
+       "target": "enemy",
+       "status": "Slow",
+       "durationMs": 3000
+      }
+     ],
+     "rankUps": [
+      {
+       "level": 15,
+       "powerPercent": 115
+      },
+      {
+       "level": 30,
+       "cooldownPercent": 85
+      }
+     ]
+    },
+    {
+     "id": "THORN_REST",
+     "name": "Thorn Rest",
+     "shape": "self",
+     "rangeMm": 0,
+     "sizeMm": 0,
+     "windupMs": 620,
+     "recoverMs": 420,
+     "cooldownMs": 12000,
+     "unlockLevel": 5,
+     "effects": [
+      {
+       "kind": "status",
+       "target": "self",
+       "status": "Regen",
+       "durationMs": 5000
+      }
+     ],
+     "rankUps": [
+      {
+       "level": 15,
+       "cooldownPercent": 85
+      },
+      {
+       "level": 30,
+       "cooldownPercent": 85
+      }
+     ]
+    }
+   ],
+   "ultimate": {
+    "id": "BRAMBLE_BURST",
+    "name": "Bramble Burst",
+    "shape": "burst",
+    "kind": "signal",
+    "rangeMm": 3000,
+    "sizeMm": 2400,
+    "windupMs": 1000,
+    "recoverMs": 700,
+    "cooldownMs": 0,
+    "unlockLevel": 10,
+    "effects": [
+     {
+      "kind": "damage",
+      "target": "enemy",
+      "amount": 30
+     },
+     {
+      "kind": "status",
+      "target": "enemy",
+      "status": "Slow",
+      "durationMs": 4000
+     }
+    ]
+   }
+  },
+  {
+   "species": "WS-019",
+   "basic": {
+    "id": "LID_CLONK",
+    "name": "Lid Clonk",
+    "shape": "dash",
+    "kind": "physical",
+    "rangeMm": 2400,
+    "sizeMm": 650,
+    "windupMs": 560,
+    "recoverMs": 400,
+    "cooldownMs": 1800,
+    "unlockLevel": 1,
+    "effects": [
+     {
+      "kind": "damage",
+      "target": "enemy",
+      "amount": 16
+     }
+    ]
+   },
+   "skills": [
+    {
+     "id": "CLAY_SALVE",
+     "name": "Clay Salve",
+     "shape": "self",
+     "rangeMm": 0,
+     "sizeMm": 0,
+     "windupMs": 620,
+     "recoverMs": 420,
+     "cooldownMs": 9000,
+     "unlockLevel": 1,
+     "effects": [
+      {
+       "kind": "heal",
+       "target": "self",
+       "amount": 10
+      }
+     ],
+     "rankUps": [
+      {
+       "level": 15,
+       "powerPercent": 115
+      },
+      {
+       "level": 30,
+       "cooldownPercent": 85
+      }
+     ]
+    },
+    {
+     "id": "JAR_SHIELD",
+     "name": "Jar Shield",
+     "shape": "self",
+     "rangeMm": 0,
+     "sizeMm": 0,
+     "windupMs": 420,
+     "recoverMs": 420,
+     "cooldownMs": 8000,
+     "unlockLevel": 1,
+     "effects": [
+      {
+       "kind": "status",
+       "target": "self",
+       "status": "Guard",
+       "durationMs": 3000
+      }
+     ],
+     "rankUps": [
+      {
+       "level": 15,
+       "cooldownPercent": 85
+      },
+      {
+       "level": 30,
+       "cooldownPercent": 85
+      }
+     ]
+    },
+    {
+     "id": "KILN_WARMTH",
+     "name": "Kiln Warmth",
+     "shape": "self",
+     "rangeMm": 0,
+     "sizeMm": 0,
+     "windupMs": 520,
+     "recoverMs": 420,
+     "cooldownMs": 11000,
+     "unlockLevel": 5,
+     "effects": [
+      {
+       "kind": "status",
+       "target": "self",
+       "status": "Regen",
+       "durationMs": 4000
+      }
+     ],
+     "rankUps": [
+      {
+       "level": 15,
+       "cooldownPercent": 85
+      },
+      {
+       "level": 30,
+       "cooldownPercent": 85
+      }
+     ]
+    }
+   ],
+   "ultimate": {
+    "id": "POTTERS_WARD",
+    "name": "Potter's Ward",
+    "shape": "self",
+    "rangeMm": 0,
+    "sizeMm": 0,
+    "windupMs": 900,
+    "recoverMs": 600,
+    "cooldownMs": 0,
+    "unlockLevel": 10,
+    "effects": [
+     {
+      "kind": "heal",
+      "target": "team",
+      "amount": 14
+     },
+     {
+      "kind": "status",
+      "target": "self",
+      "status": "Regen",
+      "durationMs": 4000
+     }
+    ]
+   }
+  },
+  {
+   "species": "WS-020",
+   "basic": {
+    "id": "LEAF_WING",
+    "name": "Leaf Wing",
+    "shape": "dash",
+    "kind": "signal",
+    "rangeMm": 2400,
+    "sizeMm": 650,
+    "windupMs": 560,
+    "recoverMs": 400,
+    "cooldownMs": 1800,
+    "unlockLevel": 1,
+    "effects": [
+     {
+      "kind": "damage",
+      "target": "enemy",
+      "amount": 16
+     }
+    ]
+   },
+   "skills": [
+    {
+     "id": "OLIVE_DIVE",
+     "name": "Olive Dive",
+     "shape": "dash",
+     "kind": "signal",
+     "rangeMm": 2600,
+     "sizeMm": 700,
+     "windupMs": 700,
+     "recoverMs": 420,
+     "cooldownMs": 5000,
+     "unlockLevel": 1,
+     "effects": [
+      {
+       "kind": "damage",
+       "target": "enemy",
+       "amount": 24
+      }
+     ],
+     "rankUps": [
+      {
+       "level": 15,
+       "powerPercent": 115
+      },
+      {
+       "level": 30,
+       "cooldownPercent": 85
+      }
+     ]
+    },
+    {
+     "id": "UPDRAFT",
+     "name": "Updraft",
+     "shape": "dash",
+     "kind": "signal",
+     "rangeMm": 5000,
+     "sizeMm": 650,
+     "windupMs": 500,
+     "recoverMs": 420,
+     "cooldownMs": 6500,
+     "unlockLevel": 1,
+     "effects": [
+      {
+       "kind": "damage",
+       "target": "enemy",
+       "amount": 14
+      }
+     ],
+     "rankUps": [
+      {
+       "level": 15,
+       "powerPercent": 115
+      },
+      {
+       "level": 30,
+       "cooldownPercent": 85
+      }
+     ]
+    },
+    {
+     "id": "GALE_CUT",
+     "name": "Gale Cut",
+     "shape": "lane",
+     "kind": "signal",
+     "rangeMm": 6000,
+     "sizeMm": 560,
+     "windupMs": 800,
+     "recoverMs": 420,
+     "cooldownMs": 8000,
+     "unlockLevel": 5,
+     "effects": [
+      {
+       "kind": "damage",
+       "target": "enemy",
+       "amount": 10
+      },
+      {
+       "kind": "status",
+       "target": "enemy",
+       "status": "Slow",
+       "durationMs": 4000
+      }
+     ],
+     "rankUps": [
+      {
+       "level": 15,
+       "powerPercent": 115
+      },
+      {
+       "level": 30,
+       "cooldownPercent": 85
+      }
+     ]
+    }
+   ],
+   "ultimate": {
+    "id": "SQUALL_STRIKE",
+    "name": "Squall Strike",
+    "shape": "burst",
+    "kind": "signal",
+    "rangeMm": 3000,
+    "sizeMm": 2600,
+    "windupMs": 1000,
+    "recoverMs": 700,
+    "cooldownMs": 0,
+    "unlockLevel": 10,
+    "effects": [
+     {
+      "kind": "damage",
+      "target": "enemy",
+      "amount": 36
+     }
+    ]
+   }
+  },
+  {
+   "species": "WS-006",
+   "basic": {
+    "id": "SHELL_BUMP",
+    "name": "Shell Bump",
+    "shape": "dash",
+    "kind": "physical",
+    "rangeMm": 2400,
+    "sizeMm": 650,
+    "windupMs": 560,
+    "recoverMs": 400,
+    "cooldownMs": 1800,
+    "unlockLevel": 1,
+    "effects": [
+     {
+      "kind": "damage",
+      "target": "enemy",
+      "amount": 16
+     }
+    ]
+   },
+   "skills": [
+    {
+     "id": "COIL_UP",
+     "name": "Coil Up",
+     "shape": "self",
+     "rangeMm": 0,
+     "sizeMm": 0,
+     "windupMs": 420,
+     "recoverMs": 420,
+     "cooldownMs": 9000,
+     "unlockLevel": 1,
+     "effects": [
+      {
+       "kind": "status",
+       "target": "self",
+       "status": "Guard",
+       "durationMs": 3000
+      }
+     ],
+     "rankUps": [
+      {
+       "level": 15,
+       "cooldownPercent": 85
+      },
+      {
+       "level": 30,
+       "cooldownPercent": 85
+      }
+     ]
+    },
+    {
+     "id": "BURROW_SHOVE",
+     "name": "Burrow Shove",
+     "shape": "burst",
+     "kind": "physical",
+     "rangeMm": 1500,
+     "sizeMm": 1800,
+     "windupMs": 700,
+     "recoverMs": 420,
+     "cooldownMs": 7000,
+     "unlockLevel": 1,
+     "effects": [
+      {
+       "kind": "damage",
+       "target": "enemy",
+       "amount": 12
+      },
+      {
+       "kind": "status",
+       "target": "enemy",
+       "status": "Slow",
+       "durationMs": 3000
+      }
+     ],
+     "rankUps": [
+      {
+       "level": 15,
+       "powerPercent": 115
+      },
+      {
+       "level": 30,
+       "cooldownPercent": 85
+      }
+     ]
+    },
+    {
+     "id": "MINERAL_REST",
+     "name": "Mineral Rest",
+     "shape": "self",
+     "rangeMm": 0,
+     "sizeMm": 0,
+     "windupMs": 620,
+     "recoverMs": 420,
+     "cooldownMs": 12000,
+     "unlockLevel": 5,
+     "effects": [
+      {
+       "kind": "status",
+       "target": "self",
+       "status": "Regen",
+       "durationMs": 5000
+      }
+     ],
+     "rankUps": [
+      {
+       "level": 15,
+       "cooldownPercent": 85
+      },
+      {
+       "level": 30,
+       "cooldownPercent": 85
+      }
+     ]
+    }
+   ],
+   "ultimate": {
+    "id": "SPIRAL_QUAKE",
+    "name": "Spiral Quake",
+    "shape": "burst",
+    "kind": "physical",
+    "rangeMm": 3000,
+    "sizeMm": 2400,
+    "windupMs": 1000,
+    "recoverMs": 700,
+    "cooldownMs": 0,
+    "unlockLevel": 10,
+    "effects": [
+     {
+      "kind": "damage",
+      "target": "enemy",
+      "amount": 30
+     },
+     {
+      "kind": "status",
+      "target": "enemy",
+      "status": "Slow",
+      "durationMs": 4000
+     }
+    ]
+   }
+  },
+  {
+   "species": "WS-011",
+   "basic": {
+    "id": "CLAW_PINCH",
+    "name": "Claw Pinch",
+    "shape": "dash",
+    "kind": "signal",
+    "rangeMm": 2400,
+    "sizeMm": 650,
+    "windupMs": 560,
+    "recoverMs": 400,
+    "cooldownMs": 1800,
+    "unlockLevel": 1,
+    "effects": [
+     {
+      "kind": "damage",
+      "target": "enemy",
+      "amount": 16
+     }
+    ]
+   },
+   "skills": [
+    {
+     "id": "SEARING_SNAP",
+     "name": "Searing Snap",
+     "shape": "dash",
+     "kind": "signal",
+     "rangeMm": 2600,
+     "sizeMm": 700,
+     "windupMs": 700,
+     "recoverMs": 420,
+     "cooldownMs": 5000,
+     "unlockLevel": 1,
+     "effects": [
+      {
+       "kind": "damage",
+       "target": "enemy",
+       "amount": 24
+      }
+     ],
+     "rankUps": [
+      {
+       "level": 15,
+       "powerPercent": 115
+      },
+      {
+       "level": 30,
+       "cooldownPercent": 85
+      }
+     ]
+    },
+    {
+     "id": "SIDE_SCUTTLE",
+     "name": "Side Scuttle",
+     "shape": "dash",
+     "kind": "signal",
+     "rangeMm": 5000,
+     "sizeMm": 650,
+     "windupMs": 500,
+     "recoverMs": 420,
+     "cooldownMs": 6500,
+     "unlockLevel": 1,
+     "effects": [
+      {
+       "kind": "damage",
+       "target": "enemy",
+       "amount": 14
+      }
+     ],
+     "rankUps": [
+      {
+       "level": 15,
+       "powerPercent": 115
+      },
+      {
+       "level": 30,
+       "cooldownPercent": 85
+      }
+     ]
+    },
+    {
+     "id": "CINDER_GRIP",
+     "name": "Cinder Grip",
+     "shape": "lane",
+     "kind": "signal",
+     "rangeMm": 6000,
+     "sizeMm": 560,
+     "windupMs": 800,
+     "recoverMs": 420,
+     "cooldownMs": 8000,
+     "unlockLevel": 5,
+     "effects": [
+      {
+       "kind": "damage",
+       "target": "enemy",
+       "amount": 10
+      },
+      {
+       "kind": "status",
+       "target": "enemy",
+       "status": "Burn",
+       "durationMs": 4000
+      }
+     ],
+     "rankUps": [
+      {
+       "level": 15,
+       "powerPercent": 115
+      },
+      {
+       "level": 30,
+       "cooldownPercent": 85
+      }
+     ]
+    }
+   ],
+   "ultimate": {
+    "id": "MAGMA_CRUSH",
+    "name": "Magma Crush",
+    "shape": "burst",
+    "kind": "signal",
+    "rangeMm": 3000,
+    "sizeMm": 2600,
+    "windupMs": 1000,
+    "recoverMs": 700,
+    "cooldownMs": 0,
+    "unlockLevel": 10,
+    "effects": [
+     {
+      "kind": "damage",
+      "target": "enemy",
+      "amount": 36
+     }
+    ]
+   }
+  },
+  {
+   "species": "WS-018",
+   "basic": {
+    "id": "SHAG_SWIPE",
+    "name": "Shag Swipe",
+    "shape": "dash",
+    "kind": "physical",
+    "rangeMm": 2400,
+    "sizeMm": 650,
+    "windupMs": 560,
+    "recoverMs": 400,
+    "cooldownMs": 1800,
+    "unlockLevel": 1,
+    "effects": [
+     {
+      "kind": "damage",
+      "target": "enemy",
+      "amount": 16
+     }
+    ]
+   },
+   "skills": [
+    {
+     "id": "STONE_COAT",
+     "name": "Stone Coat",
+     "shape": "self",
+     "rangeMm": 0,
+     "sizeMm": 0,
+     "windupMs": 420,
+     "recoverMs": 420,
+     "cooldownMs": 9000,
+     "unlockLevel": 1,
+     "effects": [
+      {
+       "kind": "status",
+       "target": "self",
+       "status": "Guard",
+       "durationMs": 3000
+      }
+     ],
+     "rankUps": [
+      {
+       "level": 15,
+       "cooldownPercent": 85
+      },
+      {
+       "level": 30,
+       "cooldownPercent": 85
+      }
+     ]
+    },
+    {
+     "id": "BOULDER_SHOVE",
+     "name": "Boulder Shove",
+     "shape": "burst",
+     "kind": "physical",
+     "rangeMm": 1500,
+     "sizeMm": 1800,
+     "windupMs": 700,
+     "recoverMs": 420,
+     "cooldownMs": 7000,
+     "unlockLevel": 1,
+     "effects": [
+      {
+       "kind": "damage",
+       "target": "enemy",
+       "amount": 12
+      },
+      {
+       "kind": "status",
+       "target": "enemy",
+       "status": "Slow",
+       "durationMs": 3000
+      }
+     ],
+     "rankUps": [
+      {
+       "level": 15,
+       "powerPercent": 115
+      },
+      {
+       "level": 30,
+       "cooldownPercent": 85
+      }
+     ]
+    },
+    {
+     "id": "MOSS_MEND_DEEP",
+     "name": "Moss Mend Deep",
+     "shape": "self",
+     "rangeMm": 0,
+     "sizeMm": 0,
+     "windupMs": 620,
+     "recoverMs": 420,
+     "cooldownMs": 12000,
+     "unlockLevel": 5,
+     "effects": [
+      {
+       "kind": "status",
+       "target": "self",
+       "status": "Regen",
+       "durationMs": 5000
+      }
+     ],
+     "rankUps": [
+      {
+       "level": 15,
+       "cooldownPercent": 85
+      },
+      {
+       "level": 30,
+       "cooldownPercent": 85
+      }
+     ]
+    }
+   ],
+   "ultimate": {
+    "id": "LANDSLIDE",
+    "name": "Landslide",
+    "shape": "burst",
+    "kind": "physical",
+    "rangeMm": 3000,
+    "sizeMm": 2400,
+    "windupMs": 1000,
+    "recoverMs": 700,
+    "cooldownMs": 0,
+    "unlockLevel": 10,
+    "effects": [
+     {
+      "kind": "damage",
+      "target": "enemy",
+      "amount": 30
+     },
+     {
+      "kind": "status",
+      "target": "enemy",
+      "status": "Slow",
+      "durationMs": 4000
+     }
+    ]
+   }
+  },
+  {
+   "species": "WS-016",
+   "basic": {
+    "id": "WISP_TOUCH",
+    "name": "Wisp Touch",
+    "shape": "dash",
+    "kind": "signal",
+    "rangeMm": 2400,
+    "sizeMm": 650,
+    "windupMs": 560,
+    "recoverMs": 400,
+    "cooldownMs": 1800,
+    "unlockLevel": 1,
+    "effects": [
+     {
+      "kind": "damage",
+      "target": "enemy",
+      "amount": 16
+     }
+    ]
+   },
+   "skills": [
+    {
+     "id": "COLD_DRIFT",
+     "name": "Cold Drift",
+     "shape": "lane",
+     "kind": "signal",
+     "rangeMm": 7000,
+     "sizeMm": 560,
+     "windupMs": 800,
+     "recoverMs": 420,
+     "cooldownMs": 6000,
+     "unlockLevel": 1,
+     "gentle": true,
+     "effects": [
+      {
+       "kind": "damage",
+       "target": "enemy",
+       "amount": 10
+      },
+      {
+       "kind": "status",
+       "target": "enemy",
+       "status": "Slow",
+       "durationMs": 4000
+      }
+     ],
+     "rankUps": [
+      {
+       "level": 15,
+       "powerPercent": 115
+      },
+      {
+       "level": 30,
+       "cooldownPercent": 85
+      }
+     ]
+    },
+    {
+     "id": "FADE_STEP",
+     "name": "Fade Step",
+     "shape": "dash",
+     "kind": "signal",
+     "rangeMm": 6000,
+     "sizeMm": 600,
+     "windupMs": 360,
+     "recoverMs": 420,
+     "cooldownMs": 7000,
+     "unlockLevel": 1,
+     "effects": [
+      {
+       "kind": "damage",
+       "target": "enemy",
+       "amount": 8
+      }
+     ],
+     "rankUps": [
+      {
+       "level": 15,
+       "powerPercent": 115
+      },
+      {
+       "level": 30,
+       "cooldownPercent": 85
+      }
+     ]
+    },
+    {
+     "id": "MURK_FLICKER",
+     "name": "Murk Flicker",
+     "shape": "self",
+     "rangeMm": 0,
+     "sizeMm": 0,
+     "windupMs": 400,
+     "recoverMs": 420,
+     "cooldownMs": 10000,
+     "unlockLevel": 5,
+     "effects": [
+      {
+       "kind": "status",
+       "target": "self",
+       "status": "Focus",
+       "durationMs": 4000
+      }
+     ],
+     "rankUps": [
+      {
+       "level": 15,
+       "cooldownPercent": 85
+      },
+      {
+       "level": 30,
+       "cooldownPercent": 85
+      }
+     ]
+    }
+   ],
+   "ultimate": {
+    "id": "GLOAMING",
+    "name": "Gloaming",
+    "shape": "burst",
+    "kind": "signal",
+    "rangeMm": 4000,
+    "sizeMm": 3000,
+    "windupMs": 1100,
+    "recoverMs": 700,
+    "cooldownMs": 0,
+    "unlockLevel": 10,
+    "effects": [
+     {
+      "kind": "damage",
+      "target": "enemy",
+      "amount": 28
+     },
+     {
+      "kind": "status",
+      "target": "enemy",
+      "status": "Slow",
+      "durationMs": 5000
+     }
+    ]
+   }
+  },
+  {
+   "species": "WS-017",
+   "basic": {
+    "id": "PETAL_GAZE",
+    "name": "Petal Gaze",
+    "shape": "dash",
+    "kind": "signal",
+    "rangeMm": 2400,
+    "sizeMm": 650,
+    "windupMs": 560,
+    "recoverMs": 400,
+    "cooldownMs": 1800,
+    "unlockLevel": 1,
+    "effects": [
+     {
+      "kind": "damage",
+      "target": "enemy",
+      "amount": 16
+     }
+    ]
+   },
+   "skills": [
+    {
+     "id": "BLOOM_BALM",
+     "name": "Bloom Balm",
+     "shape": "self",
+     "rangeMm": 0,
+     "sizeMm": 0,
+     "windupMs": 620,
+     "recoverMs": 420,
+     "cooldownMs": 9000,
+     "unlockLevel": 1,
+     "effects": [
+      {
+       "kind": "heal",
+       "target": "self",
+       "amount": 10
+      }
+     ],
+     "rankUps": [
+      {
+       "level": 15,
+       "powerPercent": 115
+      },
+      {
+       "level": 30,
+       "cooldownPercent": 85
+      }
+     ]
+    },
+    {
+     "id": "STALK_WATCH",
+     "name": "Stalk Watch",
+     "shape": "self",
+     "rangeMm": 0,
+     "sizeMm": 0,
+     "windupMs": 420,
+     "recoverMs": 420,
+     "cooldownMs": 8000,
+     "unlockLevel": 1,
+     "effects": [
+      {
+       "kind": "status",
+       "target": "self",
+       "status": "Guard",
+       "durationMs": 3000
+      }
+     ],
+     "rankUps": [
+      {
+       "level": 15,
+       "cooldownPercent": 85
+      },
+      {
+       "level": 30,
+       "cooldownPercent": 85
+      }
+     ]
+    },
+    {
+     "id": "DUSK_DEW",
+     "name": "Dusk Dew",
+     "shape": "self",
+     "rangeMm": 0,
+     "sizeMm": 0,
+     "windupMs": 520,
+     "recoverMs": 420,
+     "cooldownMs": 11000,
+     "unlockLevel": 5,
+     "effects": [
+      {
+       "kind": "status",
+       "target": "self",
+       "status": "Regen",
+       "durationMs": 4000
+      }
+     ],
+     "rankUps": [
+      {
+       "level": 15,
+       "cooldownPercent": 85
+      },
+      {
+       "level": 30,
+       "cooldownPercent": 85
+      }
+     ]
+    }
+   ],
+   "ultimate": {
+    "id": "MOONBLOOM",
+    "name": "Moonbloom",
+    "shape": "self",
+    "rangeMm": 0,
+    "sizeMm": 0,
+    "windupMs": 900,
+    "recoverMs": 600,
+    "cooldownMs": 0,
+    "unlockLevel": 10,
+    "effects": [
+     {
+      "kind": "heal",
+      "target": "team",
+      "amount": 14
+     },
+     {
+      "kind": "status",
+      "target": "self",
+      "status": "Regen",
       "durationMs": 4000
      }
     ]
