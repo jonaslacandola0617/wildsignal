@@ -2,6 +2,7 @@
 #include "field_book.hpp"
 #include "fight_scene.hpp"
 #include "wild_scene.hpp"
+#include "goods.hpp"
 #include "followers.hpp"
 #include "game.hpp"
 #include "view_angles.hpp"
@@ -780,6 +781,7 @@ int main(int argc, char **argv) {
     std::unique_ptr<p3::GroundMarks> groundMarks;
     std::unique_ptr<p3::WildScene> wilds;
     std::unique_ptr<p3::FieldBook> book;
+    std::unique_ptr<p3::Goods> goods;
     // Each Signari model can have several scene objects (persistent rows "<id>", "<id>#1", ...),
     // so more than one of a species can be on screen; posed in order each frame.
     std::map<std::string, std::vector<std::size_t>> stageModels;
@@ -835,6 +837,13 @@ int main(int argc, char **argv) {
         const auto &model=world.models[world.instances[i].model];
         if(stageSignari(model.id)&&(!stream||stream->persistent(i))){stageModels[model.id].push_back(i);stageHome[i]=world.instances[i].matrix;}
       }
+      // ECON-001: forage finds, the village shop and the bag (I), from the content folder.
+      goods=std::make_unique<p3::Goods>(content,o.region,scene->roster(),[&](p3::Vec at){
+        if(!game::freeAt(at,game.solids,.4f))return false;
+        float h=game::terrain(at.x,at.z);
+        for(auto [dx,dz]:{std::pair{1.f,0.f},{-1.f,0.f},{0.f,1.f},{0.f,-1.f}})if(std::abs(game::terrain(at.x+dx,at.z+dz)-h)>.5f)return false;
+        return true;});
+      if(goods->enabled()&&econ::gift(wilds->notes())){wilds->saveNow();goods->say("Mara packed 3 Wild Berries and 50 coins. Press I for your bag.",6);}
       // SPAWN-001: wild Signari from the spawn table, for regions that have one.
       if(!o.region.empty()){
         auto table=content/"spawns.json";
@@ -1173,6 +1182,18 @@ int main(int argc, char **argv) {
             if (book->key(int(e.key.key))) closeBook();
             continue;
           }
+          if (goods && goods->open()) {
+            if (paused) { if(e.key.key==SDLK_RETURN||e.key.key==SDLK_ESCAPE) paused=false; continue; }
+            if (goods->key(int(e.key.key), wilds->notes())) wilds->saveNow();
+            if (!goods->open()) event(frame, "goods_close");
+            continue;
+          }
+          if (goods && !paused && !o.benchmark && game.phase == game::Phase::Explore && !scene->active() && !wilds->busy() && !wilds->watching() &&
+              (e.key.key == SDLK_I || (e.key.key == SDLK_E && !atRest())) && goods->press(int(e.key.key), wilds->notes())) {
+            wilds->saveNow();
+            if (goods->open()) { held.fill(false); sneaking = false; }
+            continue;
+          }
           if (book && e.key.key == SDLK_B && !paused && game.phase == game::Phase::Explore && !wilds->busy() && !wilds->watching()) {
             openBook();
             continue;
@@ -1311,7 +1332,7 @@ int main(int argc, char **argv) {
           }
         }
       }
-      bool reading = book && book->open();
+      bool reading = (book && book->open()) || (goods && goods->open());
       const bool flat = dream && o.raisedCamera && !o.benchmark;
       if (flat) {
         // W is always up the screen; a key held through a turn keeps its old way until let go.
@@ -1386,6 +1407,7 @@ int main(int argc, char **argv) {
           // Waits for the fight's clean-up, so the jump back to exploring cannot startle anything.
           if (!scene->active() && !stageSet && !reading)
             wilds->update(dt, game.state.player, sneaking, game.solids);
+          if (goods && game.phase == game::Phase::Explore && !scene->active()) goods->update(dt, game.state.player);
           // A territorial wild that reached the player starts the fight itself.
           if (game.phase == game::Phase::Explore && !scene->active() && !stageSet && wilds->contact() == p3::WildScene::Press::Fight) {
             std::vector<battle::Block> blocks;
@@ -1405,6 +1427,9 @@ int main(int argc, char **argv) {
         }
         for (const auto &name : wilds->takeEvents())
           event(frame, name.c_str());
+        if (goods)
+          for (const auto &name : goods->takeEvents())
+            event(frame, name.c_str());
         bool fighting = scene->active(), watching = wilds->watching();
         if (fighting) {
           game.state.player = scene->youAt();
@@ -1650,8 +1675,10 @@ int main(int argc, char **argv) {
         groundMarks->clear();
         auto eye = p3::inverse(camera.view());
         scene->marks(*groundMarks, p3::direction(eye, {1, 0, 0}), p3::direction(eye, {0, 1, 0}));
-        if (!scene->active())
+        if (!scene->active()) {
           wilds->marks(*groundMarks, {}, {});
+          if (goods) goods->marks(*groundMarks);
+        }
       }
       auto cullStart = Clock::now();
       auto counts = world.visible(p3::Frustum(vp), true, visible);
@@ -1746,7 +1773,8 @@ int main(int argc, char **argv) {
         } else {
           if (scene->active()) scene->draw(*pixelUi,toCanvas);
           else if (game.phase==game::Phase::Explore && atRest()) scene->prompt(*pixelUi,"[E] Rest at the cottage");
-          else if (game.phase==game::Phase::Explore) wilds->draw(*pixelUi,toCanvas);
+          else if (game.phase==game::Phase::Explore && !(goods && goods->open())) wilds->draw(*pixelUi,toCanvas);
+          if (goods && !scene->active() && game.phase==game::Phase::Explore) goods->draw(*pixelUi,toCanvas,wilds->notes());
           if(book && !scene->active() && game.phase==game::Phase::Explore) book->drawIcon(*pixelUi,wilds->notes());
         }
         if(paused && !(book&&book->open())) {

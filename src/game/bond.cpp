@@ -7,7 +7,7 @@
 #include <stdexcept>
 namespace bond {
 namespace {
-constexpr int Version = 3;
+constexpr int Version = 4;
 std::string encode(const Journal &j) {
   std::ostringstream o;
   auto members = [&](const char *name, const std::vector<Member> &list) {
@@ -27,7 +27,10 @@ std::string encode(const Journal &j) {
   members("party", j.party);
   o << ",";
   members("reserve", j.reserve);
-  o << "}\n";
+  o << ",\"money\":" << j.money << ",\"gifted\":" << int(j.gifted) << ",\"bag\":[";
+  for (std::size_t i = 0; i < j.bag.size(); i++)
+    o << (i ? "," : "") << "{\"item\":\"" << j.bag[i].first << "\",\"count\":" << j.bag[i].second << "}";
+  o << "]}\n";
   return o.str();
 }
 Member memberFrom(const ws::Json &v) {
@@ -70,6 +73,18 @@ Journal decode(const std::filesystem::path &p) {
   for (const auto &m : root.at("reserve").array())
     j.reserve.push_back(memberFrom(m));
   if (j.party.empty() || int(j.party.size()) > PartyLimit) throw std::runtime_error("party size");
+  // Version 4 adds money and the bag; older saves start with neither (Mara's gift follows).
+  if (version >= 4) {
+    j.money = int(root.at("money").number());
+    j.gifted = root.at("gifted").number() != 0;
+    if (j.money < 0 || j.money > 99999) throw std::runtime_error("money");
+    std::set<std::string> items;
+    for (const auto &b : root.at("bag").array()) {
+      std::pair<std::string, int> slot{b.at("item").string(), int(b.at("count").number())};
+      if (slot.first.empty() || slot.second < 1 || slot.second > 99 || !items.insert(slot.first).second) throw std::runtime_error("bad bag");
+      j.bag.push_back(slot);
+    }
+  }
   for (const auto *list : {&j.party, &j.reserve})
     for (const auto &m : *list)
       if (!owned.insert(m.species).second) throw std::runtime_error("duplicate member");

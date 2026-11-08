@@ -1,0 +1,12 @@
+{
+  "schema": "wildsignal-shops-v1",
+  "status": "PROPOSED - ECON-001 placeholder shop spots in the test regions (no shopkeeper model yet). Every shop buys any item with a sell price.",
+  "shops": [
+    {"id": "hearth_market", "region": "hearthgrove_test", "name": "Hearth Market", "at": [1.5, 11.0], "radius": 2.0,
+     "stock": ["WILD_BERRY", "HERB_TONIC", "REVIVE_ROOT"]},
+    {"id": "hearth_market", "region": "streaming_test", "name": "Hearth Market", "at": [1.5, 11.0], "radius": 2.0,
+     "stock": ["WILD_BERRY", "HERB_TONIC", "REVIVE_ROOT"]},
+    {"id": "hill_stall", "region": "height_test", "name": "Hill Stall", "at": [0.0, -17.0], "radius": 2.0,
+     "stock": ["WILD_BERRY", "HERB_TONIC", "REVIVE_ROOT"]}
+  ]
+}
