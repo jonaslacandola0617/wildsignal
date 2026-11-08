@@ -778,8 +778,10 @@ int main(int argc, char **argv) {
     std::unique_ptr<p3::GroundMarks> groundMarks;
     std::unique_ptr<p3::WildScene> wilds;
     std::unique_ptr<p3::FieldBook> book;
-    std::map<std::string, std::size_t> stageModels;
-    std::map<std::string, p3::Mat> stageHome;
+    // Each Signari model can have several scene objects (persistent rows "<id>", "<id>#1", ...),
+    // so more than one of a species can be on screen; posed in order each frame.
+    std::map<std::string, std::vector<std::size_t>> stageModels;
+    std::map<std::size_t, p3::Mat> stageHome;
     bool stageSet = false;
     float fightTurn = 0, fightZoom = 0;
     // Flat camera: one of four diagonal views; a turn swings over a quarter second.
@@ -829,7 +831,32 @@ int main(int argc, char **argv) {
       gpu.setOverlay([&](const p3::Mat &m){groundMarks->draw(m);});
       for(std::size_t i=0;i<world.instances.size();i++){
         const auto &model=world.models[world.instances[i].model];
-        if(stageSignari(model.id)&&(!stream||stream->persistent(i))){stageModels[model.id]=i;stageHome[model.id]=world.instances[i].matrix;}
+        if(stageSignari(model.id)&&(!stream||stream->persistent(i))){stageModels[model.id].push_back(i);stageHome[i]=world.instances[i].matrix;}
+      }
+      // SPAWN-001: wild Signari from the spawn table, for regions that have one.
+      if(!o.region.empty()){
+        auto table=content/"spawns.json";
+        if(std::filesystem::exists(table)){
+          auto placed=wilds->spawnFromTable(p3::readText(table),o.region,[&](p3::Vec at){
+            if(!game::freeAt(at,game.solids,.6f))return false;
+            // Not on a steep slope: the ground a metre around stays within half a metre.
+            float h=game::terrain(at.x,at.z);
+            for(auto [dx,dz]:{std::pair{1.f,0.f},{-1.f,0.f},{0.f,1.f},{0.f,-1.f}})if(std::abs(game::terrain(at.x+dx,at.z+dz)-h)>.5f)return false;
+            // Not under a tree crown or a roof, where the raised camera could not see it.
+            for(const auto &i:world.instances){
+              if(!i.active||i.bounds.hi.y-i.bounds.lo.y<2.5f)continue;
+              const auto &id=world.models[i.model].id;
+              if(stageSignari(id)||id=="WS0P_PLAYER"||id.starts_with("WS_TERRAIN_")||world.models[i.model].materials.front().ground)continue;
+              // The crown's dense middle: half the smaller half-width round the centre, plus a margin.
+              float cx=(i.bounds.lo.x+i.bounds.hi.x)/2,cz=(i.bounds.lo.z+i.bounds.hi.z)/2;
+              float r=.5f*std::min(i.bounds.hi.x-i.bounds.lo.x,i.bounds.hi.z-i.bounds.lo.z)/2+.6f;
+              if(std::hypot(at.x-cx,at.z-cz)<r)return false;
+            }
+            return std::hypot(at.x-game.spawn.x,at.z-game.spawn.z)>6;});
+          std::size_t slots=0;for(auto &[id,list]:stageModels)slots+=list.size();
+          log<<"spawned_wilds="<<placed<<"\nstage_slots="<<slots<<"\n";
+          for(const auto &r:wilds->spawned())log<<"spawn "<<r.zone<<" "<<r.species<<" L"<<r.level<<" "<<spawn::name(r.behaviour)<<" at "<<r.home.x<<" "<<r.home.z<<"\n";
+        }
       }
       rebuildViewSets();
     }
@@ -1357,6 +1384,17 @@ int main(int argc, char **argv) {
           // Waits for the fight's clean-up, so the jump back to exploring cannot startle anything.
           if (!scene->active() && !stageSet && !reading)
             wilds->update(dt, game.state.player, sneaking, game.solids);
+          // A territorial wild that reached the player starts the fight itself.
+          if (game.phase == game::Phase::Explore && !scene->active() && !stageSet && wilds->contact() == p3::WildScene::Press::Fight) {
+            std::vector<battle::Block> blocks;
+            for (const auto &s : game.solids)
+              blocks.push_back({int(s.x * 1000), int(s.z * 1000), int(s.hx * 1000), int(s.hz * 1000)});
+            scene->start(wilds->foeSpecies(), wilds->foeLevel(), wilds->foeHealth(), wilds->team(), game.state.player, wilds->foeAt(), blocks, wilds->foeWatched());
+            game.phase = game::Phase::Battle;
+            fightTurn = .7f;
+            event(frame, "fight_start");
+            event(frame, "fight_contact");
+          }
           bool wasReading = book->open();
           int previousPage = book->currentPage();
           book->update(dt);
@@ -1379,18 +1417,23 @@ int main(int argc, char **argv) {
         }
         // Everyone is posed every frame; a creature not in this list waits out of sight.
         auto staged = fighting ? std::vector{scene->creature(true), scene->creature(false)} : wilds->staged();
-        for (auto &[id, home] : stageHome) {
-          auto &i = world.instances[stageModels[id]];
+        for (auto &[slot, home] : stageHome) {
+          auto &i = world.instances[slot];
           i.matrix = home;
           i.matrix.v[13] -= 40;
           i.bounds = p3::transformed(world.models[i.model].bounds, i.matrix);
         }
+        std::map<std::string, std::size_t> used;
         for (const auto &s : staged) {
           auto it = stageModels.find(s.model);
           if (it == stageModels.end())
             continue;
-          auto &i = world.instances[it->second];
-          const auto &home = stageHome[s.model];
+          // Nearest first would be nicer; in list order, extra ones beyond the pool wait out of sight.
+          auto n = used[s.model]++;
+          if (n >= it->second.size())
+            continue;
+          auto &i = world.instances[it->second[n]];
+          const auto &home = stageHome[it->second[n]];
           i.matrix = p3::posed(s, std::hypot(home.v[0], std::hypot(home.v[1], home.v[2])));
           i.bounds = p3::transformed(world.models[i.model].bounds, i.matrix);
           i.bounds.lo = i.bounds.lo - p3::Vec{.6f, .6f, .6f};
