@@ -100,6 +100,9 @@ struct Gpu {
   void setHighlights(float limit, bool leafRims);
   // Selective focus around a world point, usually the player.
   void setFocus(bool enabled, Vec at);
+  // Focus shape: blur starts at `start` and is full at `end` (screen heights from the
+  // focus line); radius in pixels at 640 wide. Defaults .10, .42, 3.
+  void setFocusShape(float start, float end, float radius);
   void setOptimizations(bool);
   std::size_t effectBytes() const;
   ~Gpu();

@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <bit>
 #include <chrono>
+#include <cstdlib>
 #include <cstring>
 #include <fstream>
 #include <map>
@@ -34,7 +35,7 @@ namespace gl {
   F(GetUniformLocation) F(UniformMatrix4fv) F(Uniform4fv) F(Uniform1i) F(Uniform1iv) F(Uniform1f) F(Uniform2f) F(Uniform3f) \
   F(GenFramebuffers) F(DeleteFramebuffers) F(BindFramebuffer) F(FramebufferTexture2D) F(CheckFramebufferStatus) F(DrawBuffers) F(ReadBuffer) F(ReadPixels) \
   F(VertexAttribDivisor) F(DrawElementsInstanced) F(Scissor) F(Viewport) F(ClearColor) F(Clear) F(ClearBufferfv) F(ClearBufferuiv) F(Enable) F(Disable) F(DepthMask) F(DepthFunc) F(BlendFunc) F(CullFace) F(DrawElements) F(DrawArrays) F(BlitFramebuffer) \
-  F(GenSamplers) F(DeleteSamplers) F(BindSampler) F(SamplerParameteri) F(PolygonMode) F(GetQueryiv) F(GenQueries) F(DeleteQueries) F(BeginQuery) F(EndQuery) F(GetQueryObjectiv) F(GetQueryObjectui64v) F(Finish)
+  F(GenSamplers) F(DeleteSamplers) F(BindSampler) F(SamplerParameteri) F(PolygonMode) F(GetQueryiv) F(GenQueries) F(DeleteQueries) F(BeginQuery) F(EndQuery) F(GetQueryObjectiv) F(GetQueryObjectui64v) F(Finish) F(QueryCounter)
 // clang-format on
 #define DECL(n) static decltype(&::gl##n) n;
 GL_FUNCTIONS(DECL)
@@ -452,7 +453,7 @@ struct Gpu::Impl {
   GLuint artPost = 0, airFilter = 0, filteredAir = 0, filteredFbo = 0;
   bool leafRims = true;float highlightLimit = 1;
   // Selective focus: a sharp band through the player, softer above and below.
-  bool focus = false;Vec focusAt{};
+  bool focus = false;Vec focusAt{};float focusStart=.10f,focusEnd=.42f,focusRadius=3.f;
   GLuint focusProgram = 0, focusSampler = 0, focusFbo = 0, focusColor = 0;
   std::vector<int> actorOwners;
   Mat lightVP,lastVP;
@@ -477,6 +478,16 @@ struct Gpu::Impl {
   bool grassGroundBorrowed = false;
   int w = 0, h = 0;
   std::array<Timer, 64> queries{};
+  // Opt-in pass timer (WILDSIGNAL_PASS_TIMES=<csv path>): GPU timestamps between the
+  // frame's passes, read back a few frames later. Off by default; no effect on pictures.
+  static constexpr int passMarks = 7;
+  struct PassStamps { std::array<GLuint, passMarks> id{}; bool pending = false; int frame = -1; };
+  std::array<PassStamps, 8> passStamps{};
+  // Per-model split of the world pass (same switch): one timestamp before each drawn object.
+  struct ModelStamps { std::vector<GLuint> id, samples; std::vector<std::size_t> model; std::size_t used = 0; };
+  std::array<ModelStamps, 8> modelStamps{};
+  std::ofstream passLog, modelLog;
+  int passSlot = -1;
   int active = -1;
   bool validTimer = false;
   GLint modelLoc = -1, vpLoc = -1, factorLoc = -1, texLoc = -1, modeLoc = -1,
@@ -499,6 +510,14 @@ struct Gpu::Impl {
     for (auto &q : queries)
       if (q.id)
         gl::DeleteQueries(1, &q.id);
+    for (auto &s : passStamps)
+      if (s.id[0])
+        gl::DeleteQueries(passMarks, s.id.data());
+    for (auto &s : modelStamps)
+      if (!s.id.empty()) {
+        gl::DeleteQueries(GLsizei(s.id.size()), s.id.data());
+        gl::DeleteQueries(GLsizei(s.samples.size()), s.samples.data());
+      }
     for (auto &v : models)
       for (auto &p : v) {
         gl::DeleteVertexArrays(1, &p.vao);
@@ -668,10 +687,10 @@ void main(){vec2 t=uv*source,b=floor(t)+.5;color=texture(image,(b+clamp((t-b)*zo
   // the view softens above and below it. Characters keep their pixels everywhere, and
   // no sample is taken from them, so they neither blur nor bleed into the background.
   p->focusProgram = program(postVS, R"(#version 330 core
-in vec2 uv;out vec4 color;uniform sampler2D image;uniform usampler2D owners;uniform int actors[16];uniform int actorCount;uniform float focusY,radius;
+in vec2 uv;out vec4 color;uniform sampler2D image;uniform usampler2D owners;uniform int actors[16];uniform int actorCount;uniform float focusY,radius,bandStart,bandEnd;
 bool actor(ivec2 q){int o=int(texelFetch(owners,q,0).r);if(o==0)return false;for(int i=0;i<actorCount;i++)if(actors[i]==o)return true;return false;}
 void main(){ivec2 size=textureSize(image,0),p=ivec2(gl_FragCoord.xy);vec4 base=texelFetch(image,p,0);
- float amount=smoothstep(.10,.42,abs(uv.y-focusY));
+ float amount=smoothstep(bandStart,bandEnd,abs(uv.y-focusY));
  if(amount<.03||actor(p)){color=base;return;}
  const vec2 disc[12]=vec2[12](vec2(1,0),vec2(.5,.866),vec2(-.5,.866),vec2(-1,0),vec2(-.5,-.866),vec2(.5,-.866),vec2(.5,.29),vec2(0,.58),vec2(-.5,.29),vec2(-.5,-.29),vec2(0,-.58),vec2(.5,-.29));
  vec3 sum=base.rgb;float total=1.;
@@ -765,6 +784,14 @@ void main(){ivec2 size=textureSize(image,0),p=ivec2(gl_FragCoord.xy);vec4 base=t
   if (timer)
     for (auto &q : p->queries)
       gl::GenQueries(1, &q.id);
+  if (const char *passPath = std::getenv("WILDSIGNAL_PASS_TIMES"); timer && passPath && *passPath) {
+    p->passLog.open(passPath);
+    p->passLog << "frame,shadow_ms,world_ms,grass_ms,blend_air_ms,post_ms,present_ms\n";
+    for (auto &s : p->passStamps)
+      gl::GenQueries(Impl::passMarks, s.id.data());
+    p->modelLog.open(std::string(passPath) + ".models.csv");
+    p->modelLog << "frame,model,ms,pixels\n";
+  }
   GLint bits = 0;
   gl::GetIntegerv(GL_MAX_DRAW_BUFFERS, &bits);
   if (bits < 3)
@@ -1240,6 +1267,7 @@ void Gpu::setOptimizations(bool enabled) { p->optimize = enabled; p->shadowValid
 void Gpu::setPilotTime(float t) { p->pilot.time = t; }
 void Gpu::setHighlights(float limit, bool leafRims) { p->highlightLimit = std::clamp(limit, 0.f, 1.f); p->leafRims = leafRims; }
 void Gpu::setFocus(bool enabled, Vec at) { p->focus = enabled; p->focusAt = at; }
+void Gpu::setFocusShape(float start, float end, float radius) { p->focusStart = start; p->focusEnd = end; p->focusRadius = radius; }
 void Gpu::setDefinedShafts(bool enabled){p->definedShafts=enabled;}
 void Gpu::setEffects(const Effects &e) {
   e.validate();
@@ -1291,6 +1319,45 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     q.frame = frame;
     gl::BeginQuery(GL_TIME_ELAPSED, q.id);
   }
+  p->passSlot = -1;
+  if (p->passLog.is_open()) {
+    for (auto &s : p->passStamps) {
+      GLint ready = 0;
+      if (s.pending)
+        gl::GetQueryObjectiv(s.id[Impl::passMarks - 1], GL_QUERY_RESULT_AVAILABLE, &ready);
+      if (!ready)
+        continue;
+      std::array<GLuint64, Impl::passMarks> t{};
+      for (int i = 0; i < Impl::passMarks; i++)
+        gl::GetQueryObjectui64v(s.id[i], GL_QUERY_RESULT, &t[i]);
+      p->passLog << s.frame;
+      for (int i = 1; i < Impl::passMarks; i++)
+        p->passLog << ',' << double(t[i] - t[i - 1]) * 1e-6;
+      p->passLog << '\n';
+      auto &m = p->modelStamps[std::size_t(&s - p->passStamps.data())];
+      std::vector<GLuint64> mt(m.used);
+      std::vector<GLuint64> px(m.used);
+      for (std::size_t i = 0; i < m.used; i++) {
+        gl::GetQueryObjectui64v(m.id[i], GL_QUERY_RESULT, &mt[i]);
+        gl::GetQueryObjectui64v(m.samples[i], GL_QUERY_RESULT, &px[i]);
+      }
+      for (std::size_t i = 0; i + 1 < m.used; i++)
+        if (m.model[i] < world.models.size()) p->modelLog << s.frame << ',' << world.models[m.model[i]].id << ',' << double(mt[i + 1] - mt[i]) * 1e-6 << ',' << px[i] << '\n';
+      m.used = 0;
+      s.pending = false;
+    }
+    for (int i = 0; i < int(p->passStamps.size()); i++)
+      if (!p->passStamps[i].pending) { p->passSlot = i; break; }
+    if (p->passSlot >= 0) {
+      p->passStamps[p->passSlot].pending = true;
+      p->passStamps[p->passSlot].frame = frame;
+    }
+  }
+  auto passMark = [&](int i) {
+    if (p->passSlot >= 0)
+      gl::QueryCounter(p->passStamps[p->passSlot].id[i], GL_TIMESTAMP);
+  };
+  passMark(0);
   // The flat view always snaps to whole pixels and slides the finished image by the
   // remainder, so walking moves the world smoothly with no pixel creep.
   const bool ortho = p->orthoHalf > 0;
@@ -1628,6 +1695,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     }
   }
   stats.shadowCpuMs = ms(shadowStart, Clock::now());
+  passMark(1);
   gl::UseProgram(p->mesh);
   uniformInt(p->mesh, "patchStudy", p->grass && p->grass->authored);
   uniformInt(p->mesh, "patchIDs", 7);
@@ -1798,7 +1866,9 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     }
     // LOOKDEV-005 ledges (WSP_CLIFF) are stone: shaded like the rocks, mossy where they face up.
     int family=model.rig||model.id.starts_with("WS0")?-1:model.id.starts_with("WSP_CLIFF")||model.id.starts_with("WS_TERRAIN_ROCK_")?4:model.id.starts_with("WS_TERRAIN_")?5:model.id.starts_with("WSP_")||model.id.starts_with("EA_TREE")||model.id.starts_with("EA_BUSH")||model.id.starts_with("EA_REED")?1:model.id.starts_with("EA_ROCK")?4:model.id.starts_with("EA_PATH")||model.id=="EA_COBBLE"||model.id.starts_with("HG_PATH")?3:model.id=="EA_GROUND"||model.id.starts_with("HG_GROUND")||model.id.starts_with("HG_GREEN")||model.id.starts_with("EA_GREEN")?5:model.id.starts_with("EA_GREEN")||model.id.starts_with("HG_GREEN")||model.id=="EA_MOSS"?0:2;
-    uniformInt(p->mesh,"profileFamily",family);
+    // R9 trunks (painted_form) under the tree IDs keep their approved painted shading, which
+    // the dream look gives the prop family; their leaves stay in the tree family.
+    uniformInt(p->mesh,"profileFamily",family==1&&mat.paintedForm?2:family);
     uniformInt(p->mesh,"pilotMeadow",isMeadowExtra(model.id));
     // Under the flat camera the whole image moves in whole pixels, so snapped leaf cards stay
     // still while walking and each tiny leaf sprite is drawn pixel for pixel.
@@ -1875,8 +1945,48 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
   };
   if (p->diagnosticView == 6)
     gl::PolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-  for (auto index : visible) {
+  auto modelMark = [&](std::size_t model) {
+    if (p->passSlot < 0)
+      return;
+    auto &m = p->modelStamps[std::size_t(p->passSlot)];
+    if (m.used == m.id.size()) {
+      std::size_t grow = std::max<std::size_t>(256, m.id.size());
+      m.id.resize(m.id.size() + grow);
+      m.model.resize(m.id.size());
+      m.samples.resize(m.id.size());
+      gl::GenQueries(GLsizei(grow), m.id.data() + m.id.size() - grow);
+      gl::GenQueries(GLsizei(grow), m.samples.data() + m.id.size() - grow);
+    }
+    if (m.used)
+      gl::EndQuery(GL_SAMPLES_PASSED);
+    m.model[m.used] = model;
+    gl::BeginQuery(GL_SAMPLES_PASSED, m.samples[m.used]);
+    gl::QueryCounter(m.id[m.used++], GL_TIMESTAMP);
+  };
+  // Build 017: the bottom ground layer (ground tiles, terrain lawn) is drawn after
+  // everything else, so ground hidden under lawn, paths, houses and plants is skipped
+  // by the depth test instead of being shaded and painted over. It is drawn with
+  // LEQUAL so it still wins exact depth ties, as it did when it was drawn first:
+  // pictures stay byte-identical (tools/region_parity.py).
+  auto bottomLayer = [&](std::size_t index) {
+    const auto &id = world.models[world.instances[index].model].id;
+    return id == "EA_GROUND" || (id.starts_with("WS_TERRAIN_") && !id.starts_with("WS_TERRAIN_ROCK_"));
+  };
+  std::vector<std::size_t> order;
+  order.reserve(visible.size());
+  for (auto index : visible)
+    if (!bottomLayer(index))
+      order.push_back(index);
+  const std::size_t groundFrom = order.size();
+  for (auto index : visible)
+    if (bottomLayer(index))
+      order.push_back(index);
+  for (std::size_t slot = 0; slot < order.size(); slot++) {
+    auto index = order[slot];
+    if (slot == groundFrom)
+      gl::DepthFunc(GL_LEQUAL);
     auto &i = world.instances[index];
+    modelMark(i.model);
     // LOOKDEV-003 flowers and edge tufts: switchable, and dropped past 20 m like far grass.
     if (isMeadowExtra(world.models[i.model].id)) {
       auto d = point(i.matrix, {}) - effective.position;
@@ -1897,7 +2007,12 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     if(p->tree&&index==p->tree->target&&p->treeMode==4)
       for(const auto &part:p->rimParts)draw(index,part);
   }
+  gl::DepthFunc(GL_LESS);
+  modelMark(0);
+  if (p->passSlot >= 0)
+    gl::EndQuery(GL_SAMPLES_PASSED);
   if(p->grassRenderer){p->pilot.right=direction(inverse(camera.view()),{1,0,0});p->pilot.wide=float(w);p->pilot.high=float(h);p->grassRenderer->setProfile(p->profile,!p->sourceView);p->grassRenderer->setPilot(p->pilot);}
+  passMark(2);
   if (p->grassRenderer && p->grass && p->coverage != 1 && p->coverage != 4) {
     stats.grass = p->grassRenderer->draw(
         *p->grass, effective, vp, p->look, p->lightVP, p->shadowDepth,
@@ -1909,6 +2024,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     gl::ActiveTexture(GL_TEXTURE0);
     gl::BindSampler(0, p->style.sampling == 2 ? p->linearSampler : 0);
   }
+  passMark(3);
   // Transparent glass is sorted, writes color only, and never corrupts the
   // opaque/masked depth and normal surfaces used by the outline pass.
   std::sort(
@@ -2031,6 +2147,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     stats.draws++;
   }
   stats.shaftCpuMs = ms(shaftStart, Clock::now());
+  passMark(4);
   gl::BindFramebuffer(GL_FRAMEBUFFER, p->postFbo);
   gl::Viewport(0, 0, w, h);
   GLuint postProgram = p->integration.edges > 0 ? p->edgePost
@@ -2130,7 +2247,9 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     gl::Uniform1iv(p->location(p->focusProgram, "actors"), GLsizei(p->actorOwners.size()), p->actorOwners.data());
     uniformInt(p->focusProgram, "actorCount", int(p->actorOwners.size()));
     uniformFloat(p->focusProgram, "focusY", clipW > .001f ? std::clamp(clipY / clipW * .5f + .5f, 0.f, 1.f) : .5f);
-    uniformFloat(p->focusProgram, "radius", 3.f * float(w) / 640.f);
+    uniformFloat(p->focusProgram, "radius", p->focusRadius * float(w) / 640.f);
+    uniformFloat(p->focusProgram, "bandStart", p->focusStart);
+    uniformFloat(p->focusProgram, "bandEnd", p->focusEnd);
     gl::DrawArrays(GL_TRIANGLES, 0, 3);
     gl::BindSampler(0, 0);
     stats.draws++;
@@ -2145,6 +2264,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
   bool whole = std::abs(fit - std::round(fit)) < .001f && fit >= 1;
   int dw = static_cast<int>(std::lround(w * fit)), dh = static_cast<int>(std::lround(h * fit));
   int left = (outW - dw) / 2, bottom = (outH - dh) / 2;
+  passMark(5);
   if (cameraMode == PixelCameraMode::Compensated) {
     gl::BindFramebuffer(GL_FRAMEBUFFER, 0);
     gl::Viewport(left, bottom, dw, dh);
@@ -2176,6 +2296,7 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     gl::BlitFramebuffer(0, 0, w, h, left, bottom, left + dw, bottom + dh,
                         GL_COLOR_BUFFER_BIT, GL_NEAREST);
   }
+  passMark(6);
   if (p->active >= 0)
     gl::EndQuery(GL_TIME_ELAPSED);
   stats.cpuSubmitMs = ms(start, Clock::now());

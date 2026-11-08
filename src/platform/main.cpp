@@ -53,6 +53,25 @@ std::uint64_t memory(bool peak = false) {
 #endif
   return 0;
 }
+// Freeze recorder: the process's committed memory and the PC's free memory, so a
+// long freeze can be told apart (our work vs. Windows/driver memory pressure).
+std::string memorySnapshot() {
+  std::ostringstream o;
+#ifdef _WIN32
+  PROCESS_MEMORY_COUNTERS p{};
+  if (GetProcessMemoryInfo(GetCurrentProcess(), &p, sizeof(p)))
+    o << "working_set_mb=" << p.WorkingSetSize / 1048576 << " private_mb=" << p.PagefileUsage / 1048576
+      << " page_faults=" << p.PageFaultCount;
+  MEMORYSTATUSEX m{};
+  m.dwLength = sizeof(m);
+  if (GlobalMemoryStatusEx(&m))
+    o << " pc_free_mb=" << m.ullAvailPhys / 1048576 << " pc_total_mb=" << m.ullTotalPhys / 1048576
+      << " pc_commit_free_mb=" << m.ullAvailPageFile / 1048576 << " pc_memory_load_pct=" << m.dwMemoryLoad;
+#else
+  o << "working_set_mb=" << memory() / 1048576;
+#endif
+  return o.str();
+}
 // F6 render sizes, smallest first: 480 is the light setting for low-end devices.
 int nextWidth(int w) { return w == 480 ? 640 : w == 640 ? 1280 : 480; }
 // Signari whose scene object the game moves around as a party member or a wild.
@@ -735,7 +754,7 @@ int main(int argc, char **argv) {
     p3::PilotLook basePilot,dreamPilot;
     if(!o.pilot.empty()){basePilot=readPilot(ws::parseJson(p3::readText(o.pilot)));gpu.setPilot(basePilot);}
     // LOOKDEV-005 dream look: its own ramps, cloud shade, light and haze, and the flat camera.
-    p3::Look dreamLook=look;float dreamHalf=6.5f,dreamFightHalf=5.2f,dreamPitch=-.70f;
+    std::array<float,3> dreamFocus{.10f,.42f,3.f};p3::Look dreamLook=look;float dreamHalf=6.5f,dreamFightHalf=5.2f,dreamPitch=-.70f;
     const bool hasDream=!o.dream.empty()&&basePilot.enabled;
     if(hasDream){
       auto j=ws::parseJson(p3::readText(o.dream));dreamPilot=readPilot(j);dreamPilot.dream=1;
@@ -745,10 +764,13 @@ int main(int argc, char **argv) {
       dreamLook.ambientSky=vec3("ambient_sky");dreamLook.ambientGround=vec3("ambient_ground");dreamLook.sunColor=vec3("sun_color");
       dreamLook.hazeStart=float(l.at("haze_start").number());dreamLook.hazeEnd=float(l.at("haze_end").number());dreamLook.hazeStrength=std::clamp(float(l.at("haze_strength").number()),0.f,1.f);
       if(dreamLook.hazeEnd<=dreamLook.hazeStart)throw std::runtime_error("dream haze interval");
+      // Optional softer edge blur for the dream look (raised camera): band start/end and radius.
+      if(auto &obj=std::get<ws::Json::Object>(j.value);obj.contains("focus")){auto &f=obj.find("focus")->second;float a=std::clamp(float(f.at("start").number()),0.f,1.f),b=std::clamp(float(f.at("end").number()),0.f,1.5f);
+        if(b<=a)throw std::runtime_error("dream focus start/end");dreamFocus={a,b,std::clamp(float(f.at("radius").number()),0.f,6.f)};}
       auto &c=j.at("camera");dreamHalf=std::clamp(float(c.at("half").number()),3.f,14.f);dreamFightHalf=std::clamp(float(c.at("fight_half").number()),3.f,14.f);dreamPitch=-std::clamp(float(c.at("pitch").number()),.35f,1.2f);
     }
     bool dream=hasDream&&o.dreamOn;
-    auto applyDream=[&]{if(!basePilot.enabled)return;gpu.setPilot(dream?dreamPilot:basePilot);gpu.setLook(dream?dreamLook:look);if(!dream)gpu.setOrtho(0,0);};
+    auto applyDream=[&]{if(!basePilot.enabled)return;gpu.setPilot(dream?dreamPilot:basePilot);gpu.setLook(dream?dreamLook:look);gpu.setFocusShape(dream?dreamFocus[0]:.10f,dream?dreamFocus[1]:.42f,dream?dreamFocus[2]:3.f);if(!dream)gpu.setOrtho(0,0);};
     applyDream();
     // Fight test: real-time rules, ground markers and pixel HUD, staged with existing creature models.
     std::unique_ptr<p3::PixelUi> pixelUi;
@@ -904,6 +926,8 @@ int main(int argc, char **argv) {
               "draws,building_caster_draws,shadow_cache_invalidations,shadow_"
               "cpu_ms,internal_width,internal_height,grass_density,grass_lod,grass_lod0,grass_lod1,grass_lod2,meadow_patches,shadow_enabled,shafts_enabled,haze_enabled,source_mode,quality,shadow_size,shaft_steps,shaft_divisor,air_proof,atmosphere_width,atmosphere_height,meadow_lighting,defined_shafts,meadow_response,grass_outlines,beam_count,tree_mode,tree_leaf_cards,plain_leaves,chunks_active,chunk_loads,chunk_unloads,models_resident,models_freed,stream_ms\n";
     timers << "frame,gpu_elapsed_ms\n";
+    // Any frame over 2 s is written here with the step times and memory (build 017).
+    std::ofstream freezes;
     events << "frame,event,phase,hp,enemy_hp,recruited,x,z\n";
     auto event = [&](int f, const std::string &name) {
       events << f << ',' << name << ',' << phaseName(game.phase) << ','
@@ -1726,6 +1750,16 @@ int main(int argc, char **argv) {
         timers << queryFrame << ',' << gpuMs << '\n';
       if (frame % 30 == 0)
         currentMemory = memory();
+      if (ms(begin, end) > 2000) {
+        if (!freezes.is_open())
+          freezes.open(o.out / "freezes.txt");
+        freezes << "frame=" << frame << " total_ms=" << ms(begin, end) << " update_ms=" << ms(begin, updateEnd)
+                << " cull_ms=" << ms(cullStart, cullEnd) << " submit_ms=" << stats.cpuSubmitMs
+                << " swap_ms=" << ms(swapStart, swapped)
+                << " draws=" << stats.draws << " " << memorySnapshot() << '\n';
+        freezes.flush();
+        event(frame, "freeze");
+      }
       frames << frame << ',' << phaseName(game.phase) << ','
              << ms(begin, updateEnd) << ',' << ms(animateStart, animateEnd)
              << ',' << ms(cullStart, cullEnd) << ',' << stats.cpuSubmitMs << ','
