@@ -3,6 +3,7 @@
 #include "fight_scene.hpp"
 #include "wild_scene.hpp"
 #include "goods.hpp"
+#include "homestead_scene.hpp"
 #include "followers.hpp"
 #include "game.hpp"
 #include "view_angles.hpp"
@@ -15,6 +16,7 @@
 #include <SDL3/SDL_main.h>
 #include <algorithm>
 #include <cctype>
+#include <set>
 #include <chrono>
 #include <fstream>
 #include <iomanip>
@@ -782,6 +784,8 @@ int main(int argc, char **argv) {
     std::unique_ptr<p3::WildScene> wilds;
     std::unique_ptr<p3::FieldBook> book;
     std::unique_ptr<p3::Goods> goods;
+    std::unique_ptr<p3::HomesteadScene> homestead;
+    std::set<std::string> homeModels;
     // Each Signari model can have several scene objects (persistent rows "<id>", "<id>#1", ...),
     // so more than one of a species can be on screen; posed in order each frame.
     std::map<std::string, std::vector<std::size_t>> stageModels;
@@ -833,9 +837,14 @@ int main(int argc, char **argv) {
       book=std::make_unique<p3::FieldBook>(o.pilot.parent_path(),scene->roster());
       groundMarks=std::make_unique<p3::GroundMarks>([](float x,float z){return game::terrain(x,z);});
       gpu.setOverlay([&](const p3::Mat &m){groundMarks->draw(m);});
+      // HOME-001: the homestead on this region's site; its pieces use persistent scene slots.
+      auto homeFile=o.save;homeFile+=".home.json";
+      if(!o.region.empty())homestead=std::make_unique<p3::HomesteadScene>(content,o.region,scene->roster(),homeFile,o.fresh);
+      if(homestead)for(auto &m:homestead->models())homeModels.insert(m);
+      if(homestead)homestead->addSolids(game.solids);
       for(std::size_t i=0;i<world.instances.size();i++){
         const auto &model=world.models[world.instances[i].model];
-        if(stageSignari(model.id)&&(!stream||stream->persistent(i))){stageModels[model.id].push_back(i);stageHome[i]=world.instances[i].matrix;}
+        if((stageSignari(model.id)||homeModels.contains(model.id))&&(!stream||stream->persistent(i))){stageModels[model.id].push_back(i);stageHome[i]=world.instances[i].matrix;}
       }
       // ECON-001: forage finds, the village shop and the bag (I), from the content folder.
       goods=std::make_unique<p3::Goods>(content,o.region,scene->roster(),[&](p3::Vec at){
@@ -1182,6 +1191,22 @@ int main(int argc, char **argv) {
             if (book->key(int(e.key.key))) closeBook();
             continue;
           }
+          if (homestead && homestead->open()) {
+            if (paused) { if(e.key.key==SDLK_RETURN||e.key.key==SDLK_ESCAPE) paused=false; continue; }
+            bool changed = false;
+            homestead->key(int(e.key.key), wilds->notes(), changed);
+            if (changed) wilds->saveNow();
+            continue;
+          }
+          if (homestead && !paused && !o.benchmark && game.phase == game::Phase::Explore && !scene->active() && !wilds->busy() && !wilds->watching() && !(goods && goods->open()) &&
+              (e.key.key == SDLK_H || (e.key.key == SDLK_E && !atRest()))) {
+            bool changed = false;
+            if (homestead->press(int(e.key.key), wilds->notes(), changed)) {
+              if (changed) wilds->saveNow();
+              if (homestead->open()) { held.fill(false); sneaking = false; }
+              continue;
+            }
+          }
           if (goods && goods->open()) {
             if (paused) { if(e.key.key==SDLK_RETURN||e.key.key==SDLK_ESCAPE) paused=false; continue; }
             if (goods->key(int(e.key.key), wilds->notes())) wilds->saveNow();
@@ -1332,7 +1357,7 @@ int main(int argc, char **argv) {
           }
         }
       }
-      bool reading = (book && book->open()) || (goods && goods->open());
+      bool reading = (book && book->open()) || (goods && goods->open()) || (homestead && homestead->open());
       const bool flat = dream && o.raisedCamera && !o.benchmark;
       if (flat) {
         // W is always up the screen; a key held through a turn keeps its old way until let go.
@@ -1408,6 +1433,11 @@ int main(int argc, char **argv) {
           if (!scene->active() && !stageSet && !reading)
             wilds->update(dt, game.state.player, sneaking, game.solids);
           if (goods && game.phase == game::Phase::Explore && !scene->active()) goods->update(dt, game.state.player);
+          if (homestead) homestead->update(dt, game.state.player, game::quarterYaw(quarter), wilds->notes());
+          if (homestead && homestead->takeLayoutChanged()) {
+            game.solids = stream ? stream->solids() : game.solids;
+            homestead->addSolids(game.solids);
+          }
           // A territorial wild that reached the player starts the fight itself.
           if (game.phase == game::Phase::Explore && !scene->active() && !stageSet && wilds->contact() == p3::WildScene::Press::Fight) {
             std::vector<battle::Block> blocks;
@@ -1430,6 +1460,9 @@ int main(int argc, char **argv) {
         if (goods)
           for (const auto &name : goods->takeEvents())
             event(frame, name.c_str());
+        if (homestead)
+          for (const auto &name : homestead->takeEvents())
+            event(frame, name.c_str());
         bool fighting = scene->active(), watching = wilds->watching();
         if (fighting) {
           game.state.player = scene->youAt();
@@ -1444,6 +1477,14 @@ int main(int argc, char **argv) {
         }
         // Everyone is posed every frame; a creature not in this list waits out of sight.
         auto staged = fighting ? std::vector{scene->creature(true), scene->creature(false)} : wilds->staged();
+        if (homestead) {
+          auto placed = homestead->pieces();
+          staged.insert(staged.end(), placed.begin(), placed.end());
+          if (!fighting) {
+            auto helpers = homestead->residents(wilds->notes());
+            staged.insert(staged.end(), helpers.begin(), helpers.end());
+          }
+        }
         for (auto &[slot, home] : stageHome) {
           auto &i = world.instances[slot];
           i.matrix = home;
@@ -1610,6 +1651,7 @@ int main(int argc, char **argv) {
         auto t = Clock::now();
         if (stream->update(game.state.player, world)) {
           game.solids = stream->solids();
+          if (homestead) homestead->addSolids(game.solids);
           gpu.worldChanged(world);
           rebuildViewSets();
           event(frame, "chunks_changed");
@@ -1678,6 +1720,7 @@ int main(int argc, char **argv) {
         if (!scene->active()) {
           wilds->marks(*groundMarks, {}, {});
           if (goods) goods->marks(*groundMarks);
+          if (homestead) homestead->marks(*groundMarks, p3::direction(eye, {1, 0, 0}), p3::direction(eye, {0, 1, 0}));
         }
       }
       auto cullStart = Clock::now();
@@ -1773,8 +1816,9 @@ int main(int argc, char **argv) {
         } else {
           if (scene->active()) scene->draw(*pixelUi,toCanvas);
           else if (game.phase==game::Phase::Explore && atRest()) scene->prompt(*pixelUi,"[E] Rest at the cottage");
-          else if (game.phase==game::Phase::Explore && !(goods && goods->open())) wilds->draw(*pixelUi,toCanvas);
-          if (goods && !scene->active() && game.phase==game::Phase::Explore) goods->draw(*pixelUi,toCanvas,wilds->notes());
+          else if (game.phase==game::Phase::Explore && !(goods && goods->open()) && !(homestead && homestead->open())) wilds->draw(*pixelUi,toCanvas);
+          if (goods && !scene->active() && game.phase==game::Phase::Explore && !(homestead && homestead->open())) goods->draw(*pixelUi,toCanvas,wilds->notes());
+          if (homestead && !scene->active() && game.phase==game::Phase::Explore && !(goods && goods->open())) homestead->draw(*pixelUi,toCanvas,wilds->notes());
           if(book && !scene->active() && game.phase==game::Phase::Explore) book->drawIcon(*pixelUi,wilds->notes());
         }
         if(paused && !(book&&book->open())) {
