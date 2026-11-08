@@ -23,6 +23,27 @@ bond::Journal newGameTeam() {
 }
 // Where each team member waits around a resting player.
 Vec restSpot(std::size_t i) { return {i % 2 ? 1.1f : -1.1f, 0, 1.2f + float(i / 2) * 1.1f}; }
+const char *behaviourWord(spawn::Behaviour b) {
+  switch (b) {
+  case spawn::Behaviour::Skittish: return "Skittish";
+  case spawn::Behaviour::Curious: return "Curious";
+  case spawn::Behaviour::Territorial: return "Territorial";
+  case spawn::Behaviour::Roaming: return "Roaming";
+  }
+  return "";
+}
+// One plain line on how to read each behaviour, shown when the player is near.
+const char *behaviourHint(const spawn::Roamer &r) {
+  switch (r.behaviour) {
+  case spawn::Behaviour::Skittish: return "Runs if you rush it. Sneak closer (Shift).";
+  case spawn::Behaviour::Curious: return "Comes over to look at you.";
+  case spawn::Behaviour::Territorial:
+    return r.state == spawn::State::Warn || r.state == spawn::State::Charge ? "It is guarding this spot. Back off, or stand your ground."
+                                                                           : "Guards its spot. Too close and it attacks.";
+  case spawn::Behaviour::Roaming: return "Walks its own route through the area.";
+  }
+  return "";
+}
 // Small fixed offsets, so the scattered seeds sit in the same places every time.
 const std::array<std::array<float, 2>, 4> Scatter{{{-.6f, .15f}, {.05f, .55f}, {.7f, .05f}, {-.05f, -.55f}}};
 } // namespace
@@ -82,6 +103,48 @@ WildScene::WildScene(const std::filesystem::path &folder, const battle::Content 
     say("Mara left a field book in your pack. Press B to open it.", 7);
     store();
   }
+}
+std::size_t WildScene::spawnFromTable(const std::string &text, const std::string &region, spawn::Accept accept) {
+  std::vector<std::string> known;
+  for (const auto &sp : content->species) known.push_back(sp.id);
+  spawnTable = spawn::load(text, region, known);
+  zoneFilled.assign(spawnTable.zones.size(), false);
+  spawnAccept = std::move(accept);
+  // The same region always places the same wilds (seed from its name).
+  spawnSeed = 2166136261u;
+  for (char ch : region) spawnSeed = (spawnSeed ^ std::uint8_t(ch)) * 16777619u;
+  roamers.clear();
+  fillZonesNear(seenPlayer);
+  return roamers.size();
+}
+void WildScene::fillZonesNear(Vec player) {
+  for (std::size_t z = 0; z < spawnTable.zones.size(); z++) {
+    if (zoneFilled[z]) continue;
+    const auto &zone = spawnTable.zones[z];
+    // The whole zone must lie in loaded ground: the player's chunk and its neighbours reach at
+    // least one chunk (32 m) past the player on every side, and a new neighbour may load a moment late,
+    // so 24 m is used. Then the spots never depend on the path.
+    if (std::max({std::abs(zone.x0 - player.x), std::abs(zone.x1 - player.x), std::abs(zone.z0 - player.z), std::abs(zone.z1 - player.z)}) > 24) continue;
+    zoneFilled[z] = true;
+    spawn::Table one;
+    one.region = spawnTable.region;
+    one.zones = {zone};
+    for (auto &r : spawn::place(one, spawnSeed ^ (std::uint32_t(z + 1) * 0x9E3779B9u), spawnAccept)) {
+      r.home.y = r.at.y = game::terrain(r.at.x, r.at.z);
+      roamers.push_back(std::move(r));
+    }
+    events.push_back("spawn_zone_" + zone.id);
+  }
+}
+WildScene::Press WildScene::contact() {
+  if (contactRoamer < 0) return Press::None;
+  target = contactRoamer;
+  foeRoamer = true;
+  contactRoamer = -1;
+  watchIndex = -1;
+  say(content->species[content->speciesIndex(roamers[std::size_t(target)].species)].name + " charges at you!", 2.4f);
+  events.push_back("wild_contact_fight");
+  return Press::Fight;
 }
 std::vector<std::string> WildScene::goals() const {
   std::vector<std::string> out;
@@ -266,6 +329,27 @@ void WildScene::update(float dt, Vec player, bool sneaking, const std::vector<ga
     }
   }
 
+  // Spawned wilds: each follows its behaviour; walls and cliffs stop them like the player.
+  auto mover = [&](Vec a, Vec b) { return game::move(a, b - a, solids); };
+  bool held = busy() || watching() || joinT > 0;
+  if (!spawnTable.zones.empty()) fillZonesNear(player);
+  nearRoamer = -1;
+  float nearGap = 6;
+  for (std::size_t i = 0; i < roamers.size(); i++) {
+    auto &r = roamers[i];
+    // Far ones wait where they are: their ground may not be loaded.
+    if (flat(r.at, player) > ActiveRange && r.state != spawn::State::Gone) continue;
+    auto before = r.state;
+    if (spawn::update(r, dt, player, sneaking, held, mover) == spawn::Event::StartFight && contactRoamer < 0) {
+      contactRoamer = int(i);
+      events.push_back("wild_charge");
+    }
+    if (r.state == spawn::State::Warn && before != spawn::State::Warn) events.push_back("wild_warn");
+    r.at.y = game::terrain(r.at.x, r.at.z);
+    float gap = flat(r.at, player);
+    if (r.state != spawn::State::Gone && gap < nearGap) nearGap = gap, nearRoamer = int(i);
+  }
+
   // Works out what the keys offer right now, for both the prompt and press().
   near = -1;
   float best = 1e9f;
@@ -276,6 +360,13 @@ void WildScene::update(float dt, Vec player, bool sneaking, const std::vector<ga
     if (gap < best) best = gap, near = int(i);
   }
   canWatch = canSit = canTidy = canFight = canInvite = tooClose = false;
+  // A spawned wild nearer than the story wilds takes the prompt.
+  if (nearRoamer >= 0 && (near < 0 || nearGap < best)) {
+    near = -1;
+    canFight = nearGap < FightNear;
+    return;
+  }
+  nearRoamer = -1;
   if (near < 0 || best > WatchFar + 2) {
     near = -1;
     return;
@@ -292,6 +383,15 @@ void WildScene::update(float dt, Vec player, bool sneaking, const std::vector<ga
 }
 WildScene::Press WildScene::press(int k, Vec) {
   if (busy()) return Press::Handled;
+  if (nearRoamer >= 0) {
+    if (k == SDLK_F && canFight) {
+      target = nearRoamer;
+      foeRoamer = true;
+      watchIndex = -1;
+      return Press::Fight;
+    }
+    return k == SDLK_F ? Press::Handled : Press::None;
+  }
   if (near < 0) return k == SDLK_F ? Press::Handled : Press::None;
   auto &w = wilds[std::size_t(near)];
   if (k == SDLK_E && (canTidy || canInvite || canWatch || canSit) && w.wariness.frightened()) {
@@ -322,6 +422,7 @@ WildScene::Press WildScene::press(int k, Vec) {
   }
   if (k == SDLK_F && canFight) {
     target = near;
+    foeRoamer = false;
     watchIndex = -1;
     return Press::Fight;
   }
@@ -338,6 +439,29 @@ void WildScene::keepAt(const std::string &model, Vec at) {
 void WildScene::fightEnded(bool won, bool tuned, bool left, const std::vector<int> &teamHp, Vec foeStoppedAt) {
   for (std::size_t i = 0; i < journal.party.size() && i < teamHp.size(); i++)
     journal.party[i].hp = teamHp[i];
+  if (foeRoamer) {
+    auto &r = roamers[std::size_t(target)];
+    std::string name = content->species[content->speciesIndex(r.species)].name;
+    if (tuned) {
+      journal.earn(r.species, bond::Act::Reach);
+      bool roomy = int(journal.party.size()) < bond::PartyLimit;
+      if (journal.invite(r.species, r.level, 0, false)) {
+        events.push_back("tune_in_joined");
+        joinName = name;
+        joinNote = roomy ? "Joined your team!" : "Waiting at the cottage.";
+        joinT = 3.8f;
+      } else {
+        say(name + "'s signal is already in your compass. It heads home.", 3.6f);
+      }
+    } else if (won) {
+      events.push_back("wild_knocked_out");
+      say(name + " runs off to rest.", 3);
+    }
+    spawn::fightOver(r, tuned || won, foeStoppedAt);
+    foeRoamer = false;
+    store();
+    return;
+  }
   auto &w = wilds[std::size_t(target)];
   w.at = foeStoppedAt;
   w.mood = Mood::Forage;
@@ -397,6 +521,20 @@ std::vector<FightScene::Staged> WildScene::staged() const {
     if (w.mood == Mood::Spot) s.scale = {.94f, 1.1f, .94f};
     out.push_back(s);
   }
+  for (std::size_t i = 0; i < roamers.size(); i++) {
+    const auto &r = roamers[i];
+    if (r.state == spawn::State::Gone || flat(r.at, seenPlayer) > ActiveRange) continue;
+    FightScene::Staged s;
+    s.model = modelOf(r.species);
+    s.at = r.at;
+    s.yaw = r.yaw;
+    hop(s, r.moving, 2.1f + float(i) * .7f);
+    // Body language: tall and puffed up when guarding, low and leaning in when charging.
+    if (r.state == spawn::State::Warn) s.scale = {1.1f, 1.12f, 1.1f};
+    if (r.state == spawn::State::Charge) s.pitch = .3f;
+    if (r.state == spawn::State::Watch) s.roll = std::sin(clock * 2.2f + float(i)) * .12f;
+    out.push_back(s);
+  }
   for (std::size_t i = 0; i < pack.size(); i++) {
     FightScene::Staged s;
     s.model = modelOf(pack[i].species);
@@ -409,6 +547,10 @@ std::vector<FightScene::Staged> WildScene::staged() const {
   return out;
 }
 void WildScene::marks(GroundMarks &g, Vec, Vec) {
+  // A territorial Signari shows the edge of its spot while it warns the player.
+  for (const auto &r : roamers)
+    if (r.state == spawn::State::Warn || r.state == spawn::State::Charge)
+      g.ring(r.home, spawn::WarnRange, .12f, {.86f, .36f, .26f, .75f});
   for (const auto &w : wilds) {
     auto *e = journal.find(w.species);
     if (!e || !e->observed || e->assisted || e->joined) continue;
@@ -439,6 +581,15 @@ void WildScene::draw(PixelUi &ui, const FightScene::Project &project) {
       else ui.text("!", p[0], p[1], Coral);
     }
   }
+  for (const auto &r : roamers) {
+    if (r.state == spawn::State::Gone || flat(r.at, seenPlayer) > ActiveRange) continue;
+    auto p = project(r.at + Vec{0, 1.1f, 0});
+    if (r.state == spawn::State::Warn || r.state == spawn::State::Charge) {
+      if (ui.has("alert")) centred("alert", p);
+      else ui.text("!", p[0], p[1], Coral);
+    } else if (r.state == spawn::State::Watch)
+      ui.text("?", p[0], p[1], Calm);
+  }
   // The joined moment (placeholder pixel UI until UI-001): a ribbon with the name, the note
   // below it and the stamp coming down. Without the ribbon art it falls back to a plain panel.
   if (joinT > 0) {
@@ -457,6 +608,19 @@ void WildScene::draw(PixelUi &ui, const FightScene::Project &project) {
     return;
   }
   std::string message = toastT>0 ? toast : watchIndex>=0 ? (sitting ? "Stay still and keep it company." : wilds[std::size_t(watchIndex)].watchingText) : "";
+  if(nearRoamer>=0 && toastT<=0 && watchIndex<0) {
+    const auto &r=roamers[std::size_t(nearRoamer)];
+    const int x=174,y=260,w=292;
+    ui.panel("panel",x,y,w,85);
+    std::string title=content->species[content->speciesIndex(r.species)].name+"  Lv "+std::to_string(r.level);
+    ui.text(title,x+16,y+10,t.title,2);
+    std::string mood=behaviourWord(r.behaviour);
+    bool angry=r.state==spawn::State::Warn||r.state==spawn::State::Charge;
+    ui.text(mood,x+w-16-ui.width(mood),y+18,angry?Coral:t.ink);
+    ui.paragraph(behaviourHint(r),x+16,y+37,w-32,t.ink);
+    if(canFight) ui.text("F  Fight",x+w-16-ui.width("F  Fight"),y+66,t.ink);
+    return;
+  }
   if(near<0 && message.empty()) return;
   const int x=174,y=260,w=292;
   ui.panel("panel",x,y,w,85);

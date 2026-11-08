@@ -5,6 +5,7 @@
 #include "game.hpp"
 #include "ground_marks.hpp"
 #include "pixel_ui.hpp"
+#include "spawns.hpp"
 #include <array>
 #include <filesystem>
 #include <string>
@@ -18,16 +19,25 @@ public:
   WildScene(const std::filesystem::path &folder, const battle::Content &, std::filesystem::path saveFile, bool fresh, Vec player);
   void update(float dt, Vec player, bool sneaking, const std::vector<game::Solid> &);
   Press press(int sdlKey, Vec player);
+  // SPAWN-001: wild Signari from the region's spawn table (data/content/spawns.json).
+  // accept() says whether a spot can be a home (walkable and clear). Zones fill when the
+  // player first comes near; returns how many were placed around the start.
+  std::size_t spawnFromTable(const std::string &tableText, const std::string &region, spawn::Accept accept);
+  // Spawned wilds further than this from the player stand still and are not shown.
+  static constexpr float ActiveRange = 30;
+  // A territorial Signari reached the player: returns Press::Fight once, like pressing F.
+  Press contact();
   // The wild Signari the last Press::Fight started.
-  const std::string &foeSpecies() const { return wilds[target].species; }
-  int foeLevel() const { return wilds[target].level; }
-  int foeHealth() const { return wilds[target].health; }
-  Vec foeAt() const { return wilds[target].at; }
+  const std::string &foeSpecies() const { return foeRoamer ? roamers[target].species : wilds[target].species; }
+  int foeLevel() const { return foeRoamer ? roamers[target].level : wilds[target].level; }
+  int foeHealth() const { return foeRoamer ? 100 : wilds[target].health; }
+  Vec foeAt() const { return foeRoamer ? roamers[target].at : wilds[target].at; }
   // The player has watched this species before, which makes Tune In faster.
   bool foeWatched() const {
-    auto *e = journal.find(wilds[target].species);
+    auto *e = journal.find(foeSpecies());
     return e && e->observed;
   }
+  const std::vector<spawn::Roamer> &spawned() const { return roamers; }
   // Tuning in recruits the wild Signari at once: it joins the team, or waits at the cottage.
   void fightEnded(bool won, bool tuned, bool left, const std::vector<int> &teamHp, Vec foeStoppedAt);
   void regroup(Vec player, const std::vector<game::Solid> &);
@@ -72,6 +82,15 @@ private:
   bond::Journal journal;
   std::vector<Wild> wilds;
   std::vector<Companion> pack;
+  std::vector<spawn::Roamer> roamers;
+  // Zones are filled when the player first comes near, so only loaded chunks are checked.
+  spawn::Table spawnTable;
+  std::vector<bool> zoneFilled;
+  spawn::Accept spawnAccept;
+  std::uint32_t spawnSeed = 1;
+  void fillZonesNear(Vec player);
+  int nearRoamer = -1, contactRoamer = -1;
+  bool foeRoamer = false;
   std::vector<std::string> events;
   Vec lastPlayer, seenPlayer;
   float clock = 0, toastT = 0, joinT = 0, tidyT = 0, busySpent = 0, companySeconds = 12;

@@ -1,0 +1,55 @@
+{
+  "schema": "wildsignal-spawns-v1",
+  "status": "PROPOSED - SPAWN-001 placeholder tables for the test regions. Only Signari with game models today (Tumbletail WS-005, Mossmelt WS-012) are used; region 1's real tables come with CREATURE-R1 and ART-R1.",
+  "notes": "area is [x0, z0, x1, z1] in metres; levels [min, max]; count 1-8; behaviour skittish | curious | territorial | roaming; respawn seconds after it is beaten or tuned in. Levels rise toward the region's edges (GDD 2.8).",
+  "regions": {
+    "hearthgrove_test": {
+      "zones": [
+        {"id": "west_meadow", "area": [-27, -12, -14, 8], "entries": [
+          {"species": "WS-005", "levels": [2, 3], "count": 2, "behaviour": "skittish", "respawn": 90}
+        ]},
+        {"id": "north_lane", "area": [2, 14, 12, 27], "entries": [
+          {"species": "WS-012", "levels": [2, 3], "count": 1, "behaviour": "curious", "respawn": 90}
+        ]},
+        {"id": "lane_guard", "area": [-14, 15, -2, 27], "entries": [
+          {"species": "WS-012", "levels": [4, 5], "count": 1, "behaviour": "territorial", "respawn": 120}
+        ]},
+        {"id": "south_glade", "area": [8, -27, 26, -12], "entries": [
+          {"species": "WS-005", "levels": [3, 4], "count": 1, "behaviour": "roaming", "respawn": 90}
+        ]}
+      ]
+    },
+    "streaming_test": {
+      "zones": [
+        {"id": "home_meadow", "area": [-27, -12, -14, 8], "entries": [
+          {"species": "WS-005", "levels": [2, 3], "count": 2, "behaviour": "skittish", "respawn": 90}
+        ]},
+        {"id": "north_lane", "area": [-10, 14, 12, 27], "entries": [
+          {"species": "WS-012", "levels": [2, 3], "count": 1, "behaviour": "curious", "respawn": 90}
+        ]},
+        {"id": "east_fields", "area": [32, -20, 80, 20], "entries": [
+          {"species": "WS-005", "levels": [4, 6], "count": 3, "behaviour": "roaming", "respawn": 120},
+          {"species": "WS-012", "levels": [5, 6], "count": 2, "behaviour": "territorial", "respawn": 150}
+        ]},
+        {"id": "far_southwest", "area": [-58, -85, -10, -40], "entries": [
+          {"species": "WS-012", "levels": [6, 8], "count": 2, "behaviour": "territorial", "respawn": 150}
+        ]},
+        {"id": "far_southeast", "area": [10, -85, 58, -40], "entries": [
+          {"species": "WS-005", "levels": [6, 8], "count": 2, "behaviour": "skittish", "respawn": 120}
+        ]}
+      ]
+    },
+    "height_test": {
+      "zones": [
+        {"id": "start_slope", "area": [-14, -32, 10, -10], "entries": [
+          {"species": "WS-005", "levels": [2, 3], "count": 1, "behaviour": "curious", "respawn": 90},
+          {"species": "WS-012", "levels": [2, 3], "count": 1, "behaviour": "skittish", "respawn": 90}
+        ]},
+        {"id": "upper_meadow", "area": [-24, 0, 24, 40], "entries": [
+          {"species": "WS-012", "levels": [4, 6], "count": 2, "behaviour": "territorial", "respawn": 150},
+          {"species": "WS-005", "levels": [4, 5], "count": 2, "behaviour": "roaming", "respawn": 120}
+        ]}
+      ]
+    }
+  }
+}
