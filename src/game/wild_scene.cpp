@@ -1,4 +1,5 @@
 #include "wild_scene.hpp"
+#include "economy.hpp"
 #include "json.hpp"
 #include <SDL3/SDL.h>
 #include <algorithm>
@@ -457,6 +458,13 @@ void WildScene::fightEnded(bool won, bool tuned, bool left, const std::vector<in
       events.push_back("wild_knocked_out");
       say(name + " runs off to rest.", 3);
     }
+    // ECON-001: coins for the fight (more for beating it than for tuning it in).
+    if (int coins = econ::reward(r.level, won, tuned); coins > 0) {
+      journal.money = std::min(econ::MaxMoney, journal.money + coins);
+      if (!tuned) say(name + " runs off to rest.   +" + std::to_string(coins) + " coins", 3.4f);
+      else joinNote += "   +" + std::to_string(coins) + " coins";
+      events.push_back("coins_" + std::to_string(coins));
+    }
     spawn::fightOver(r, tuned || won, foeStoppedAt);
     foeRoamer = false;
     store();
@@ -486,6 +494,11 @@ void WildScene::fightEnded(bool won, bool tuned, bool left, const std::vector<in
   } else if (left) {
     w.wariness.startle(8);
     w.mood = Mood::Hide;
+  }
+  // ECON-001: coins for the fight, story wilds as well.
+  if (int coins = econ::reward(w.level, won, tuned); coins > 0) {
+    journal.money = std::min(econ::MaxMoney, journal.money + coins);
+    events.push_back("coins_" + std::to_string(coins));
   }
   store();
 }

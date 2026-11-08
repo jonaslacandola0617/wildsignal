@@ -1,0 +1,18 @@
+{
+  "schema": "wildsignal-items-v1",
+  "status": "PROPOSED - ECON-001 first items (GDD 2.9). Names, prices and amounts are placeholders to tune by playing.",
+  "items": [
+    {"id": "WILD_BERRY", "name": "Wild Berry", "kind": "heal", "amount": 20, "buy": 15, "sell": 5,
+     "note": "Sweet and a little sour. Restores 20 health."},
+    {"id": "HERB_TONIC", "name": "Herb Tonic", "kind": "heal", "amount": 60, "buy": 45, "sell": 15,
+     "note": "Old Fen's recipe. Restores 60 health."},
+    {"id": "REVIVE_ROOT", "name": "Revive Root", "kind": "revive", "amount": 50, "buy": 120, "sell": 40,
+     "note": "Wakes a fainted Signari with half its health."},
+    {"id": "SOFT_MOSS", "name": "Soft Moss", "kind": "material", "amount": 0, "buy": 0, "sell": 8,
+     "note": "Springy moss. The shop buys it for bedding."},
+    {"id": "BRIGHT_PEBBLE", "name": "Bright Pebble", "kind": "material", "amount": 0, "buy": 0, "sell": 14,
+     "note": "A pebble that hums faintly. Worth a few coins."},
+    {"id": "FEATHER_TUFT", "name": "Feather Tuft", "kind": "material", "amount": 0, "buy": 0, "sell": 10,
+     "note": "Light as air. Crafters like these."}
+  ]
+}

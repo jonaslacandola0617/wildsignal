@@ -1,0 +1,21 @@
+{
+  "schema": "wildsignal-forage-v1",
+  "status": "PROPOSED - ECON-001 forage finds in the test regions. Press E to pick up; a find comes back after its respawn time once you are away.",
+  "regions": {
+    "hearthgrove_test": {"zones": [
+      {"id": "meadow_berries", "item": "WILD_BERRY", "area": [-27, -12, -14, 8], "count": 3, "respawn": 300},
+      {"id": "lane_moss", "item": "SOFT_MOSS", "area": [-14, 15, 12, 27], "count": 3, "respawn": 300},
+      {"id": "glade_pebbles", "item": "BRIGHT_PEBBLE", "area": [8, -27, 26, -12], "count": 2, "respawn": 400},
+      {"id": "garden_feathers", "item": "FEATHER_TUFT", "area": [14, -8, 27, 10], "count": 2, "respawn": 400}
+    ]},
+    "streaming_test": {"zones": [
+      {"id": "meadow_berries", "item": "WILD_BERRY", "area": [-27, -12, -14, 8], "count": 3, "respawn": 300},
+      {"id": "lane_moss", "item": "SOFT_MOSS", "area": [-10, 14, 12, 27], "count": 3, "respawn": 300},
+      {"id": "field_pebbles", "item": "BRIGHT_PEBBLE", "area": [32, -20, 80, 20], "count": 4, "respawn": 400}
+    ]},
+    "height_test": {"zones": [
+      {"id": "slope_berries", "item": "WILD_BERRY", "area": [-14, -32, 10, -10], "count": 3, "respawn": 300},
+      {"id": "top_pebbles", "item": "BRIGHT_PEBBLE", "area": [-24, 0, 24, 40], "count": 3, "respawn": 400}
+    ]}
+  }
+}

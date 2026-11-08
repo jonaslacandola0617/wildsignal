@@ -2,6 +2,7 @@
 #include <filesystem>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 // Trust ledger built on docs/design/BONDING_ENCOUNTERS_v0.1.md. Each act counts once,
 // inviting is never a dice roll, and trust is worked out from the acts so a save
@@ -29,6 +30,10 @@ struct Journal {
   std::vector<Member> party, reserve;
   // The field book: whether it has been handed over, and whether anything new is unread.
   bool given = false, unread = false;
+  // ECON-001: coins, the bag (item id and count, in the order found) and Mara's one-time gift.
+  int money = 0;
+  std::vector<std::pair<std::string, int>> bag;
+  bool gifted = false;
   Encounter &encounter(std::string_view species);
   const Encounter *find(std::string_view species) const;
   // False when this act was already counted or the creature has joined.
