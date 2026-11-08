@@ -53,6 +53,25 @@ std::uint64_t memory(bool peak = false) {
 #endif
   return 0;
 }
+// Freeze recorder: the process's committed memory and the PC's free memory, so a
+// long freeze can be told apart (our work vs. Windows/driver memory pressure).
+std::string memorySnapshot() {
+  std::ostringstream o;
+#ifdef _WIN32
+  PROCESS_MEMORY_COUNTERS p{};
+  if (GetProcessMemoryInfo(GetCurrentProcess(), &p, sizeof(p)))
+    o << "working_set_mb=" << p.WorkingSetSize / 1048576 << " private_mb=" << p.PagefileUsage / 1048576
+      << " page_faults=" << p.PageFaultCount;
+  MEMORYSTATUSEX m{};
+  m.dwLength = sizeof(m);
+  if (GlobalMemoryStatusEx(&m))
+    o << " pc_free_mb=" << m.ullAvailPhys / 1048576 << " pc_total_mb=" << m.ullTotalPhys / 1048576
+      << " pc_commit_free_mb=" << m.ullAvailPageFile / 1048576 << " pc_memory_load_pct=" << m.dwMemoryLoad;
+#else
+  o << "working_set_mb=" << memory() / 1048576;
+#endif
+  return o.str();
+}
 // F6 render sizes, smallest first: 480 is the light setting for low-end devices.
 int nextWidth(int w) { return w == 480 ? 640 : w == 640 ? 1280 : 480; }
 // Signari whose scene object the game moves around as a party member or a wild.
@@ -904,6 +923,8 @@ int main(int argc, char **argv) {
               "draws,building_caster_draws,shadow_cache_invalidations,shadow_"
               "cpu_ms,internal_width,internal_height,grass_density,grass_lod,grass_lod0,grass_lod1,grass_lod2,meadow_patches,shadow_enabled,shafts_enabled,haze_enabled,source_mode,quality,shadow_size,shaft_steps,shaft_divisor,air_proof,atmosphere_width,atmosphere_height,meadow_lighting,defined_shafts,meadow_response,grass_outlines,beam_count,tree_mode,tree_leaf_cards,plain_leaves,chunks_active,chunk_loads,chunk_unloads,models_resident,models_freed,stream_ms\n";
     timers << "frame,gpu_elapsed_ms\n";
+    // Any frame over 2 s is written here with the step times and memory (build 017).
+    std::ofstream freezes;
     events << "frame,event,phase,hp,enemy_hp,recruited,x,z\n";
     auto event = [&](int f, const std::string &name) {
       events << f << ',' << name << ',' << phaseName(game.phase) << ','
@@ -1726,6 +1747,16 @@ int main(int argc, char **argv) {
         timers << queryFrame << ',' << gpuMs << '\n';
       if (frame % 30 == 0)
         currentMemory = memory();
+      if (ms(begin, end) > 2000) {
+        if (!freezes.is_open())
+          freezes.open(o.out / "freezes.txt");
+        freezes << "frame=" << frame << " total_ms=" << ms(begin, end) << " update_ms=" << ms(begin, updateEnd)
+                << " cull_ms=" << ms(cullStart, cullEnd) << " submit_ms=" << stats.cpuSubmitMs
+                << " swap_ms=" << ms(swapStart, swapped)
+                << " draws=" << stats.draws << " " << memorySnapshot() << '\n';
+        freezes.flush();
+        event(frame, "freeze");
+      }
       frames << frame << ',' << phaseName(game.phase) << ','
              << ms(begin, updateEnd) << ',' << ms(animateStart, animateEnd)
              << ',' << ms(cullStart, cullEnd) << ',' << stats.cpuSubmitMs << ','
