@@ -453,7 +453,7 @@ struct Gpu::Impl {
   GLuint artPost = 0, airFilter = 0, filteredAir = 0, filteredFbo = 0;
   bool leafRims = true;float highlightLimit = 1;
   // Selective focus: a sharp band through the player, softer above and below.
-  bool focus = false;Vec focusAt{};
+  bool focus = false;Vec focusAt{};float focusStart=.10f,focusEnd=.42f,focusRadius=3.f;
   GLuint focusProgram = 0, focusSampler = 0, focusFbo = 0, focusColor = 0;
   std::vector<int> actorOwners;
   Mat lightVP,lastVP;
@@ -687,10 +687,10 @@ void main(){vec2 t=uv*source,b=floor(t)+.5;color=texture(image,(b+clamp((t-b)*zo
   // the view softens above and below it. Characters keep their pixels everywhere, and
   // no sample is taken from them, so they neither blur nor bleed into the background.
   p->focusProgram = program(postVS, R"(#version 330 core
-in vec2 uv;out vec4 color;uniform sampler2D image;uniform usampler2D owners;uniform int actors[16];uniform int actorCount;uniform float focusY,radius;
+in vec2 uv;out vec4 color;uniform sampler2D image;uniform usampler2D owners;uniform int actors[16];uniform int actorCount;uniform float focusY,radius,bandStart,bandEnd;
 bool actor(ivec2 q){int o=int(texelFetch(owners,q,0).r);if(o==0)return false;for(int i=0;i<actorCount;i++)if(actors[i]==o)return true;return false;}
 void main(){ivec2 size=textureSize(image,0),p=ivec2(gl_FragCoord.xy);vec4 base=texelFetch(image,p,0);
- float amount=smoothstep(.10,.42,abs(uv.y-focusY));
+ float amount=smoothstep(bandStart,bandEnd,abs(uv.y-focusY));
  if(amount<.03||actor(p)){color=base;return;}
  const vec2 disc[12]=vec2[12](vec2(1,0),vec2(.5,.866),vec2(-.5,.866),vec2(-1,0),vec2(-.5,-.866),vec2(.5,-.866),vec2(.5,.29),vec2(0,.58),vec2(-.5,.29),vec2(-.5,-.29),vec2(0,-.58),vec2(.5,-.29));
  vec3 sum=base.rgb;float total=1.;
@@ -1267,6 +1267,7 @@ void Gpu::setOptimizations(bool enabled) { p->optimize = enabled; p->shadowValid
 void Gpu::setPilotTime(float t) { p->pilot.time = t; }
 void Gpu::setHighlights(float limit, bool leafRims) { p->highlightLimit = std::clamp(limit, 0.f, 1.f); p->leafRims = leafRims; }
 void Gpu::setFocus(bool enabled, Vec at) { p->focus = enabled; p->focusAt = at; }
+void Gpu::setFocusShape(float start, float end, float radius) { p->focusStart = start; p->focusEnd = end; p->focusRadius = radius; }
 void Gpu::setDefinedShafts(bool enabled){p->definedShafts=enabled;}
 void Gpu::setEffects(const Effects &e) {
   e.validate();
@@ -2246,7 +2247,9 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     gl::Uniform1iv(p->location(p->focusProgram, "actors"), GLsizei(p->actorOwners.size()), p->actorOwners.data());
     uniformInt(p->focusProgram, "actorCount", int(p->actorOwners.size()));
     uniformFloat(p->focusProgram, "focusY", clipW > .001f ? std::clamp(clipY / clipW * .5f + .5f, 0.f, 1.f) : .5f);
-    uniformFloat(p->focusProgram, "radius", 3.f * float(w) / 640.f);
+    uniformFloat(p->focusProgram, "radius", p->focusRadius * float(w) / 640.f);
+    uniformFloat(p->focusProgram, "bandStart", p->focusStart);
+    uniformFloat(p->focusProgram, "bandEnd", p->focusEnd);
     gl::DrawArrays(GL_TRIANGLES, 0, 3);
     gl::BindSampler(0, 0);
     stats.draws++;

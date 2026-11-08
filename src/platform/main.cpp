@@ -754,7 +754,7 @@ int main(int argc, char **argv) {
     p3::PilotLook basePilot,dreamPilot;
     if(!o.pilot.empty()){basePilot=readPilot(ws::parseJson(p3::readText(o.pilot)));gpu.setPilot(basePilot);}
     // LOOKDEV-005 dream look: its own ramps, cloud shade, light and haze, and the flat camera.
-    p3::Look dreamLook=look;float dreamHalf=6.5f,dreamFightHalf=5.2f,dreamPitch=-.70f;
+    std::array<float,3> dreamFocus{.10f,.42f,3.f};p3::Look dreamLook=look;float dreamHalf=6.5f,dreamFightHalf=5.2f,dreamPitch=-.70f;
     const bool hasDream=!o.dream.empty()&&basePilot.enabled;
     if(hasDream){
       auto j=ws::parseJson(p3::readText(o.dream));dreamPilot=readPilot(j);dreamPilot.dream=1;
@@ -764,10 +764,13 @@ int main(int argc, char **argv) {
       dreamLook.ambientSky=vec3("ambient_sky");dreamLook.ambientGround=vec3("ambient_ground");dreamLook.sunColor=vec3("sun_color");
       dreamLook.hazeStart=float(l.at("haze_start").number());dreamLook.hazeEnd=float(l.at("haze_end").number());dreamLook.hazeStrength=std::clamp(float(l.at("haze_strength").number()),0.f,1.f);
       if(dreamLook.hazeEnd<=dreamLook.hazeStart)throw std::runtime_error("dream haze interval");
+      // Optional softer edge blur for the dream look (raised camera): band start/end and radius.
+      if(auto &obj=std::get<ws::Json::Object>(j.value);obj.contains("focus")){auto &f=obj.find("focus")->second;float a=std::clamp(float(f.at("start").number()),0.f,1.f),b=std::clamp(float(f.at("end").number()),0.f,1.5f);
+        if(b<=a)throw std::runtime_error("dream focus start/end");dreamFocus={a,b,std::clamp(float(f.at("radius").number()),0.f,6.f)};}
       auto &c=j.at("camera");dreamHalf=std::clamp(float(c.at("half").number()),3.f,14.f);dreamFightHalf=std::clamp(float(c.at("fight_half").number()),3.f,14.f);dreamPitch=-std::clamp(float(c.at("pitch").number()),.35f,1.2f);
     }
     bool dream=hasDream&&o.dreamOn;
-    auto applyDream=[&]{if(!basePilot.enabled)return;gpu.setPilot(dream?dreamPilot:basePilot);gpu.setLook(dream?dreamLook:look);if(!dream)gpu.setOrtho(0,0);};
+    auto applyDream=[&]{if(!basePilot.enabled)return;gpu.setPilot(dream?dreamPilot:basePilot);gpu.setLook(dream?dreamLook:look);gpu.setFocusShape(dream?dreamFocus[0]:.10f,dream?dreamFocus[1]:.42f,dream?dreamFocus[2]:3.f);if(!dream)gpu.setOrtho(0,0);};
     applyDream();
     // Fight test: real-time rules, ground markers and pixel HUD, staged with existing creature models.
     std::unique_ptr<p3::PixelUi> pixelUi;
