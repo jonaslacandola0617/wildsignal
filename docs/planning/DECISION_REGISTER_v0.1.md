@@ -232,3 +232,9 @@ Owner approved build 014 (LOOKDEV-003, -004, -005) as the game's look on 2026-11
 | Decision ID | Decision | Status | Source/impact |
 |---|---|---|---|
 | D-092 | Concept reference for building the world and regions: Shiro Games' Farever pre-production on ArtStation (Florian Elie, "Farever Pre-Prod", https://www.artstation.com/artwork/q004gz; Jeremy Vitry, "FAREVER - Environment Concept Art - P1", https://www.artstation.com/artwork/1LLmNZ). Followed for **ideas only**: region and biome layout (plains, forest, coast, cliffs, caves), module-built cliffs and terrain, tall forests with high canopies and visible trunks, readable paths, mood and lighting per time of day. It is another studio's copyrighted work for their own game: never copied, traced, used as a texture or placed in the game, and never uploaded or redistributed. Rendering stays the approved dream look (D-089); this reference does not replace it | **CONFIRMED 2026-11-08 (owner)** | region layout (ART-R1 Hearthgrove Vale onward), terrain modules, vegetation proportions; does not change D-089 |
+
+## 20. Brighter ground — 2026-11-08
+
+| Decision ID | Decision | Status | Source/impact |
+|---|---|---|---|
+| D-093 | Ground look of build 018C (variant C of three, picked by the owner from running-game screenshots): no drifting cloud shade (amends D-089; only trees, houses and hills shade the ground), lighter shade greens and soil, calmer dirt texture, lighter and warmer paths, softer and narrower edge blur. Everything else in D-089 stands. Values live in the private play-folder `assets/pilot/pilot_dream.json`; recorded in the chapter 8 change log | **CONFIRMED 2026-11-08** | dream look settings, region art |
