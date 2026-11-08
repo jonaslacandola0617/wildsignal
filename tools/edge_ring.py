@@ -49,7 +49,9 @@ TREE_BAND = (1.2, 24.0)
 FAR_FROM = 11.0  # far trees (cheaper) from here out, when the region has them
 BUSH_BAND = (0.4, 6.0)  # a thin border only: from above, bushes read as dark discs
 ROCK_BAND = (0.8, 9.0)
-TREE_GAP, BUSH_GAP, ROCK_GAP = 2.3, 1.1, 1.1  # half the spacing between trunks/bushes/rocks
+# Half the spacing between trunks/bushes/rocks. Trees: 3.4 m since build 018 (taller trees with
+# crowns about 1.5x wider close the band with about half as many trunks; was 2.3).
+TREE_GAP, BUSH_GAP, ROCK_GAP = 3.4, 1.1, 1.1
 # Terrain regions: the ground beyond the old lattice rises into a soft bank.
 BANK_HEIGHT, BANK_FROM, BANK_TO = 2.2, 2.0, 16.0
 
