@@ -484,7 +484,7 @@ struct Gpu::Impl {
   struct PassStamps { std::array<GLuint, passMarks> id{}; bool pending = false; int frame = -1; };
   std::array<PassStamps, 8> passStamps{};
   // Per-model split of the world pass (same switch): one timestamp before each drawn object.
-  struct ModelStamps { std::vector<GLuint> id; std::vector<std::size_t> model; std::size_t used = 0; };
+  struct ModelStamps { std::vector<GLuint> id, samples; std::vector<std::size_t> model; std::size_t used = 0; };
   std::array<ModelStamps, 8> modelStamps{};
   std::ofstream passLog, modelLog;
   int passSlot = -1;
@@ -514,8 +514,10 @@ struct Gpu::Impl {
       if (s.id[0])
         gl::DeleteQueries(passMarks, s.id.data());
     for (auto &s : modelStamps)
-      if (!s.id.empty())
+      if (!s.id.empty()) {
         gl::DeleteQueries(GLsizei(s.id.size()), s.id.data());
+        gl::DeleteQueries(GLsizei(s.samples.size()), s.samples.data());
+      }
     for (auto &v : models)
       for (auto &p : v) {
         gl::DeleteVertexArrays(1, &p.vao);
@@ -788,7 +790,7 @@ void main(){ivec2 size=textureSize(image,0),p=ivec2(gl_FragCoord.xy);vec4 base=t
     for (auto &s : p->passStamps)
       gl::GenQueries(Impl::passMarks, s.id.data());
     p->modelLog.open(std::string(passPath) + ".models.csv");
-    p->modelLog << "frame,model,ms\n";
+    p->modelLog << "frame,model,ms,pixels\n";
   }
   GLint bits = 0;
   gl::GetIntegerv(GL_MAX_DRAW_BUFFERS, &bits);
@@ -1333,10 +1335,13 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
       p->passLog << '\n';
       auto &m = p->modelStamps[std::size_t(&s - p->passStamps.data())];
       std::vector<GLuint64> mt(m.used);
-      for (std::size_t i = 0; i < m.used; i++)
+      std::vector<GLuint64> px(m.used);
+      for (std::size_t i = 0; i < m.used; i++) {
         gl::GetQueryObjectui64v(m.id[i], GL_QUERY_RESULT, &mt[i]);
+        gl::GetQueryObjectui64v(m.samples[i], GL_QUERY_RESULT, &px[i]);
+      }
       for (std::size_t i = 0; i + 1 < m.used; i++)
-        if (m.model[i] < world.models.size()) p->modelLog << s.frame << ',' << world.models[m.model[i]].id << ',' << double(mt[i + 1] - mt[i]) * 1e-6 << '\n';
+        if (m.model[i] < world.models.size()) p->modelLog << s.frame << ',' << world.models[m.model[i]].id << ',' << double(mt[i + 1] - mt[i]) * 1e-6 << ',' << px[i] << '\n';
       m.used = 0;
       s.pending = false;
     }
@@ -1945,12 +1950,38 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
       std::size_t grow = std::max<std::size_t>(256, m.id.size());
       m.id.resize(m.id.size() + grow);
       m.model.resize(m.id.size());
+      m.samples.resize(m.id.size());
       gl::GenQueries(GLsizei(grow), m.id.data() + m.id.size() - grow);
+      gl::GenQueries(GLsizei(grow), m.samples.data() + m.id.size() - grow);
     }
+    if (m.used)
+      gl::EndQuery(GL_SAMPLES_PASSED);
     m.model[m.used] = model;
+    gl::BeginQuery(GL_SAMPLES_PASSED, m.samples[m.used]);
     gl::QueryCounter(m.id[m.used++], GL_TIMESTAMP);
   };
-  for (auto index : visible) {
+  // Build 017: the bottom ground layer (ground tiles, terrain lawn) is drawn after
+  // everything else, so ground hidden under lawn, paths, houses and plants is skipped
+  // by the depth test instead of being shaded and painted over. It is drawn with
+  // LEQUAL so it still wins exact depth ties, as it did when it was drawn first:
+  // pictures stay byte-identical (tools/region_parity.py).
+  auto bottomLayer = [&](std::size_t index) {
+    const auto &id = world.models[world.instances[index].model].id;
+    return id == "EA_GROUND" || (id.starts_with("WS_TERRAIN_") && !id.starts_with("WS_TERRAIN_ROCK_"));
+  };
+  std::vector<std::size_t> order;
+  order.reserve(visible.size());
+  for (auto index : visible)
+    if (!bottomLayer(index))
+      order.push_back(index);
+  const std::size_t groundFrom = order.size();
+  for (auto index : visible)
+    if (bottomLayer(index))
+      order.push_back(index);
+  for (std::size_t slot = 0; slot < order.size(); slot++) {
+    auto index = order[slot];
+    if (slot == groundFrom)
+      gl::DepthFunc(GL_LEQUAL);
     auto &i = world.instances[index];
     modelMark(i.model);
     // LOOKDEV-003 flowers and edge tufts: switchable, and dropped past 20 m like far grass.
@@ -1973,7 +2004,10 @@ GpuStats Gpu::draw(const World &world, const std::vector<std::size_t> &visible,
     if(p->tree&&index==p->tree->target&&p->treeMode==4)
       for(const auto &part:p->rimParts)draw(index,part);
   }
+  gl::DepthFunc(GL_LESS);
   modelMark(0);
+  if (p->passSlot >= 0)
+    gl::EndQuery(GL_SAMPLES_PASSED);
   if(p->grassRenderer){p->pilot.right=direction(inverse(camera.view()),{1,0,0});p->pilot.wide=float(w);p->pilot.high=float(h);p->grassRenderer->setProfile(p->profile,!p->sourceView);p->grassRenderer->setPilot(p->pilot);}
   passMark(2);
   if (p->grassRenderer && p->grass && p->coverage != 1 && p->coverage != 4) {
