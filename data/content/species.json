@@ -1,6 +1,6 @@
 {
   "schema": "wildsignal-species-v1",
-  "source": "docs/gdd/04_CREATURES.md 4.3; stats for the first nine from docs/design/FIRST_NINE_CREATURES_v0.1.json (proposed); null stats = not designed yet",
+  "source": "docs/gdd/04_CREATURES.md 4.3; stats for the first nine from docs/design/FIRST_NINE_CREATURES_v0.1.json (proposed); null stats = not designed yet; WS-001..020 stats added in SPAWN-002 are placeholders from the 4.5 role table (PROPOSED)",
   "regions": [
     {
       "id": "hearthgrove",
@@ -91,7 +91,14 @@
       "starter": false,
       "guardian": null,
       "look": "red fruit creature",
-      "stats": null
+      "stats": {
+        "hp": 50,
+        "might": 9,
+        "guard": 12,
+        "pulse": 14,
+        "ward": 14,
+        "swift": 11
+      }
     },
     {
       "id": "WS-005",
@@ -120,7 +127,14 @@
       "starter": false,
       "guardian": null,
       "look": "pink-tan horned quadruped",
-      "stats": null
+      "stats": {
+        "hp": 44,
+        "might": 16,
+        "guard": 11,
+        "pulse": 9,
+        "ward": 10,
+        "swift": 17
+      }
     },
     {
       "id": "WS-009",
@@ -131,7 +145,14 @@
       "starter": false,
       "guardian": null,
       "look": "cream fluffy small creature",
-      "stats": null
+      "stats": {
+        "hp": 47,
+        "might": 10,
+        "guard": 12,
+        "pulse": 12,
+        "ward": 14,
+        "swift": 13
+      }
     },
     {
       "id": "WS-010",
@@ -142,7 +163,14 @@
       "starter": false,
       "guardian": null,
       "look": "green-pink winged insect",
-      "stats": null
+      "stats": {
+        "hp": 40,
+        "might": 9,
+        "guard": 8,
+        "pulse": 16,
+        "ward": 12,
+        "swift": 19
+      }
     },
     {
       "id": "WS-013",
@@ -153,7 +181,14 @@
       "starter": false,
       "guardian": null,
       "look": "cream-brown long-eared animal",
-      "stats": null
+      "stats": {
+        "hp": 40,
+        "might": 10,
+        "guard": 10,
+        "pulse": 14,
+        "ward": 12,
+        "swift": 18
+      }
     },
     {
       "id": "WS-021",
@@ -222,7 +257,14 @@
       "starter": false,
       "guardian": null,
       "look": "green hooded plant spirit",
-      "stats": null
+      "stats": {
+        "hp": 43,
+        "might": 9,
+        "guard": 10,
+        "pulse": 16,
+        "ward": 12,
+        "swift": 16
+      }
     },
     {
       "id": "WS-012",
@@ -251,7 +293,14 @@
       "starter": false,
       "guardian": null,
       "look": "green-capped tiny wanderer",
-      "stats": null
+      "stats": {
+        "hp": 43,
+        "might": 9,
+        "guard": 10,
+        "pulse": 16,
+        "ward": 12,
+        "swift": 16
+      }
     },
     {
       "id": "WS-015",
@@ -262,7 +311,14 @@
       "starter": false,
       "guardian": null,
       "look": "green spiny round critter",
-      "stats": null
+      "stats": {
+        "hp": 57,
+        "might": 11,
+        "guard": 17,
+        "pulse": 10,
+        "ward": 16,
+        "swift": 6
+      }
     },
     {
       "id": "WS-019",
@@ -273,7 +329,14 @@
       "starter": false,
       "guardian": null,
       "look": "cream jar-headed creature",
-      "stats": null
+      "stats": {
+        "hp": 47,
+        "might": 9,
+        "guard": 14,
+        "pulse": 14,
+        "ward": 14,
+        "swift": 10
+      }
     },
     {
       "id": "WS-022",
@@ -339,7 +402,14 @@
       "starter": false,
       "guardian": null,
       "look": "olive-winged insect",
-      "stats": null
+      "stats": {
+        "hp": 44,
+        "might": 15,
+        "guard": 9,
+        "pulse": 11,
+        "ward": 10,
+        "swift": 18
+      }
     },
     {
       "id": "WS-032",
@@ -405,7 +475,14 @@
       "starter": false,
       "guardian": null,
       "look": "orange burrowing snail",
-      "stats": null
+      "stats": {
+        "hp": 54,
+        "might": 11,
+        "guard": 19,
+        "pulse": 10,
+        "ward": 16,
+        "swift": 5
+      }
     },
     {
       "id": "WS-011",
@@ -416,7 +493,14 @@
       "starter": false,
       "guardian": null,
       "look": "red horned crab",
-      "stats": null
+      "stats": {
+        "hp": 44,
+        "might": 17,
+        "guard": 11,
+        "pulse": 11,
+        "ward": 8,
+        "swift": 16
+      }
     },
     {
       "id": "WS-018",
@@ -427,7 +511,14 @@
       "starter": false,
       "guardian": null,
       "look": "brown upright shaggy creature",
-      "stats": null
+      "stats": {
+        "hp": 54,
+        "might": 11,
+        "guard": 19,
+        "pulse": 10,
+        "ward": 16,
+        "swift": 5
+      }
     },
     {
       "id": "WS-024",
@@ -500,7 +591,14 @@
       "starter": false,
       "guardian": null,
       "look": "white wispy spirit",
-      "stats": null
+      "stats": {
+        "hp": 40,
+        "might": 7,
+        "guard": 10,
+        "pulse": 18,
+        "ward": 12,
+        "swift": 17
+      }
     },
     {
       "id": "WS-017",
@@ -511,7 +609,14 @@
       "starter": false,
       "guardian": null,
       "look": "purple stalk-eyed flower",
-      "stats": null
+      "stats": {
+        "hp": 47,
+        "might": 7,
+        "guard": 12,
+        "pulse": 16,
+        "ward": 14,
+        "swift": 12
+      }
     },
     {
       "id": "WS-030",

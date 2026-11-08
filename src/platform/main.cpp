@@ -13,6 +13,7 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include <algorithm>
+#include <cctype>
 #include <chrono>
 #include <fstream>
 #include <iomanip>
@@ -75,8 +76,9 @@ std::string memorySnapshot() {
 // F6 render sizes, smallest first: 480 is the light setting for low-end devices.
 int nextWidth(int w) { return w == 480 ? 640 : w == 640 ? 1280 : 480; }
 // Signari whose scene object the game moves around as a party member or a wild.
+// Any species model "WS0nn" (WS001..WS099); "WS0P_..." are the Wayfinder's, not Signari.
 bool stageSignari(const std::string &id) {
-  return id == "WS004" || id == "WS005" || id == "WS008" || id == "WS012";
+  return id.size() == 5 && id.starts_with("WS0") && std::isdigit(static_cast<unsigned char>(id[3])) && std::isdigit(static_cast<unsigned char>(id[4]));
 }
 struct Options {
   std::filesystem::path assets = "assets", save = "saves/hearthgrove_emaceart.json",

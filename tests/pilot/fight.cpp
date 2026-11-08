@@ -42,7 +42,7 @@ void untilReleased(Fight &f, Pad press, int pressAt) {
 
 // GDD 2.4 and 4.6: basic attack, 3 skills, ultimate; skill 3 opens at level 5, the ultimate at 10.
 void everySpeciesHasAFullKit(const Setup &s) {
-  check(s.data.slots.size() == s.content.species.size() && s.content.species.size() == 9, "the first nine have kits");
+  check(s.data.slots.size() == s.content.species.size() && s.content.species.size() == 24, "the first nine and WS-001..020 have kits");
   for (std::size_t i = 0; i < s.data.slots.size(); i++) {
     const auto &row = s.data.slots[i];
     const auto &basic = s.content.moves[row[BasicSlot]];
