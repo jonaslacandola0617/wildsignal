@@ -32,6 +32,8 @@ public:
   bool lost() const { return wasLost; }
   // Camera shake for the frame, in metres (x along the screen, y up it).
   std::array<float, 2> shake() const;
+  // Sounds the fight asked for since the last call.
+  std::vector<std::string> takeSounds();
   bool won() const { return wasWon; }
   bool tunedIn() const { return wasTuned; }
   bool left() const { return wasLeft; }
@@ -89,6 +91,7 @@ private:
   std::array<float, battle::MoveSlots + 1> readyFlash{};
   battle::Pad pending;
   int minLevel = 0;
+  std::vector<std::string> sounds;
   float stopT = 0, shakeT = 0, shakeSize = 0, flashT = 0;
   bool calmStart = false, running = false, wasLost = false, wasWon = false, wasTuned = false, wasLeft = false, holdingTune = false;
   int encounters = 0, queued = -1, toastRank = 0;

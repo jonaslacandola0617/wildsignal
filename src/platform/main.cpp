@@ -5,6 +5,7 @@
 #include "goods.hpp"
 #include "homestead_scene.hpp"
 #include "story_scene.hpp"
+#include "audio.hpp"
 #include "followers.hpp"
 #include "game.hpp"
 #include "view_angles.hpp"
@@ -94,6 +95,7 @@ struct Options {
   bool renderReference=false;bool contacts=true,edgeHighlights=true,edgeOutlines=true,vegetationEdges=true,cleanShadow=true;
   bool tiltShift=true,tiltShiftGiven=false,leafRims=false;float highlightLimit=.55f;
   bool title = false; // show the title screen
+  int sound = -1;     // -1 automatic: on when playing, off in hidden or scripted runs
   bool treeEnabled=false,treeScene=false,leafPlain=true;int treeMode=0;
   int hudMode=1;bool shadowSet=false,shaftSet=false,hazeSet=false;
   bool sourceTextures = false, legacyFollow = false, legacyGrass = false,
@@ -349,6 +351,11 @@ Options options(int argc, char **argv) {
       o.fresh = true;
     else if (a == "--title")
       o.title = true;
+    else if (a == "--sound") {
+      auto v = value();
+      if (v != "on" && v != "off") throw std::runtime_error("sound on|off");
+      o.sound = v == "on";
+    }
     else
       throw std::runtime_error("unknown option " + a);
   }
@@ -794,6 +801,13 @@ int main(int argc, char **argv) {
     std::unique_ptr<p3::HomesteadScene> homestead;
     std::unique_ptr<p3::StoryScene> storyScene;
     int storyFoeLevel = 1;
+    // Sound: on for play, off for hidden and scripted runs unless asked for.
+    std::unique_ptr<p3::Audio> audio;
+    if (o.sound == 1 || (o.sound < 0 && !o.hidden && o.replay.empty() && !o.benchmark)) audio = std::make_unique<p3::Audio>();
+    if (audio) log << "sound_device=" << (audio->ok() ? audio->device() : std::string("none")) << "\n";
+    float stepDistance = 0;
+    p3::Vec lastStepAt{};
+    int stepPick = 0;
     // The title screen: the living world behind the name, until the player starts.
     bool titleOpen = o.title, relaunchFresh = false;
     int titleRow = 0;
@@ -996,6 +1010,7 @@ int main(int argc, char **argv) {
     std::ofstream freezes;
     events << "frame,event,phase,hp,enemy_hp,recruited,x,z\n";
     auto event = [&](int f, const std::string &name) {
+      if (audio) audio->playEvent(name);
       events << f << ',' << name << ',' << phaseName(game.phase) << ','
              << game.state.hp << ',' << game.enemyHp << ','
              << game.state.recruited << ',' << game.state.player.x << ','
@@ -1209,6 +1224,19 @@ int main(int argc, char **argv) {
             if (paused) { if(e.key.key==SDLK_RETURN||e.key.key==SDLK_ESCAPE) paused=false; continue; }
             if (book->key(int(e.key.key))) closeBook();
             continue;
+          }
+          if (audio && e.type == SDL_EVENT_KEY_DOWN && !e.key.repeat) {
+            if (e.key.key == SDLK_F12) {
+              audio->toggleMute();
+              event(frame, audio->muted() ? "sound_muted" : "sound_on");
+              continue;
+            }
+            bool talking = storyScene && storyScene->open();
+            bool menu = titleOpen || talking || (goods && goods->open()) || (homestead && homestead->open());
+            auto k = e.key.key;
+            if (menu && (k == SDLK_W || k == SDLK_S || k == SDLK_UP || k == SDLK_DOWN || k == SDLK_A || k == SDLK_D)) audio->play(sfx::Sound::UiMove);
+            else if (menu && (k == SDLK_RETURN || k == SDLK_E || k == SDLK_SPACE)) audio->play(talking ? sfx::Sound::Blip : sfx::Sound::UiOk);
+            else if (menu && k == SDLK_ESCAPE) audio->play(sfx::Sound::UiBack);
           }
           if (titleOpen) {
             int rows = o.fresh ? 2 : 3;
@@ -1480,6 +1508,22 @@ int main(int argc, char **argv) {
             wilds->update(dt, game.state.player, sneaking, game.solids);
           if (goods && game.phase == game::Phase::Explore && !scene->active()) goods->update(dt, game.state.player);
           titleClock += dt;
+          auto fightSounds = scene->takeSounds();
+          if (audio) {
+            audio->ambienceLevel(scene->active() ? .4f : 1.f);
+            for (const auto &name : fightSounds) audio->playEvent(name);
+            // Footsteps: one every metre or so, softer on grass than on paths.
+            if (game.phase == game::Phase::Explore && !reading) {
+              stepDistance += std::hypot(game.state.player.x - lastStepAt.x, game.state.player.z - lastStepAt.z);
+              if (stepDistance > .95f) {
+                stepDistance = 0;
+                bool soft = game::meadow(game.state.player.x, game.state.player.z, game.solids);
+                audio->play(sfx::Sound(int(soft ? sfx::Sound::StepSoft0 : sfx::Sound::Step0) + stepPick));
+                stepPick = (stepPick + 1) % 3;
+              }
+            }
+            lastStepAt = game.state.player;
+          }
           if (storyScene && !titleOpen && game.phase == game::Phase::Explore && !scene->active() && !stageSet && !(book && book->open()) && !(goods && goods->open()) && !(homestead && homestead->open())) {
             storyScene->update(dt, game.state.player, wilds->notes());
             // The pointer: where the thing the goal still needs can be found.
@@ -2080,6 +2124,7 @@ int main(int argc, char **argv) {
         screen.window, &ow,
         &oh); /* Native world capture above is deterministic; presented
                  back-buffer after swap unspecified. */
+    if (audio) log << "sounds_played=" << audio->played() << "\n";
     log << "frames=" << frame << "\npeak_rss_bytes=" << memory(true)
         << "\nrecruited=" << game.state.recruited
         << "\nvisited=" << game.state.visited << "\nhp=" << game.state.hp

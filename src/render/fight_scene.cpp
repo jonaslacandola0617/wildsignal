@@ -143,6 +143,7 @@ void FightScene::cues() {
       shakeT = big ? .28f : .16f;
       shakeSize = big ? .2f : .09f;
       if (big) flashT = .09f;
+      sounds.push_back(big ? "hit_big" : "hit");
       // Harm to a wild Signari stays quiet: calming it is the goal, not the damage.
       floaters.push_back({at + Vec{0, 1.3f, 0}, "-" + std::to_string(c.value), c.target == Target::Wild ? Muted : Coral});
       // The puff takes the move's affinity colour, and a word names a matchup that mattered.
@@ -158,6 +159,7 @@ void FightScene::cues() {
       clipClock = 0;
       break;
     case CueKind::Dodged:
+      sounds.push_back("dodged");
       floaters.push_back({at + Vec{0, 1.4f, 0}, "Dodged!", Calm});
       break;
     case CueKind::Healed:
@@ -166,6 +168,7 @@ void FightScene::cues() {
     case CueKind::StatusOn:
       break;
     case CueKind::Faint:
+      sounds.push_back("faint");
       say(c.target == Target::Wild ? nameOf(fight->wild()) + " backs down!" : nameOf(fight->party()[c.value]) + " fainted!", 2, 2);
       break;
     case CueKind::Swap:
@@ -186,6 +189,7 @@ void FightScene::cues() {
       if (!fight->guardian() && !fight->owned()) say(nameOf(fight->wild()) + " is calm. Tuning in will be quick.", 2.6f, 2);
       break;
     case CueKind::WornDown:
+      sounds.push_back("worn_down");
       floaters.push_back({at + Vec{0, 1.6f, 0}, "Worn down", Gold});
       if (!fight->owned()) say(fight->guardian() ? nameOf(fight->wild()) + "'s signal is too strong to tune in." : nameOf(fight->wild()) + " is worn down. Get close and hold F to tune in.", 2.6f, 2);
       break;
@@ -213,6 +217,11 @@ void FightScene::cues() {
       break;
     }
   }
+}
+std::vector<std::string> FightScene::takeSounds() {
+  auto out = std::move(sounds);
+  sounds.clear();
+  return out;
 }
 std::array<float, 2> FightScene::shake() const {
   if (shakeT <= 0) return {0, 0};
