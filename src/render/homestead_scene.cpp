@@ -313,58 +313,68 @@ void HomesteadScene::draw(PixelUi &ui, const FightScene::Project &project, const
   if (mode == Mode::Walk) {
     if (flat(site.at, player) < 20 && !onSite) {
       auto p = project(site.at + Vec{0, 1.2f, 0});
-      if (p[1] <= 238) ui.note(site.name, p[0], p[1] - 13);
+      if (p[1] <= ui.H() - 244) ui.nameTag(site.name, p[0], p[1] - 6);
     }
-    std::string prompt;
-    if (near >= 0) {
+    const int promptY = ui.H() - 320;
+    if (toastT > 0) {
+      ui.note(toast, ui.W() / 2, promptY);
+    } else if (near >= 0) {
       const auto &p = state.placed[std::size_t(near)];
       auto *piece = book.piece(p.piece);
-      prompt = piece->role == home::Role::Bench ? "E  Workbench"
-               : p.crop.empty()                 ? "E  Plant"
-               : home::ripe(p)                  ? "E  Harvest " + book.crop(p.crop)->name
-                                                : book.crop(p.crop)->name + ": ready in " + clockText(p.left / rate);
-    } else if (onSite)
-      prompt = "H  Build";
-    if (toastT > 0) ui.note(toast, 320, 200);
-    else if (!prompt.empty()) ui.note(prompt, 320, 200);
+      if (piece->role == home::Role::Bench) ui.prompt("E", "Workbench", ui.W() / 2, promptY);
+      else if (p.crop.empty()) ui.prompt("E", "Plant", ui.W() / 2, promptY);
+      else if (home::ripe(p)) ui.prompt("E", "Harvest " + book.crop(p.crop)->name, ui.W() / 2, promptY);
+      else ui.note(book.crop(p.crop)->name + ": ready in " + clockText(p.left / rate), ui.W() / 2, promptY, "icon_leaf");
+    } else if (onSite) {
+      ui.prompt("H", "Build", ui.W() / 2, promptY);
+    }
     return;
   }
   if (mode == Mode::Build) {
-    const int x = 150, y = 296, w = 340, h = 56;
+    const int w = 680, h = 112, x = (ui.W() - w) / 2, y = ui.H() - h - 16;
     const auto &piece = book.pieces[std::size_t(pieceRow)];
-    ui.panel("panel", x, y, w, h);
-    ui.text(piece.name, x + 14, y + 10, t.ink);
+    ui.nine("panel_dark", x, y, w, h);
+    ui.text(piece.name, x + 22, y + 16, t.gold, 2);
     std::string info = std::to_string(piece.price) + " c     Coins " + std::to_string(j.money);
-    ui.text(info, x + w - 14 - ui.width(info), y + 10, t.ink);
-    ui.text("WASD move   Q / E piece   Enter place   R remove   H done", x + 14, y + 32, t.faded);
-    if (toastT > 0) ui.note(toast, 320, y - 30);
+    ui.text(info, x + w - 22 - ui.width(info), y + 22, t.text);
+    int hx = x + 22, hy = y + 66;
+    hx = ui.hint("WASD", "Move", hx, hy, t.dim);
+    hx = ui.hint("Q / E", "Piece", hx, hy, t.dim);
+    hx = ui.hint("Enter", "Place", hx, hy, t.dim);
+    hx = ui.hint("R", "Remove", hx, hy, t.dim);
+    ui.hint("H", "Done", hx, hy, t.dim);
+    if (toastT > 0) ui.note(toast, ui.W() / 2, y - 46);
     return;
   }
-  const int x = 170, y = 66, w = 300, h = 216;
-  ui.fill(0, 0, 640, 360, {.035f, .065f, .06f, .55f});
-  ui.panel("panel", x, y, w, h);
+  const int w = 600, h = 432, x = (ui.W() - w) / 2, y = (ui.H() - h) / 2;
+  ui.dim(.55f);
+  ui.nine("panel_dark", x, y, w, h);
   bool seeds = mode == Mode::Seeds;
-  ui.text(seeds ? "Plant" : "Workbench", x + 16, y + 12, t.title, 2);
+  ui.text(seeds ? "Plant" : "Workbench", x + 26, y + 20, t.gold, 3);
+  ui.nine("divider_gold", x + 24, y + 64, w - 48, 11);
   int n = seeds ? int(book.crops.size()) : int(book.recipes.size());
   for (int i = 0; i < n; i++) {
-    int ry = y + 46 + i * 34;
-    if (i == row) ui.fill(x + 12, ry - 3, w - 24, 30, {.86f, .74f, .50f, .55f});
+    int ry = y + 92 + i * 68;
+    if (i == row) ui.nine("button_hover", x + 16, ry - 8, w - 32, 56);
     if (seeds) {
       const auto &c = book.crops[std::size_t(i)];
-      ui.text(c.name, x + 20, ry, t.ink);
-      ui.text(itemName(c.seed) + " x" + std::to_string(econ::count(j, c.seed)), x + 20, ry + 12, t.faded);
+      ui.text(c.name, x + 32, ry, t.text);
+      ui.text(itemName(c.seed) + " x" + std::to_string(econ::count(j, c.seed)), x + 32, ry + 22, t.dim);
       std::string time = clockText(c.seconds / rate);
-      ui.text(time, x + w - 20 - ui.width(time), ry, t.ink);
+      ui.text(time, x + w - 32 - ui.width(time), ry, t.gold);
     } else {
       const auto &r = book.recipes[std::size_t(i)];
-      ui.text(itemName(r.result), x + 20, ry, t.ink);
+      ui.text(itemName(r.result), x + 32, ry, t.text);
       std::string needs;
       for (const auto &need : r.needs)
         needs += (needs.empty() ? "" : "  ") + itemName(need.item) + " " + std::to_string(econ::count(j, need.item)) + "/" + std::to_string(need.count);
-      ui.text(needs, x + 20, ry + 12, home::canMake(r, j) > 0 ? t.ink : t.faded);
+      ui.text(needs, x + 32, ry + 22, home::canMake(r, j) > 0 ? t.text : t.off);
     }
   }
-  ui.text("W / S  choose     Enter  " + std::string(seeds ? "plant" : "make") + "     Esc  leave", x + 16, y + h - 20, t.faded);
-  if (toastT > 0) ui.note(toast, 320, y + h + 4);
+  int hx = x + 26, hy = y + h - 44;
+  hx = ui.hint("W / S", "Choose", hx, hy, t.dim);
+  hx = ui.hint("Enter", seeds ? "Plant" : "Make", hx, hy, t.dim);
+  ui.hint("Esc", "Leave", hx, hy, t.dim);
+  if (toastT > 0) ui.note(toast, ui.W() / 2, y + h + 6);
 }
 } // namespace p3

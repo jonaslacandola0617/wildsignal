@@ -7,9 +7,8 @@
 #include <stdexcept>
 namespace p3 {
 namespace {
-const int LeftX = 72, RightX = 321, SheetY = 15, SheetW = 250, SheetH = 315, Inset = 24;
-const PixelUi::Colour Quiet{.32f,.36f,.31f,1};
-const PixelUi::Colour Rule{.56f, .52f, .44f, 1}, Tired{.82f, .36f, .22f, 1};
+// The open book, in a 1280x720 frame centred on the canvas.
+const int BookX = 128, BookY = 16, BookW = 1016, BookH = 644, Spine = 636, LeftText = 192, RightText = 692, TextW = 404;
 bool done(const bond::Encounter *e, const std::string &act) {
   if (!e) return false;
   if (act == "observed") return e->observed;
@@ -27,12 +26,6 @@ bool onTeam(const bond::Journal &j, const std::string &species) {
 } // namespace
 
 FieldBook::FieldBook(const std::filesystem::path &folder, const battle::Content &c) : content(&c) {
-  if (std::filesystem::exists(folder / "folio.json")) {
-    auto f = ws::parseJson(readText(folder / "folio.json"));
-    for (const auto &name : f.at("open").array()) openFrames.push_back(name.string());
-    for (const auto &name : f.at("turn").array()) turnFrames.push_back(name.string());
-    if (openFrames.size() > 32 || turnFrames.size() > 64) throw std::runtime_error("folio frame budget");
-  }
   auto root = ws::parseJson(readText(folder / "fieldbook.json"));
   title = root.at("title").string();
   inscription = root.at("inscription").string();
@@ -67,13 +60,13 @@ void FieldBook::navigate(int page) {
   page = std::clamp(page, 0, int(pages.size()));
   if (closing || turnT >= 0 || page == spread) return;
   targetSpread = page; turnDirection = page > spread ? 1 : -1; stampT = 0;
-  if (reducedMotion || turnFrames.empty()) spread = page;
+  if (reducedMotion) spread = page;
   else turnT = 0;
 }
 bool FieldBook::key(int k) {
   if (k == SDLK_M) { reducedMotion = !reducedMotion; age = openingSeconds; turnT = -1; spread = targetSpread; return false; }
   if (k == SDLK_B || k == SDLK_ESCAPE) {
-    if (reducedMotion || openFrames.empty() || age < openingSeconds) { showing = false; return true; }
+    if (reducedMotion || age < openingSeconds) { showing = false; return true; }
     if (!closing) { closing = true; age = 0; turnT = -1; }
     return false;
   }
@@ -84,16 +77,18 @@ bool FieldBook::key(int k) {
   return false;
 }
 void FieldBook::pointer(int x, int y, bool pressed) {
+  x -= offsetX;
+  y -= offsetY;
   hover = -1;
   if (closing || (!reducedMotion && age < openingSeconds)) return;
-  if (x >= 565 && x < 638 && y >= 50 && y < 50 + (int(pages.size()) + 1) * 40) {
-    hover = (y - 50) / 40;
+  if (x >= 1130 && x < 1276 && y >= 100 && y < 100 + (int(pages.size()) + 1) * 80) {
+    hover = (y - 100) / 80;
     if (pressed) navigate(hover);
   }
-  if (pressed && y >= 333 && y < 358) {
-    if (x >= 185 && x < 252) navigate(spread - 1);
-    if (x >= 390 && x < 457) navigate(spread + 1);
-    if (x >= 474 && x < 550) key(SDLK_B);
+  if (pressed && y >= 666 && y < 716) {
+    if (x >= 370 && x < 504) navigate(spread - 1);
+    if (x >= 780 && x < 914) navigate(spread + 1);
+    if (x >= 948 && x < 1100) key(SDLK_B);
   }
 }
 void FieldBook::update(float dt) {
@@ -106,131 +101,154 @@ void FieldBook::update(float dt) {
   } else if (reducedMotion || age >= openingSeconds) stampT += dt;
 }
 void FieldBook::drawIcon(PixelUi &ui, const bond::Journal &journal) const {
-  if (!ui.has("icon_book")) return;
-  ui.sizedImage("icon_book", 600, 325, 24, 24);
-  ui.text("B", 589, 335, ui.theme().key);
-  if (journal.unread && ui.has("alert")) ui.image("alert", 620, 320);
+  const int x = ui.W() - 96, y = ui.H() - 62;
+  ui.nine("panel_dark_ivory", x, y, 80, 46);
+  ui.key("B", x + 10, y + 10);
+  ui.image("icon_book", x + 44, y + 15);
+  if (journal.unread) ui.image("icon_alert", x + 64, y - 6);
 }
 void FieldBook::cover(PixelUi &ui, const bond::Journal &journal, const std::vector<std::string> &goals) {
   const auto &t = ui.theme();
-  const int lx = LeftX + Inset, rx = RightX + Inset, w = SheetW - 2*Inset;
-  ui.text("Field notes", lx, 39, t.title, 2);
-  ui.text("A letter from Mara Venn", lx, 68, Quiet);
-  ui.fill(lx, 84, 44, 1, t.faded);
-  int y = ui.paragraph(inscription, lx, 99, w, t.ink);
-  ui.text(signature, lx + w - ui.width(signature), y + 16, t.title);
-  ui.text("THE WAYFINDER'S JOURNAL", lx, 280, Quiet);
-  ui.text("On the trail", rx, 39, t.title, 2);
-  ui.text("Your travelling companions", rx, 70, Quiet);
-  y = 91;
-  for(const auto &m:journal.party) {
-    auto index=content->speciesIndex(m.species);
-    auto name=content->species[index].name;
-    if(ui.has("folio_leaf"))ui.sizedImage("folio_leaf",rx,y,16,16);
-    ui.text(name,rx+23,y+1,t.ink);
-    ui.text("Lv "+std::to_string(m.level),rx+w-32,y+1,Quiet);
-    int full=battle::statsAt(content->species[index],m.level).hp;
-    ui.text("HP "+std::to_string(m.hp<0?full:m.hp)+"/"+std::to_string(full),rx+23,y+12,Quiet);
-    y+=26;
+  const int lx = offsetX + LeftText, rx = offsetX + RightText, top = offsetY;
+  ui.text("Field notes", lx, top + 74, t.inkHead, 3);
+  ui.text("A letter from Mara Venn", lx, top + 122, t.inkFaded);
+  ui.nine("divider_ink", lx, top + 148, 120, 2);
+  int y = ui.paragraph(inscription, lx, top + 170, TextW, t.ink);
+  ui.text(signature, lx + TextW - ui.width(signature), y + 16, t.inkHead);
+  ui.text("THE WAYFINDER'S JOURNAL", lx, top + 576, t.inkFaded);
+  ui.text("On the trail", rx, top + 74, t.inkHead, 3);
+  ui.text("Your travelling companions", rx, top + 122, t.inkFaded);
+  y = top + 156;
+  for (const auto &m : journal.party) {
+    auto index = content->speciesIndex(m.species);
+    const auto &species = content->species[index];
+    int full = battle::statsAt(species, m.level).hp, hp = m.hp < 0 ? full : m.hp;
+    ui.image("icon_paw_ink", rx, y + 2);
+    ui.text(species.name, rx + 24, y, t.ink);
+    auto level = "Lv " + std::to_string(m.level);
+    ui.text(level, rx + TextW - ui.width(level), y, t.inkFaded);
+    ui.bar(rx + 24, y + 20, 200, float(hp) / float(std::max(1, full)), hp * 4 <= full ? "danger" : "hp", true);
+    ui.text(std::to_string(hp) + " / " + std::to_string(full), rx + 232, y + 16, t.inkFaded);
+    y += 44;
   }
-  if(!journal.reserve.empty()) {
-    ui.text(std::to_string(journal.reserve.size())+" waiting in reserve",rx,y,t.ink); y+=14;
+  if (!journal.reserve.empty()) {
+    ui.text(std::to_string(journal.reserve.size()) + " waiting in reserve", rx, y, t.ink);
+    y += 26;
   }
-  y = std::max(y + 12, 175);
-  ui.text("Questions to follow", rx, y, t.title); y += 18;
+  y = std::max(y + 18, top + 344);
+  ui.text("Questions to follow", rx, y, t.inkHead, 2);
+  y += 34;
   for (const auto &goal : goals) {
-    if (y > 277) break;
-    y = ui.paragraph(goal, rx, y, w, t.ink) + 9;
+    if (y > top + 554) break;
+    y = ui.paragraph(goal, rx, y, TextW, t.ink) + 10;
   }
-  ui.text("Watch first. Then help.", rx, 299, Quiet);
+  ui.text("Watch first. Then help.", rx, top + 600, t.inkFaded);
 }
 void FieldBook::creature(PixelUi &ui, bond::Journal &journal, const Page &page) {
-  const auto &t = ui.theme(); auto *e = journal.find(page.species); bool team = onTeam(journal, page.species);
-  const int lx = LeftX + Inset, rx = RightX + Inset, w = SheetW - 2*Inset;
-  ui.text(page.name, lx, 39, t.title, 2);
-  ui.text(team ? "Travelling companion" : page.temperament + " Signari", lx, 70, Quiet);
-  ui.fill(lx, 86, 44, 1, t.faded);
-  auto model=page.species; model.erase(std::remove(model.begin(),model.end(),'-'),model.end());
-  const auto portrait="folio_portrait_"+model;
-  bool hasPortrait=ui.has(portrait), observed=team||(e&&e->observed);
-  if(hasPortrait) {
-    ui.fitImage(portrait,lx+36,92,128,88,observed?PixelUi::Colour{1,1,1,1}:PixelUi::Colour{.08f,.19f,.16f,.6f});
-    const std::string caption=observed?"A field study":"Waiting to be observed";
-    ui.text(caption,lx+(w-ui.width(caption))/2,181,Quiet);
+  const auto &t = ui.theme();
+  auto *e = journal.find(page.species);
+  bool team = onTeam(journal, page.species);
+  const int lx = offsetX + LeftText, rx = offsetX + RightText, top = offsetY;
+  ui.text(page.name, lx, top + 74, t.inkHead, 3);
+  ui.text(team ? "Travelling companion" : page.temperament + " Signari", lx, top + 122, t.inkFaded);
+  ui.nine("divider_ink", lx, top + 148, 120, 2);
+  auto model = page.species;
+  model.erase(std::remove(model.begin(), model.end(), '-'), model.end());
+  const auto portrait = "folio_portrait_" + model;
+  bool hasPortrait = ui.has(portrait), observed = team || (e && e->observed);
+  if (hasPortrait) {
+    ui.fitImage(portrait, lx + 80, top + 160, 244, 190, observed ? PixelUi::Colour{1, 1, 1, 1} : PixelUi::Colour{.30f, .25f, .22f, .55f});
+    const std::string caption = observed ? "A field study" : "Waiting to be observed";
+    ui.text(caption, lx + (TextW - ui.width(caption)) / 2, top + 354, t.inkFaded);
   }
-  int trustY=hasPortrait?274:99;
+  int trustY = top + (hasPortrait ? 556 : 170);
   if (page.trustNeeded > 0) {
-    ui.text("Trust",lx,trustY,t.ink);
-    for(int i=0;i<page.trustNeeded;++i)
-      ui.image(i<(e?e->trust():0)?"trust_on":"trust_off",lx+40+i*11,trustY);
+    ui.text("Trust", lx, trustY, t.ink);
+    for (int i = 0; i < page.trustNeeded; ++i)
+      ui.image(i < (e ? e->trust() : 0) ? "icon_heart" : "icon_heart_empty", lx + 58 + i * 20, trustY - 1);
   }
-  int y=ui.paragraph(page.mara,lx,hasPortrait?199:122,w,t.ink);
-  ui.text(signature,lx+w-ui.width(signature),y+10,t.title);
-  if(!hasPortrait) {
-    const auto specimen=page.species=="WS-005"?"folio_seed":page.species=="WS-012"?"folio_leaf":"folio_book";
-    if(ui.has(specimen))ui.sizedImage(specimen,lx+4,249,32,32);
-    ui.text("A note from the field",lx+44,253,t.ink);
-  }
-  ui.text("WAYFINDER FIELD NOTES",lx+30,296,Quiet);
-  ui.text("Observations", rx, 40, t.title, 2);
-  int found = 0; for (const auto &c : page.clues) found += done(e,c.act);
-  ui.text(page.clues.empty() ? "With you since the quay" : std::to_string(found) + " of " + std::to_string(page.clues.size()) + " questions answered", rx, 71, Quiet);
-  y = 96;
+  int y = ui.paragraph(page.mara, lx, top + (hasPortrait ? 388 : 208), TextW, t.ink);
+  ui.text(signature, lx + TextW - ui.width(signature), y + 8, t.inkHead);
+  ui.text("WAYFINDER FIELD NOTES", lx, top + 600, t.inkFaded);
+  ui.text("Observations", rx, top + 74, t.inkHead, 3);
+  int found = 0;
+  for (const auto &c : page.clues) found += done(e, c.act);
+  ui.text(page.clues.empty() ? "With you since the quay" : std::to_string(found) + " of " + std::to_string(page.clues.size()) + " questions answered", rx, top + 122, t.inkFaded);
+  y = top + 156;
   for (std::size_t i = 0; i < page.clues.size(); ++i) {
-    const auto &c = page.clues[i]; bool known = done(e,c.act);
-    ui.text(known ? "+" : "?", rx, y, known ? t.title : Quiet);
-    y = ui.paragraph(known ? c.answer : c.ask, rx + 14, y, w - 14, known ? t.ink : Quiet) + 11;
+    const auto &c = page.clues[i];
+    bool known = done(e, c.act);
+    ui.image(known ? "icon_sparkle_gold" : "icon_paw_ink", rx, y, known ? PixelUi::Colour{1, 1, 1, 1} : PixelUi::Colour{1, 1, 1, .45f});
+    y = ui.paragraph(known ? c.answer : c.ask, rx + 24, y, TextW - 24, known ? t.ink : t.inkFaded) + 12;
   }
-  if (page.clues.empty()) y = ui.paragraph(page.joined,rx,101,w,t.ink);
+  if (page.clues.empty()) y = ui.paragraph(page.joined, rx, top + 164, TextW, t.ink);
   std::string lesson = e && e->knocked ? page.knocked : e && e->refused ? page.refused : e && e->startled ? page.startled : "";
-  if (!lesson.empty()) { y = std::max(y + 8, 232); ui.text("For next time", rx, y, t.title); y = ui.paragraph(lesson,rx,y+15,w,t.ink); }
+  if (!lesson.empty()) {
+    y = std::max(y + 10, top + 430);
+    ui.text("For next time", rx, y, t.inkHead, 2);
+    y = ui.paragraph(lesson, rx, y + 30, TextW, t.ink);
+  }
   if (team && !page.clues.empty()) {
-    ui.text("It chose to come with you.", rx, 289, t.ink);
-    bool fresh = e && !e->stamped; int frame = fresh && !reducedMotion ? std::min(19,int(stampT*14)) : 19;
-    if (ui.has("stamp_mark")) ui.sizedImage("stamp_mark", rx+w-27, 305, 22, 15);
-    if (fresh && frame < 19 && ui.has("stamp0")) ui.sizedImage("stamp"+std::to_string(frame),rx+w-44,267,49,49);
-    if (fresh && (reducedMotion || stampT*14>=20)) journal.encounter(page.species).stamped = true;
+    ui.text("It chose to come with you.", rx, top + 578, t.ink);
+    bool fresh = e && !e->stamped;
+    float t2 = stampT * 14;
+    int zoom = fresh && !reducedMotion ? (t2 < 3 ? 0 : t2 < 5 ? 4 : t2 < 7 ? 3 : 2) : 2;
+    if (zoom > 0) ui.stretch("seal_befriended", rx + TextW - 36 - 18 * zoom, top + 570 - 18 * zoom, 36 * zoom, 36 * zoom);
+    if (fresh && (reducedMotion || t2 >= 20)) journal.encounter(page.species).stamped = true;
   }
 }
 void FieldBook::draw(PixelUi &ui, bond::Journal &journal, const std::vector<std::string> &goals) {
   if (!showing) return;
-  const auto &t = ui.theme(); ui.fill(0,0,640,360,{.035f,.065f,.06f,.78f});
-  const bool animated = !openFrames.empty() && ui.has(openFrames.back());
-  bool transitioning = closing || (!reducedMotion && age < openingSeconds) || turnT >= 0;
-  if (animated) {
-    std::string sprite = openFrames.back();
-    if (!reducedMotion && (closing || age < openingSeconds)) {
-      int f = std::min(int(openFrames.size())-1,int(age/openingSeconds*openFrames.size()));
-      sprite = openFrames[closing ? int(openFrames.size())-1-f : f];
-    } else if (turnT >= 0 && !turnFrames.empty()) {
-      int f = std::min(int(turnFrames.size())-1,int(turnT/turningSeconds*turnFrames.size()));
-      sprite = turnFrames[turnDirection>0 ? f : int(turnFrames.size())-1-f];
-    }
-    ui.registeredImage(sprite,320,330,.758f);
-  } else {
-    ui.panel("panel_dark",LeftX,SheetY,SheetW,SheetH);
-    ui.panel("panel_dark",RightX,SheetY,SheetW,SheetH);
+  const auto &t = ui.theme();
+  offsetX = (ui.W() - 1280) / 2;
+  offsetY = (ui.H() - 720) / 2;
+  ui.dim(.78f);
+  const int bx = offsetX + BookX, by = offsetY + BookY, spine = offsetX + Spine, pageY = by + 10, pageH = BookH - 18;
+  const int pageL = spine - bx - 10, pageR = bx + BookW - spine - 10;
+  // Opening and closing: the boards unfold from the spine.
+  if (!reducedMotion && (closing || age < openingSeconds)) {
+    float f = std::min(1.f, age / openingSeconds);
+    if (closing) f = 1 - f;
+    int w = std::max(60, int(float(BookW) * (.12f + .88f * f)));
+    ui.nine("book_cover", spine - w / 2, by, w, BookH);
+    return;
   }
-  if (transitioning) return;
-  if (spread==0) cover(ui,journal,goals); else creature(ui,journal,pages[std::size_t(spread-1)]);
-  for (int i=0; i<=int(pages.size()); ++i) {
-    int y=50+i*40; bool selected=spread==i;
-    int tabX=selected?565:570;
-    if(ui.has("folio_tab")) {
-      ui.panel("folio_tab_back",tabX+2,y+2,62,29);
-      ui.panel("folio_tab",tabX,y,62,29);
-      if(selected||hover==i) ui.fill(tabX+4,y+6,2,17,t.title);
-    } else ui.strip(selected?"button_on":"button",tabX,y,62,29);
-    if(i==0 && ui.has("folio_book")) ui.sizedImage("folio_book",tabX+23,y+6,16,16);
+  ui.nine("book_cover", bx, by, BookW, BookH);
+  ui.nine("book_page_left", bx + 10, pageY, pageL, pageH);
+  ui.nine("book_page_right", spine, pageY, pageR, pageH);
+  if (turnT >= 0) {
+    // A page swings over the spine: narrowing on one side, then opening on the other.
+    float f = std::min(1.f, turnT / turningSeconds);
+    if (turnDirection < 0) f = 1 - f;
+    if (f < .5f) {
+      int w = std::max(8, int(float(pageR) * (1 - f * 2)));
+      ui.nine("book_page_right", spine, pageY, w, pageH);
+    } else {
+      int w = std::max(8, int(float(pageL) * (f * 2 - 1)));
+      ui.nine("book_page_left", spine - w, pageY, w, pageH);
+    }
+    return;
+  }
+  ui.image("bookmark_ribbon", bx + BookW - 110, pageY - 6);
+  if (spread == 0) cover(ui, journal, goals);
+  else creature(ui, journal, pages[std::size_t(spread - 1)]);
+  for (int i = 0; i <= int(pages.size()); ++i) {
+    int y = offsetY + 100 + i * 80;
+    bool selected = spread == i;
+    int tabX = offsetX + (selected ? 1130 : 1140);
+    ui.nine(selected || hover == i ? "book_tab_selected" : "book_tab", tabX, y, 136, 58);
+    if (i == 0) ui.stretch("icon_book", tabX + 52, y + 13, 32, 32);
     else {
-      const auto &label=pages[std::size_t(i-1)].name;
-      ui.text(label,tabX+8,y+10,t.ink);
+      const auto &label = pages[std::size_t(i - 1)].name;
+      ui.text(label, tabX + (136 - ui.width(label)) / 2, y + 22, t.inkHead);
     }
   }
-  ui.strip(spread>0 ? "button" : "button_off",185,333,67,24);ui.text("A  Back",194,341,t.onButton);
-  ui.text(std::to_string(spread+1)+" / "+std::to_string(pages.size()+1),306,341,t.key);
-  ui.strip(spread<int(pages.size()) ? "button" : "button_off",390,333,67,24);ui.text("Next  D",400,341,t.onButton);
-  ui.strip("button",474,333,76,24);ui.text("B  Close",484,341,t.onButton);
-  ui.text(reducedMotion ? "M  Motion off" : "M  Motion on",18,342,t.key);
+  const int rowY = offsetY + 666, keyRow = rowY + 2;
+  ui.button("Back", offsetX + 370, keyRow, 134, 44, spread > 0 ? PixelUi::Button::Normal : PixelUi::Button::Disabled, "A");
+  auto place = std::to_string(spread + 1) + " / " + std::to_string(pages.size() + 1);
+  ui.text(place, offsetX + 640 - ui.width(place) / 2, keyRow + 14, t.gold);
+  ui.button("Next", offsetX + 780, keyRow, 134, 44, spread < int(pages.size()) ? PixelUi::Button::Normal : PixelUi::Button::Disabled, "D");
+  ui.button("Close", offsetX + 948, keyRow, 152, 44, PixelUi::Button::Normal, "B");
+  ui.hint("M", reducedMotion ? "Motion off" : "Motion on", offsetX + 30, keyRow + 10, t.dim);
 }
 } // namespace p3

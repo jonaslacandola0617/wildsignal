@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cctype>
 #include <cmath>
+#include <cstdint>
 #include <map>
 #include <stdexcept>
 #include <vector>
@@ -29,32 +30,39 @@ static void load() {
 #undef UI_LOAD
 }
 } // namespace uigl
-struct Rect {
-  int x = 0, y = 0, w = 0, h = 0, border = 0, originX = 0, originY = 0;
+struct Piece {
+  int x = 0, y = 0, w = 0, h = 0, l = 0, t = 0, r = 0, b = 0;
 };
 struct UiVertex {
   float x, y, u, v, r, g, b, a;
 };
 struct PixelUi::Impl {
   GLuint vao = 0, buffer = 0, texture = 0, program = 0;
-  int atlasW = 1, atlasH = 1, scale = 1, left = 0, top = 0, window = 1, windowH = 1;
-  int meterLeft = 3, meterRight = 3, meterTop = 3, meterRows = 3;
+  int atlasW = 1, atlasH = 1, num = 1, den = 1, left = 0, top = 0, window = 1, windowH = 1, canvasW = 1280, canvasH = 720;
   Theme theme;
-  std::map<std::string, Rect> rects;
+  std::map<std::string, Piece> pieces;
   // Proportional glyphs; `lift` places a letter against the capital height.
   struct Glyph {
     int x = 0, y = 0, w = 5, h = 7, advance = 6, lift = 0;
   };
   std::map<char, Glyph> glyphs, titles;
-  const std::map<char, Glyph> &fontFor(int scale) const { return scale >= 2 && !titles.empty() ? titles : glyphs; }
+  const std::map<char, Glyph> &fontFor(int size) const { return size >= 2 && !titles.empty() ? titles : glyphs; }
+  static int zoomOf(int size) { return size <= 1 ? 2 : size; }
   static const Glyph *find(const std::map<char, Glyph> &font, unsigned char raw) {
     auto it = font.find(char(raw));
     if (it == font.end()) it = font.find(char(std::toupper(raw)));
     return it == font.end() ? nullptr : &it->second;
   }
+  const Piece *piece(const std::string &name) const {
+    auto it = pieces.find(name);
+    return it == pieces.end() ? nullptr : &it->second;
+  }
   std::vector<UiVertex> vertices;
+  int sx(int v) const { return left + v * num / den; }
+  int sy(int v) const { return top + v * num / den; }
   void quad(int x, int y, int w, int h, int ax, int ay, int aw, int ah, const Colour &c) {
-    float x0 = float(left + x * scale), y0 = float(top + y * scale), x1 = x0 + float(w * scale), y1 = y0 + float(h * scale);
+    if (w <= 0 || h <= 0) return;
+    float x0 = float(sx(x)), y0 = float(sy(y)), x1 = float(sx(x + w)), y1 = float(sy(y + h));
     float u0 = float(ax) / atlasW, v0 = float(ay) / atlasH, u1 = float(ax + aw) / atlasW, v1 = float(ay + ah) / atlasH;
     UiVertex a{x0, y0, u0, v0, c[0], c[1], c[2], c[3]}, b{x1, y0, u1, v0, c[0], c[1], c[2], c[3]}, d{x1, y1, u1, v1, c[0], c[1], c[2], c[3]}, e{x0, y1, u0, v1, c[0], c[1], c[2], c[3]};
     for (const auto &q : {a, b, d, a, d, e})
@@ -64,15 +72,34 @@ struct PixelUi::Impl {
 PixelUi::PixelUi(const std::filesystem::path &folder) {
   uigl::load();
   p = std::make_unique<Impl>();
-  auto stem = std::filesystem::exists(folder / "ui_paper.png") && std::filesystem::exists(folder / "ui_paper.json") ? std::string("ui_paper") : std::string("ui_atlas");
-  auto image = loadImage(folder / (stem + ".png"));
-  p->atlasW = image.w;
-  p->atlasH = image.h;
-  auto data = ws::parseJson(readText(folder / (stem + ".json")));
-  for (const auto &[name, r] : std::get<ws::Json::Object>(data.at("rects").value)) {
-    const auto &a = r.array();
-    p->rects[name] = {int(a[0].number()), int(a[1].number()), int(a[2].number()), int(a[3].number()), int(a[4].number()), a.size() > 5 ? int(a[5].number()) : 0, a.size() > 6 ? int(a[6].number()) : 0};
+  auto sheet = loadImage(folder / "wildsignal_ui.png");
+  auto sheetData = ws::parseJson(readText(folder / "wildsignal_ui.json"));
+  for (const auto &[name, v] : std::get<ws::Json::Object>(sheetData.at("pieces").value)) {
+    Piece out{int(v.at("x").number()), int(v.at("y").number()), int(v.at("w").number()), int(v.at("h").number())};
+    const auto &fields = std::get<ws::Json::Object>(v.value);
+    if (auto n = fields.find("nine"); n != fields.end()) {
+      out.l = int(n->second.at("l").number());
+      out.t = int(n->second.at("t").number());
+      out.r = int(n->second.at("r").number());
+      out.b = int(n->second.at("b").number());
+    }
+    p->pieces[name] = out;
   }
+  // Names that scene data files still use.
+  for (auto [from, to] : {std::pair<const char *, const char *>{"cache_nuts", "icon_nut"}, {"cache_leaves", "icon_leaf"}})
+    if (auto *hit = p->piece(to)) {
+      Piece copy = *hit;
+      p->pieces[from] = copy;
+    }
+  // The sheet has no font, so the letters come from the older atlas, along with the two
+  // field-book studies. Only those bits are kept: one small texture, one draw call.
+  auto stem = std::filesystem::exists(folder / "ui_paper.png") && std::filesystem::exists(folder / "ui_paper.json") ? std::string("ui_paper") : std::string("ui_atlas");
+  auto source = loadImage(folder / (stem + ".png"));
+  auto data = ws::parseJson(readText(folder / (stem + ".json")));
+  struct Copy {
+    int x, y, w, h, *outX, *outY;
+  };
+  std::vector<Copy> copies;
   auto readFont = [&](const ws::Json &table, std::map<char, Impl::Glyph> &font) {
     for (const auto &[name, g] : std::get<ws::Json::Object>(table.value)) {
       const auto &a = g.array();
@@ -89,28 +116,54 @@ PixelUi::PixelUi(const std::filesystem::path &folder) {
     }
   };
   readFont(data.at("glyphs"), p->glyphs);
-  if (stem == "ui_paper") readFont(data.at("titles"), p->titles);
-  if (stem == "ui_paper") {
-    auto colour = [&](const char *name) {
-      auto v = std::stoul(data.at("theme").at(name).string().substr(1), nullptr, 16);
-      return Colour{float((v >> 16) & 255) / 255.f, float((v >> 8) & 255) / 255.f, float(v & 255) / 255.f, 1};
-    };
-    p->theme = {colour("ink"), colour("faded"), colour("title"), colour("body"), colour("onButton"), colour("onButtonOff"), colour("key"), colour("keyOff")};
-    const auto &m = data.at("meter").array();
-    p->meterLeft = int(m.at(0).number());
-    p->meterRight = int(m.at(1).number());
-    p->meterTop = int(m.at(2).number());
-    p->meterRows = int(m.at(3).number());
+  const auto &dataFields = std::get<ws::Json::Object>(data.value);
+  if (dataFields.count("titles")) readFont(data.at("titles"), p->titles);
+  for (auto *font : {&p->glyphs, &p->titles})
+    for (auto &[ch, g] : *font)
+      if (g.w > 0 && g.h > 0) copies.push_back({g.x, g.y, g.w, g.h, &g.x, &g.y});
+  for (const auto &[name, r] : std::get<ws::Json::Object>(data.at("rects").value))
+    if (name.rfind("folio_portrait_", 0) == 0) {
+      const auto &a = r.array();
+      Piece out{int(a[0].number()), int(a[1].number()), int(a[2].number()), int(a[3].number())};
+      auto &kept = p->pieces[name] = out;
+      copies.push_back({kept.x, kept.y, kept.w, kept.h, &kept.x, &kept.y});
+    }
+  const int atlasWidth = std::max(sheet.w, 640);
+  int penX = 0, penY = sheet.h + 1, rowH = 0;
+  struct Spot {
+    int x, y;
+  };
+  std::vector<Spot> spots;
+  for (const auto &c : copies) {
+    if (penX + c.w > atlasWidth) penX = 0, penY += rowH + 1, rowH = 0;
+    spots.push_back({penX, penY});
+    penX += c.w + 1;
+    rowH = std::max(rowH, c.h);
   }
-  const char *source[] = {R"(#version 330 core
+  const int atlasHeight = penY + rowH + 1;
+  std::vector<std::uint8_t> pixels(std::size_t(atlasWidth) * atlasHeight * 4);
+  auto blit = [&](const auto &from, int x, int y, int w, int h, int dx, int dy) {
+    for (int row = 0; row < h; row++)
+      std::copy_n(from.rgba.data() + (std::size_t(y + row) * from.w + x) * 4, std::size_t(w) * 4, pixels.data() + (std::size_t(dy + row) * atlasWidth + dx) * 4);
+  };
+  blit(sheet, 0, 0, sheet.w, sheet.h, 0, 0);
+  for (std::size_t i = 0; i < copies.size(); i++) {
+    const auto &c = copies[i];
+    blit(source, c.x, c.y, c.w, c.h, spots[i].x, spots[i].y);
+    *c.outX = spots[i].x;
+    *c.outY = spots[i].y;
+  }
+  p->atlasW = atlasWidth;
+  p->atlasH = atlasHeight;
+  const char *shaders[] = {R"(#version 330 core
 layout(location=0)in vec2 position;layout(location=1)in vec2 coord;layout(location=2)in vec4 rgba;uniform vec2 viewport;out vec2 uv;out vec4 colour;
 void main(){uv=coord;colour=rgba;gl_Position=vec4(position.x/viewport.x*2.-1.,1.-position.y/viewport.y*2.,0,1);})",
-                          R"(#version 330 core
+                           R"(#version 330 core
 in vec2 uv;in vec4 colour;uniform sampler2D atlas;out vec4 frag;void main(){vec4 t=texture(atlas,uv)*colour;if(t.a<.01)discard;frag=t;})"};
   p->program = uigl::CreateProgram();
   for (int i = 0; i < 2; i++) {
     auto shader = uigl::CreateShader(i ? GL_FRAGMENT_SHADER : GL_VERTEX_SHADER);
-    uigl::ShaderSource(shader, 1, &source[i], nullptr);
+    uigl::ShaderSource(shader, 1, &shaders[i], nullptr);
     uigl::CompileShader(shader);
     GLint good = 0;
     uigl::GetShaderiv(shader, GL_COMPILE_STATUS, &good);
@@ -123,7 +176,7 @@ in vec2 uv;in vec4 colour;uniform sampler2D atlas;out vec4 frag;void main(){vec4
   uigl::GenTextures(1, &p->texture);
   uigl::ActiveTexture(GL_TEXTURE0);
   uigl::BindTexture(GL_TEXTURE_2D, p->texture);
-  uigl::TexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, image.w, image.h, 0, GL_RGBA, GL_UNSIGNED_BYTE, image.rgba.data());
+  uigl::TexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, atlasWidth, atlasHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
   uigl::TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   uigl::TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   uigl::TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -147,83 +200,83 @@ PixelUi::~PixelUi() {
 void PixelUi::begin(int w, int h) {
   p->window = w;
   p->windowH = h;
-  p->scale = std::max(1, std::min(w / 640, h / 360));
-  p->left = (w - 640 * p->scale) / 2;
-  p->top = (h - 360 * p->scale) / 2;
+  if (w >= 1280 && h >= 720) {
+    p->num = std::max(1, std::min(w / 1280, h / 720));
+    p->den = 1;
+  } else {
+    p->num = 1;
+    p->den = 2;
+  }
+  p->canvasW = w * p->den / p->num;
+  p->canvasH = h * p->den / p->num;
+  p->left = (w - p->canvasW * p->num / p->den) / 2;
+  p->top = (h - p->canvasH * p->num / p->den) / 2;
   p->vertices.clear();
 }
+int PixelUi::W() const { return p->canvasW; }
+int PixelUi::H() const { return p->canvasH; }
+std::array<int, 2> PixelUi::toCanvas(float x, float y) const {
+  return {int((x - float(p->left)) * float(p->den) / float(p->num)), int((y - float(p->top)) * float(p->den) / float(p->num))};
+}
+const PixelUi::Theme &PixelUi::theme() const { return p->theme; }
+std::size_t PixelUi::textureBytes() const { return std::size_t(p->atlasW) * p->atlasH * 4; }
+bool PixelUi::has(const std::string &name) const { return p->piece(name) != nullptr; }
 void PixelUi::image(const std::string &name, int x, int y, Colour tint) {
-  const auto &r = p->rects.at(name);
-  p->quad(x, y, r.w, r.h, r.x, r.y, r.w, r.h, tint);
+  if (auto *r = p->piece(name)) p->quad(x, y, r->w, r->h, r->x, r->y, r->w, r->h, tint);
 }
-void PixelUi::sizedImage(const std::string &name, int x, int y, int w, int h, Colour tint) {
-  const auto &r = p->rects.at(name);
-  p->quad(x,y,w,h,r.x,r.y,r.w,r.h,tint);
+void PixelUi::stretch(const std::string &name, int x, int y, int w, int h, Colour tint) {
+  if (auto *r = p->piece(name)) p->quad(x, y, w, h, r->x, r->y, r->w, r->h, tint);
 }
-std::size_t PixelUi::textureBytes() const { return std::size_t(p->atlasW)*p->atlasH*4; }
 void PixelUi::fitImage(const std::string &name, int x, int y, int w, int h, Colour tint) {
-  const auto &r = p->rects.at(name);
-  float scale=std::min(float(w)/r.w,float(h)/r.h);
-  int rw=int(std::lround(r.w*scale)),rh=int(std::lround(r.h*scale));
-  sizedImage(name,x+(w-rw)/2,y+(h-rh)/2,rw,rh,tint);
+  auto *r = p->piece(name);
+  if (!r) return;
+  int zoom = std::max(1, std::min(w / r->w, h / r->h));
+  stretch(name, x + (w - r->w * zoom) / 2, y + (h - r->h * zoom) / 2, r->w * zoom, r->h * zoom, tint);
 }
-void PixelUi::registeredImage(const std::string &name, int x, int y, float scale) {
-  const auto &r = p->rects.at(name);
-  sizedImage(name, x + int(std::lround(r.originX * scale)), y + int(std::lround(r.originY * scale)),
-             int(std::lround(r.w * scale)), int(std::lround(r.h * scale)));
+void PixelUi::topRows(const std::string &name, int x, int y, int rows, Colour tint) {
+  if (auto *r = p->piece(name)) {
+    rows = std::clamp(rows, 0, r->h);
+    p->quad(x, y, r->w, rows, r->x, r->y, r->w, rows, tint);
+  }
 }
-void PixelUi::panel(const std::string &name, int x, int y, int w, int h) {
-  const auto &r = p->rects.at(name);
-  int b = r.border, midW = r.w - 2 * b, midH = r.h - 2 * b;
-  std::array<int, 3> dx{x, x + b, x + w - b}, dw{b, w - 2 * b, b}, dy{y, y + b, y + h - b}, dh{b, h - 2 * b, b};
-  std::array<int, 3> sx{r.x, r.x + b, r.x + r.w - b}, sw{b, midW, b}, sy{r.y, r.y + b, r.y + r.h - b}, sh{b, midH, b};
-  Colour white{1, 1, 1, 1};
+void PixelUi::nine(const std::string &name, int x, int y, int w, int h, Colour tint) {
+  auto *r = p->piece(name);
+  if (!r) return;
+  std::array<int, 3> dx{x, x + r->l, x + w - r->r}, dw{r->l, w - r->l - r->r, r->r}, dy{y, y + r->t, y + h - r->b}, dh{r->t, h - r->t - r->b, r->b};
+  std::array<int, 3> ax{r->x, r->x + r->l, r->x + r->w - r->r}, aw{r->l, r->w - r->l - r->r, r->r}, ay{r->y, r->y + r->t, r->y + r->h - r->b}, ah{r->t, r->h - r->t - r->b, r->b};
   for (int row = 0; row < 3; row++)
     for (int col = 0; col < 3; col++)
-      p->quad(dx[col], dy[row], dw[col], dh[row], sx[col], sy[row], sw[col], sh[row], white);
+      p->quad(dx[col], dy[row], dw[col], dh[row], ax[col], ay[row], aw[col], ah[row], tint);
 }
-void PixelUi::strip(const std::string &name, int x, int y, int w, int h) {
-  const auto &r = p->rects.at(name);
-  int b = std::min(r.border, w / 2);
-  if (h <= 0) h = r.h;
-  Colour white{1, 1, 1, 1};
-  p->quad(x, y, b, h, r.x, r.y, b, r.h, white);
-  p->quad(x + b, y, w - 2 * b, h, r.x + b, r.y, r.w - 2 * b, r.h, white);
-  p->quad(x + w - b, y, b, h, r.x + r.w - b, r.y, b, r.h, white);
+void PixelUi::fill(int x, int y, int w, int h, Colour colour) {
+  if (auto *r = p->piece("white")) p->quad(x, y, w, h, r->x, r->y, 1, 1, colour);
 }
-void PixelUi::meter(int x, int y, int w, float fraction, const std::string &name, Colour plain) {
-  strip("bar", x, y, w);
-  fraction = std::clamp(fraction, 0.f, 1.f);
-  if (fraction <= 0) return;
-  if (has(name)) {
-    strip(name, x, y, std::max(4, int(float(w) * fraction)));
-    return;
-  }
-  int inner = w - p->meterLeft - p->meterRight;
-  fill(x + p->meterLeft, y + p->meterTop, std::max(1, int(float(inner) * fraction)), p->meterRows, plain);
-}
-void PixelUi::note(const std::string &value, int centre, int y) {
-  int w = width(value) + 32;
-  if (has("holder")) {
-    strip("holder", centre - w / 2, y, w);
-    text(value, centre - width(value) / 2, y + 8, p->theme.ink);
-  } else {
-    panel("panel", centre - w / 2, y, w, 26);
-    text(value, centre - width(value) / 2, y + 10, p->theme.ink);
+void PixelUi::dim(float amount) { fill(0, 0, W(), H(), {.09f, .08f, .13f, amount}); }
+void PixelUi::text(const std::string &value, int x, int y, Colour colour, int size) {
+  const auto &font = p->fontFor(size);
+  int zoom = Impl::zoomOf(size);
+  for (unsigned char raw : value) {
+    const auto *g = Impl::find(font, raw);
+    if (g && g->w > 0)
+      p->quad(x, y + g->lift * zoom, g->w * zoom, g->h * zoom, g->x, g->y, g->w, g->h, colour);
+    x += (g ? g->advance : 6) * zoom;
   }
 }
-void PixelUi::part(const std::string &name, int x, int y, int shown, int scale) {
-  const auto &r = p->rects.at(name);
-  shown = std::clamp(shown, 0, r.w);
-  p->quad(x, y, shown * scale, r.h * scale, r.x, r.y, shown, r.h, {1, 1, 1, 1});
+int PixelUi::width(const std::string &value, int size) const {
+  const auto &font = p->fontFor(size);
+  int total = 0;
+  for (unsigned char raw : value) {
+    const auto *g = Impl::find(font, raw);
+    total += g ? g->advance : 6;
+  }
+  return total * Impl::zoomOf(size);
 }
-bool PixelUi::has(const std::string &name) const { return p->rects.count(name) > 0; }
 int PixelUi::paragraph(const std::string &value, int x, int y, int w, Colour colour) {
   std::string line, word;
   auto flush = [&] {
     if (line.empty()) return;
     text(line, x, y, colour);
-    y += 10;
+    y += 20;
     line.clear();
   };
   for (std::size_t i = 0; i <= value.size(); i++) {
@@ -243,32 +296,71 @@ int PixelUi::paragraph(const std::string &value, int x, int y, int w, Colour col
   flush();
   return y;
 }
-void PixelUi::card(const std::string &name, int x, int y, int w, int h) {
-  if (has(name)) image(name, x - 16, y - 32);
-  else panel("panel", x, y, w, h);
+void PixelUi::bar(int x, int y, int w, float fraction, const std::string &kind, bool thin, float ghost) {
+  nine(thin ? "bar_frame_thin" : "bar_frame", x, y, w, thin ? 8 : 14);
+  const std::string prefix = thin ? "bar_fill_thin_" : "bar_fill_";
+  const int track = w - 4, h = thin ? 4 : 10;
+  if (ghost > fraction) nine(prefix + "ghost", x + 2, y + 2, std::max(4, int(float(track) * std::min(ghost, 1.f))), h);
+  fraction = std::clamp(fraction, 0.f, 1.f);
+  if (fraction > 0) nine(prefix + kind, x + 2, y + 2, std::max(4, int(float(track) * fraction)), h);
 }
-const PixelUi::Theme &PixelUi::theme() const { return p->theme; }
-void PixelUi::fill(int x, int y, int w, int h, Colour colour) {
-  const auto &r = p->rects.at("white");
-  p->quad(x, y, w, h, r.x, r.y, 1, 1, colour);
-}
-void PixelUi::text(const std::string &value, int x, int y, Colour colour, int scale) {
-  const auto &font = p->fontFor(scale);
-  for (unsigned char raw : value) {
-    const auto *g = Impl::find(font, raw);
-    if (g && g->w > 0)
-      p->quad(x, y + g->lift * scale, g->w * scale, g->h * scale, g->x, g->y, g->w, g->h, colour);
-    x += (g ? g->advance : 6) * scale;
+int PixelUi::key(const std::string &label, int x, int y, bool pressed, bool small) {
+  const std::string own = std::string(small ? "key_small_" : "key_") + label + (pressed && !small ? "_pressed" : "");
+  if (has(own)) {
+    image(own, x, y);
+    return small ? 20 : 24;
   }
+  const int h = small ? 22 : 26, w = std::max(small ? 20 : 24, width(label) + 14);
+  nine(std::string(small ? "key_small_blank_" : "key_blank_") + (pressed ? "pressed" : "normal"), x, y, w, h);
+  text(label, x + (w - width(label)) / 2, y + (small ? 3 : 4) + (pressed ? 1 : 0), p->theme.text);
+  return w;
 }
-int PixelUi::width(const std::string &value, int scale) const {
-  const auto &font = p->fontFor(scale);
-  int total = 0;
-  for (unsigned char raw : value) {
-    const auto *g = Impl::find(font, raw);
-    total += g ? g->advance : 6;
+int PixelUi::hintWidth(const std::string &keyName, const std::string &label) const {
+  int badge = has("key_" + keyName) ? 24 : std::max(24, width(keyName) + 14);
+  return badge + 8 + width(label) + 18;
+}
+int PixelUi::hint(const std::string &keyName, const std::string &label, int x, int y, Colour colour) {
+  x += key(keyName, x, y) + 8;
+  text(label, x, y + 5, colour);
+  return x + width(label) + 18;
+}
+void PixelUi::note(const std::string &value, int centre, int y, const std::string &icon) {
+  int w = width(value) + 36 + (icon.empty() ? 0 : 22), x = centre - w / 2;
+  nine("toast", x, y, w, 34);
+  int tx = x + 18;
+  if (!icon.empty()) {
+    image(icon, tx - 4, y + 9);
+    tx += 22;
   }
-  return total * scale;
+  text(value, tx, y + 10, p->theme.text);
+}
+void PixelUi::prompt(const std::string &keyName, const std::string &label, int centre, int y, bool tail, const std::string &before) {
+  int w = hintWidth(keyName, label) + 8 + (before.empty() ? 0 : width(before) + 10), x = centre - w / 2;
+  nine("tooltip", x, y, w, 36);
+  if (tail) image("tail_down_ivory", centre - 9, y + 31);
+  int tx = x + 13;
+  if (!before.empty()) {
+    text(before, tx, y + 10, p->theme.text);
+    tx += width(before) + 10;
+  }
+  hint(keyName, label, tx, y + 5, p->theme.text);
+}
+void PixelUi::nameTag(const std::string &value, int centre, int bottom) {
+  int w = std::max(30, width(value) + 24), h = 28, x = centre - w / 2, y = bottom - h - 9;
+  nine("tooltip", x, y, w, h);
+  image("tail_down_ivory", centre - 9, y + h - 5);
+  text(value, x + 12, y + 6, p->theme.text);
+}
+void PixelUi::button(const std::string &label, int x, int y, int w, int h, Button state, const std::string &keyName) {
+  static const char *face[] = {"button_normal", "button_hover", "button_pressed", "button_disabled"};
+  nine(face[int(state)], x, y, w, h);
+  int lower = state == Button::Pressed ? 1 : 0, left = x;
+  if (!keyName.empty()) {
+    int badge = key(keyName, x + 8, y + (h - 26) / 2 - 1 + lower, state == Button::Pressed);
+    left = x + 8 + badge;
+  }
+  const auto &colour = state == Button::Disabled ? p->theme.off : p->theme.text;
+  text(label, left + (x + w - left - width(label)) / 2, y + (h - 14) / 2 - 2 + lower, colour);
 }
 void PixelUi::end() {
   uigl::Disable(GL_SCISSOR_TEST);

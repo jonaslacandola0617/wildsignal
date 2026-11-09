@@ -185,9 +185,9 @@ void StoryScene::draw(PixelUi &ui, const FightScene::Project &project) {
     for (const auto &p : script.people) {
       if (!director->present(p.id) || flat(p.at, player) > 10) continue;
       auto head = project(placeOf(p) + Vec{0, p.id == "logwarden" ? 2.7f : 1.9f, 0});
-      if (head[1] > 238) continue; // would sit on the cards at the bottom of the screen
-      ui.note(p.name, head[0], head[1] - 13);
-      if (director->target() == p.id) ui.text("!", head[0] - 2, head[1] - 26 - int(std::abs(std::sin(clock * 4)) * 3), t.title, 2);
+      if (head[1] > ui.H() - 244) continue; // would sit on the cards at the bottom of the screen
+      ui.nameTag(p.name, head[0], head[1] - 6);
+      if (director->target() == p.id) ui.stretch("icon_pin", head[0] - 16, head[1] - 86 - int(std::abs(std::sin(clock * 4)) * 6), 32, 32);
     }
     if (auto *s = director->step(); s && director->phase() == story::Phase::Waiting) {
       // Where to go: a person once the goal's condition is met, otherwise what the goal needs.
@@ -197,54 +197,51 @@ void StoryScene::draw(PixelUi &ui, const FightScene::Project &project) {
       if (!who.empty() && ready) to = script.person(who)->at, pointing = true;
       else if (hasHint) to = hintAt, pointing = true;
       float gap = pointing ? flat(to, player) : 0;
-      ui.note("Goal: " + s->goal + (pointing ? "   (" + std::to_string(int(std::ceil(gap))) + " m)" : ""), 320, 4);
+      std::string goal = "Goal: " + s->goal + (pointing ? "   (" + std::to_string(int(std::ceil(gap))) + " m)" : "");
+      int w = ui.width(goal) + 50, x = ui.W() / 2 - w / 2;
+      ui.nine("location_pill", x, 8, w, 28);
+      ui.image("icon_pin", x + 12, 14);
+      ui.text(goal, x + 34, 14, t.text);
       if (pointing && gap > ArrowFrom) {
-        // An arrow beside the player, in screen space, so it reads through any scenery.
+        // A compass beside the player, in screen space, so it reads through any scenery.
         auto from = project(player + Vec{0, .9f, 0});
         auto end = project(to);
         float dx = float(end[0] - from[0]), dy = float(end[1] - from[1]), n = std::max(1.f, std::hypot(dx, dy));
         dx /= n, dy /= n;
-        int cx = from[0] + int(dx * 58), cy = from[1] + int(dy * 58);
-        const PixelUi::Colour edge{.16f, .10f, .05f, 1}, gold{.98f, .84f, .36f, 1};
-        for (int pass = 0; pass < 2; pass++)
-          for (float u = -10; u <= 12; u += 1)
-            for (float w = -13; w <= 13; w += 1) {
-              // An arrowhead: wide at the back, coming to a point in front.
-              float limit = (12 - u) * .85f + (pass ? 0 : 2);
-              if (std::abs(w) > limit || u < (pass ? -8 : -10) || u > (pass ? 10 : 12)) continue;
-              if (std::abs(w) < 5 - (pass ? 2 : 0) || u > -3 + (pass ? 2 : 0))
-                ui.fill(cx + int(std::lround(dx * u - dy * w)), cy + int(std::lround(dy * u + dx * w)), 1, 1, pass ? gold : edge);
-            }
+        int cx = from[0] + int(dx * 116), cy = from[1] + int(dy * 116);
+        static const char *needles[] = {"compass_needle_n", "compass_needle_ne", "compass_needle_e", "compass_needle_se", "compass_needle_s", "compass_needle_sw", "compass_needle_w", "compass_needle_nw"};
+        int face = int(std::lround(std::atan2(dx, -dy) / .7853982f)) & 7;
+        ui.image("compass_base", cx - 24, cy - 24);
+        ui.image(needles[face], cx - 24, cy - 24);
       }
     }
-    if (toastT > 0) ui.note(toastWho.empty() ? toast : toastWho + ": " + toast, 320, 232);
-    else if (near >= 0) ui.note("E  Talk", 320, 232);
+    if (toastT > 0) ui.note(toastWho.empty() ? toast : toastWho + ": " + toast, ui.W() / 2, ui.H() - 256);
+    else if (near >= 0) ui.prompt("E", "Talk", ui.W() / 2, ui.H() - 256);
     return;
   }
-  // The box: name, two lines. Narration has no name. Choices sit just above it.
-  const int x = 110, y = 270, w = 420, h = 76;
-  ui.panel("panel", x, y, w, h);
+  // The box: name, then the words. Narration has no name. Choices sit just above it.
+  const int w = 840, h = 152, x = (ui.W() - w) / 2, y = ui.H() - h - 24;
+  ui.nine("panel_dark", x, y, w, h);
   std::string name;
   if (auto *p = script.person(l->who)) name = p->name;
-  if (!name.empty()) ui.text(name, x + 16, y + 10, t.title, 2);
+  if (!name.empty()) ui.text(name, x + 24, y + 16, t.gold, 2);
   if (l->choices.empty()) {
     lastSaid = l->text;
-    ui.paragraph(l->text, x + 16, y + (name.empty() ? 22 : 38), w - 32, t.ink);
-    std::string hint = "Enter";
-    ui.text(hint, x + w - 14 - ui.width(hint), y + h - 18, t.faded);
+    ui.paragraph(l->text, x + 24, y + (name.empty() ? 34 : 54), w - 48, t.text);
+    int keyW = ui.width("Enter") + 14;
+    ui.key("Enter", x + w - 16 - keyW, y + h - 40);
     return;
   }
   // A choice answers what was just said, so that stays on screen.
-  ui.paragraph(l->starter ? "Who will go with you?" : lastSaid, x + 16, y + 38, w - 32, t.ink);
+  ui.paragraph(l->starter ? "Who will go with you?" : lastSaid, x + 24, y + 54, w - 48, t.text);
   int n = int(l->choices.size()), bw = 0;
   for (const auto &c : l->choices) bw = std::max(bw, ui.width(c.text));
-  bw += 44;
-  int top = y - 8 - n * 26;
-  ui.panel("panel", 320 - bw / 2, top - 8, bw, n * 26 + 12);
+  bw += 92;
+  int top = y - 10 - n * 46;
   for (int i = 0; i < n; i++) {
-    int ry = top + i * 26;
-    if (i == choice) ui.fill(320 - bw / 2 + 8, ry, bw - 16, 22, {.86f, .74f, .50f, .6f});
-    ui.text(l->choices[std::size_t(i)].text, 320 - bw / 2 + 22, ry + 7, t.ink);
+    int ry = top + i * 46;
+    ui.button(l->choices[std::size_t(i)].text, ui.W() / 2 - bw / 2, ry, bw, 40, i == choice ? PixelUi::Button::Hover : PixelUi::Button::Normal);
+    if (i == choice) ui.image("icon_arrow_right", ui.W() / 2 - bw / 2 + 14, ry + 11);
   }
 }
 } // namespace p3

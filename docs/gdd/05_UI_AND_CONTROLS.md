@@ -119,3 +119,4 @@ This replaces the pilot's fight keys (1–5 moves, Q dodge, R reach out). In fig
 - 2026-11-02 — First draft.
 - 2026-11-02 — Owner locked the functional parts; the visual style stays OPEN with an interim code-drawn style.
 - 2026-11-07 — Corrected 5.2: the paper kit and fonts stay out of both repositories (licence: no redistribution).
+- 2026-11-10 — UI-001: every screen now uses the owner-approved WILDSIGNAL UI sheet (slate-violet plates, 2026-11-08), which replaces the paper kit look. The sheet stays private beside the game. Layout is now in the sheet's own pixels (1280 × 720, whole-number scales), so a wider window shows more world around the same size UI.

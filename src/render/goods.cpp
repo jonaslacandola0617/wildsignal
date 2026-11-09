@@ -15,7 +15,6 @@ std::string slurp(const std::filesystem::path &p) {
   s << in.rdbuf();
   return s.str();
 }
-// Small code-drawn item marks until item art exists: a coloured blob per kind.
 PixelUi::Colour tintOf(const econ::Item &it) {
   if (it.id == "WILD_BERRY") return {.78f, .22f, .32f, 1};
   if (it.id == "HERB_TONIC") return {.36f, .66f, .38f, 1};
@@ -25,12 +24,16 @@ PixelUi::Colour tintOf(const econ::Item &it) {
   if (it.id == "FEATHER_TUFT") return {.94f, .92f, .86f, 1};
   return {.8f, .8f, .8f, 1};
 }
-void blob(PixelUi &ui, int x, int y, PixelUi::Colour c) {
-  PixelUi::Colour dark{c[0] * .45f, c[1] * .45f, c[2] * .45f, 1}, light{std::min(1.f, c[0] + .25f), std::min(1.f, c[1] + .25f), std::min(1.f, c[2] + .25f), 1};
-  ui.fill(x - 3, y - 2, 7, 5, dark);
-  ui.fill(x - 2, y - 3, 5, 7, dark);
-  ui.fill(x - 2, y - 2, 5, 5, c);
-  ui.fill(x - 1, y - 2, 2, 1, light);
+// Sheet icons standing in for item art, which does not exist yet.
+const char *iconOf(const econ::Item &it) {
+  if (it.id == "WILD_BERRY") return "icon_heart";
+  if (it.id == "HERB_TONIC") return "icon_regen";
+  if (it.id == "REVIVE_ROOT") return "icon_spirit";
+  if (it.id == "BERRY_SEED") return "icon_nut";
+  if (it.id == "HERB_SEED" || it.id == "WILD_HERB" || it.id == "SOFT_MOSS") return "icon_leaf";
+  if (it.id == "BRIGHT_PEBBLE") return "icon_sparkle_ivory";
+  if (it.id == "FEATHER_TUFT") return "icon_focus";
+  return "icon_sparkle_gold";
 }
 } // namespace
 
@@ -228,60 +231,63 @@ void Goods::draw(PixelUi &ui, const FightScene::Project &project, const bond::Jo
     for (const auto &s : catalog.shops) {
       if (flat(s.at, player) > 20) continue;
       auto p = project(s.at + Vec{0, 1.6f, 0});
-      ui.note(s.name, p[0], p[1] - 13);
+      ui.nameTag(s.name, p[0], p[1] - 6);
     }
-    std::string prompt = nearFind >= 0 ? "E  Pick up " + catalog.find(finds[std::size_t(nearFind)].item)->name
-                         : nearShop >= 0 ? "E  Shop at " + catalog.shops[std::size_t(nearShop)].name : "";
-    if (toastT > 0) ui.note(toast, 320, 226);
-    else if (!prompt.empty()) ui.note(prompt, 320, 226);
+    if (toastT > 0) ui.note(toast, ui.W() / 2, ui.H() - 268);
+    else if (nearFind >= 0) ui.prompt("E", "Pick up " + catalog.find(finds[std::size_t(nearFind)].item)->name, ui.W() / 2, ui.H() - 268);
+    else if (nearShop >= 0) ui.prompt("E", "Shop at " + catalog.shops[std::size_t(nearShop)].name, ui.W() / 2, ui.H() - 268);
     return;
   }
-  // Bag and shop: one paper panel, a list on the left, the chosen item's note below.
-  const int x = 140, y = 46, w = 360, h = 256;
-  ui.fill(0, 0, 640, 360, {.035f, .065f, .06f, .55f});
-  ui.panel("panel", x, y, w, h);
+  // Bag and shop: one plate, a list on the left, the chosen item's note below.
+  const int w = 720, h = 512, x = (ui.W() - w) / 2, y = (ui.H() - h) / 2 - 10;
+  ui.dim(.55f);
+  ui.nine("panel_dark", x, y, w, h);
   bool shopping = menu == Menu::Shop;
-  ui.text(shopping ? catalog.shops[std::size_t(shop)].name : std::string("Bag"), x + 16, y + 12, t.title, 2);
+  ui.text(shopping ? catalog.shops[std::size_t(shop)].name : std::string("Bag"), x + 26, y + 20, t.gold, 3);
   std::string coins = "Coins  " + std::to_string(j.money);
-  ui.text(coins, x + w - 16 - ui.width(coins), y + 18, t.ink);
+  ui.text(coins, x + w - 26 - ui.width(coins), y + 28, t.gold);
   if (shopping) {
-    ui.text(tab == 0 ? "[Buy]   Sell" : " Buy   [Sell]", x + 16, y + 38, t.ink);
-    ui.text("A / D  switch", x + w - 16 - ui.width("A / D  switch"), y + 38, t.faded);
+    ui.button("Buy", x + 26, y + 62, 100, 34, tab == 0 ? PixelUi::Button::Hover : PixelUi::Button::Normal);
+    ui.button("Sell", x + 132, y + 62, 100, 34, tab == 1 ? PixelUi::Button::Hover : PixelUi::Button::Normal);
+    int hx = x + w - 26 - ui.hintWidth("A / D", "Switch") + 18;
+    ui.hint("A / D", "Switch", hx, y + 66, t.dim);
   }
   auto list = rows(j);
-  int top = y + (shopping ? 56 : 44);
-  if (list.empty()) ui.text(shopping && tab == 1 ? "Nothing the shop buys." : "Your bag is empty.", x + 30, top + 6, t.faded);
+  int top = y + (shopping ? 110 : 74);
+  if (list.empty()) ui.text(shopping && tab == 1 ? "Nothing the shop buys." : "Your bag is empty.", x + 40, top + 8, t.dim);
   for (std::size_t i = 0; i < list.size() && i < 8; i++) {
     auto *it = catalog.find(list[i]);
-    int ry = top + int(i) * 18;
-    bool sel = int(i) == row;
-    if (sel) ui.fill(x + 12, ry - 2, w - 24, 16, {.86f, .74f, .50f, .55f});
-    blob(ui, x + 22, ry + 5, tintOf(*it));
-    ui.text(it->name, x + 32, ry + 2, t.ink);
+    int ry = top + int(i) * 36;
+    if (int(i) == row) ui.nine("button_hover", x + 16, ry - 4, w - 32, 34);
+    ui.image(iconOf(*it), x + 28, ry + 2);
+    ui.text(it->name, x + 52, ry + 3, t.text);
     std::string right = shopping ? std::to_string(tab == 0 ? it->buy : it->sell) + " c" : "";
     std::string have = "x" + std::to_string(econ::count(j, it->id));
-    if (!shopping || tab == 1) ui.text(have, x + w - 120 - ui.width(have), ry + 2, t.ink);
-    if (!right.empty()) ui.text(right, x + w - 24 - ui.width(right), ry + 2, t.ink);
+    if (!shopping || tab == 1) ui.text(have, x + w - 136 - ui.width(have), ry + 3, t.dim);
+    if (!right.empty()) ui.text(right, x + w - 36 - ui.width(right), ry + 3, t.gold);
   }
-  int noteY = y + h - 62;
-  if (!list.empty() && menu != Menu::Member) ui.paragraph(catalog.find(list[std::size_t(std::clamp(row, 0, int(list.size()) - 1))])->note, x + 16, noteY, w - 32, t.ink);
+  int noteY = y + h - 110;
+  ui.nine("divider_dark", x + 26, noteY - 12, w - 52, 2);
+  if (!list.empty() && menu != Menu::Member) ui.paragraph(catalog.find(list[std::size_t(std::clamp(row, 0, int(list.size()) - 1))])->note, x + 26, noteY, w - 52, t.dim);
   if (menu == Menu::Member) {
     // Who gets it: the team with health bars.
-    const int mx = x + w - 170, my = top;
-    ui.panel("panel_dark", mx - 8, my - 8, 166, 20 + 24 * int(j.party.size()));
+    const int mx = x + w - 340, my = top;
+    ui.nine("panel_dark_ivory", mx - 16, my - 16, 332, 32 + 48 * int(j.party.size()));
     for (std::size_t i = 0; i < j.party.size(); i++) {
       const auto &m = j.party[i];
-      int full = fullHp(m), hp = m.hp < 0 ? full : m.hp, ry = my + int(i) * 24;
-      if (int(i) == memberRow) ui.fill(mx - 4, ry - 2, 158, 22, {.96f, .86f, .55f, .35f});
-      ui.text(nameOf(m.species) + " Lv " + std::to_string(m.level), mx, ry, t.body);
-      ui.meter(mx, ry + 10, 110, float(hp) / float(std::max(1, full)), "fill_hp", {.85f, .3f, .25f, 1});
-      ui.text(hp == 0 ? "fainted" : std::to_string(hp), mx + 116, ry + 10, t.body);
+      int full = fullHp(m), hp = m.hp < 0 ? full : m.hp, ry = my + int(i) * 48;
+      if (int(i) == memberRow) ui.nine("button_hover", mx - 6, ry - 8, 312, 48);
+      ui.text(nameOf(m.species) + "  Lv " + std::to_string(m.level), mx + 6, ry, t.text);
+      ui.bar(mx + 6, ry + 18, 200, float(hp) / float(std::max(1, full)), hp * 4 <= full ? "danger" : "hp");
+      ui.text(hp == 0 ? "fainted" : std::to_string(hp), mx + 216, ry + 18, t.dim);
     }
   }
-  std::string help = menu == Menu::Member ? "W / S  choose     Enter  use     Esc  back"
-                     : shopping            ? "W / S  choose     Enter  " + std::string(tab == 0 ? "buy" : "sell") + "     Esc  leave"
-                                           : "W / S  choose     Enter  use     I  close";
-  ui.text(help, x + 16, y + h - 20, t.faded);
-  if (toastT > 0) ui.note(toast, 320, y + h + 4);
+  int hx = x + 26, hy = y + h - 44;
+  hx = ui.hint("W / S", "Choose", hx, hy, t.dim);
+  hx = ui.hint("Enter", menu == Menu::Member ? "Use" : shopping ? (tab == 0 ? "Buy" : "Sell") : "Use", hx, hy, t.dim);
+  if (menu == Menu::Member) ui.hint("Esc", "Back", hx, hy, t.dim);
+  else if (shopping) ui.hint("Esc", "Leave", hx, hy, t.dim);
+  else ui.hint("I", "Close", hx, hy, t.dim);
+  if (toastT > 0) ui.note(toast, ui.W() / 2, y + h + 6);
 }
 } // namespace p3
