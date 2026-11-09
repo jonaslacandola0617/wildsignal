@@ -67,7 +67,7 @@ void FightScene::say(const std::string &text, float seconds, int rank) {
 }
 
 void FightScene::start(const std::string &wildSpecies, int wildLevel, int wildHealth, const std::vector<bond::Member> &team, Vec you, Vec wild, const std::vector<battle::Block> &blocks,
-                       bool watched) {
+                       bool watched, bool noTune) {
   // A team with nobody standing is rested first; losing never strands the player.
   bool anyone = std::any_of(team.begin(), team.end(), [](const bond::Member &m) { return m.hp != 0; });
   std::vector<battle::Member> members;
@@ -77,6 +77,7 @@ void FightScene::start(const std::string &wildSpecies, int wildLevel, int wildHe
   fight = std::make_unique<battle::Fight>(content, data, members, battle::Member{content.speciesIndex(wildSpecies), std::max(wildLevel, minLevel), -1}, millimetres(you), millimetres(wild),
                                           std::uint32_t(0x51A7 + encounters), blocks, wildHealth);
   fight->familiar(watched);
+  if (noTune) fight->forbidTune();
   if (calmStart) fight->soothe(75);
   running = true;
   wasLost = wasWon = wasTuned = wasLeft = false;
@@ -123,7 +124,8 @@ void FightScene::key(int k) {
   } else if (k == SDLK_F) {
     holdingTune = true;
     // A guardian says so through its own cue once the player is close enough.
-    if (!fight->canTune() && !(fight->guardian() && fight->wornDown()))
+    if (fight->owned()) say(nameOf(fight->wild()) + " already has a partner.", 1.2f, 0);
+    else if (!fight->canTune() && !(fight->guardian() && fight->wornDown()))
       say(fight->guardian() ? "Its signal is too strong." : !fight->wornDown() ? "Wear " + nameOf(fight->wild()) + " down past the line first." : "Get closer to tune in.", 1.2f, 0);
   }
 }
@@ -174,11 +176,11 @@ void FightScene::cues() {
       queued = c.value;
       break;
     case CueKind::Calmed:
-      if (!fight->guardian()) say(nameOf(fight->wild()) + " is calm. Tuning in will be quick.", 2.6f, 2);
+      if (!fight->guardian() && !fight->owned()) say(nameOf(fight->wild()) + " is calm. Tuning in will be quick.", 2.6f, 2);
       break;
     case CueKind::WornDown:
       floaters.push_back({at + Vec{0, 1.6f, 0}, "Worn down", Gold});
-      say(fight->guardian() ? nameOf(fight->wild()) + "'s signal is too strong to tune in." : nameOf(fight->wild()) + " is worn down. Get close and hold F to tune in.", 2.6f, 2);
+      if (!fight->owned()) say(fight->guardian() ? nameOf(fight->wild()) + "'s signal is too strong to tune in." : nameOf(fight->wild()) + " is worn down. Get close and hold F to tune in.", 2.6f, 2);
       break;
     case CueKind::Soothed:
       floaters.push_back({at + Vec{.45f, 1.2f, 0}, "", Calm, 0, "icon_spirit"});
@@ -315,7 +317,7 @@ void FightScene::marks(GroundMarks &g, Vec right, Vec up) {
   // The compass ring (placeholder look until UI-001): a faint circle shows how close to stand,
   // and a gold ring closes in on the wild Signari as Tune In fills.
   const auto &you = fight->you();
-  if (fight->wornDown() && !fight->guardian() && fight->outcome() == battle::Outcome::Ongoing) {
+  if (fight->wornDown() && !fight->guardian() && !fight->owned() && fight->outcome() == battle::Outcome::Ongoing) {
     float range = float(battle::TuneRange) * .001f;
     g.ring(metres(fight->wild().at), range, .12f, Friendly);
     if (you.tuning) {
@@ -462,7 +464,7 @@ void FightScene::draw(PixelUi &ui, const Project &project) {
   }
   if (fight->outcome() != battle::Outcome::Ongoing) {
     bool won = fight->outcome() == battle::Outcome::Won, left = fight->outcome() == battle::Outcome::Left, tuned = fight->outcome() == battle::Outcome::Tuned;
-    std::string title = tuned ? "Tuned in" : won ? "It needs space" : left ? "Safe away" : "You need a rest";
+    std::string title = tuned ? "Tuned in" : won ? (fight->owned() ? "Well fought" : fight->guardian() ? "It is over" : "It needs space") : left ? "Safe away" : "You need a rest";
     if (ui.has("ribbon")) {
       int w = std::max(260, ui.width(title, 2) + 150);
       ui.strip("ribbon", 320 - w / 2, 112, w);

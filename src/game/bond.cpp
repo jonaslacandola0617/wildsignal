@@ -7,7 +7,7 @@
 #include <stdexcept>
 namespace bond {
 namespace {
-constexpr int Version = 4;
+constexpr int Version = 5;
 std::string encode(const Journal &j) {
   std::ostringstream o;
   auto members = [&](const char *name, const std::vector<Member> &list) {
@@ -27,7 +27,7 @@ std::string encode(const Journal &j) {
   members("party", j.party);
   o << ",";
   members("reserve", j.reserve);
-  o << ",\"money\":" << j.money << ",\"gifted\":" << int(j.gifted) << ",\"bag\":[";
+  o << ",\"money\":" << j.money << ",\"gifted\":" << int(j.gifted) << ",\"starterPending\":" << int(j.starterPending) << ",\"bag\":[";
   for (std::size_t i = 0; i < j.bag.size(); i++)
     o << (i ? "," : "") << "{\"item\":\"" << j.bag[i].first << "\",\"count\":" << j.bag[i].second << "}";
   o << "]}\n";
@@ -72,7 +72,9 @@ Journal decode(const std::filesystem::path &p) {
     j.party.push_back(memberFrom(m));
   for (const auto &m : root.at("reserve").array())
     j.reserve.push_back(memberFrom(m));
-  if (j.party.empty() || int(j.party.size()) > PartyLimit) throw std::runtime_error("party size");
+  if (version >= 5) j.starterPending = root.at("starterPending").number() != 0;
+  // Only a story game still waiting for its starter may have nobody.
+  if ((j.party.empty() && !j.starterPending) || int(j.party.size()) > PartyLimit) throw std::runtime_error("party size");
   // Version 4 adds money and the bag; older saves start with neither (Mara's gift follows).
   if (version >= 4) {
     j.money = int(root.at("money").number());

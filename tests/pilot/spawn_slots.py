@@ -78,6 +78,19 @@ def main():
         before = reg.read_text()
         slots()
         check(reg.read_text() == before, "home_slots twice changes nothing")
+
+        # story_slots.py: a hidden row per person, skipping Signari, only for the story's region.
+        (assets / "pack_style.json").write_text(json.dumps({"models": [{"id": "WS0P_B", "path": "b.glb"}]}))
+        tale = folder / "story.json"
+        tale.write_text(json.dumps({"region": "r", "people": [{"id": "mara", "model": "WS0P_B", "scale": 1}, {"id": "log", "model": "WS052", "scale": 1}]}))
+        folk = lambda: subprocess.run([sys.executable, "-I", str(tools / "story_slots.py"), str(reg), str(tale)], check=True, capture_output=True, text=True)
+        folk()
+        rows = json.loads(reg.read_text())["persistent"]
+        check([r["position"] for r in rows if r["id"] == "story_mara"] == [[0, -40, 0]], "Mara waits underground")
+        check(not any(r["id"] == "story_log" for r in rows), "a Signari person gets no story row")
+        before = reg.read_text()
+        folk()
+        check(reg.read_text() == before, "story_slots twice changes nothing")
     print("spawn slots ok")
 
 

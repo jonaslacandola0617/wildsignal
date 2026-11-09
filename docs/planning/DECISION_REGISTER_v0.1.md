@@ -238,3 +238,9 @@ Owner approved build 014 (LOOKDEV-003, -004, -005) as the game's look on 2026-11
 | Decision ID | Decision | Status | Source/impact |
 |---|---|---|---|
 | D-093 | Ground look of build 018C (variant C of three, picked by the owner from running-game screenshots): no drifting cloud shade (amends D-089; only trees, houses and hills shade the ground), lighter shade greens and soil, calmer dirt texture, lighter and warmer paths, softer and narrower edge blur. Everything else in D-089 stands. Values live in the private play-folder `assets/pilot/pilot_dream.json`; recorded in the chapter 8 change log | **CONFIRMED 2026-11-08** | dream look settings, region art |
+
+## 21. Region 1 story — 2026-11-09
+
+| Decision ID | Decision | Status | Source/impact |
+|---|---|---|---|
+| D-094 | The region 1 opening script (`docs/design/STORY_R1_SCRIPT_DRAFT.md`) is accepted as written. Until the art exists: Mara, Old Fen and Juno use the three spare Wayfinder models; the starter pick offers Glintle and Driftfin (Brumlet joins when it has a model); Logwarden uses the 2026-10-28 model from art branch `creature3d/ws052-bark-form-repair`, which is **not approved art** and is for the owner to judge | **CONFIRMED 2026-11-09 (text and stand-ins)** | story data, characters, starter choice; art still owed for all of these |

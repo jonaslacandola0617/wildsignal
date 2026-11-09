@@ -1,0 +1,418 @@
+{
+ "schema": "wildsignal-story-v1",
+ "status": "Text OK'd by the owner 2026-11-09 (docs/design/STORY_R1_SCRIPT_DRAFT.md). People use stand-in models; Brumlet waits for a model; Logwarden's model is not yet approved. Spots are for the test village.",
+ "region": "hearthgrove_test",
+ "people": [
+  {
+   "id": "mara",
+   "name": "Mara",
+   "model": "WS0P_B",
+   "at": [
+    3,
+    6.5
+   ],
+   "yaw": -1.5,
+   "scale": 1
+  },
+  {
+   "id": "fen",
+   "name": "Old Fen",
+   "model": "WS0P_C",
+   "at": [
+    11,
+    7
+   ],
+   "yaw": -1.5,
+   "scale": 1
+  },
+  {
+   "id": "juno",
+   "name": "Juno",
+   "model": "WS0P_A",
+   "at": [
+    -1,
+    14
+   ],
+   "yaw": 3.1,
+   "scale": 1
+  },
+  {
+   "id": "logwarden",
+   "name": "Logwarden",
+   "model": "WS052",
+   "at": [
+    -3,
+    -12
+   ],
+   "yaw": 0.8,
+   "scale": 1,
+   "gone": "root"
+  }
+ ],
+ "steps": [
+  {
+   "id": "arrival",
+   "goal": "Follow Mara",
+   "wait": "auto",
+   "lines": [
+    {
+     "text": "The boat from the mainland takes three days."
+    },
+    {
+     "text": "On the third morning the fog lifts over Lantern Quay."
+    },
+    {
+     "text": "People here say the islands used to hum."
+    },
+    {
+     "who": "mara",
+     "text": "There you are! In one piece, too. The last Wayfinder was sick on the jetty."
+    },
+    {
+     "who": "mara",
+     "text": "Mara Venn. I'll be showing you around Hearthgrove."
+    },
+    {
+     "who": "mara",
+     "choices": [
+      {
+       "text": "\"Glad to be here.\"",
+       "reply": "Good. Hold on to that."
+      },
+      {
+       "text": "\"It's so quiet.\"",
+       "reply": "Quieter than it was. Thirty years quieter."
+      },
+      {
+       "text": "(Nod.)",
+       "reply": "A person of few words. The Signari will like you."
+      }
+     ]
+    },
+    {
+     "who": "mara",
+     "text": "You'll hear about the Hush. Every station went silent in one night."
+    },
+    {
+     "who": "mara",
+     "text": "Signari scattered. Villages lost each other. Ask ten people why, you'll get ten answers."
+    },
+    {
+     "who": "mara",
+     "text": "Now the signal's coming back, in pieces. That's why we need you."
+    },
+    {
+     "who": "mara",
+     "text": "Go and see Old Fen at the Workshop. Touch nothing."
+    }
+   ]
+  },
+  {
+   "id": "compass",
+   "goal": "See Old Fen at the Workshop",
+   "wait": "talk",
+   "who": "fen",
+   "lines": [
+    {
+     "who": "fen",
+     "text": "Ah! New hands. Don't touch that. Or that."
+    },
+    {
+     "who": "fen",
+     "text": "That one you can touch. It's already broken."
+    },
+    {
+     "who": "fen",
+     "text": "Here. Resonance Compass. I built it myself, so it's probably fine."
+    },
+    {
+     "text": "You received the Resonance Compass."
+    },
+    {
+     "who": "fen",
+     "text": "It won't tell you where to go. It will tell you when something is listening."
+    },
+    {
+     "who": "fen",
+     "choices": [
+      {
+       "text": "\"How does it work?\"",
+       "reply": "Badly, at first. Then it learns you."
+      },
+      {
+       "text": "\"Thank you.\"",
+       "reply": "Hmph. Say that when it works."
+      }
+     ]
+    },
+    {
+     "who": "fen",
+     "text": "Nobody walks these meadows alone. Mara! Bring the little ones!"
+    },
+    {
+     "who": "mara",
+     "text": "These two have been waiting for someone."
+    },
+    {
+     "who": "mara",
+     "text": "Choose the one you'd want beside you on a bad day."
+    },
+    {
+     "who": "mara",
+     "starter": [
+      {
+       "species": "WS-004",
+       "text": "Glintle",
+       "reply": "Glintle. Be patient with it. It's braver than it looks."
+      },
+      {
+       "species": "WS-008",
+       "text": "Driftfin",
+       "reply": "Driftfin. It will get you wet. You'll forgive it."
+      }
+     ]
+    },
+    {
+     "who": "mara",
+     "text": "The meadows are waking up. Find a wild Signari and go gently."
+    },
+    {
+     "who": "mara",
+     "text": "Wear it down, get close, and hold the compass steady. Hold F."
+    },
+    {
+     "who": "mara",
+     "text": "We never take a Signari. We listen until it answers."
+    }
+   ]
+  },
+  {
+   "id": "first_tune",
+   "goal": "Tune in a wild Signari, then tell Mara",
+   "wait": "talk",
+   "who": "mara",
+   "needTuned": true,
+   "notYet": "Not yet? Go gently. Wear it down, get close, hold F.",
+   "lines": [
+    {
+     "who": "mara",
+     "text": "It answered you. Do you know how long that took me, my first time?"
+    },
+    {
+     "who": "mara",
+     "choices": [
+      {
+       "text": "\"How long?\"",
+       "reply": "Longer than I'd tell Fen."
+      },
+      {
+       "text": "\"It was scared.\"",
+       "reply": "Yes. Remember that. Most people forget."
+      }
+     ]
+    },
+    {
+     "who": "mara",
+     "text": "That field past the well is yours, by the way. Plant something."
+    },
+    {
+     "who": "mara",
+     "text": "A Wayfinder needs somewhere to come back to."
+    }
+   ]
+  },
+  {
+   "id": "moss_ask",
+   "goal": "See what Old Fen needs",
+   "wait": "talk",
+   "who": "fen",
+   "lines": [
+    {
+     "who": "fen",
+     "text": "Compass parts rattle. I need moss to pack them. Soft Moss, two handfuls."
+    }
+   ]
+  },
+  {
+   "id": "moss_give",
+   "goal": "Bring Old Fen 2 Soft Moss",
+   "wait": "talk",
+   "who": "fen",
+   "needItem": {
+    "item": "SOFT_MOSS",
+    "count": 2
+   },
+   "notYet": "Two handfuls of Soft Moss. It grows along the north lane.",
+   "coins": 40,
+   "lines": [
+    {
+     "who": "fen",
+     "text": "Lovely. Damp. Slightly alive. Here, for your trouble."
+    },
+    {
+     "text": "You received 40 coins."
+    }
+   ]
+  },
+  {
+   "id": "juno",
+   "goal": "Someone is waiting in the north lane",
+   "wait": "talk",
+   "who": "juno",
+   "lines": [
+    {
+     "who": "juno",
+     "text": "You're the new one! Juno Hale. Also new. But better."
+    },
+    {
+     "who": "juno",
+     "text": "First one to the top of the Wayfinder list wins. Starting now."
+    },
+    {
+     "who": "juno",
+     "choices": [
+      {
+       "text": "\"You're on.\"",
+       "reply": "Ha! Good."
+      },
+      {
+       "text": "\"There's a list?\"",
+       "reply": "There's about to be."
+      }
+     ]
+    }
+   ],
+   "fight": {
+    "species": "WS-007",
+    "foe": "Juno's Hornkid",
+    "level": 6,
+    "healthPercent": 120,
+    "noTune": true
+   },
+   "won": [
+    {
+     "who": "juno",
+     "text": "Huh. Okay. Lucky."
+    },
+    {
+     "who": "juno",
+     "text": "...That wasn't luck, was it. Next time, then."
+    }
+   ],
+   "lost": [
+    {
+     "who": "juno",
+     "text": "Ha! Go and rest. I'll be right here, being better."
+    }
+   ]
+  },
+  {
+   "id": "listening",
+   "goal": "Tell Mara what the compass heard",
+   "wait": "auto",
+   "lines": [
+    {
+     "text": "The compass shivers in your hand."
+    },
+    {
+     "text": "Far off in the grove, something is listening. It sounds afraid."
+    }
+   ]
+  },
+  {
+   "id": "tell_mara",
+   "goal": "Tell Mara what the compass heard",
+   "wait": "talk",
+   "who": "mara",
+   "lines": [
+    {
+     "who": "mara",
+     "text": "The Singing Root. There's a guardian there, old as the village."
+    },
+    {
+     "who": "mara",
+     "text": "Go carefully. And come back and tell me what you see."
+    }
+   ]
+  },
+  {
+   "id": "root",
+   "goal": "Go to the Singing Root",
+   "wait": "talk",
+   "who": "logwarden",
+   "lines": [
+    {
+     "text": "A small iron bell hangs from its bark. It will not stop ringing."
+    }
+   ],
+   "fight": {
+    "species": "WS-052",
+    "foe": "Logwarden",
+    "level": 8,
+    "healthPercent": 220,
+    "noTune": false
+   },
+   "won": [
+    {
+     "text": "The bell cracks and falls. Slowly, the shaking stops."
+    },
+    {
+     "text": "For the first time in a long while, its signal comes through. It stays to guard the grove."
+    }
+   ],
+   "lost": [
+    {
+     "text": "You wake by the village. The bell is still ringing, somewhere."
+    }
+   ]
+  },
+  {
+   "id": "bell",
+   "goal": "Show Mara what you found",
+   "wait": "talk",
+   "who": "mara",
+   "lines": [
+    {
+     "who": "mara",
+     "text": "A bell? Show me."
+    },
+    {
+     "who": "mara",
+     "text": "...Nobody in Hearthgrove makes bells like this."
+    },
+    {
+     "who": "mara",
+     "choices": [
+      {
+       "text": "\"You've seen one before.\"",
+       "reply": "Get some rest. We'll talk about Liltwood."
+      },
+      {
+       "text": "\"Who would do this?\"",
+       "reply": "Someone who thinks they're helping. That's the worst kind."
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "way_on",
+   "goal": "Take the compass to Old Fen",
+   "wait": "talk",
+   "who": "fen",
+   "lines": [
+    {
+     "who": "fen",
+     "text": "Give me that compass. Hm. It's found a second voice. Coming from Liltwood."
+    },
+    {
+     "who": "fen",
+     "text": "There. Now it'll hear further. Mind you, so will they."
+    },
+    {
+     "text": "End of the region 1 opening. Liltwood comes with region 2."
+    }
+   ]
+  }
+ ]
+}

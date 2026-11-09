@@ -313,7 +313,7 @@ void HomesteadScene::draw(PixelUi &ui, const FightScene::Project &project, const
   if (mode == Mode::Walk) {
     if (flat(site.at, player) < 20 && !onSite) {
       auto p = project(site.at + Vec{0, 1.2f, 0});
-      ui.note(site.name, p[0], p[1] - 13);
+      if (p[1] <= 238) ui.note(site.name, p[0], p[1] - 13);
     }
     std::string prompt;
     if (near >= 0) {
