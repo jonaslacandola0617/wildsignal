@@ -79,14 +79,14 @@ int realFiles(const std::filesystem::path &folder) {
   check(perType == balance, "type balance matches GDD 4.3");
   check(starters == 3 && guardians == 5 && finals == 1, "3 starters, 5 region guardians, 1 final guardian");
   // The first nine, plus placeholder stats for WS-001..020 that have game models (SPAWN-002).
-  check(withStats == 24, "the first nine and WS-001..020 have stats");
+  check(withStats == 25, "the first nine, WS-001..020 and Logwarden have stats");
   const auto &glintle = c.roster.species[c.roster.index("WS-004")];
   check(glintle.stats && glintle.stats->hp == 48 && glintle.stats->swift == 10, "Glintle stats copied from first-nine roster");
   // GDD 4.2 chart.
   check(c.types.percent("Flora", "Tide") == 125 && c.types.percent("Tide", "Flora") == 80, "Flora beats Tide");
   check(c.types.percent("Lumen", "Gloom") == 125 && c.types.percent("Gloom", "Lumen") == 125, "Lumen and Gloom hit each other hard");
   check(c.types.percent("Flora", "Lumen") == 100, "neutral matchup");
-  check(c.kits.kits.size() == 24, "FIGHT-002 kits for the first nine, placeholders for WS-001..020");
+  check(c.kits.kits.size() == 25, "FIGHT-002 kits for the first nine, placeholders for WS-001..020 and Logwarden");
   for (int n = 1; n <= 20; n++) {
     char id[8];
     std::snprintf(id, sizeof id, "WS-%03d", n);

@@ -171,6 +171,7 @@ bool Goods::key(int k, bond::Journal &j) {
   auto *it = catalog.find(id);
   if (menu == Menu::Bag) {
     if (it->kind == econ::Kind::Material) say("Sell it at a shop, or keep it for crafting later.");
+    else if (j.party.empty()) say("You have no Signari with you yet.");
     else {
       menu = Menu::Member;
       memberRow = 0;

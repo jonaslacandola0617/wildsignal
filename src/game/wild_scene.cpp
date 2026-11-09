@@ -332,7 +332,7 @@ void WildScene::update(float dt, Vec player, bool sneaking, const std::vector<ga
 
   // Spawned wilds: each follows its behaviour; walls and cliffs stop them like the player.
   auto mover = [&](Vec a, Vec b) { return game::move(a, b - a, solids); };
-  bool held = busy() || watching() || joinT > 0;
+  bool held = busy() || watching() || joinT > 0 || journal.party.empty();
   if (!spawnTable.zones.empty()) fillZonesNear(player);
   nearRoamer = -1;
   float nearGap = 6;
@@ -384,6 +384,10 @@ void WildScene::update(float dt, Vec player, bool sneaking, const std::vector<ga
 }
 WildScene::Press WildScene::press(int k, Vec) {
   if (busy()) return Press::Handled;
+  if (k == SDLK_F && journal.party.empty()) {
+    say("You have no Signari with you yet.", 2);
+    return Press::Handled;
+  }
   if (nearRoamer >= 0) {
     if (k == SDLK_F && canFight) {
       target = nearRoamer;
@@ -500,6 +504,11 @@ void WildScene::fightEnded(bool won, bool tuned, bool left, const std::vector<in
     journal.money = std::min(econ::MaxMoney, journal.money + coins);
     events.push_back("coins_" + std::to_string(coins));
   }
+  store();
+}
+void WildScene::teamAfterFight(const std::vector<int> &teamHp) {
+  for (std::size_t i = 0; i < journal.party.size() && i < teamHp.size(); i++)
+    journal.party[i].hp = teamHp[i];
   store();
 }
 void WildScene::rest() {

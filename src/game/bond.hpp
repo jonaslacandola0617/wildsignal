@@ -34,6 +34,8 @@ struct Journal {
   int money = 0;
   std::vector<std::pair<std::string, int>> bag;
   bool gifted = false;
+  // STORY-R1: a new story game has no team until the starter is chosen.
+  bool starterPending = false;
   Encounter &encounter(std::string_view species);
   const Encounter *find(std::string_view species) const;
   // False when this act was already counted or the creature has joined.

@@ -228,7 +228,14 @@
       "starter": false,
       "guardian": "region",
       "look": "brown standing log giant",
-      "stats": null
+      "stats": {
+        "hp": 58,
+        "might": 13,
+        "guard": 19,
+        "pulse": 10,
+        "ward": 16,
+        "swift": 5
+      }
     },
     {
       "id": "WS-001",

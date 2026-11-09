@@ -122,6 +122,9 @@ public:
   bool canTune() const;
   // Guardians are bound too tightly to tune in during a fight (GDD 3.4).
   bool guardian() const;
+  // A rival's partner cannot be tuned in.
+  void forbidTune() { noTune = true; }
+  bool owned() const { return noTune; }
   // Ticks Tune In would take if it started now, from the wild Signari's Spirit.
   int tuneTicksNeeded() const;
   // The player has watched this species before, so Tune In is faster.
@@ -154,6 +157,7 @@ public:
   std::uint64_t digest() const;
 
 private:
+  bool noTune = false;
   const Content *content;
   const FightData *data;
   std::vector<Fighter> team;

@@ -161,7 +161,7 @@ void Fight::soothe(int points) {
 void Fight::wound(int points) { foe.hp = std::max(1, foe.hp - points); }
 bool Fight::wornDown() const { return foe.hp > 0 && foe.hp * 100 <= foe.stats.hp * data->recruitPercent; }
 bool Fight::guardian() const { return content->species[foe.species].guardian; }
-bool Fight::canTune() const { return wornDown() && !guardian() && gap(player.at, foe.at) <= TuneRange; }
+bool Fight::canTune() const { return wornDown() && !guardian() && !noTune && gap(player.at, foe.at) <= TuneRange; }
 int Fight::tuneTicksNeeded() const {
   int above = std::clamp(foe.spirit - CalmSpirit, 0, 100 - CalmSpirit);
   int ticks = TuneCalmTicks + above * (TuneAgitatedTicks - TuneCalmTicks) / (100 - CalmSpirit);

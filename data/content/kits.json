@@ -3382,6 +3382,148 @@
      }
     ]
    }
+  },
+  {
+   "species": "WS-052",
+   "basic": {
+    "id": "BARK_SWAT",
+    "name": "Bark Swat",
+    "shape": "dash",
+    "kind": "physical",
+    "rangeMm": 2600,
+    "sizeMm": 800,
+    "windupMs": 700,
+    "recoverMs": 460,
+    "cooldownMs": 2000,
+    "unlockLevel": 1,
+    "effects": [
+     {
+      "kind": "damage",
+      "target": "enemy",
+      "amount": 18
+     }
+    ]
+   },
+   "skills": [
+    {
+     "id": "BARK_BRACE",
+     "name": "Bark Brace",
+     "shape": "self",
+     "rangeMm": 0,
+     "sizeMm": 0,
+     "windupMs": 420,
+     "recoverMs": 420,
+     "cooldownMs": 9000,
+     "unlockLevel": 1,
+     "effects": [
+      {
+       "kind": "status",
+       "target": "self",
+       "status": "Guard",
+       "durationMs": 3000
+      }
+     ],
+     "rankUps": [
+      {
+       "level": 15,
+       "cooldownPercent": 85
+      },
+      {
+       "level": 30,
+       "cooldownPercent": 85
+      }
+     ]
+    },
+    {
+     "id": "ROOT_SLAM",
+     "name": "Root Slam",
+     "shape": "burst",
+     "kind": "physical",
+     "rangeMm": 2200,
+     "sizeMm": 2200,
+     "windupMs": 900,
+     "recoverMs": 520,
+     "cooldownMs": 7000,
+     "unlockLevel": 1,
+     "effects": [
+      {
+       "kind": "damage",
+       "target": "enemy",
+       "amount": 14
+      },
+      {
+       "kind": "status",
+       "target": "enemy",
+       "status": "Slow",
+       "durationMs": 3000
+      }
+     ],
+     "rankUps": [
+      {
+       "level": 15,
+       "powerPercent": 115
+      },
+      {
+       "level": 30,
+       "cooldownPercent": 85
+      }
+     ]
+    },
+    {
+     "id": "DEEP_SAP",
+     "name": "Deep Sap",
+     "shape": "self",
+     "rangeMm": 0,
+     "sizeMm": 0,
+     "windupMs": 620,
+     "recoverMs": 420,
+     "cooldownMs": 12000,
+     "unlockLevel": 5,
+     "effects": [
+      {
+       "kind": "status",
+       "target": "self",
+       "status": "Regen",
+       "durationMs": 5000
+      }
+     ],
+     "rankUps": [
+      {
+       "level": 15,
+       "cooldownPercent": 85
+      },
+      {
+       "level": 30,
+       "cooldownPercent": 85
+      }
+     ]
+    }
+   ],
+   "ultimate": {
+    "id": "LANDFALL",
+    "name": "Landfall",
+    "shape": "burst",
+    "kind": "physical",
+    "rangeMm": 3000,
+    "sizeMm": 3000,
+    "windupMs": 1200,
+    "recoverMs": 800,
+    "cooldownMs": 0,
+    "unlockLevel": 10,
+    "effects": [
+     {
+      "kind": "damage",
+      "target": "enemy",
+      "amount": 30
+     },
+     {
+      "kind": "status",
+      "target": "enemy",
+      "status": "Slow",
+      "durationMs": 4000
+     }
+    ]
+   }
   }
  ]
 }

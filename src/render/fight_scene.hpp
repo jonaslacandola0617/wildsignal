@@ -39,7 +39,7 @@ public:
   // wildHealth is an encounter scale in percent, so a fight has time to breathe.
   // watched: the player has watched this species before, so Tune In is faster.
   void start(const std::string &wildSpecies, int wildLevel, int wildHealth, const std::vector<bond::Member> &team, Vec you, Vec wild, const std::vector<battle::Block> &blocks,
-             bool watched = false);
+             bool watched = false, bool noTune = false);
   void key(int sdlKey);
   // Key releases matter for held actions: letting go of F stops Tune In.
   void keyUp(int sdlKey);

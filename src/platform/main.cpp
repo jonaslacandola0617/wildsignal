@@ -4,6 +4,7 @@
 #include "wild_scene.hpp"
 #include "goods.hpp"
 #include "homestead_scene.hpp"
+#include "story_scene.hpp"
 #include "followers.hpp"
 #include "game.hpp"
 #include "view_angles.hpp"
@@ -785,6 +786,8 @@ int main(int argc, char **argv) {
     std::unique_ptr<p3::FieldBook> book;
     std::unique_ptr<p3::Goods> goods;
     std::unique_ptr<p3::HomesteadScene> homestead;
+    std::unique_ptr<p3::StoryScene> storyScene;
+    bool giftNote = false; // Mara's gift note waits until the player has met her.
     std::set<std::string> homeModels;
     // Each Signari model can have several scene objects (persistent rows "<id>", "<id>#1", ...),
     // so more than one of a species can be on screen; posed in order each frame.
@@ -841,6 +844,10 @@ int main(int argc, char **argv) {
       auto homeFile=o.save;homeFile+=".home.json";
       if(!o.region.empty())homestead=std::make_unique<p3::HomesteadScene>(content,o.region,scene->roster(),homeFile,o.fresh);
       if(homestead)for(auto &m:homestead->models())homeModels.insert(m);
+      // STORY-R1: Act 1 in the region it is written for. A new game starts with no team.
+      auto storyFile=o.save;storyFile+=".story.json";
+      if(!o.region.empty())storyScene=std::make_unique<p3::StoryScene>(content,o.region,scene->roster(),storyFile,o.fresh,wilds->notes());
+      if(storyScene){for(auto &m:storyScene->models())homeModels.insert(m);if(storyScene->enabled())wilds->saveNow();}
       if(homestead)homestead->addSolids(game.solids);
       for(std::size_t i=0;i<world.instances.size();i++){
         const auto &model=world.models[world.instances[i].model];
@@ -852,7 +859,8 @@ int main(int argc, char **argv) {
         float h=game::terrain(at.x,at.z);
         for(auto [dx,dz]:{std::pair{1.f,0.f},{-1.f,0.f},{0.f,1.f},{0.f,-1.f}})if(std::abs(game::terrain(at.x+dx,at.z+dz)-h)>.5f)return false;
         return true;});
-      if(goods->enabled()&&econ::gift(wilds->notes())){wilds->saveNow();goods->say("Mara packed 3 Wild Berries and 50 coins. Press I for your bag.",6);}
+      giftNote=goods->enabled()&&econ::gift(wilds->notes());
+      if(giftNote)wilds->saveNow();
       // SPAWN-001: wild Signari from the spawn table, for regions that have one.
       if(!o.region.empty()){
         auto table=content/"spawns.json";
@@ -1191,6 +1199,19 @@ int main(int argc, char **argv) {
             if (book->key(int(e.key.key))) closeBook();
             continue;
           }
+          if (storyScene && storyScene->open()) {
+            if (paused) { if(e.key.key==SDLK_RETURN||e.key.key==SDLK_ESCAPE) paused=false; continue; }
+            if (e.key.key != SDLK_ESCAPE) {
+              if (storyScene->key(int(e.key.key), wilds->notes())) wilds->saveNow();
+              continue;
+            }
+          }
+          if (storyScene && !paused && !o.benchmark && game.phase == game::Phase::Explore && !scene->active() && !wilds->busy() && !wilds->watching() && !(goods && goods->open()) && !(homestead && homestead->open()) &&
+              e.key.key == SDLK_E && !atRest() && storyScene->press(int(e.key.key), wilds->notes())) {
+            held.fill(false);
+            sneaking = false;
+            continue;
+          }
           if (homestead && homestead->open()) {
             if (paused) { if(e.key.key==SDLK_RETURN||e.key.key==SDLK_ESCAPE) paused=false; continue; }
             bool changed = false;
@@ -1357,7 +1378,7 @@ int main(int argc, char **argv) {
           }
         }
       }
-      bool reading = (book && book->open()) || (goods && goods->open()) || (homestead && homestead->open());
+      bool reading = (book && book->open()) || (goods && goods->open()) || (homestead && homestead->open()) || (storyScene && storyScene->open());
       const bool flat = dream && o.raisedCamera && !o.benchmark;
       if (flat) {
         // W is always up the screen; a key held through a turn keeps its old way until let go.
@@ -1433,6 +1454,24 @@ int main(int argc, char **argv) {
           if (!scene->active() && !stageSet && !reading)
             wilds->update(dt, game.state.player, sneaking, game.solids);
           if (goods && game.phase == game::Phase::Explore && !scene->active()) goods->update(dt, game.state.player);
+          if (storyScene && game.phase == game::Phase::Explore && !scene->active() && !stageSet && !(book && book->open()) && !(goods && goods->open()) && !(homestead && homestead->open())) {
+            storyScene->update(dt, game.state.player, wilds->notes());
+            if (auto *f = storyScene->pendingFight()) {
+              std::vector<battle::Block> blocks;
+              for (const auto &s : game.solids)
+                blocks.push_back({int(s.x * 1000), int(s.z * 1000), int(s.hx * 1000), int(s.hz * 1000)});
+              scene->start(f->species, f->level, f->healthPercent, wilds->team(), game.state.player, storyScene->foeAt(game.state.player), blocks, false, f->noTune);
+              storyScene->fightBegan();
+              game.phase = game::Phase::Battle;
+              fightTurn = .7f;
+              event(frame, "fight_start");
+              event(frame, "fight_story");
+            }
+          }
+          if (giftNote && goods && !reading && (!storyScene || !storyScene->enabled() || storyScene->currentStep() != "arrival")) {
+            giftNote = false;
+            goods->say("Mara packed 3 Wild Berries and 50 coins. Press I for your bag.", 6);
+          }
           if (homestead) homestead->update(dt, game.state.player, game::quarterYaw(quarter), wilds->notes());
           if (homestead && homestead->takeLayoutChanged()) {
             game.solids = stream ? stream->solids() : game.solids;
@@ -1455,8 +1494,13 @@ int main(int argc, char **argv) {
           if(previousPage!=book->currentPage()) event(frame,("book_page_"+std::to_string(book->currentPage())).c_str());
           if (wasReading && !book->open()) closeBook();
         }
-        for (const auto &name : wilds->takeEvents())
+        for (const auto &name : wilds->takeEvents()) {
           event(frame, name.c_str());
+          if (storyScene) storyScene->noteEvent(name);
+        }
+        if (storyScene)
+          for (const auto &name : storyScene->takeEvents())
+            event(frame, name.c_str());
         if (goods)
           for (const auto &name : goods->takeEvents())
             event(frame, name.c_str());
@@ -1477,6 +1521,10 @@ int main(int argc, char **argv) {
         }
         // Everyone is posed every frame; a creature not in this list waits out of sight.
         auto staged = fighting ? std::vector{scene->creature(true), scene->creature(false)} : wilds->staged();
+        if (storyScene) {
+          auto folk = storyScene->people(fighting);
+          staged.insert(staged.end(), folk.begin(), folk.end());
+        }
         if (homestead) {
           auto placed = homestead->pieces();
           staged.insert(staged.end(), placed.begin(), placed.end());
@@ -1511,7 +1559,13 @@ int main(int argc, char **argv) {
           stageSet = false;
           game.phase = game::Phase::Explore;
           game.message = "";
-          wilds->fightEnded(scene->won(), scene->tunedIn(), scene->left(), scene->teamHp(), scene->wildAt());
+          if (storyScene && storyScene->inFight()) {
+            wilds->teamAfterFight(scene->teamHp());
+            storyScene->fightEnded(scene->won(), wilds->notes());
+            event(frame, scene->won() ? "story_fight_won" : "story_fight_not_won");
+            wilds->saveNow();
+          } else
+            wilds->fightEnded(scene->won(), scene->tunedIn(), scene->left(), scene->teamHp(), scene->wildAt());
           if (scene->lost()) {
             // Losing costs nothing: the Wayfinder wakes at the start with a rested party.
             game.state.player = game.spawn;
@@ -1720,6 +1774,7 @@ int main(int argc, char **argv) {
         if (!scene->active()) {
           wilds->marks(*groundMarks, {}, {});
           if (goods) goods->marks(*groundMarks);
+          if (storyScene) storyScene->marks(*groundMarks);
           if (homestead) homestead->marks(*groundMarks, p3::direction(eye, {1, 0, 0}), p3::direction(eye, {0, 1, 0}));
         }
       }
@@ -1816,9 +1871,10 @@ int main(int argc, char **argv) {
         } else {
           if (scene->active()) scene->draw(*pixelUi,toCanvas);
           else if (game.phase==game::Phase::Explore && atRest()) scene->prompt(*pixelUi,"[E] Rest at the cottage");
-          else if (game.phase==game::Phase::Explore && !(goods && goods->open()) && !(homestead && homestead->open())) wilds->draw(*pixelUi,toCanvas);
+          else if (game.phase==game::Phase::Explore && !(goods && goods->open()) && !(homestead && homestead->open()) && !(storyScene && storyScene->open())) wilds->draw(*pixelUi,toCanvas);
           if (goods && !scene->active() && game.phase==game::Phase::Explore && !(homestead && homestead->open())) goods->draw(*pixelUi,toCanvas,wilds->notes());
-          if (homestead && !scene->active() && game.phase==game::Phase::Explore && !(goods && goods->open())) homestead->draw(*pixelUi,toCanvas,wilds->notes());
+          if (homestead && !scene->active() && game.phase==game::Phase::Explore && !(goods && goods->open()) && !(storyScene && storyScene->open())) homestead->draw(*pixelUi,toCanvas,wilds->notes());
+          if (storyScene && !scene->active() && game.phase==game::Phase::Explore && !(goods && goods->open()) && !(homestead && homestead->open())) storyScene->draw(*pixelUi,toCanvas);
           if(book && !scene->active() && game.phase==game::Phase::Explore) book->drawIcon(*pixelUi,wilds->notes());
         }
         if(paused && !(book&&book->open())) {
