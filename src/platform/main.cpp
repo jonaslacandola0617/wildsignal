@@ -5,6 +5,7 @@
 #include "goods.hpp"
 #include "homestead_scene.hpp"
 #include "story_scene.hpp"
+#include "audio.hpp"
 #include "followers.hpp"
 #include "game.hpp"
 #include "view_angles.hpp"
@@ -17,6 +18,9 @@
 #include <SDL3/SDL_main.h>
 #include <algorithm>
 #include <cctype>
+#ifdef _WIN32
+#include <process.h>
+#endif
 #include <set>
 #include <chrono>
 #include <fstream>
@@ -90,6 +94,8 @@ struct Options {
   std::string preset="balanced",ink="balanced";std::filesystem::path styleSettings,pilot,content;int fightLevel=0;float pilotTime=0;bool raisedCamera=false,stableCamera=false;int windowWidth=0;
   bool renderReference=false;bool contacts=true,edgeHighlights=true,edgeOutlines=true,vegetationEdges=true,cleanShadow=true;
   bool tiltShift=true,tiltShiftGiven=false,leafRims=false;float highlightLimit=.55f;
+  bool title = false; // show the title screen
+  int sound = -1;     // -1 automatic: on when playing, off in hidden or scripted runs
   bool treeEnabled=false,treeScene=false,leafPlain=true;int treeMode=0;
   int hudMode=1;bool shadowSet=false,shaftSet=false,hazeSet=false;
   bool sourceTextures = false, legacyFollow = false, legacyGrass = false,
@@ -343,6 +349,13 @@ Options options(int argc, char **argv) {
       o.calmFights = true;
     else if (a == "--new-game")
       o.fresh = true;
+    else if (a == "--title")
+      o.title = true;
+    else if (a == "--sound") {
+      auto v = value();
+      if (v != "on" && v != "off") throw std::runtime_error("sound on|off");
+      o.sound = v == "on";
+    }
     else
       throw std::runtime_error("unknown option " + a);
   }
@@ -788,6 +801,17 @@ int main(int argc, char **argv) {
     std::unique_ptr<p3::HomesteadScene> homestead;
     std::unique_ptr<p3::StoryScene> storyScene;
     int storyFoeLevel = 1;
+    // Sound: on for play, off for hidden and scripted runs unless asked for.
+    std::unique_ptr<p3::Audio> audio;
+    if (o.sound == 1 || (o.sound < 0 && !o.hidden && o.replay.empty() && !o.benchmark)) audio = std::make_unique<p3::Audio>();
+    if (audio) log << "sound_device=" << (audio->ok() ? audio->device() : std::string("none")) << "\n";
+    float stepDistance = 0;
+    p3::Vec lastStepAt{};
+    int stepPick = 0;
+    // The title screen: the living world behind the name, until the player starts.
+    bool titleOpen = o.title, relaunchFresh = false;
+    int titleRow = 0;
+    float titleClock = 0;
     bool giftNote = false; // Mara's gift note waits until the player has met her.
     std::set<std::string> homeModels;
     // Each Signari model can have several scene objects (persistent rows "<id>", "<id>#1", ...),
@@ -986,6 +1010,7 @@ int main(int argc, char **argv) {
     std::ofstream freezes;
     events << "frame,event,phase,hp,enemy_hp,recruited,x,z\n";
     auto event = [&](int f, const std::string &name) {
+      if (audio) audio->playEvent(name);
       events << f << ',' << name << ',' << phaseName(game.phase) << ','
              << game.state.hp << ',' << game.enemyHp << ','
              << game.state.recruited << ',' << game.state.player.x << ','
@@ -1200,6 +1225,33 @@ int main(int argc, char **argv) {
             if (book->key(int(e.key.key))) closeBook();
             continue;
           }
+          if (audio && e.type == SDL_EVENT_KEY_DOWN && !e.key.repeat) {
+            if (e.key.key == SDLK_F12) {
+              audio->toggleMute();
+              event(frame, audio->muted() ? "sound_muted" : "sound_on");
+              continue;
+            }
+            bool talking = storyScene && storyScene->open();
+            bool menu = titleOpen || talking || (goods && goods->open()) || (homestead && homestead->open());
+            auto k = e.key.key;
+            if (menu && (k == SDLK_W || k == SDLK_S || k == SDLK_UP || k == SDLK_DOWN || k == SDLK_A || k == SDLK_D)) audio->play(sfx::Sound::UiMove);
+            else if (menu && (k == SDLK_RETURN || k == SDLK_E || k == SDLK_SPACE)) audio->play(talking ? sfx::Sound::Blip : sfx::Sound::UiOk);
+            else if (menu && k == SDLK_ESCAPE) audio->play(sfx::Sound::UiBack);
+          }
+          if (titleOpen) {
+            int rows = o.fresh ? 2 : 3;
+            if (e.key.key == SDLK_W || e.key.key == SDLK_UP) titleRow = (titleRow + rows - 1) % rows;
+            if (e.key.key == SDLK_S || e.key.key == SDLK_DOWN) titleRow = (titleRow + 1) % rows;
+            if (e.key.key == SDLK_RETURN || e.key.key == SDLK_E || e.key.key == SDLK_SPACE) {
+              int action = o.fresh ? (titleRow == 0 ? 0 : 2) : titleRow; // 0 play, 1 new game, 2 quit
+              if (action == 0) titleOpen = false;
+              else if (action == 1) relaunchFresh = true, run = false;
+              else run = false;
+              event(frame, action == 0 ? "title_play" : action == 1 ? "title_new_game" : "title_quit");
+            }
+            held.fill(false);
+            continue;
+          }
           if (storyScene && storyScene->open()) {
             if (paused) { if(e.key.key==SDLK_RETURN||e.key.key==SDLK_ESCAPE) paused=false; continue; }
             if (e.key.key != SDLK_ESCAPE) {
@@ -1379,7 +1431,7 @@ int main(int argc, char **argv) {
           }
         }
       }
-      bool reading = (book && book->open()) || (goods && goods->open()) || (homestead && homestead->open()) || (storyScene && storyScene->open());
+      bool reading = (book && book->open()) || (goods && goods->open()) || (homestead && homestead->open()) || (storyScene && storyScene->open()) || titleOpen;
       const bool flat = dream && o.raisedCamera && !o.benchmark;
       if (flat) {
         // W is always up the screen; a key held through a turn keeps its old way until let go.
@@ -1455,7 +1507,24 @@ int main(int argc, char **argv) {
           if (!scene->active() && !stageSet && !reading)
             wilds->update(dt, game.state.player, sneaking, game.solids);
           if (goods && game.phase == game::Phase::Explore && !scene->active()) goods->update(dt, game.state.player);
-          if (storyScene && game.phase == game::Phase::Explore && !scene->active() && !stageSet && !(book && book->open()) && !(goods && goods->open()) && !(homestead && homestead->open())) {
+          titleClock += dt;
+          auto fightSounds = scene->takeSounds();
+          if (audio) {
+            audio->ambienceLevel(scene->active() ? .4f : 1.f);
+            for (const auto &name : fightSounds) audio->playEvent(name);
+            // Footsteps: one every metre or so, softer on grass than on paths.
+            if (game.phase == game::Phase::Explore && !reading) {
+              stepDistance += std::hypot(game.state.player.x - lastStepAt.x, game.state.player.z - lastStepAt.z);
+              if (stepDistance > .95f) {
+                stepDistance = 0;
+                bool soft = game::meadow(game.state.player.x, game.state.player.z, game.solids);
+                audio->play(sfx::Sound(int(soft ? sfx::Sound::StepSoft0 : sfx::Sound::Step0) + stepPick));
+                stepPick = (stepPick + 1) % 3;
+              }
+            }
+            lastStepAt = game.state.player;
+          }
+          if (storyScene && !titleOpen && game.phase == game::Phase::Explore && !scene->active() && !stageSet && !(book && book->open()) && !(goods && goods->open()) && !(homestead && homestead->open())) {
             storyScene->update(dt, game.state.player, wilds->notes());
             // The pointer: where the thing the goal still needs can be found.
             {
@@ -1613,6 +1682,19 @@ int main(int argc, char **argv) {
         camera.yaw = viewYaw;
         camera.pitch = dreamPitch;
         camera.position = middle + p3::Vec{0, 1, 0} - camera.forward() * 4.f;
+        if (titleOpen) {
+          // The view behind the name: the cottage and the golden meadow, drifting very slowly.
+          camera.yaw = 2.3561945f;
+          flatHalf = 7.6f;
+          p3::Vec view{-13.f + std::sin(titleClock * .05f) * .8f, 0, 1.5f + std::cos(titleClock * .04f) * .6f};
+          view.y = game::terrain(view.x, view.z);
+          camera.position = view + p3::Vec{0, 1, 0} - camera.forward() * 4.f;
+        }
+        if (scene && scene->active()) {
+          auto kick = scene->shake();
+          float y = viewYaw;
+          camera.position = camera.position + p3::Vec{std::cos(y) * kick[0], kick[1], std::sin(y) * kick[0]};
+        }
       }
       gpu.setOrtho(flatHalf, flatHalf > 0 ? 40.f : 0.f);
       if (o.benchmark) {
@@ -1876,7 +1958,34 @@ int main(int argc, char **argv) {
           return std::array<int, 2>{int((x / w + 1) * 320), int((1 - y / w) * 180)};
         };
         pixelUi->begin(ow, oh);
-        if (book && book->open()) {
+        if (titleOpen) {
+          // The name over the living world, and three plain choices.
+          const auto &t = pixelUi->theme();
+          // A soft dark band fading down from the top, so the name stands off the scenery.
+          for (int band = 0; band < 16; band++)
+            pixelUi->fill(0, band * 10, 640, 10, {.06f, .07f, .10f, .66f * (1 - float(band) / 16)});
+          const std::string name = "WILDSIGNAL", line = "We listen until it answers.";
+          int nx = 320 - pixelUi->width(name, 7) / 2;
+          const p3::PixelUi::Colour outline{.13f, .08f, .08f, 1}, cream{.98f, .90f, .66f, 1}, warm{.99f, .73f, .36f, 1};
+          for (int ox = -4; ox <= 4; ox += 2)
+            for (int oy = -4; oy <= 6; oy += 2) pixelUi->text(name, nx + ox, 44 + oy, outline, 7);
+          pixelUi->text(name, nx, 46, warm, 7);
+          pixelUi->text(name, nx, 44, cream, 7);
+          int lx = 320 - pixelUi->width(line, 2) / 2;
+          pixelUi->text(line, lx + 1, 133, outline, 2);
+          pixelUi->text(line, lx, 132, cream, 2);
+          std::vector<std::string> items = o.fresh ? std::vector<std::string>{"Start your journey", "Quit"} : std::vector<std::string>{"Continue", "New game", "Quit"};
+          int w = 184, x = 320 - w / 2, y = 196;
+          pixelUi->panel("panel", x, y - 12, w, int(items.size()) * 26 + 24);
+          for (std::size_t i = 0; i < items.size(); i++) {
+            int ry = y + int(i) * 26;
+            if (int(i) == titleRow) pixelUi->fill(x + 10, ry - 3, w - 20, 22, {.86f, .74f, .50f, .6f});
+            pixelUi->text(items[i], 320 - pixelUi->width(items[i]) / 2, ry + 4, t.ink);
+          }
+          const std::string help = "W / S  choose     Enter  start";
+          pixelUi->text(help, 321 - pixelUi->width(help) / 2, 341, {.13f, .08f, .08f, .9f});
+          pixelUi->text(help, 320 - pixelUi->width(help) / 2, 340, {.98f, .90f, .66f, 1});
+        } else if (book && book->open()) {
           book->draw(*pixelUi,wilds->notes(),wilds->goals());
           if(paused) pixelUi->note("Paused. Enter to resume",320,4);
         } else {
@@ -2015,6 +2124,7 @@ int main(int argc, char **argv) {
         screen.window, &ow,
         &oh); /* Native world capture above is deterministic; presented
                  back-buffer after swap unspecified. */
+    if (audio) log << "sounds_played=" << audio->played() << "\n";
     log << "frames=" << frame << "\npeak_rss_bytes=" << memory(true)
         << "\nrecruited=" << game.state.recruited
         << "\nvisited=" << game.state.visited << "\nhp=" << game.state.hp
@@ -2022,6 +2132,19 @@ int main(int argc, char **argv) {
     if (!o.benchmark && game.phase == game::Phase::Explore)
       save();
     event(frame, "process_end");
+#ifdef _WIN32
+    if (relaunchFresh) {
+      // New game from the title: start over in a fresh process, without the title.
+      std::vector<std::string> args{"\"" + std::string(argv[0]) + "\""};
+      for (int i = 1; i < argc; i++)
+        if (std::string(argv[i]) != "--title" && std::string(argv[i]) != "--new-game") args.push_back("\"" + std::string(argv[i]) + "\"");
+      args.push_back("--new-game");
+      std::vector<const char *> raw;
+      for (auto &a : args) raw.push_back(a.c_str());
+      raw.push_back(nullptr);
+      _spawnv(_P_NOWAIT, argv[0], raw.data());
+    }
+#endif
     return 0;
   } catch (const std::exception &e) {
     std::cerr << "GAMELOOP001 ERROR: " << e.what()

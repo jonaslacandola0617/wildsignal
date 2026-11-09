@@ -136,7 +136,14 @@ void FightScene::cues() {
   for (const auto &c : fight->takeCues()) {
     Vec at = metres(c.at);
     switch (c.kind) {
-    case CueKind::Hit:
+    case CueKind::Hit: {
+      // Impact: the fight holds for a beat, the camera kicks, and a big hit flashes the screen.
+      bool big = c.value >= 20 || c.matchup > 100;
+      stopT = std::max(stopT, big ? .09f : .05f);
+      shakeT = big ? .28f : .16f;
+      shakeSize = big ? .2f : .09f;
+      if (big) flashT = .09f;
+      sounds.push_back(big ? "hit_big" : "hit");
       // Harm to a wild Signari stays quiet: calming it is the goal, not the damage.
       floaters.push_back({at + Vec{0, 1.3f, 0}, "-" + std::to_string(c.value), c.target == Target::Wild ? Muted : Coral});
       // The puff takes the move's affinity colour, and a word names a matchup that mattered.
@@ -144,6 +151,7 @@ void FightScene::cues() {
       if (c.matchup != 100)
         floaters.push_back({at + Vec{0, 1.8f, 0}, c.matchup > 100 ? "Strong!" : "Resisted", c.matchup > 100 ? affinityColour(c.affinity) : Muted});
       break;
+    }
     case CueKind::Unsettled:
       floaters.push_back({at + Vec{0, 1.5f, 0}, "-" + std::to_string(c.value), Gold});
       puffs.push_back({at, 0, Gold});
@@ -151,6 +159,7 @@ void FightScene::cues() {
       clipClock = 0;
       break;
     case CueKind::Dodged:
+      sounds.push_back("dodged");
       floaters.push_back({at + Vec{0, 1.4f, 0}, "Dodged!", Calm});
       break;
     case CueKind::Healed:
@@ -159,6 +168,7 @@ void FightScene::cues() {
     case CueKind::StatusOn:
       break;
     case CueKind::Faint:
+      sounds.push_back("faint");
       say(c.target == Target::Wild ? nameOf(fight->wild()) + " backs down!" : nameOf(fight->party()[c.value]) + " fainted!", 2, 2);
       break;
     case CueKind::Swap:
@@ -179,6 +189,7 @@ void FightScene::cues() {
       if (!fight->guardian() && !fight->owned()) say(nameOf(fight->wild()) + " is calm. Tuning in will be quick.", 2.6f, 2);
       break;
     case CueKind::WornDown:
+      sounds.push_back("worn_down");
       floaters.push_back({at + Vec{0, 1.6f, 0}, "Worn down", Gold});
       if (!fight->owned()) say(fight->guardian() ? nameOf(fight->wild()) + "'s signal is too strong to tune in." : nameOf(fight->wild()) + " is worn down. Get close and hold F to tune in.", 2.6f, 2);
       break;
@@ -207,6 +218,16 @@ void FightScene::cues() {
     }
   }
 }
+std::vector<std::string> FightScene::takeSounds() {
+  auto out = std::move(sounds);
+  sounds.clear();
+  return out;
+}
+std::array<float, 2> FightScene::shake() const {
+  if (shakeT <= 0) return {0, 0};
+  float size = shakeSize * std::min(1.f, shakeT / .16f);
+  return {std::sin(clock * 83) * size, std::cos(clock * 71) * size};
+}
 void FightScene::update(float dt, int moveX, int moveZ) {
   clock += dt;
   clipClock += dt;
@@ -227,7 +248,13 @@ void FightScene::update(float dt, int moveX, int moveZ) {
   for (auto &p : puffs) p.age += dt;
   std::erase_if(floaters, [](const Floater &f) { return f.age > .9f; });
   std::erase_if(puffs, [](const Puff &p) { return p.age > .35f; });
+  shakeT = std::max(0.f, shakeT - dt);
+  flashT = std::max(0.f, flashT - dt);
   if (!running || fight->outcome() != battle::Outcome::Ongoing) return;
+  if (stopT > 0) {
+    stopT -= dt;
+    return;
+  }
   spare += dt;
   while (spare >= 1.f / battle::TicksPerSecond) {
     spare -= 1.f / battle::TicksPerSecond;
@@ -284,8 +311,14 @@ FightScene::Staged FightScene::creature(bool mine) const {
   s.yaw = yawOf(k.face);
   float beat = clock * 11 + (mine ? 0 : 1.7f);
   if (k.moving && k.pose != Pose::Dodge) {
-    s.at.y += std::abs(std::sin(beat)) * .2f;
+    float up = std::abs(std::sin(beat)), squash = std::max(0.f, 1 - up * 3.5f);
+    s.at.y += up * .22f;
     s.pitch = .16f;
+    s.roll = std::sin(beat) * .1f;
+    s.scale = {1 + .14f * squash - .04f * up, 1 - .2f * squash + .08f * up, 1 + .14f * squash - .04f * up};
+  } else if (k.pose != Pose::Dodge) {
+    float breath = std::sin(clock * 5 + (mine ? 0.f : 1.f));
+    s.scale = {1 - breath * .025f, 1 + breath * .05f, 1 - breath * .025f};
   }
   if (k.pose == Pose::Windup && k.strike.total > 0) {
     float p = 1 - float(k.poseTicks) / float(k.strike.total);
@@ -429,6 +462,7 @@ void FightScene::prompt(PixelUi &ui, const std::string &text) {
   ui.note(text, 320, 322);
 }
 void FightScene::draw(PixelUi &ui, const Project &project) {
+  if (flashT > 0) ui.fill(0, 0, 640, 360, {1, .96f, .86f, flashT / .09f * .22f});
   if (!running) return;
   const auto &t = ui.theme();
   for (const auto &f : floaters) {
