@@ -6,7 +6,7 @@
 #include <sstream>
 namespace p3 {
 namespace {
-constexpr float TalkNear = 2.3f, FaceNear = 5;
+constexpr float TalkNear = 2.8f, FaceNear = 5, ArrowFrom = 4.5f;
 float flat(Vec a, Vec b) { return std::hypot(a.x - b.x, a.z - b.z); }
 std::string slurp(const std::filesystem::path &p) {
   std::ifstream in(p, std::ios::binary);
@@ -66,6 +66,20 @@ float StoryScene::faceYaw(const story::Person &p) const {
   if (flat(p.at, player) > FaceNear) return p.yaw;
   return std::atan2(player.x - p.at.x, player.z - p.at.z);
 }
+std::string StoryScene::wantedItem(const bond::Journal &j) const {
+  auto *s = on ? director->step() : nullptr;
+  if (!s || s->needItem.empty() || director->phase() != story::Phase::Waiting || econ::count(j, s->needItem) >= s->needCount) return "";
+  return s->needItem;
+}
+bool StoryScene::wantsTuneIn() const {
+  auto *s = on ? director->step() : nullptr;
+  return s && s->needTuned && !director->tuned() && director->phase() == story::Phase::Waiting;
+}
+void StoryScene::setHint(bool has, Vec at, const std::string &label) {
+  hasHint = has;
+  hintAt = at;
+  hintLabel = label;
+}
 void StoryScene::noteEvent(const std::string &name) {
   if (on && name == "tune_in_joined") director->noteTuned();
 }
@@ -75,6 +89,7 @@ void StoryScene::update(float dt, Vec at, bond::Journal &j) {
   player = at;
   toastT = std::max(0.f, toastT - dt);
   director->tick(j);
+  ready = director->ready(j);
   if (director->stepId() != lastStep) {
     lastStep = director->stepId();
     events.push_back("story_step_" + lastStep);
@@ -174,7 +189,34 @@ void StoryScene::draw(PixelUi &ui, const FightScene::Project &project) {
       ui.note(p.name, head[0], head[1] - 13);
       if (director->target() == p.id) ui.text("!", head[0] - 2, head[1] - 26 - int(std::abs(std::sin(clock * 4)) * 3), t.title, 2);
     }
-    if (auto *s = director->step(); s && director->phase() == story::Phase::Waiting) ui.note("Goal: " + s->goal, 320, 4);
+    if (auto *s = director->step(); s && director->phase() == story::Phase::Waiting) {
+      // Where to go: a person once the goal's condition is met, otherwise what the goal needs.
+      bool pointing = false;
+      Vec to;
+      auto who = director->target();
+      if (!who.empty() && ready) to = script.person(who)->at, pointing = true;
+      else if (hasHint) to = hintAt, pointing = true;
+      float gap = pointing ? flat(to, player) : 0;
+      ui.note("Goal: " + s->goal + (pointing ? "   (" + std::to_string(int(std::ceil(gap))) + " m)" : ""), 320, 4);
+      if (pointing && gap > ArrowFrom) {
+        // An arrow beside the player, in screen space, so it reads through any scenery.
+        auto from = project(player + Vec{0, .9f, 0});
+        auto end = project(to);
+        float dx = float(end[0] - from[0]), dy = float(end[1] - from[1]), n = std::max(1.f, std::hypot(dx, dy));
+        dx /= n, dy /= n;
+        int cx = from[0] + int(dx * 58), cy = from[1] + int(dy * 58);
+        const PixelUi::Colour edge{.16f, .10f, .05f, 1}, gold{.98f, .84f, .36f, 1};
+        for (int pass = 0; pass < 2; pass++)
+          for (float u = -10; u <= 12; u += 1)
+            for (float w = -13; w <= 13; w += 1) {
+              // An arrowhead: wide at the back, coming to a point in front.
+              float limit = (12 - u) * .85f + (pass ? 0 : 2);
+              if (std::abs(w) > limit || u < (pass ? -8 : -10) || u > (pass ? 10 : 12)) continue;
+              if (std::abs(w) < 5 - (pass ? 2 : 0) || u > -3 + (pass ? 2 : 0))
+                ui.fill(cx + int(std::lround(dx * u - dy * w)), cy + int(std::lround(dy * u + dx * w)), 1, 1, pass ? gold : edge);
+            }
+      }
+    }
     if (toastT > 0) ui.note(toastWho.empty() ? toast : toastWho + ": " + toast, 320, 232);
     else if (near >= 0) ui.note("E  Talk", 320, 232);
     return;

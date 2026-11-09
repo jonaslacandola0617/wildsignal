@@ -152,6 +152,41 @@ void corruptSavesRecover(const std::filesystem::path &folder) {
   check(!load(again, starters()).loaded, "a duplicated Signari is rejected");
 }
 } // namespace
+static void experience() {
+  check(bond::xpToNext(5) == 80 && bond::fightXp(3, true, false) == 20 && bond::fightXp(3, false, true) == 12 && bond::fightXp(3, false, false) == 0, "experience rates");
+  bond::Journal j;
+  j.party = {{"WS-004", 5, 40, 70}};
+  j.reserve = {{"WS-012", 3, -1, 0}};
+  auto ups = j.grant(20, 6);
+  check(ups.size() == 1 && ups[0].species == "WS-004" && ups[0].level == 6 && j.party[0].level == 6 && j.party[0].xp == 10, "a team member levels up, keeping the rest");
+  check(j.party[0].hp == 40, "levelling up does not change current health");
+  check(j.reserve[0].xp == 5 && j.reserve[0].level == 3, "the reserve earns a quarter");
+  j.party[0] = {"WS-004", 20, -1, 0};
+  j.grant(40, 5);
+  check(j.party[0].xp == 20, "far above the foe earns half");
+  j.party[0] = {"WS-004", 49, -1, bond::xpToNext(49) - 1};
+  j.grant(100, 49);
+  check(j.party[0].level == bond::MaxLevel && j.party[0].xp == 0 && j.grant(100, 49).empty(), "level 50 is the end");
+  j.party[0] = {"WS-004", 1, -1, 0};
+  check(j.grant(500, 10).size() > 1, "a big win can give more than one level");
+  auto file = std::filesystem::temp_directory_path() / "wildsignal_xp_test.json";
+  bond::Journal s;
+  s.party = {{"WS-004", 7, 12, 33}};
+  bond::save(file, s);
+  auto b = bond::load(file, bond::Journal{});
+  check(b.loaded && b.journal.party[0].level == 7 && b.journal.party[0].xp == 33 && b.journal.party[0].hp == 12, "level and experience are saved");
+  std::ofstream(file, std::ios::binary | std::ios::trunc) << R"({"version":5,"given":0,"unread":0,"encounters":[],"party":[{"species":"WS-008","level":5,"hp":-1}],"reserve":[],"money":0,"gifted":0,"starterPending":0,"bag":[]})";
+  auto old = bond::load(file, bond::Journal{});
+  check(old.loaded && old.journal.party[0].xp == 0, "older saves start at zero experience");
+  std::ofstream(file, std::ios::binary | std::ios::trunc) << R"({"version":6,"given":0,"unread":0,"encounters":[],"party":[{"species":"WS-008","level":5,"hp":-1,"xp":9999}],"reserve":[],"money":0,"gifted":0,"starterPending":0,"bag":[]})";
+  check(!bond::load(file, bond::Journal{}).loaded, "impossible experience is refused");
+  std::error_code ignored;
+  std::filesystem::remove(file, ignored);
+  auto bak = file;
+  bak += ".bak";
+  std::filesystem::remove(bak, ignored);
+}
+
 int main() {
   auto folder = std::filesystem::temp_directory_path() / "wildsignal_bond_test";
   std::filesystem::remove_all(folder);

@@ -23,7 +23,9 @@ public:
   // Inside a menu. True when the journal changed (save it).
   bool key(int sdlKey, bond::Journal &);
   void say(const std::string &text, float seconds = 2.6f);
-  void marks(GroundMarks &) const;
+  void marks(GroundMarks &, Vec right, Vec up) const;
+  // The nearest find of an item, or the middle of a zone that grows it. False when none is left.
+  bool nearestFind(const std::string &item, Vec from, Vec &at, std::string &label) const;
   void draw(PixelUi &, const FightScene::Project &, const bond::Journal &);
   std::vector<std::string> takeEvents();
 

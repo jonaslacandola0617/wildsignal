@@ -26,6 +26,10 @@ public:
   // Inside the dialogue box. True when the journal may have changed.
   bool key(int sdlKey, bond::Journal &);
   void noteEvent(const std::string &name);
+  // What the current goal still needs from the world, so the game can say where it is.
+  std::string wantedItem(const bond::Journal &) const;
+  bool wantsTuneIn() const;
+  void setHint(bool has, Vec at, const std::string &label);
   // A fight the story wants started now, or null. fightBegan() once it has.
   const story::Fight *pendingFight() const;
   Vec foeAt(Vec player) const;
@@ -45,6 +49,9 @@ private:
   std::unique_ptr<story::Director> director;
   std::filesystem::path file;
   Vec player;
+  bool ready = false, hasHint = false;
+  Vec hintAt;
+  std::string hintLabel;
   int near = -1, choice = 0;
   float clock = 0, toastT = 0;
   std::string toast, toastWho, lastStep, lastSaid;

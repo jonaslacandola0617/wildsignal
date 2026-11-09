@@ -188,12 +188,34 @@ bool Goods::key(int k, bond::Journal &j) {
   say(econ::why(result));
   return false;
 }
-void Goods::marks(GroundMarks &g) const {
-  if (!on) return;
-  // A faint glint under nearby finds, so a small item reads against busy grass.
+bool Goods::nearestFind(const std::string &item, Vec from, Vec &at, std::string &label) const {
+  if (!on) return false;
+  auto *it = catalog.find(item);
+  if (!it) return false;
+  label = it->name;
+  float best = 1e9f;
   for (const auto &f : finds)
-    if (!f.taken && flat(f.at, player) < 12)
-      g.ring(f.at, .32f + .04f * std::sin(clock * 3 + f.at.z), .07f, {.98f, .90f, .55f, .7f});
+    if (f.item == item && !f.taken && flat(f.at, from) < best) best = flat(f.at, from), at = f.at;
+  if (best < 1e8f) return true;
+  // Not placed yet (those zones fill as the player comes near): point at the zone.
+  for (std::size_t z = 0; z < catalog.forage.size(); z++) {
+    const auto &zone = catalog.forage[z];
+    Vec middle{(zone.x0 + zone.x1) / 2, 0, (zone.z0 + zone.z1) / 2};
+    if (zone.item == item && !zoneFilled[z] && flat(middle, from) < best) best = flat(middle, from), at = middle;
+  }
+  return best < 1e8f;
+}
+void Goods::marks(GroundMarks &g, Vec right, Vec up) const {
+  if (!on) return;
+  // Finds are drawn in the world, so trees and walls hide them, with a faint glint below.
+  for (const auto &f : finds) {
+    if (f.taken || flat(f.at, player) > 28) continue;
+    auto c = tintOf(*catalog.find(f.item));
+    Vec at = f.at + Vec{0, .22f + std::sin(clock * 3 + f.at.x) * .03f, 0};
+    g.orb(at, .13f, {c[0] * .4f, c[1] * .4f, c[2] * .4f, 1}, right, up);
+    g.orb(at + up * .01f, .09f, {c[0], c[1], c[2], 1}, right, up);
+    if (flat(f.at, player) < 12) g.ring(f.at, .32f + .04f * std::sin(clock * 3 + f.at.z), .07f, {.98f, .90f, .55f, .7f});
+  }
   for (const auto &s : catalog.shops) {
     float pulse = .5f + .5f * std::sin(clock * 2.5f);
     g.ring(s.at, s.radius * .6f + pulse * .05f, .1f, {.98f, .86f, .42f, .85f});
@@ -203,11 +225,6 @@ void Goods::draw(PixelUi &ui, const FightScene::Project &project, const bond::Jo
   if (!on) return;
   const auto &t = ui.theme();
   if (menu == Menu::None) {
-    for (const auto &f : finds) {
-      if (f.taken || flat(f.at, player) > 28) continue;
-      auto p = project(f.at + Vec{0, .15f, 0});
-      blob(ui, p[0], p[1] - int(std::sin(clock * 3 + f.at.x) * 1.5f), tintOf(*catalog.find(f.item)));
-    }
     for (const auto &s : catalog.shops) {
       if (flat(s.at, player) > 20) continue;
       auto p = project(s.at + Vec{0, 1.6f, 0});
