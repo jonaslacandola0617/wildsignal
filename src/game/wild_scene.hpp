@@ -45,7 +45,11 @@ public:
   void keepAt(const std::string &model, Vec at);
   void rest();
   // A story fight has no wild target: only the team's health carries over.
-  void teamAfterFight(const std::vector<int> &teamHp);
+  void teamAfterFight(const std::vector<int> &teamHp, bool won, int foeLevel);
+  // Experience for the fight just ended; a level-up is announced. Story fights pay double.
+  std::string awardXp(int foeLevel, bool won, bool tuned, bool story);
+  // Where a wild Signari is, for the story's pointer; false when none is left.
+  bool nearestWild(Vec from, Vec &at) const;
   void dismissNotice() { toastT = 0; }
   void announce(const std::string &text) { say(text, 1.8f); }
   bond::Journal &notes() { return journal; }

@@ -91,8 +91,9 @@ int main(int argc, char **argv) {
   CHECK(d.stepId() == "first_tune");
 
   // Conditions: Mara waits for a tune-in, Fen for the moss, and the moss is used up.
-  CHECK(!d.talk("mara", j) && !d.idleLine().empty());
+  CHECK(!d.talk("mara", j) && !d.idleLine().empty() && !d.ready(j));
   d.noteTuned();
+  CHECK(d.ready(j));
   CHECK(d.talk("mara", j));
   playLines(d, j);
   CHECK(d.talk("fen", j));

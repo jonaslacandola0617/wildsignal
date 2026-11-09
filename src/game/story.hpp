@@ -67,6 +67,8 @@ public:
   void choose(int index, bond::Journal &);
   // Who the player should go to next (empty when none).
   std::string target() const;
+  // The target's conditions are met, so the player can go and talk now.
+  bool ready(const bond::Journal &) const;
   bool present(const std::string &person) const;
   void noteTuned() { tuned_ = true; }
   bool tuned() const { return tuned_; }

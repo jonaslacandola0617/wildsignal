@@ -8,7 +8,15 @@
 // inviting is never a dice roll, and trust is worked out from the acts so a save
 // cannot hold a value the acts do not explain.
 namespace bond {
-constexpr int MaxTrust = 8, PartyLimit = 3, CompanyVisits = 2;
+constexpr int MaxTrust = 8, PartyLimit = 3, CompanyVisits = 2, MaxLevel = 50;
+// GDD 2.6: experience from fights. Next level at 20 + 12 x level.
+int xpToNext(int level);
+// A fight's experience: beating pays most, tuning in 60%, losing or leaving nothing.
+int fightXp(int wildLevel, bool won, bool tuned);
+struct LevelUp {
+  std::string species;
+  int level = 1;
+};
 enum class Act { Observe, Assist, Reach };
 enum class Lesson { Startled, Refused, Knocked };
 struct Encounter {
@@ -22,6 +30,7 @@ struct Encounter {
 struct Member {
   std::string species;
   int level = 1, hp = -1; // hp -1 means full.
+  int xp = 0;            // Toward the next level.
 };
 // Why an invite would be refused, so the game can say so instead of hiding a roll.
 enum class Refusal { None, NotEnoughTrust, Frightened, AlreadyJoined };
@@ -46,6 +55,9 @@ struct Journal {
   // A full party sends the newcomer to the reserve; nobody is ever replaced.
   bool invite(std::string_view species, int level, int trustNeeded, bool frightened);
   void rest();
+  // The team earns all of it, the reserve a quarter, and a Signari six or more levels above
+  // the foe half. Returns who levelled up.
+  std::vector<LevelUp> grant(int xp, int wildLevel);
 };
 // How frightened a wild Signari is. Trust is never lost; wariness only makes it
 // refuse everything until it has settled.

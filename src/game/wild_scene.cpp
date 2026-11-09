@@ -465,8 +465,9 @@ void WildScene::fightEnded(bool won, bool tuned, bool left, const std::vector<in
     // ECON-001: coins for the fight (more for beating it than for tuning it in).
     if (int coins = econ::reward(r.level, won, tuned); coins > 0) {
       journal.money = std::min(econ::MaxMoney, journal.money + coins);
-      if (!tuned) say(name + " runs off to rest.   +" + std::to_string(coins) + " coins", 3.4f);
-      else joinNote += "   +" + std::to_string(coins) + " coins";
+      auto gained = awardXp(r.level, won, tuned, false);
+      if (!tuned) say(name + " runs off to rest.   +" + std::to_string(coins) + " coins   " + gained, 3.8f);
+      else joinNote += "   +" + std::to_string(coins) + " coins   " + gained;
       events.push_back("coins_" + std::to_string(coins));
     }
     spawn::fightOver(r, tuned || won, foeStoppedAt);
@@ -503,13 +504,43 @@ void WildScene::fightEnded(bool won, bool tuned, bool left, const std::vector<in
   if (int coins = econ::reward(w.level, won, tuned); coins > 0) {
     journal.money = std::min(econ::MaxMoney, journal.money + coins);
     events.push_back("coins_" + std::to_string(coins));
+    auto gained = awardXp(w.level, won, tuned, false);
+    if (tuned) joinNote += "   " + gained;
+    else say(w.name + " wants nothing to do with you.   " + gained, 3.6f);
   }
   store();
 }
-void WildScene::teamAfterFight(const std::vector<int> &teamHp) {
+void WildScene::teamAfterFight(const std::vector<int> &teamHp, bool won, int foeLevel) {
   for (std::size_t i = 0; i < journal.party.size() && i < teamHp.size(); i++)
     journal.party[i].hp = teamHp[i];
+  auto text = awardXp(foeLevel, won, false, true);
+  if (!text.empty()) say(text, 4);
   store();
+}
+std::string WildScene::awardXp(int foeLevel, bool won, bool tuned, bool story) {
+  int xp = bond::fightXp(foeLevel, won, tuned) * (story ? 2 : 1);
+  if (xp <= 0) return "";
+  events.push_back("xp_" + std::to_string(xp));
+  std::string text = "+" + std::to_string(xp) + " XP";
+  for (const auto &up : journal.grant(xp, foeLevel)) {
+    text = content->species[content->speciesIndex(up.species)].name + " reached level " + std::to_string(up.level) + "!";
+    events.push_back("level_up_" + up.species + "_" + std::to_string(up.level));
+  }
+  return text;
+}
+bool WildScene::nearestWild(Vec from, Vec &at) const {
+  float best = 1e9f;
+  auto consider = [&](Vec p) {
+    float gap = flat(p, from);
+    if (gap < best) best = gap, at = p;
+  };
+  for (const auto &r : roamers)
+    if (r.state != spawn::State::Gone) consider(r.at);
+  for (const auto &w : wilds) {
+    auto *e = journal.find(w.species);
+    if (!e || !e->joined) consider(w.at);
+  }
+  return best < 1e8f;
 }
 void WildScene::rest() {
   journal.rest();

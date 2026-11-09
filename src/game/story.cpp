@@ -244,6 +244,11 @@ std::string Director::target() const {
   auto *s = step();
   return s && phase_ == Phase::Waiting && s->wait == Wait::Talk ? s->who : "";
 }
+bool Director::ready(const bond::Journal &j) const {
+  auto *s = step();
+  if (!s) return false;
+  return !(s->needTuned && !tuned_) && !(!s->needItem.empty() && econ::count(j, s->needItem) < s->needCount);
+}
 bool Director::present(const std::string &id) const {
   auto *p = script->person(id);
   if (!p) return false;

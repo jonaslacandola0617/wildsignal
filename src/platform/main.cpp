@@ -787,6 +787,7 @@ int main(int argc, char **argv) {
     std::unique_ptr<p3::Goods> goods;
     std::unique_ptr<p3::HomesteadScene> homestead;
     std::unique_ptr<p3::StoryScene> storyScene;
+    int storyFoeLevel = 1;
     bool giftNote = false; // Mara's gift note waits until the player has met her.
     std::set<std::string> homeModels;
     // Each Signari model can have several scene objects (persistent rows "<id>", "<id>#1", ...),
@@ -1456,12 +1457,22 @@ int main(int argc, char **argv) {
           if (goods && game.phase == game::Phase::Explore && !scene->active()) goods->update(dt, game.state.player);
           if (storyScene && game.phase == game::Phase::Explore && !scene->active() && !stageSet && !(book && book->open()) && !(goods && goods->open()) && !(homestead && homestead->open())) {
             storyScene->update(dt, game.state.player, wilds->notes());
+            // The pointer: where the thing the goal still needs can be found.
+            {
+              p3::Vec at{};
+              std::string label;
+              bool has = false;
+              if (auto item = storyScene->wantedItem(wilds->notes()); !item.empty() && goods) has = goods->nearestFind(item, game.state.player, at, label);
+              else if (storyScene->wantsTuneIn()) has = wilds->nearestWild(game.state.player, at);
+              storyScene->setHint(has, at, label);
+            }
             if (auto *f = storyScene->pendingFight()) {
               std::vector<battle::Block> blocks;
               for (const auto &s : game.solids)
                 blocks.push_back({int(s.x * 1000), int(s.z * 1000), int(s.hx * 1000), int(s.hz * 1000)});
               scene->start(f->species, f->level, f->healthPercent, wilds->team(), game.state.player, storyScene->foeAt(game.state.player), blocks, false, f->noTune);
               storyScene->fightBegan();
+              storyFoeLevel = f->level;
               game.phase = game::Phase::Battle;
               fightTurn = .7f;
               event(frame, "fight_start");
@@ -1560,7 +1571,7 @@ int main(int argc, char **argv) {
           game.phase = game::Phase::Explore;
           game.message = "";
           if (storyScene && storyScene->inFight()) {
-            wilds->teamAfterFight(scene->teamHp());
+            wilds->teamAfterFight(scene->teamHp(), scene->won(), storyFoeLevel);
             storyScene->fightEnded(scene->won(), wilds->notes());
             event(frame, scene->won() ? "story_fight_won" : "story_fight_not_won");
             wilds->saveNow();
@@ -1773,7 +1784,7 @@ int main(int argc, char **argv) {
         scene->marks(*groundMarks, p3::direction(eye, {1, 0, 0}), p3::direction(eye, {0, 1, 0}));
         if (!scene->active()) {
           wilds->marks(*groundMarks, {}, {});
-          if (goods) goods->marks(*groundMarks);
+          if (goods) goods->marks(*groundMarks, p3::direction(eye, {1, 0, 0}), p3::direction(eye, {0, 1, 0}));
           if (storyScene) storyScene->marks(*groundMarks);
           if (homestead) homestead->marks(*groundMarks, p3::direction(eye, {1, 0, 0}), p3::direction(eye, {0, 1, 0}));
         }

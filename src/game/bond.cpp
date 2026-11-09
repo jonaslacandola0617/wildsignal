@@ -7,13 +7,13 @@
 #include <stdexcept>
 namespace bond {
 namespace {
-constexpr int Version = 5;
+constexpr int Version = 6;
 std::string encode(const Journal &j) {
   std::ostringstream o;
   auto members = [&](const char *name, const std::vector<Member> &list) {
     o << "\"" << name << "\":[";
     for (std::size_t i = 0; i < list.size(); i++)
-      o << (i ? "," : "") << "{\"species\":\"" << list[i].species << "\",\"level\":" << list[i].level << ",\"hp\":" << list[i].hp << "}";
+      o << (i ? "," : "") << "{\"species\":\"" << list[i].species << "\",\"level\":" << list[i].level << ",\"hp\":" << list[i].hp << ",\"xp\":" << list[i].xp << "}";
     o << "]";
   };
   o << "{\"version\":" << Version << ",\"given\":" << int(j.given) << ",\"unread\":" << int(j.unread) << ",\"encounters\":[";
@@ -33,9 +33,10 @@ std::string encode(const Journal &j) {
   o << "]}\n";
   return o.str();
 }
-Member memberFrom(const ws::Json &v) {
+Member memberFrom(const ws::Json &v, int version) {
   Member m{v.at("species").string(), int(v.at("level").number()), int(v.at("hp").number())};
-  if (m.species.empty() || m.level < 1 || m.level > 30 || m.hp < -1 || m.hp > 9999) throw std::runtime_error("bad member");
+  if (version >= 6) m.xp = int(v.at("xp").number());
+  if (m.species.empty() || m.level < 1 || m.level > MaxLevel || m.hp < -1 || m.hp > 9999 || m.xp < 0 || m.xp >= xpToNext(m.level)) throw std::runtime_error("bad member");
   return m;
 }
 Journal decode(const std::filesystem::path &p) {
@@ -69,9 +70,9 @@ Journal decode(const std::filesystem::path &p) {
   }
   std::set<std::string> owned;
   for (const auto &m : root.at("party").array())
-    j.party.push_back(memberFrom(m));
+    j.party.push_back(memberFrom(m, version));
   for (const auto &m : root.at("reserve").array())
-    j.reserve.push_back(memberFrom(m));
+    j.reserve.push_back(memberFrom(m, version));
   if (version >= 5) j.starterPending = root.at("starterPending").number() != 0;
   // Only a story game still waiting for its starter may have nobody.
   if ((j.party.empty() && !j.starterPending) || int(j.party.size()) > PartyLimit) throw std::runtime_error("party size");
@@ -94,6 +95,28 @@ Journal decode(const std::filesystem::path &p) {
 }
 } // namespace
 
+int xpToNext(int level) { return 20 + 12 * level; }
+int fightXp(int wildLevel, bool won, bool tuned) {
+  int base = 8 + 4 * std::clamp(wildLevel, 1, MaxLevel);
+  return won ? base : tuned ? base * 3 / 5 : 0;
+}
+std::vector<LevelUp> Journal::grant(int xp, int wildLevel) {
+  std::vector<LevelUp> ups;
+  auto give = [&](Member &m, int amount) {
+    if (m.level >= wildLevel + 6) amount /= 2;
+    if (m.level >= MaxLevel) return;
+    m.xp += amount;
+    while (m.level < MaxLevel && m.xp >= xpToNext(m.level)) {
+      m.xp -= xpToNext(m.level);
+      m.level++;
+      ups.push_back({m.species, m.level});
+    }
+    if (m.level >= MaxLevel) m.xp = 0;
+  };
+  for (auto &m : party) give(m, xp);
+  for (auto &m : reserve) give(m, xp / 4);
+  return ups;
+}
 int Encounter::trust() const { return std::min(MaxTrust, int(observed) + 2 * int(assisted) + 2 * int(reached) + company); }
 const Encounter *Journal::find(std::string_view species) const {
   for (const auto &e : encounters)
