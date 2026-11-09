@@ -153,12 +153,12 @@ void corruptSavesRecover(const std::filesystem::path &folder) {
 }
 } // namespace
 static void experience() {
-  check(bond::xpToNext(5) == 80 && bond::fightXp(3, true, false) == 20 && bond::fightXp(3, false, true) == 12 && bond::fightXp(3, false, false) == 0, "experience rates");
+  check(bond::xpToNext(5) == 42 && bond::fightXp(3, true, false) == 20 && bond::fightXp(3, false, true) == 12 && bond::fightXp(3, false, false) == 0, "experience rates");
   bond::Journal j;
-  j.party = {{"WS-004", 5, 40, 70}};
+  j.party = {{"WS-004", 5, 40, 40}};
   j.reserve = {{"WS-012", 3, -1, 0}};
   auto ups = j.grant(20, 6);
-  check(ups.size() == 1 && ups[0].species == "WS-004" && ups[0].level == 6 && j.party[0].level == 6 && j.party[0].xp == 10, "a team member levels up, keeping the rest");
+  check(ups.size() == 1 && ups[0].species == "WS-004" && ups[0].level == 6 && j.party[0].level == 6 && j.party[0].xp == 18, "a team member levels up, keeping the rest");
   check(j.party[0].hp == 40, "levelling up does not change current health");
   check(j.reserve[0].xp == 5 && j.reserve[0].level == 3, "the reserve earns a quarter");
   j.party[0] = {"WS-004", 20, -1, 0};

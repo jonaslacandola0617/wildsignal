@@ -134,7 +134,7 @@
     "windupMs": 1000,
     "recoverMs": 700,
     "cooldownMs": 0,
-    "unlockLevel": 10,
+    "unlockLevel": 8,
     "effects": [
      {
       "kind": "damage",
@@ -282,7 +282,7 @@
     "windupMs": 1100,
     "recoverMs": 700,
     "cooldownMs": 0,
-    "unlockLevel": 10,
+    "unlockLevel": 8,
     "effects": [
      {
       "kind": "damage",
@@ -423,7 +423,7 @@
     "windupMs": 1000,
     "recoverMs": 700,
     "cooldownMs": 0,
-    "unlockLevel": 10,
+    "unlockLevel": 8,
     "effects": [
      {
       "kind": "damage",
@@ -559,7 +559,7 @@
     "windupMs": 800,
     "recoverMs": 700,
     "cooldownMs": 0,
-    "unlockLevel": 10,
+    "unlockLevel": 8,
     "effects": [
      {
       "kind": "damage",
@@ -701,7 +701,7 @@
     "windupMs": 1100,
     "recoverMs": 700,
     "cooldownMs": 0,
-    "unlockLevel": 10,
+    "unlockLevel": 8,
     "gentle": true,
     "effects": [
      {
@@ -848,7 +848,7 @@
     "windupMs": 900,
     "recoverMs": 700,
     "cooldownMs": 0,
-    "unlockLevel": 10,
+    "unlockLevel": 8,
     "effects": [
      {
       "kind": "heal",
@@ -997,7 +997,7 @@
     "windupMs": 1000,
     "recoverMs": 700,
     "cooldownMs": 0,
-    "unlockLevel": 10,
+    "unlockLevel": 8,
     "effects": [
      {
       "kind": "damage",
@@ -1138,7 +1138,7 @@
     "windupMs": 1200,
     "recoverMs": 700,
     "cooldownMs": 0,
-    "unlockLevel": 10,
+    "unlockLevel": 8,
     "effects": [
      {
       "kind": "damage",
@@ -1281,7 +1281,7 @@
     "windupMs": 1100,
     "recoverMs": 700,
     "cooldownMs": 0,
-    "unlockLevel": 10,
+    "unlockLevel": 8,
     "gentle": true,
     "effects": [
      {
@@ -1416,7 +1416,7 @@
     "windupMs": 900,
     "recoverMs": 600,
     "cooldownMs": 0,
-    "unlockLevel": 10,
+    "unlockLevel": 8,
     "effects": [
      {
       "kind": "heal",
@@ -1558,7 +1558,7 @@
     "windupMs": 1000,
     "recoverMs": 700,
     "cooldownMs": 0,
-    "unlockLevel": 10,
+    "unlockLevel": 8,
     "effects": [
      {
       "kind": "damage",
@@ -1686,7 +1686,7 @@
     "windupMs": 900,
     "recoverMs": 600,
     "cooldownMs": 0,
-    "unlockLevel": 10,
+    "unlockLevel": 8,
     "effects": [
      {
       "kind": "heal",
@@ -1829,7 +1829,7 @@
     "windupMs": 1100,
     "recoverMs": 700,
     "cooldownMs": 0,
-    "unlockLevel": 10,
+    "unlockLevel": 8,
     "effects": [
      {
       "kind": "damage",
@@ -1972,7 +1972,7 @@
     "windupMs": 1100,
     "recoverMs": 700,
     "cooldownMs": 0,
-    "unlockLevel": 10,
+    "unlockLevel": 8,
     "effects": [
      {
       "kind": "damage",
@@ -2115,7 +2115,7 @@
     "windupMs": 1100,
     "recoverMs": 700,
     "cooldownMs": 0,
-    "unlockLevel": 10,
+    "unlockLevel": 8,
     "effects": [
      {
       "kind": "damage",
@@ -2258,7 +2258,7 @@
     "windupMs": 1100,
     "recoverMs": 700,
     "cooldownMs": 0,
-    "unlockLevel": 10,
+    "unlockLevel": 8,
     "effects": [
      {
       "kind": "damage",
@@ -2400,7 +2400,7 @@
     "windupMs": 1000,
     "recoverMs": 700,
     "cooldownMs": 0,
-    "unlockLevel": 10,
+    "unlockLevel": 8,
     "effects": [
      {
       "kind": "damage",
@@ -2534,7 +2534,7 @@
     "windupMs": 900,
     "recoverMs": 600,
     "cooldownMs": 0,
-    "unlockLevel": 10,
+    "unlockLevel": 8,
     "effects": [
      {
       "kind": "heal",
@@ -2676,7 +2676,7 @@
     "windupMs": 1000,
     "recoverMs": 700,
     "cooldownMs": 0,
-    "unlockLevel": 10,
+    "unlockLevel": 8,
     "effects": [
      {
       "kind": "damage",
@@ -2812,7 +2812,7 @@
     "windupMs": 1000,
     "recoverMs": 700,
     "cooldownMs": 0,
-    "unlockLevel": 10,
+    "unlockLevel": 8,
     "effects": [
      {
       "kind": "damage",
@@ -2954,7 +2954,7 @@
     "windupMs": 1000,
     "recoverMs": 700,
     "cooldownMs": 0,
-    "unlockLevel": 10,
+    "unlockLevel": 8,
     "effects": [
      {
       "kind": "damage",
@@ -3090,7 +3090,7 @@
     "windupMs": 1000,
     "recoverMs": 700,
     "cooldownMs": 0,
-    "unlockLevel": 10,
+    "unlockLevel": 8,
     "effects": [
      {
       "kind": "damage",
@@ -3233,7 +3233,7 @@
     "windupMs": 1100,
     "recoverMs": 700,
     "cooldownMs": 0,
-    "unlockLevel": 10,
+    "unlockLevel": 8,
     "effects": [
      {
       "kind": "damage",
@@ -3367,7 +3367,7 @@
     "windupMs": 900,
     "recoverMs": 600,
     "cooldownMs": 0,
-    "unlockLevel": 10,
+    "unlockLevel": 8,
     "effects": [
      {
       "kind": "heal",
@@ -3509,7 +3509,7 @@
     "windupMs": 1200,
     "recoverMs": 800,
     "cooldownMs": 0,
-    "unlockLevel": 10,
+    "unlockLevel": 8,
     "effects": [
      {
       "kind": "damage",

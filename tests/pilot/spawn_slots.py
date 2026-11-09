@@ -91,6 +91,21 @@ def main():
         before = reg.read_text()
         folk()
         check(reg.read_text() == before, "story_slots twice changes nothing")
+
+        # thin_trees.py: trees near a route go with their trunks; the forest wall stays.
+        rd = folder / "thin"
+        (rd / "chunks").mkdir(parents=True)
+        (rd / "chunks/c.json").write_text(json.dumps({"instances": [
+            {"id": "a", "model": "WSP_TREE_0", "position": [0, 0, 1]}, {"id": "b", "model": "WSP_TREE_1", "position": [10, 0, 10]},
+            {"id": "c", "model": "WSP_TREE_0", "position": [28, 0, 0]}, {"id": "d", "model": "WSP_BUSH_0", "position": [0, 0, 1]}],
+            "solids": [{"box": [0, 1, .2, .2], "house": False}, {"box": [10, 10, .2, .2], "house": False}, {"box": [0, 1, 5, 5], "house": True}]}))
+        (rd / "region.json").write_text(json.dumps({"walk_half_extent": 29, "chunks": [{"file": "chunks/c.json"}]}))
+        rt = folder / "routes.json"
+        rt.write_text(json.dumps({"routes": [[[-5, 0], [5, 0]]]}))
+        subprocess.run([sys.executable, "-I", str(tools / "thin_trees.py"), str(rd), str(rt), "3", "0"], check=True, capture_output=True, text=True)
+        out = json.loads((rd / "chunks/c.json").read_text())
+        check([r["id"] for r in out["instances"]] == ["b", "c", "d"], "only the tree by the route goes; other trees, the wall and bushes stay")
+        check([s["box"][0] for s in out["solids"]] == [10, 0], "its trunk goes, a house collider stays")
     print("spawn slots ok")
 
 

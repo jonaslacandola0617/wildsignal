@@ -95,7 +95,7 @@ Journal decode(const std::filesystem::path &p) {
 }
 } // namespace
 
-int xpToNext(int level) { return 20 + 12 * level; }
+int xpToNext(int level) { return 12 + 6 * level; }
 int fightXp(int wildLevel, bool won, bool tuned) {
   int base = 8 + 4 * std::clamp(wildLevel, 1, MaxLevel);
   return won ? base : tuned ? base * 3 / 5 : 0;
