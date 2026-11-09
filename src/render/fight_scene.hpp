@@ -30,6 +30,8 @@ public:
   // Owner review: lifts every Signari in a fight to at least this level, so later skills and ultimates can be tried.
   void fightLevel(int level) { minLevel = level; }
   bool lost() const { return wasLost; }
+  // Camera shake for the frame, in metres (x along the screen, y up it).
+  std::array<float, 2> shake() const;
   bool won() const { return wasWon; }
   bool tunedIn() const { return wasTuned; }
   bool left() const { return wasLeft; }
@@ -87,6 +89,7 @@ private:
   std::array<float, battle::MoveSlots + 1> readyFlash{};
   battle::Pad pending;
   int minLevel = 0;
+  float stopT = 0, shakeT = 0, shakeSize = 0, flashT = 0;
   bool calmStart = false, running = false, wasLost = false, wasWon = false, wasTuned = false, wasLeft = false, holdingTune = false;
   int encounters = 0, queued = -1, toastRank = 0;
   float spare = 0, toastTime = 0, hintTime = 0, clock = 0, clipClock = 0, commandT = 0;

@@ -551,10 +551,25 @@ std::vector<FightScene::Staged> WildScene::staged() const {
   std::vector<FightScene::Staged> out;
   auto hop = [&](FightScene::Staged &s, bool moving, float seed) {
     if (moving) {
-      s.at.y += std::abs(std::sin(clock * 11 + seed)) * .16f;
+      // A bounce with weight: stretched in the air, squashed on landing, rocking side to side.
+      float phase = clock * 11 + seed, up = std::abs(std::sin(phase)), squash = std::max(0.f, 1 - up * 3.5f);
+      s.at.y += up * .2f;
       s.pitch = .12f;
+      s.roll = std::sin(phase) * .1f;
+      s.scale = {1 + .14f * squash - .04f * up, 1 - .2f * squash + .08f * up, 1 + .14f * squash - .04f * up};
     } else {
-      s.scale.y = 1 + std::sin(clock * 3 + seed) * .025f;
+      // At rest it breathes, and every few seconds looks about or gives a little hop.
+      float breath = std::sin(clock * 2.6f + seed);
+      s.scale = {1 - breath * .018f, 1 + breath * .035f, 1 - breath * .018f};
+      float beat = std::fmod(clock * .22f + seed * .37f, 1.f);
+      if (beat < .16f) {
+        float t = beat / .16f;
+        s.yaw += std::sin(t * 6.2832f) * .55f;
+        s.roll = std::sin(t * 3.1416f) * .09f;
+      } else if (beat > .55f && beat < .62f) {
+        float t = (beat - .55f) / .07f;
+        s.at.y += std::sin(t * 3.1416f) * .14f;
+      }
     }
   };
   for (const auto &w : wilds) {
