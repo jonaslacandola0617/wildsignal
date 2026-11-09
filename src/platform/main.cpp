@@ -1094,10 +1094,9 @@ int main(int argc, char **argv) {
         event(frame, "book_open");
       };
       auto canvasPoint = [&](float x, float y) {
+        if (!pixelUi) return std::array<int,2>{0,0};
         int ww,wh,pw,ph; SDL_GetWindowSize(screen.window,&ww,&wh); SDL_GetWindowSizeInPixels(screen.window,&pw,&ph);
-        int scale = std::max(1,std::min(pw/640,ph/360));
-        return std::array<int,2>{int((x*pw/std::max(1,ww)-(pw-640*scale)/2)/scale),
-                                 int((y*ph/std::max(1,wh)-(ph-360*scale)/2)/scale)};
+        return pixelUi->toCanvas(x*pw/std::max(1,ww),y*ph/std::max(1,wh));
       };
       SDL_Event e;
       while (SDL_PollEvent(&e)) {
@@ -1114,9 +1113,10 @@ int main(int argc, char **argv) {
           SDL_SetWindowRelativeMouseMode(screen.window, false);
         } else if(e.type==SDL_EVENT_MOUSE_BUTTON_DOWN && paused && !(book&&book->open())) {
           auto pt=canvasPoint(e.button.x,e.button.y);
-          if(e.button.button==SDL_BUTTON_LEFT && pt[0]>=232 && pt[0]<408) {
-            if(pt[1]>=173 && pt[1]<197) { paused=false; relative=true; held.fill(false); SDL_SetWindowRelativeMouseMode(screen.window,true); event(frame,"resume"); }
-            else if(pt[1]>=210 && pt[1]<234) { save(); run=false; event(frame,"save_quit"); }
+          const int cw=pixelUi?pixelUi->W():1280, ch=pixelUi?pixelUi->H():720;
+          if(e.button.button==SDL_BUTTON_LEFT && pt[0]>=cw/2-176 && pt[0]<cw/2+176) {
+            if(pt[1]>=ch/2-14 && pt[1]<ch/2+34) { paused=false; relative=true; held.fill(false); SDL_SetWindowRelativeMouseMode(screen.window,true); event(frame,"resume"); }
+            else if(pt[1]>=ch/2+60 && pt[1]<ch/2+108) { save(); run=false; event(frame,"save_quit"); }
           }
         } else if (e.type == SDL_EVENT_MOUSE_BUTTON_DOWN && !paused) {
           auto pt = canvasPoint(e.button.x,e.button.y);
@@ -1125,7 +1125,7 @@ int main(int argc, char **argv) {
             if(!book->open()) closeBook();
             continue;
           }
-          if (book && e.button.button==SDL_BUTTON_LEFT && pt[0]>=586 && pt[0]<632 && pt[1]>=317 && pt[1]<355 &&
+          if (book && e.button.button==SDL_BUTTON_LEFT && pixelUi && pt[0]>=pixelUi->W()-108 && pt[0]<pixelUi->W()-16 && pt[1]>=pixelUi->H()-86 && pt[1]<pixelUi->H()-10 &&
               game.phase==game::Phase::Explore && !scene->active() && !wilds->busy() && !wilds->watching()) { openBook(); continue; }
           relative = true;
           SDL_SetWindowRelativeMouseMode(screen.window, true);
@@ -1955,58 +1955,59 @@ int main(int argc, char **argv) {
           const float *m = vp.v.data();
           float x = m[0] * at.x + m[4] * at.y + m[8] * at.z + m[12], y = m[1] * at.x + m[5] * at.y + m[9] * at.z + m[13],
                 w = std::max(.01f, m[3] * at.x + m[7] * at.y + m[11] * at.z + m[15]);
-          return std::array<int, 2>{int((x / w + 1) * 320), int((1 - y / w) * 180)};
+          return std::array<int, 2>{int((x / w + 1) * float(pixelUi->W()) / 2), int((1 - y / w) * float(pixelUi->H()) / 2)};
         };
         pixelUi->begin(ow, oh);
         if (titleOpen) {
           // The name over the living world, and three plain choices.
           const auto &t = pixelUi->theme();
+          const int cw = pixelUi->W(), ch = pixelUi->H();
           // A soft dark band fading down from the top, so the name stands off the scenery.
           for (int band = 0; band < 16; band++)
-            pixelUi->fill(0, band * 10, 640, 10, {.06f, .07f, .10f, .66f * (1 - float(band) / 16)});
+            pixelUi->fill(0, band * 20, cw, 20, {.09f, .08f, .13f, .66f * (1 - float(band) / 16)});
           const std::string name = "WILDSIGNAL", line = "We listen until it answers.";
-          int nx = 320 - pixelUi->width(name, 7) / 2;
-          const p3::PixelUi::Colour outline{.13f, .08f, .08f, 1}, cream{.98f, .90f, .66f, 1}, warm{.99f, .73f, .36f, 1};
-          for (int ox = -4; ox <= 4; ox += 2)
-            for (int oy = -4; oy <= 6; oy += 2) pixelUi->text(name, nx + ox, 44 + oy, outline, 7);
-          pixelUi->text(name, nx, 46, warm, 7);
-          pixelUi->text(name, nx, 44, cream, 7);
-          int lx = 320 - pixelUi->width(line, 2) / 2;
-          pixelUi->text(line, lx + 1, 133, outline, 2);
-          pixelUi->text(line, lx, 132, cream, 2);
+          int nx = cw / 2 - pixelUi->width(name, 14) / 2;
+          const p3::PixelUi::Colour outline{.09f, .08f, .13f, 1}, cream{.941f, .906f, .824f, 1}, warm{.867f, .733f, .447f, 1};
+          for (int ox = -8; ox <= 8; ox += 4)
+            for (int oy = -8; oy <= 12; oy += 4) pixelUi->text(name, nx + ox, 88 + oy, outline, 14);
+          pixelUi->text(name, nx, 92, warm, 14);
+          pixelUi->text(name, nx, 88, cream, 14);
+          int lx = cw / 2 - pixelUi->width(line, 3) / 2;
+          pixelUi->text(line, lx + 3, 267, outline, 3);
+          pixelUi->text(line, lx, 264, cream, 3);
           std::vector<std::string> items = o.fresh ? std::vector<std::string>{"Start your journey", "Quit"} : std::vector<std::string>{"Continue", "New game", "Quit"};
-          int w = 184, x = 320 - w / 2, y = 196;
-          pixelUi->panel("panel", x, y - 12, w, int(items.size()) * 26 + 24);
-          for (std::size_t i = 0; i < items.size(); i++) {
-            int ry = y + int(i) * 26;
-            if (int(i) == titleRow) pixelUi->fill(x + 10, ry - 3, w - 20, 22, {.86f, .74f, .50f, .6f});
-            pixelUi->text(items[i], 320 - pixelUi->width(items[i]) / 2, ry + 4, t.ink);
-          }
-          const std::string help = "W / S  choose     Enter  start";
-          pixelUi->text(help, 321 - pixelUi->width(help) / 2, 341, {.13f, .08f, .08f, .9f});
-          pixelUi->text(help, 320 - pixelUi->width(help) / 2, 340, {.98f, .90f, .66f, 1});
+          const int w = 368, x = cw / 2 - w / 2, y = 392, h = int(items.size()) * 52 + 28;
+          pixelUi->nine("panel_dark", x, y - 14, w, h);
+          for (std::size_t i = 0; i < items.size(); i++)
+            pixelUi->button(items[i], x + 24, y + int(i) * 52, w - 48, 44, int(i) == titleRow ? p3::PixelUi::Button::Hover : p3::PixelUi::Button::Normal);
+          int hw = pixelUi->hintWidth("W / S", "Choose") + pixelUi->hintWidth("Enter", "Start") + 12, hx = cw / 2 - hw / 2, hy = ch - 52;
+          pixelUi->nine("toast", hx - 14, hy - 5, hw + 6, 36);
+          hx = pixelUi->hint("W / S", "Choose", hx, hy, t.text);
+          pixelUi->hint("Enter", "Start", hx, hy, t.text);
         } else if (book && book->open()) {
           book->draw(*pixelUi,wilds->notes(),wilds->goals());
-          if(paused) pixelUi->note("Paused. Enter to resume",320,4);
+          if(paused) pixelUi->note("Paused. Enter to resume",pixelUi->W()/2,8);
         } else {
           if (scene->active()) scene->draw(*pixelUi,toCanvas);
-          else if (game.phase==game::Phase::Explore && atRest()) scene->prompt(*pixelUi,"[E] Rest at the cottage");
-          else if (game.phase==game::Phase::Explore && !(goods && goods->open()) && !(homestead && homestead->open()) && !(storyScene && storyScene->open())) wilds->draw(*pixelUi,toCanvas);
-          if (goods && !scene->active() && game.phase==game::Phase::Explore && !(homestead && homestead->open())) goods->draw(*pixelUi,toCanvas,wilds->notes());
+          else if (game.phase==game::Phase::Explore && atRest()) scene->prompt(*pixelUi,"E","Rest at the cottage");
+          if (goods &&!scene->active() && game.phase==game::Phase::Explore && !(homestead && homestead->open())) goods->draw(*pixelUi,toCanvas,wilds->notes());
           if (homestead && !scene->active() && game.phase==game::Phase::Explore && !(goods && goods->open()) && !(storyScene && storyScene->open())) homestead->draw(*pixelUi,toCanvas,wilds->notes());
           if (storyScene && !scene->active() && game.phase==game::Phase::Explore && !(goods && goods->open()) && !(homestead && homestead->open())) storyScene->draw(*pixelUi,toCanvas);
+          // Wild cards and the joined moment go last, so names and pins in the world never cover them.
+          if (!scene->active() && game.phase==game::Phase::Explore && !atRest() && !(goods && goods->open()) && !(homestead && homestead->open()) && !(storyScene && storyScene->open())) wilds->draw(*pixelUi,toCanvas);
           if(book && !scene->active() && game.phase==game::Phase::Explore) book->drawIcon(*pixelUi,wilds->notes());
         }
         if(paused && !(book&&book->open())) {
           const auto &t=pixelUi->theme();
-          pixelUi->fill(0,0,640,360,{.035f,.065f,.06f,.72f});
-          pixelUi->panel("panel_dark",204,100,232,158);
-          pixelUi->text("Paused",284,123,t.title,2);
-          pixelUi->text("Your journey is waiting.",268,152,t.ink);
-          pixelUi->strip("button",232,173,176,24);
-          pixelUi->text("Enter    Continue",264,181,t.onButton);
-          pixelUi->strip("button",232,210,176,24);
-          pixelUi->text("Q    Save and quit",264,218,t.onButton);
+          const int cw=pixelUi->W(), ch=pixelUi->H(), x=cw/2-232, y=ch/2-160;
+          pixelUi->dim(.72f);
+          pixelUi->nine("panel_dark",x,y,464,316);
+          pixelUi->text("Paused",cw/2-pixelUi->width("Paused",3)/2,y+36,t.gold,3);
+          pixelUi->nine("divider_gold",cw/2-120,y+84,240,11);
+          const std::string line="Your journey is waiting.";
+          pixelUi->text(line,cw/2-pixelUi->width(line)/2,y+112,t.text);
+          pixelUi->button("Continue",cw/2-176,ch/2-14,352,48,p3::PixelUi::Button::Normal,"Enter");
+          pixelUi->button("Save and quit",cw/2-176,ch/2+60,352,48,p3::PixelUi::Button::Normal,"Q");
         }
         pixelUi->end();
       }

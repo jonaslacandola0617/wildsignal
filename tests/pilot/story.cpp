@@ -1,5 +1,6 @@
 // STORY-R1: the shipped script loads; bad scripts fail at load; a whole run through Act 1
 // follows the steps, conditions, tone choices, starter pick, fights and saves.
+#include <algorithm>
 #include "story.hpp"
 #include <filesystem>
 #include <fstream>
@@ -47,6 +48,7 @@ int main(int argc, char **argv) {
   auto cat = econ::load(slurp(dir / "items.json"), slurp(dir / "shops.json"), slurp(dir / "forage.json"), "hearthgrove_test");
   const std::vector<std::string> species{"WS-004", "WS-007", "WS-008", "WS-052"};
   auto text = slurp(dir / "story.json");
+  text.erase(std::remove(text.begin(), text.end(), '\r'), text.end()); // Windows checkouts may have CRLF.
   auto script = load(text, species, cat);
   CHECK(script.steps.size() == 11 && script.person("mara") && script.person("logwarden"));
   auto throws = [&](const std::string &t) {

@@ -37,10 +37,9 @@ private:
   bool showing = false, closing = false, reducedMotion = false;
   int hover = -1, targetSpread = 0, turnDirection = 1;
   float turnT = -1;
-  std::vector<std::string> openFrames, turnFrames;
   float openingSeconds = .4f, turningSeconds = .36f;
   void navigate(int page);
-  int spread = 0;
+  int spread = 0, offsetX = 0, offsetY = 0;
   float age = 0, stampT = 0;
   void cover(PixelUi &, const bond::Journal &, const std::vector<std::string> &goals);
   void creature(PixelUi &, bond::Journal &, const Page &);

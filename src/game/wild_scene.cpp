@@ -6,7 +6,6 @@
 #include <cmath>
 namespace p3 {
 namespace {
-const PixelUi::Colour Calm{.45f, .78f, .84f, 1}, Coral{.78f, .3f, .2f, 1};
 const float WatchFar = 9, FightNear = 3, TidyNear = 1.8f, InviteNear = 3;
 float flat(Vec a, Vec b) { return std::hypot(a.x - b.x, a.z - b.z); }
 std::string modelOf(std::string id) {
@@ -628,8 +627,10 @@ void WildScene::marks(GroundMarks &g, Vec, Vec) {
 }
 void WildScene::draw(PixelUi &ui, const FightScene::Project &project) {
   const auto &t = ui.theme();
-  auto centred = [&](const std::string &name, std::array<int, 2> at) {
-    if (ui.has(name)) ui.image(name, at[0] - 7, at[1] - 7);
+  auto centred = [&](const std::string &name, std::array<int, 2> at) { ui.image(name, at[0] - 8, at[1] - 8); };
+  auto mark = [&](const std::string &value, std::array<int, 2> p, PixelUi::Colour colour) {
+    ui.text(value, p[0] + 2, p[1] + 2, {.09f, .08f, .13f, .9f}, 2);
+    ui.text(value, p[0], p[1], colour, 2);
   };
   for (const auto &w : wilds) {
     auto *e = journal.find(w.species);
@@ -643,73 +644,75 @@ void WildScene::draw(PixelUi &ui, const FightScene::Project &project) {
   for (const auto &w : wilds) {
     auto *e = journal.find(w.species);
     if (e && e->joined) continue;
-    if (w.wariness.frightened()) {
-      auto p = project(w.at + Vec{0, 1.1f, 0});
-      if (ui.has("alert")) centred("alert", p);
-      else ui.text("!", p[0], p[1], Coral);
-    }
+    if (w.wariness.frightened()) centred("icon_alert", project(w.at + Vec{0, 1.1f, 0}));
   }
   for (const auto &r : roamers) {
     if (r.state == spawn::State::Gone || flat(r.at, seenPlayer) > ActiveRange) continue;
     auto p = project(r.at + Vec{0, 1.1f, 0});
-    if (r.state == spawn::State::Warn || r.state == spawn::State::Charge) {
-      if (ui.has("alert")) centred("alert", p);
-      else ui.text("!", p[0], p[1], Coral);
-    } else if (r.state == spawn::State::Watch)
-      ui.text("?", p[0], p[1], Calm);
+    if (r.state == spawn::State::Warn || r.state == spawn::State::Charge) centred("icon_alert", p);
+    else if (r.state == spawn::State::Watch) mark("?", p, t.teal);
   }
-  // The joined moment (placeholder pixel UI until UI-001): a ribbon with the name, the note
-  // below it and the stamp coming down. Without the ribbon art it falls back to a plain panel.
+  auto moodChip = [&](const std::string &value, bool warn, int right, int y) {
+    int w = ui.width(value) + 22;
+    ui.nine(warn ? "chip_danger" : "chip_wild", right - w, y, w, 20);
+    ui.text(value, right - w + 11, y + 2, t.ink);
+  };
+  // The joined moment: the name on a plate, the note under it, and the seal coming down.
   if (joinT > 0) {
-    float gone = 3.8f - joinT; int frame = std::min(19,int(gone*14));
-    int width = std::max(300,ui.width(joinName,2)+180);
-    if (ui.has("ribbon")) {
-      ui.strip("ribbon",320-width/2,62,width);
-      ui.text(joinName,320-ui.width(joinName,2)/2,78,t.title,2);
-    } else {
-      ui.panel("panel_dark",320-width/2,62,width,56);
-      ui.text(joinName,320-ui.width(joinName,2)/2,82,t.title,2);
+    const float gone = 3.8f - joinT;
+    const int w = std::max({560, ui.width(joinName, 3) + 260, ui.width(joinNote) + 100}), h = 132, x = ui.W() / 2 - w / 2, y = 112;
+    ui.nine("panel_dark", x, y, w, h);
+    ui.text(joinName, ui.W() / 2 - ui.width(joinName, 3) / 2, y + 24, t.gold, 3);
+    ui.nine("divider_gold", ui.W() / 2 - 120, y + 68, 240, 11);
+    ui.text(joinNote, ui.W() / 2 - ui.width(joinNote) / 2, y + 94, t.text);
+    if (gone > .5f) {
+      const int zoom = gone < .64f ? 4 : gone < .78f ? 3 : 2, size = 36 * zoom;
+      ui.stretch("seal_befriended", x + w - 82 - size / 2, y + 66 - size / 2, size, size);
     }
-    ui.note(joinNote,320,140);
-    if(frame>=7 && ui.has("stamp_mark")) ui.image("stamp_mark",320+width/2-80,88);
-    if(gone*14<20 && ui.has("stamp"+std::to_string(frame))) ui.image("stamp"+std::to_string(frame),320+width/2-103,45);
     return;
   }
   std::string message = toastT>0 ? toast : watchIndex>=0 ? (sitting ? "Stay still and keep it company." : wilds[std::size_t(watchIndex)].watchingText) : "";
+  const int x = (ui.W() - 584) / 2, y = ui.H() - 200, w = 584, h = 170;
   if(nearRoamer>=0 && toastT<=0 && watchIndex<0) {
     const auto &r=roamers[std::size_t(nearRoamer)];
-    const int x=174,y=260,w=292;
-    ui.panel("panel",x,y,w,85);
+    ui.nine("panel_dark_ivory",x,y,w,h);
     std::string title=content->species[content->speciesIndex(r.species)].name+"  Lv "+std::to_string(r.level);
-    ui.text(title,x+16,y+10,t.title,2);
-    std::string mood=behaviourWord(r.behaviour);
+    ui.text(title,x+20,y+16,t.gold,2);
     bool angry=r.state==spawn::State::Warn||r.state==spawn::State::Charge;
-    ui.text(mood,x+w-16-ui.width(mood),y+18,angry?Coral:t.ink);
-    ui.paragraph(behaviourHint(r),x+16,y+37,w-32,t.ink);
-    if(canFight) ui.text("F  Fight",x+w-16-ui.width("F  Fight"),y+66,t.ink);
+    moodChip(behaviourWord(r.behaviour),angry,x+w-20,y+18);
+    ui.paragraph(behaviourHint(r),x+20,y+52,w-40,t.text);
+    if(canFight) ui.hint("F","Fight",x+w-20-ui.hintWidth("F","Fight")+18,y+132,t.text);
     return;
   }
   if(near<0 && message.empty()) return;
-  const int x=174,y=260,w=292;
-  ui.panel("panel",x,y,w,85);
+  ui.nine("panel_dark_ivory",x,y,w,h);
   if(near<0) {
-    ui.text("A field note",x+16,y+12,t.title,2);
-    ui.paragraph(message,x+16,y+42,w-32,t.ink);
+    ui.text("A field note",x+20,y+16,t.gold,2);
+    ui.paragraph(message,x+20,y+52,w-40,t.text);
     return;
   }
   const auto &wild=wilds[std::size_t(near)];
-  ui.text(wild.name,x+16,y+10,t.title,2);
-  std::string mood=wild.wariness.frightened()?"Wary":wild.temperament;
-  ui.text(mood,x+w-16-ui.width(mood),y+18,wild.wariness.frightened()?Coral:t.ink);
+  ui.text(wild.name,x+20,y+16,t.gold,2);
+  bool wary=wild.wariness.frightened();
+  moodChip(wary?"Wary":wild.temperament,wary,x+w-20,y+18);
   auto description=!message.empty()?message:nextStep(wild);
-  ui.paragraph(description,x+16,y+37,w-32,t.ink);
+  ui.paragraph(description,x+20,y+52,w-40,t.text);
   if(watchIndex==near) {
-    ui.meter(x+16,y+67,w-32,std::min(1.f,wild.watchT/watchGoal(wild)),"fill_sp",Calm);
+    ui.bar(x+20,y+138,w-40,std::min(1.f,wild.watchT/watchGoal(wild)),"resonance");
     return;
   }
   if(busy()||watching()) return;
-  std::string action=wild.wariness.frightened()?"Give it space":canTidy?"E  Help":canInvite?"E  Invite":canWatch?"E  Watch":canSit?"E  Sit together":tooClose&&!sneakingNow?"Shift  Sneak":"";
-  if(!action.empty()) ui.text(action,x+16,y+66,t.ink);
-  if(canFight) ui.text("F  Friendly fight",x+w-16-ui.width("F  Friendly fight"),y+66,t.ink);
+  std::string keyName="E",action;
+  if(wary) keyName.clear(),action="Give it space";
+  else if(canTidy) action="Help";
+  else if(canInvite) action="Invite";
+  else if(canWatch) action="Watch";
+  else if(canSit) action="Sit together";
+  else if(tooClose&&!sneakingNow) keyName="Shift",action="Sneak";
+  if(!action.empty()) {
+    if(keyName.empty()) ui.text(action,x+20,y+137,t.dim);
+    else ui.hint(keyName,action,x+20,y+132,t.text);
+  }
+  if(canFight) ui.hint("F","Friendly fight",x+w-20-ui.hintWidth("F","Friendly fight")+18,y+132,t.text);
 }
 } // namespace p3

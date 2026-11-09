@@ -51,7 +51,7 @@ public:
   void update(float dt, int moveX, int moveZ);
   void draw(PixelUi &, const Project &);
   void marks(GroundMarks &, Vec right, Vec up);
-  void prompt(PixelUi &, const std::string &);
+  void prompt(PixelUi &, const std::string &keyName, const std::string &label);
   Vec youAt() const;
   Vec wildAt() const;
   float youYaw() const;
@@ -95,9 +95,12 @@ private:
   float stopT = 0, shakeT = 0, shakeSize = 0, flashT = 0;
   bool calmStart = false, running = false, wasLost = false, wasWon = false, wasTuned = false, wasLeft = false, holdingTune = false;
   int encounters = 0, queued = -1, toastRank = 0;
+  float ghostWild = 1, ghostMine = 1, holdWild = 0, holdMine = 0;
   float spare = 0, toastTime = 0, hintTime = 0, clock = 0, clipClock = 0, commandT = 0;
   std::string toast;
-  void plate(PixelUi &, const battle::Fighter &, int x, int y, int w, bool full);
+  void statusRow(PixelUi &, const battle::Fighter &, int x, int y);
+  void wildPlate(PixelUi &);
+  void teamPlates(PixelUi &);
   void moveBar(PixelUi &);
   void cues();
   void say(const std::string &, float seconds = 1.6f, int rank = 1);
