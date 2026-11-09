@@ -1,3 +1,4 @@
+#include <cstring>
 #include "mesh_gpu.hpp"
 #include "atmosphere_shaders.hpp"
 #include "style_profile_glsl.hpp"
@@ -168,6 +169,7 @@ struct MeshRenderer::Impl {
     GLuint vao = 0, vertices = 0, indices = 0, stream = 0;
     GLsizei count = 0;
     std::size_t capacity = 0;
+    std::vector<MeshTransform> last; // what the stream buffer holds now
   };
   std::vector<Part> parts;
   GLuint shader = 0, shadow = 0, pixelGround = 0, pixelGroups = 0;
@@ -295,19 +297,21 @@ void MeshRenderer::setPixelSurface(unsigned ground, unsigned groups,
   p->ramp = ramp;
 }
 std::size_t MeshRenderer::bytes() const { return p->bytes; }
+// Uploads only when the visible clumps changed, and asks the driver for just the room they
+// need: a whole-region buffer thrown away every frame made Intel's driver hoard hundreds of
+// megabytes and then stall for seconds while it cleaned up.
 static void submit(GLuint vao, GLuint stream, GLsizei indices,
                    const std::vector<MeshTransform> &data,
-                   std::size_t &capacity) {
+                   std::vector<MeshTransform> &last) {
   if (data.empty())
     return;
-  // Streamed chunks can bring more clumps than start-up had: grow the stream.
-  if(data.size()>capacity)capacity=data.size()+data.size()/2;
   mg::BindVertexArray(vao);
-  mg::BindBuffer(GL_ARRAY_BUFFER, stream);
-  mg::BufferData(GL_ARRAY_BUFFER, capacity * sizeof(MeshTransform), nullptr,
-                 GL_STREAM_DRAW);
-  mg::BufferSubData(GL_ARRAY_BUFFER, 0, data.size() * sizeof(MeshTransform),
-                    data.data());
+  bool same = data.size() == last.size() && std::memcmp(data.data(), last.data(), data.size() * sizeof(MeshTransform)) == 0;
+  if (!same) {
+    mg::BindBuffer(GL_ARRAY_BUFFER, stream);
+    mg::BufferData(GL_ARRAY_BUFFER, data.size() * sizeof(MeshTransform), data.data(), GL_STREAM_DRAW);
+    last = data;
+  }
   mg::DrawElementsInstanced(GL_TRIANGLES, indices, GL_UNSIGNED_INT, nullptr,
                             static_cast<GLsizei>(data.size()));
 }
@@ -420,7 +424,7 @@ MeshVisibility MeshRenderer::draw(MeshClumps &m, const Camera &camera,
         mg::Disable(GL_CULL_FACE);
       else
         mg::Enable(GL_CULL_FACE);
-      submit(g.vao, g.stream, g.count, data, g.capacity);
+      submit(g.vao, g.stream, g.count, data, g.last);
       s.draws++;
       s.triangles += data.size() * std::size_t(g.count / 3);
     }

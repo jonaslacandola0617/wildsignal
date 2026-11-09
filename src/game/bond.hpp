@@ -9,7 +9,7 @@
 // cannot hold a value the acts do not explain.
 namespace bond {
 constexpr int MaxTrust = 8, PartyLimit = 3, CompanyVisits = 2, MaxLevel = 50;
-// GDD 2.6: experience from fights. Next level at 20 + 12 x level.
+// GDD 2.6: experience from fights. Next level at 12 + 6 x level.
 int xpToNext(int level);
 // A fight's experience: beating pays most, tuning in 60%, losing or leaving nothing.
 int fightXp(int wildLevel, bool won, bool tuned);

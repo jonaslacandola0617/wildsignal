@@ -140,7 +140,7 @@ Each species then gets its own names, shapes and timing so no two feel the same.
 
 ## 4.6 Growth (from chapter 2)
 
-- Levels 1–50. Skills 1 and 2 from level 1, skill 3 at level 5, the ultimate at level 10 (*proposed*).
+- Levels 1–50. Skills 1 and 2 from level 1, skill 3 at level 5, the ultimate at level 8 (owner, 2026-11-09: reachable by the end of region 1).
 - Each skill ranks up twice (*proposed* levels 15 and 30): more damage, shorter cooldown or a bonus effect.
 - Stats grow with level from the species' base stats (might, guard, pulse, ward, swift, health), as in today's fight code.
 

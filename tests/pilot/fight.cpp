@@ -40,7 +40,7 @@ void untilReleased(Fight &f, Pad press, int pressAt) {
   run(f, 30);
 }
 
-// GDD 2.4 and 4.6: basic attack, 3 skills, ultimate; skill 3 opens at level 5, the ultimate at 10.
+// GDD 2.4 and 4.6: basic attack, 3 skills, ultimate; skill 3 opens at level 5, the ultimate at 8.
 void everySpeciesHasAFullKit(const Setup &s) {
   check(s.data.slots.size() == s.content.species.size() && s.content.species.size() == 25, "the first nine, WS-001..020 and Logwarden have kits");
   for (std::size_t i = 0; i < s.data.slots.size(); i++) {
@@ -49,7 +49,7 @@ void everySpeciesHasAFullKit(const Setup &s) {
     check(basic.power > 0 && basic.cost == 0, "the basic attack is a free hit");
     check(basic.type == s.content.species[i].affinity, "the basic attack takes the Signari's type");
     check(s.data.unlock[row[BasicSlot]] == 1 && s.data.unlock[row[1]] == 1 && s.data.unlock[row[2]] == 1, "basic and skills 1-2 from level 1");
-    check(s.data.unlock[row[3]] == 5 && s.data.unlock[row[UltimateSlot]] == 10, "skill 3 at level 5, ultimate at level 10");
+    check(s.data.unlock[row[3]] == 5 && s.data.unlock[row[UltimateSlot]] == 8, "skill 3 at level 5, ultimate at level 8");
     check(s.data.timing[row[UltimateSlot]].cooldown == 0, "the ultimate is charged by Resonance, not a cooldown");
   }
 }
@@ -148,7 +148,7 @@ void movesRunOnCooldownsOnly(const Setup &s) {
   check(!f.canUse(f.mine(), slot), "a cooling move cannot be used");
   auto young = s.make(7, 3);
   check(!young.canUse(young.mine(), 3) && std::string(young.whyNot(young.mine(), 3)) == "Not learned yet.", "skill 3 waits for level 5");
-  check(!young.canUse(young.mine(), UltimateSlot), "the ultimate waits for level 10");
+  check(!young.canUse(young.mine(), UltimateSlot), "the ultimate waits for level 8");
 }
 // Rank-ups at 15 and 30 raise damage, then shorten the cooldown.
 void skillsRankUp(const Setup &s) {
