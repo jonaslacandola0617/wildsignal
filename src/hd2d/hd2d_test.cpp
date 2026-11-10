@@ -39,7 +39,7 @@ namespace gl {
   F(GetProgramiv) F(GetProgramInfoLog) F(UseProgram) F(GetUniformLocation) F(Uniform1i) F(Uniform1f) F(Uniform2f) F(Uniform3f)          \
   F(Uniform4fv) F(UniformMatrix4fv) F(GenFramebuffers) F(BindFramebuffer) F(FramebufferTexture2D) F(CheckFramebufferStatus)            \
   F(Viewport) F(Clear) F(ClearColor) F(Enable) F(Disable) F(DepthFunc) F(DepthMask) F(CullFace) F(DrawArrays) F(DrawElements)          \
-  F(DrawArraysInstanced) F(ReadPixels) F(Finish) F(GetString) F(PixelStorei) F(DeleteShader) F(PolygonOffset) F(DrawBuffer)              \
+  F(DrawArraysInstanced) F(ColorMask) F(BlendFunc) F(BlitFramebuffer) F(ReadPixels) F(Finish) F(GetString) F(PixelStorei) F(DeleteShader) F(PolygonOffset) F(DrawBuffer)              \
   F(ReadBuffer)
 #define GL_DECL(n) static decltype(&::gl##n) n;
 GL_FNS(GL_DECL)
@@ -222,10 +222,10 @@ void main(){
     if(vW.y < .1 && d < edge){
       col = tile(uFloors, ivec2(176,156), ivec2(48,16), px).rgb * (0.92 + vnoise(cell/14.)*.16);
       { float l = dot(col, vec3(.3,.59,.11)); col = mix(vec3(l), col, .7) * vec3(1.02,.98,.9); }
-      if(d > edge-1./PX) col *= .72;
+      if(d > edge-1./PX) col *= .86;
     }
     vec2 q = abs(vW.xz-uPlaza.xy)-uPlaza.zw; float pd = max(q.x,q.y) + (hash(cell+7.)-.5)*.12 + (vnoise(cell/6.)-.5)*.35;
-    if(vW.y > 1.5 && pd < 0.){ col = tile(uFloors, ivec2(256,16), ivec2(48,48), px).rgb; if(pd > -1./PX) col *= .7; }
+    if(vW.y > 1.5 && pd < 0.){ col = tile(uFloors, ivec2(256,16), ivec2(48,48), px).rgb; if(pd > -1./PX) col *= .86; }
   }
   col = pow(col, vec3(2.2));
   vec3 n = normalize(vN);
@@ -242,24 +242,24 @@ static const char *MeshVS = GLSL(
   void main(){ vec4 w=uModel*vec4(aPos,1.); vW=w.xyz; vN=mat3(uModel)*aNormal; vUV=aUV; gl_Position=uVP*w; });
 static std::string MeshFS() {
   return std::string("#version 330 core\n") + LightCommon + R"(
-in vec3 vW; in vec3 vN; in vec2 vUV; out vec4 frag; uniform sampler2D uAtlas;
+in vec3 vW; in vec3 vN; in vec2 vUV; out vec4 frag; uniform sampler2D uAtlas; uniform float uAlpha;
 void main(){ vec4 t = texture(uAtlas, vUV); if(t.a<.5) discard;
   vec3 n = normalize(vN); float sh = shadowAt(vW + n*.05, .0015); float lambert = max(dot(n,-uSunDir),0.);
   vec3 light = mix(uGround, uSky, n.y*.5+.5) + uSunCol*lambert*sh;
-  frag = vec4(fogged(pow(t.rgb,vec3(2.2))*light, vW),1.); }
+  frag = vec4(fogged(pow(t.rgb,vec3(2.2))*light, vW), uAlpha); }
 )";
 }
 // Sprites: one instanced quad each. Upright cards lean back toward the camera a little,
 // sway from the top if asked, and take the shadow found at their feet.
 static const char *SpriteVS = GLSL(
-  layout(location=0) in vec2 aCorner; layout(location=1) in vec4 iPos; layout(location=2) in vec4 iSize; layout(location=3) in vec4 iRect;
+  layout(location=0) in vec2 aCorner; layout(location=1) in vec4 iPos; layout(location=2) in vec4 iSize; layout(location=3) in vec4 iRect; layout(location=4) in vec4 iExtra;
   uniform mat4 uVP; uniform vec3 uRight; uniform vec3 uUp; uniform float uTime; uniform vec3 uCam;
-  out vec2 vPx; flat out vec4 vRect; out vec3 vW; flat out vec3 vFoot; out float vH; flat out float vBright;
+  out vec2 vPx; flat out vec4 vRect; out vec3 vW; flat out vec3 vFoot; out float vH; flat out float vBright; flat out float vAlpha;
   void main(){
     float flip = iSize.z; vec3 base = iPos.xyz;
     float sway = iPos.w * sin(uTime*1.4 + base.x*.7 + base.z*.45) * aCorner.y*aCorner.y;
     vec3 w = base + uRight*((aCorner.x-.5)*iSize.x + sway) + uUp*(aCorner.y*iSize.y - iSize.w);
-    vW = w; vFoot = base; vH = aCorner.y; vRect = iRect; vBright = 1.;
+    vW = w; vFoot = base; vH = aCorner.y; vRect = iRect; vBright = 1.; vAlpha = iExtra.x;
     float u = flip > .5 ? 1.-aCorner.x : aCorner.x;
     vPx = vec2(iRect.x + u*iRect.z, iRect.y + (1.-aCorner.y)*iRect.w);
     gl_Position = uVP*vec4(w,1.);
@@ -267,14 +267,35 @@ static const char *SpriteVS = GLSL(
 static std::string SpriteFS() {
   return std::string("#version 330 core\n") + LightCommon + R"(
 uniform sampler2D uAtlas; uniform int uShadowPass;
-in vec2 vPx; flat in vec4 vRect; in vec3 vW; flat in vec3 vFoot; in float vH; flat in float vBright; out vec4 frag;
+in vec2 vPx; flat in vec4 vRect; in vec3 vW; flat in vec3 vFoot; in float vH; flat in float vBright; flat in float vAlpha; out vec4 frag;
 void main(){
   ivec2 p = ivec2(clamp(floor(vPx), vRect.xy, vRect.xy+vRect.zw-1.));
   vec4 t = texelFetch(uAtlas, p, 0); if(t.a<.5) discard;
   if(uShadowPass==1){ frag=vec4(1.); return; }
   float sh = mix(shadowAt(vFoot+vec3(0,.05,0), .002), shadowAt(vW, .004), .55);
   vec3 light = mix(uGround, uSky, .55+vH*.35) + uSunCol*(.78+.12*vH)*sh;
-  frag = vec4(fogged(pow(t.rgb,vec3(2.2))*light*vBright, vW),1.);
+  frag = vec4(fogged(pow(t.rgb,vec3(2.2))*light*vBright, vW), vAlpha);
+}
+)";
+}
+static const char *PropVS = GLSL(
+  layout(location=0) in vec3 aPos; layout(location=1) in vec3 aNormal;
+  uniform mat4 uVP; uniform vec3 uAt; uniform vec3 uR; uniform vec3 uU; uniform vec4 uSpan; uniform vec4 uRect;
+  out vec3 vW; out vec3 vN; out vec2 vPx; flat out vec4 vRect;
+  void main(){ vec3 w = aPos + uAt; vW = w; vN = aNormal; vRect = uRect;
+    float u = (dot(aPos,uR)-uSpan.x)/(uSpan.y-uSpan.x), v = (uSpan.w-dot(aPos,uU))/(uSpan.w-uSpan.z);
+    vPx = vec2(uRect.x + u*uRect.z, uRect.y + v*uRect.w); gl_Position = uVP*vec4(w,1.); });
+static std::string PropFS() {
+  return std::string("#version 330 core\n") + LightCommon + R"(
+uniform sampler2D uAtlas; uniform int uShadowPass;
+in vec3 vW; in vec3 vN; in vec2 vPx; flat in vec4 vRect; out vec4 frag;
+void main(){
+  ivec2 p = ivec2(clamp(floor(vPx), vRect.xy, vRect.xy+vRect.zw-1.));
+  vec4 t = texelFetch(uAtlas, p, 0); if(t.a<.5) discard;
+  if(uShadowPass==1){ frag=vec4(1.); return; }
+  vec3 n = normalize(vN); float sh = shadowAt(vW + n*.03, .002); float lambert = max(dot(n,-uSunDir),0.);
+  vec3 light = mix(uGround, uSky, n.y*.5+.5) + uSunCol*(.35+.65*lambert)*sh;
+  frag = vec4(fogged(pow(t.rgb,vec3(2.2))*light, vW),1.);
 }
 )";
 }
@@ -464,6 +485,33 @@ int main(int argc, char **argv) try {
       for (int y = 0; y < cuts[i].h; y++)
         std::copy_n(cuts[i].img->at(cuts[i].x, cuts[i].y + y), cuts[i].w * 4, atlas.rgba.data() + (std::size_t(sprites[i].sy + y) * atlas.w + sprites[i].sx) * 4);
   }
+  {
+    // The pack draws every outline in one dark brown (40, 28, 13). Recolour those pixels to a
+    // darker shade of the colours beside them, so edges stay readable but are no longer black.
+    auto isLine = [](const std::uint8_t *c) {
+      return c[3] > 128 && ((c[0] == 40 && c[1] == 28 && c[2] == 13) || (c[0] + c[1] + c[2] < 90));
+    };
+    std::vector<std::uint8_t> out = atlas.rgba;
+    for (int y = 0; y < atlas.h; y++)
+      for (int x = 0; x < atlas.w; x++) {
+        const auto *c = atlas.at(x, y);
+        if (!isLine(c)) continue;
+        float sum[3] = {0, 0, 0}, n = 0;
+        for (int dy = -1; dy <= 1; dy++)
+          for (int dx = -1; dx <= 1; dx++) {
+            int nx = x + dx, ny = y + dy;
+            if ((dx || dy) && nx >= 0 && ny >= 0 && nx < atlas.w && ny < atlas.h) {
+              const auto *q = atlas.at(nx, ny);
+              if (q[3] > 128 && !isLine(q)) sum[0] += q[0], sum[1] += q[1], sum[2] += q[2], n++;
+            }
+          }
+        auto *o = out.data() + (std::size_t(y) * atlas.w + x) * 4;
+        const float shade = .74f;
+        if (n > 0) o[0] = std::uint8_t(sum[0] / n * shade), o[1] = std::uint8_t(sum[1] / n * shade), o[2] = std::uint8_t(sum[2] / n * shade);
+        else o[0] = 92, o[1] = 72, o[2] = 48;
+      }
+    atlas.rgba = std::move(out);
+  }
   std::map<std::string, int> spriteIndex;
   for (std::size_t i = 0; i < sprites.size(); i++) spriteIndex[sprites[i].name] = int(i);
   GLuint atlasTex = texture(atlas), floorsTex = texture(loadPng(pack / "Floors_Tiles.png")), wallsTex = texture(loadPng(pack / "Wall_Tiles.png"));
@@ -590,6 +638,7 @@ int main(int argc, char **argv) try {
   const float houseHalfX = (houseMax.x - houseMin.x) / 2 + .3f, houseHalfZ = (houseMax.z - houseMin.z) / 2 + .3f;
   log << "house=" << o.house << " size=" << houseMax.x - houseMin.x << "x" << houseMax.y - houseMin.y << "x" << houseMax.z - houseMin.z << "\n";
 
+  const float pitch = 0.43f, fov = 0.42f, distance = 26.f; // ~25 degrees down, narrow lens
   // ---------------- dressing the corner
   const std::vector<std::array<float, 4>> path = {{-36, 8, -14, 6}, {-14, 6, -4, 4.6f}, {-4, 4.6f, 3.5f, -2.7f}, {-4, 4.6f, 10, 3.6f}, {10, 3.6f, 36, 1.5f}};
   auto pathDist = [&](float x, float z) {
@@ -669,7 +718,123 @@ int main(int argc, char **argv) try {
   }
   for (auto r : std::vector<std::array<float, 3>>{{-8, 9, 0}, {6, 9.5f, 1}, {14, 4.5f, 2}, {-16, 2, 1}, {9, -16, 0}, {-6, -18, 2}, {18, -6.5f, 1}, {-3, 7.5f, 2}})
     if (clearOf(r[0], r[1], 0)) place(r[2] == 0 ? "rock_big" : r[2] == 1 ? "rock_grey_mid" : "rock_small", r[0], r[1], 22);
-  log << "sprites_placed=" << scene.size() << "\n";
+  // Stumps and rocks get real bodies: a short flared trunk with a flat top, or a lumpy stone.
+  // The camera never turns, so the sprite is painted onto the body along the view direction:
+  // from the camera it looks like the art, but it takes light, shade and shadow as a solid.
+  const V3 camRight{1, 0, 0}, camUp{0, std::cos(pitch), -std::sin(pitch)};
+  struct Prop {
+    GLuint vao = 0;
+    GLsizei count = 0;
+    int sprite = 0;
+    V3 at;
+    float span[4] = {0, 0, 0, 0};
+    std::vector<V3> local;
+    float height = 1;
+  };
+  std::vector<Prop> props;
+  auto buildProp = [&](const Instance &in, bool stump, std::uint32_t seed) {
+    const float w = in.w, target = in.h / in.w, r = w / 2, depth = r * (stump ? .9f : .8f);
+    auto shape = [&](float k, std::vector<V3> &pos, std::vector<std::array<int, 3>> &tri) {
+      pos.clear();
+      tri.clear();
+      const int seg = 20;
+      auto ring = [&](float y, float rad) {
+        for (int i = 0; i < seg; i++) {
+          float a = float(i) / seg * 6.2831853f;
+          pos.push_back({std::cos(a) * rad, y, std::sin(a) * rad * depth / r});
+        }
+      };
+      auto lumpy = [&](int i, int j) {
+        std::uint32_t h = seed ^ std::uint32_t(i * 73856093) ^ std::uint32_t(j * 19349663);
+        h = (h ^ (h >> 13)) * 1274126177u;
+        return 1 + (float(h & 1023) / 1023.f - .5f) * .16f;
+      };
+      if (stump) {
+        // Wide roots at the ground narrowing into the trunk, as in the art.
+        const float ys[] = {0, .1f, .26f, .5f, 1}, rs[] = {1.f, .8f, .64f, .58f, .58f};
+        for (int k2 = 0; k2 < 5; k2++) ring(ys[k2] * k, rs[k2] * r);
+        for (int k2 = 0; k2 < 4; k2++)
+          for (int i = 0; i < seg; i++) {
+            int a = k2 * seg + i, b = k2 * seg + (i + 1) % seg;
+            tri.push_back({a, b + seg, b}), tri.push_back({a, a + seg, b + seg});
+          }
+        pos.push_back({0, k, 0});
+        int top = int(pos.size()) - 1;
+        for (int i = 0; i < seg; i++) tri.push_back({top, 4 * seg + (i + 1) % seg, 4 * seg + i});
+      } else {
+        const int lat = 9;
+        for (int j = 0; j <= lat; j++) {
+          float t = float(j) / lat * 3.14159265f, y = std::max(-.06f, (.38f + .62f * std::cos(t)) * k);
+          for (int i = 0; i < seg; i++) {
+            float a = float(i) / seg * 6.2831853f, rad = std::sin(t) * r * lumpy(i, j);
+            pos.push_back({std::cos(a) * rad, y, std::sin(a) * rad * depth / r});
+          }
+        }
+        for (int j = 0; j < lat; j++)
+          for (int i = 0; i < seg; i++) {
+            int a = j * seg + i, b = j * seg + (i + 1) % seg;
+            tri.push_back({a, b, b + seg}), tri.push_back({a, b + seg, a + seg});
+          }
+      }
+    };
+    std::vector<V3> pos;
+    std::vector<std::array<int, 3>> tri;
+    float k = in.h, span[4];
+    for (int it = 0; it < 12; it++) {
+      shape(k, pos, tri);
+      span[0] = span[2] = 1e9f, span[1] = span[3] = -1e9f;
+      for (V3 v : pos) {
+        float s = dot(v, camRight), t = dot(v, camUp);
+        span[0] = std::min(span[0], s), span[1] = std::max(span[1], s), span[2] = std::min(span[2], t), span[3] = std::max(span[3], t);
+      }
+      k *= target / ((span[3] - span[2]) / (span[1] - span[0]));
+    }
+    std::vector<V3> normals(pos.size());
+    for (auto t : tri) {
+      V3 n = cross(pos[std::size_t(t[1])] - pos[std::size_t(t[0])], pos[std::size_t(t[2])] - pos[std::size_t(t[0])]);
+      for (int c : t) normals[std::size_t(c)] = normals[std::size_t(c)] + n;
+    }
+    std::vector<float> v;
+    for (auto t : tri)
+      for (int c : t) {
+        V3 q = pos[std::size_t(c)], n = norm(normals[std::size_t(c)]);
+        if (n.y < 0 && q.y > k * .98f) n = {0, 1, 0};
+        v.insert(v.end(), {q.x, q.y, q.z, n.x, n.y, n.z});
+      }
+    // A stump's flat top should face up, not be rounded with its walls.
+    if (stump)
+      for (std::size_t i = 0; i + 5 < v.size(); i += 6)
+        if (v[i + 1] > k * .99f) v[i + 3] = 0, v[i + 4] = 1, v[i + 5] = 0;
+    Prop pr;
+    pr.sprite = in.sprite;
+    pr.at = in.at;
+    std::copy(span, span + 4, pr.span);
+    pr.local = pos;
+    pr.height = k;
+    GLuint vbo;
+    gl::GenVertexArrays(1, &pr.vao);
+    gl::BindVertexArray(pr.vao);
+    gl::GenBuffers(1, &vbo);
+    gl::BindBuffer(GL_ARRAY_BUFFER, vbo);
+    gl::BufferData(GL_ARRAY_BUFFER, GLsizeiptr(v.size() * 4), v.data(), GL_STATIC_DRAW);
+    gl::EnableVertexAttribArray(0);
+    gl::EnableVertexAttribArray(1);
+    gl::VertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 24, nullptr);
+    gl::VertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 24, reinterpret_cast<void *>(12));
+    pr.count = GLsizei(v.size() / 6);
+    props.push_back(pr);
+  };
+  {
+    std::vector<Instance> kept;
+    std::uint32_t seed = 7;
+    for (const auto &in : scene) {
+      const auto &name = sprites[std::size_t(in.sprite)].name;
+      if (name.rfind("rock", 0) == 0 || name == "stump") buildProp(in, name == "stump", seed++ * 2654435761u);
+      else kept.push_back(in);
+    }
+    scene = std::move(kept);
+  }
+  log << "sprites_placed=" << scene.size() << " props_3d=" << props.size() << "\n";
 
   // ---------------- GPU buffers for sprites
   const float quadCorners[] = {0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1};
@@ -683,20 +848,21 @@ int main(int argc, char **argv) try {
   gl::VertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 8, nullptr);
   gl::GenBuffers(1, &instVbo);
   gl::BindBuffer(GL_ARRAY_BUFFER, instVbo);
-  for (int i = 1; i <= 3; i++) {
+  for (int i = 1; i <= 4; i++) {
     gl::EnableVertexAttribArray(i);
-    gl::VertexAttribPointer(i, 4, GL_FLOAT, GL_FALSE, 48, reinterpret_cast<void *>(std::size_t(i - 1) * 16));
+    gl::VertexAttribPointer(i, 4, GL_FLOAT, GL_FALSE, 64, reinterpret_cast<void *>(std::size_t(i - 1) * 16));
     gl::VertexAttribDivisor(i, 1);
   }
   std::vector<float> instData;
-  auto pushInstance = [&](const Instance &in) {
+  auto pushInstance = [&](const Instance &in, float alpha = 1) {
     const auto &s = sprites[std::size_t(in.sprite)];
     float sink = in.sink + s.footFromBottom / float(s.sh) * in.h;
-    instData.insert(instData.end(), {in.at.x, in.at.y, in.at.z, in.sway, in.w, in.h, in.flip, sink, float(s.sx), float(s.sy), float(s.sw), float(s.sh)});
+    instData.insert(instData.end(), {in.at.x, in.at.y, in.at.z, in.sway, in.w, in.h, in.flip, sink, float(s.sx), float(s.sy), float(s.sw), float(s.sh), alpha, 0, 0, 0});
   };
 
   // ---------------- programs, shadow map and post buffers
   GLuint terrainProg = program(TerrainVS, TerrainFS().c_str()), meshProg = program(MeshVS, MeshFS().c_str()), spriteProg = program(SpriteVS, SpriteFS().c_str());
+  GLuint propProg = program(PropVS, PropFS().c_str());
   GLuint shadowProg = program(ShadowVS, ShadowFS), downProg = program(QuadVS, DownFS), blurProg = program(QuadVS, BlurFS), finalProg = program(QuadVS, FinalFS);
   auto colourTarget = [](int w, int h, GLenum fmt) {
     GLuint t;
@@ -722,6 +888,7 @@ int main(int argc, char **argv) try {
   const int SM = 2048;
   GLuint shadowTex = colourTarget(SM, SM, GL_DEPTH_COMPONENT24), shadowFbo = framebuffer(0, shadowTex);
   GLuint sceneTex = colourTarget(W, H, GL_RGBA16F), depthTex = colourTarget(W, H, GL_DEPTH_COMPONENT24), sceneFbo = framebuffer(sceneTex, depthTex);
+  GLuint depthCopyTex = colourTarget(W, H, GL_DEPTH_COMPONENT24), depthCopyFbo = framebuffer(0, depthCopyTex);
   GLuint halfA = colourTarget(W / 2, H / 2, GL_RGBA16F), halfB = colourTarget(W / 2, H / 2, GL_RGBA16F), qA = colourTarget(W / 4, H / 4, GL_RGBA16F), qB = colourTarget(W / 4, H / 4, GL_RGBA16F);
   GLuint halfAF = framebuffer(halfA, 0), halfBF = framebuffer(halfB, 0), qAF = framebuffer(qA, 0), qBF = framebuffer(qB, 0);
   GLuint emptyVao;
@@ -741,7 +908,6 @@ int main(int argc, char **argv) try {
   frames << "frame,cpu_ms,frame_ms,player_x,player_z\n";
 
   // ---------------- camera and light
-  const float pitch = 0.43f, fov = 0.42f, distance = 26.f; // ~25 degrees down, narrow lens
   const V3 sunDir = norm({.55f, -.72f, -.42f});
   V3 player{0, 0, 3.f}, camTarget = player;
   int facing = 0; // 0 down, 1 side, 2 up
@@ -749,6 +915,8 @@ int main(int argc, char **argv) try {
   float animT = 0, time = 0;
   bool run = true;
   int frame = 0;
+  std::vector<float> fades;
+  float houseFade = 0;
   auto last = std::chrono::steady_clock::now();
   while (run) {
     auto start = std::chrono::steady_clock::now();
@@ -797,9 +965,56 @@ int main(int argc, char **argv) try {
     V3 lightCentre = focus + V3{0, 0, -6};
     M4 lightView = lookAt(lightCentre - sunDir * 40.f, lightCentre, {0, 1, 0}), lightProj = ortho(-34, 34, -34, 34, 1, 100), lightVP = mul(lightProj, lightView);
 
-    // Sprite instances: the scene plus the Wayfinder.
+    // What hides the Wayfinder fades: tall cards whose art covers the Wayfinder on screen, and
+    // the house when the Wayfinder is behind it. Only where the art is solid, not its empty box.
+    auto toScreen = [&](V3 w) {
+      const float *m = vp.m.data();
+      float x = m[0] * w.x + m[4] * w.y + m[8] * w.z + m[12], y = m[1] * w.x + m[5] * w.y + m[9] * w.z + m[13], q = m[3] * w.x + m[7] * w.y + m[11] * w.z + m[15];
+      return std::array<float, 2>{x / q, y / q};
+    };
+    const std::array<float, 2> marks[] = {toScreen(player + V3{0, .2f, 0}), toScreen(player + V3{0, .75f, 0}), toScreen(player + V3{0, 1.3f, 0}),
+                                         toScreen(player + V3{-.25f, .7f, 0}), toScreen(player + V3{.25f, .7f, 0})};
+    if (fades.size() != scene.size()) fades.assign(scene.size(), 0.f);
+    const float lean = pitch * .45f;
+    const V3 cardUp{0, std::cos(lean), std::sin(lean)};
+    const float ease = std::min(1.f, dt * 7.f);
+    for (std::size_t i = 0; i < scene.size(); i++) {
+      const auto &in = scene[i];
+      bool hides = false;
+      if (in.h > 1.4f && in.at.z > player.z + .15f) {
+        const auto &s = sprites[std::size_t(in.sprite)];
+        float sink = in.sink + s.footFromBottom / float(s.sh) * in.h;
+        V3 bottom = in.at - cardUp * sink;
+        auto a = toScreen(bottom - V3{in.w / 2, 0, 0}), b = toScreen(bottom + V3{in.w / 2, 0, 0}), c = toScreen(bottom + cardUp * in.h);
+        float x0 = a[0], x1 = b[0], y0 = std::min(a[1], b[1]), y1 = c[1];
+        for (auto mk : marks) {
+          if (mk[0] < x0 || mk[0] > x1 || mk[1] < y0 || mk[1] > y1) continue;
+          float u = (mk[0] - x0) / (x1 - x0), v = (y1 - mk[1]) / (y1 - y0);
+          if (in.flip > .5f) u = 1 - u;
+          int px = s.sx + std::clamp(int(u * s.sw), 0, s.sw - 1), py = s.sy + std::clamp(int(v * s.sh), 0, s.sh - 1);
+          if (atlas.at(px, py)[3] > 128) { hides = true; break; }
+        }
+      }
+      fades[i] += ((hides ? 1.f : 0.f) - fades[i]) * ease;
+    }
+    {
+      bool behind = player.z < houseAt.z + houseHalfZ * .5f;
+      float x0 = 1e9f, x1 = -1e9f, y0 = 1e9f, y1 = -1e9f;
+      for (int k = 0; k < 8 && behind; k++) {
+        V3 c{k & 1 ? houseHalfX : -houseHalfX, k & 2 ? (houseMax.y - houseMin.y) : 0.f, k & 4 ? houseHalfZ : -houseHalfZ};
+        auto q = toScreen(houseAt + c);
+        x0 = std::min(x0, q[0]), x1 = std::max(x1, q[0]), y0 = std::min(y0, q[1]), y1 = std::max(y1, q[1]);
+      }
+      bool hides = false;
+      for (auto mk : marks) hides |= behind && mk[0] > x0 && mk[0] < x1 && mk[1] > y0 && mk[1] < y1;
+      houseFade += ((hides ? 1.f : 0.f) - houseFade) * ease;
+    }
+    // Sprite instances: the scene plus the Wayfinder; faded cards go last, far to near.
     instData.clear();
-    for (const auto &in : scene) pushInstance(in);
+    std::vector<std::size_t> faded;
+    for (std::size_t i = 0; i < scene.size(); i++)
+      if (fades[i] > .02f) faded.push_back(i);
+      else pushInstance(scene[i]);
     {
       static const char *idle[] = {"Idle_Down", "Idle_Side", "Idle_Up"}, *walk[] = {"Walk_Down", "Walk_Side", "Walk_Up"};
       auto [first, count] = charAnim.at(moving ? walk[facing] : idle[facing]);
@@ -812,7 +1027,10 @@ int main(int argc, char **argv) try {
       me.flip = facing == 1 && faceLeft ? 1.f : 0.f;
       pushInstance(me);
     }
-    const GLsizei instances = GLsizei(instData.size() / 12);
+    const GLsizei solidInstances = GLsizei(instData.size() / 16);
+    std::sort(faded.begin(), faded.end(), [&](std::size_t a, std::size_t b) { return scene[a].at.z < scene[b].at.z; });
+    for (std::size_t i : faded) pushInstance(scene[i], 1.f - .72f * fades[i]);
+    const GLsizei instances = GLsizei(instData.size() / 16);
     gl::BindBuffer(GL_ARRAY_BUFFER, instVbo);
     gl::BufferData(GL_ARRAY_BUFFER, GLsizeiptr(instData.size() * 4), instData.data(), GL_STREAM_DRAW);
 
@@ -847,6 +1065,33 @@ int main(int argc, char **argv) try {
       gl::BindTexture(GL_TEXTURE_2D, atlasTex);
     };
 
+    auto drawProps = [&](const M4 &matrix, bool shadowPass) {
+      gl::UseProgram(propProg);
+      gl::UniformMatrix4fv(gl::GetUniformLocation(propProg, "uVP"), 1, GL_FALSE, matrix.m.data());
+      if (!shadowPass) lightUniforms(propProg);
+      gl::Uniform1i(gl::GetUniformLocation(propProg, "uShadowPass"), shadowPass ? 1 : 0);
+      gl::Uniform1i(gl::GetUniformLocation(propProg, "uAtlas"), 1);
+      gl::ActiveTexture(GL_TEXTURE1);
+      gl::BindTexture(GL_TEXTURE_2D, atlasTex);
+      for (const auto &pr : props) {
+        const auto &s = sprites[std::size_t(pr.sprite)];
+        // Paint along the line from the camera to this body, so it matches the art anywhere on screen.
+        V3 f = norm(pr.at + V3{0, pr.height * .4f, 0} - eye), right = norm(cross(f, {0, 1, 0})), up = cross(right, f);
+        float span[4] = {1e9f, -1e9f, 1e9f, -1e9f};
+        for (V3 v : pr.local) {
+          float a = dot(v, right), b = dot(v, up);
+          span[0] = std::min(span[0], a), span[1] = std::max(span[1], a), span[2] = std::min(span[2], b), span[3] = std::max(span[3], b);
+        }
+        gl::Uniform3f(gl::GetUniformLocation(propProg, "uR"), right.x, right.y, right.z);
+        gl::Uniform3f(gl::GetUniformLocation(propProg, "uU"), up.x, up.y, up.z);
+        gl::Uniform3f(gl::GetUniformLocation(propProg, "uAt"), pr.at.x, pr.at.y, pr.at.z);
+        gl::Uniform4fv(gl::GetUniformLocation(propProg, "uSpan"), 1, span);
+        const float rect[4] = {float(s.sx), float(s.sy), float(s.sw), float(s.sh)};
+        gl::Uniform4fv(gl::GetUniformLocation(propProg, "uRect"), 1, rect);
+        gl::BindVertexArray(pr.vao);
+        gl::DrawArrays(GL_TRIANGLES, 0, pr.count);
+      }
+    };
     // 1. Sun shadow map: ground, house, and sprites turned to face the sun.
     gl::BindFramebuffer(GL_FRAMEBUFFER, shadowFbo);
     gl::Viewport(0, 0, SM, SM);
@@ -872,6 +1117,7 @@ int main(int argc, char **argv) try {
     gl::BindTexture(GL_TEXTURE_2D, 0);
     gl::BindVertexArray(spriteVao);
     gl::DrawArraysInstanced(GL_TRIANGLES, 0, 6, instances);
+    drawProps(lightVP, true);
     gl::Disable(GL_POLYGON_OFFSET_FILL);
 
     // 2. The scene, full resolution, into a bright-range buffer.
@@ -904,15 +1150,58 @@ int main(int argc, char **argv) try {
     gl::UniformMatrix4fv(gl::GetUniformLocation(meshProg, "uModel"), 1, GL_FALSE, houseModel.m.data());
     lightUniforms(meshProg);
     gl::Uniform1i(gl::GetUniformLocation(meshProg, "uAtlas"), 1);
+    gl::Uniform1f(gl::GetUniformLocation(meshProg, "uAlpha"), 1.f);
     gl::ActiveTexture(GL_TEXTURE1);
     gl::BindTexture(GL_TEXTURE_2D, houseTex);
-    for (const auto &part : houseParts) gl::BindVertexArray(part.vao), gl::DrawArrays(GL_TRIANGLES, 0, part.count);
+    if (houseFade <= .02f)
+      for (const auto &part : houseParts) gl::BindVertexArray(part.vao), gl::DrawArrays(GL_TRIANGLES, 0, part.count);
     gl::UseProgram(spriteProg);
     gl::UniformMatrix4fv(gl::GetUniformLocation(spriteProg, "uVP"), 1, GL_FALSE, vp.m.data());
     lightUniforms(spriteProg);
     spriteAxes(spriteProg, false);
     gl::BindVertexArray(spriteVao);
-    gl::DrawArraysInstanced(GL_TRIANGLES, 0, 6, instances);
+    gl::DrawArraysInstanced(GL_TRIANGLES, 0, 6, solidInstances);
+    drawProps(vp, false);
+    // The depth blur reads the scene as it was before anything faded, so it keeps the Wayfinder sharp.
+    gl::BindFramebuffer(GL_READ_FRAMEBUFFER, sceneFbo);
+    gl::BindFramebuffer(GL_DRAW_FRAMEBUFFER, depthCopyFbo);
+    gl::BlitFramebuffer(0, 0, W, H, 0, 0, W, H, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+    gl::BindFramebuffer(GL_FRAMEBUFFER, sceneFbo);
+    // Faded things: the house keeps only its nearest surface (a depth-only pass first), cards blend.
+    gl::Enable(GL_BLEND);
+    gl::BlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    if (houseFade > .02f) {
+      gl::UseProgram(meshProg);
+      gl::Uniform1f(gl::GetUniformLocation(meshProg, "uAlpha"), 1.f - .7f * houseFade);
+      gl::ActiveTexture(GL_TEXTURE0);
+      gl::BindTexture(GL_TEXTURE_2D, shadowTex);
+      gl::ActiveTexture(GL_TEXTURE1);
+      gl::BindTexture(GL_TEXTURE_2D, houseTex);
+      // Only the nearest surface shows: depth first, then colour where it matches.
+      gl::ColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+      for (const auto &part : houseParts) gl::BindVertexArray(part.vao), gl::DrawArrays(GL_TRIANGLES, 0, part.count);
+      gl::ColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+      gl::DepthFunc(GL_LEQUAL);
+      for (const auto &part : houseParts) gl::BindVertexArray(part.vao), gl::DrawArrays(GL_TRIANGLES, 0, part.count);
+      gl::DepthFunc(GL_LESS);
+    }
+    if (instances > solidInstances) {
+      gl::UseProgram(spriteProg);
+      gl::ActiveTexture(GL_TEXTURE0);
+      gl::BindTexture(GL_TEXTURE_2D, shadowTex);
+      gl::ActiveTexture(GL_TEXTURE1);
+      gl::BindTexture(GL_TEXTURE_2D, atlasTex);
+      gl::DepthMask(GL_FALSE);
+      gl::BindVertexArray(spriteVao);
+      // Instanced draws start at instance 0, so point the attributes at the faded tail.
+      gl::BindBuffer(GL_ARRAY_BUFFER, instVbo);
+      for (int a = 1; a <= 4; a++)
+        gl::VertexAttribPointer(a, 4, GL_FLOAT, GL_FALSE, 64, reinterpret_cast<void *>(std::size_t(solidInstances) * 64 + std::size_t(a - 1) * 16));
+      gl::DrawArraysInstanced(GL_TRIANGLES, 0, 6, instances - solidInstances);
+      for (int a = 1; a <= 4; a++) gl::VertexAttribPointer(a, 4, GL_FLOAT, GL_FALSE, 64, reinterpret_cast<void *>(std::size_t(a - 1) * 16));
+      gl::DepthMask(GL_TRUE);
+    }
+    gl::Disable(GL_BLEND);
 
     // 3. Post: half and quarter size blurred copies feed the depth blur and the glow.
     gl::Disable(GL_DEPTH_TEST);
@@ -941,7 +1230,7 @@ int main(int argc, char **argv) try {
     gl::BindFramebuffer(GL_FRAMEBUFFER, 0);
     gl::Viewport(0, 0, W, H);
     gl::UseProgram(finalProg);
-    const GLuint inputs[] = {sceneTex, halfA, qA, depthTex};
+    const GLuint inputs[] = {sceneTex, halfA, qA, depthCopyTex};
     const char *names[] = {"uScene", "uHalf", "uQuarter", "uDepth"};
     for (int i = 0; i < 4; i++) {
       gl::ActiveTexture(GL_TEXTURE0 + i);
