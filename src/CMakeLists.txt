@@ -223,3 +223,11 @@ if(BUILD_TESTING AND TARGET wildsignal_hearthgrove_emaceart)
   endif()
  endif()
 endif()
+
+# LOOK-HD2D-001: the HD-2D look test corner (owner, 2026-11-10). Reads art from a private play folder.
+if(PIXEL3D_BUILD_GL)
+ add_executable(wildsignal_hd2d_test hd2d/hd2d_test.cpp)
+ target_include_directories(wildsignal_hd2d_test PRIVATE ${stb_SOURCE_DIR} ${cgltf_SOURCE_DIR})
+ target_link_libraries(wildsignal_hd2d_test PRIVATE SDL3::SDL3-static)
+ set_target_properties(wildsignal_hd2d_test PROPERTIES OUTPUT_NAME wildsignal_look_test)
+endif()
