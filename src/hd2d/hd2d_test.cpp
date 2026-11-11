@@ -10,7 +10,6 @@
 #include <stb_image.h>
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb_image_write.h>
-#define CGLTF_IMPLEMENTATION
 #include <cgltf.h>
 #include <algorithm>
 #include <cctype>
@@ -28,6 +27,9 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include "scene.hpp"
+#include "core.hpp"
+#include "hud.hpp"
 
 namespace fs = std::filesystem;
 static bool quietErrors = false;
@@ -45,11 +47,11 @@ namespace gl {
 GL_FNS(GL_DECL)
 #undef GL_DECL
 static void load() {
-#define GL_LOAD(n)                                                                                                                      \
+#define HD2D_LOAD(n)                                                                                                                      \
   n = reinterpret_cast<decltype(n)>(SDL_GL_GetProcAddress("gl" #n));                                                                     \
   if (!n) throw std::runtime_error("missing GL function gl" #n);
-  GL_FNS(GL_LOAD)
-#undef GL_LOAD
+  GL_FNS(HD2D_LOAD)
+#undef HD2D_LOAD
 }
 } // namespace gl
 
@@ -242,8 +244,8 @@ static const char *MeshVS = GLSL(
   void main(){ vec4 w=uModel*vec4(aPos,1.); vW=w.xyz; vN=mat3(uModel)*aNormal; vUV=aUV; gl_Position=uVP*w; });
 static std::string MeshFS() {
   return std::string("#version 330 core\n") + LightCommon + R"(
-in vec3 vW; in vec3 vN; in vec2 vUV; out vec4 frag; uniform sampler2D uAtlas; uniform float uAlpha;
-void main(){ vec4 t = texture(uAtlas, vUV); if(t.a<.5) discard;
+in vec3 vW; in vec3 vN; in vec2 vUV; out vec4 frag; uniform sampler2D uAtlas; uniform float uAlpha; uniform vec4 uFactor;
+void main(){ vec4 t = texture(uAtlas, vUV)*uFactor; if(t.a<.5) discard;
   vec3 n = normalize(vN); float sh = shadowAt(vW + n*.05, .0015); float lambert = max(dot(n,-uSunDir),0.);
   vec3 light = mix(uGround, uSky, n.y*.5+.5) + uSunCol*lambert*sh;
   frag = vec4(fogged(pow(t.rgb,vec3(2.2))*light, vW), uAlpha); }
@@ -368,7 +370,7 @@ static float groundY(float x, float z) {
   return terrainY(x, z);
 }
 
-int main(int argc, char **argv) try {
+int hd2d::run(int argc, char **argv, Controller *game) try {
   Options o;
   for (int i = 1; i < argc; i++) {
     std::string a = argv[i];
@@ -388,6 +390,7 @@ int main(int argc, char **argv) try {
   }
   fs::create_directories(o.out);
   std::ofstream log(o.out / "run.log");
+  if (game) game->start(o.play);
   const fs::path pack = o.play / "assets" / "pixel_crawler";
   if (!fs::exists(pack / "Vegetation.png")) throw std::runtime_error("Pixel Crawler art missing in " + pack.string());
 
@@ -398,7 +401,7 @@ int main(int argc, char **argv) try {
   SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
   SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
   const int W = o.window, H = o.window * 9 / 16;
-  SDL_Window *window = SDL_CreateWindow("Wildsignal - HD-2D look test", W, H, SDL_WINDOW_OPENGL | (o.hidden ? SDL_WINDOW_HIDDEN : 0));
+  SDL_Window *window = SDL_CreateWindow(game ? "Wildsignal - The First Signal" : "Wildsignal - HD-2D look test", W, H, SDL_WINDOW_OPENGL | (o.hidden ? SDL_WINDOW_HIDDEN : 0));
   if (!window) throw std::runtime_error(SDL_GetError());
   SDL_GLContext context = SDL_GL_CreateContext(window);
   if (!context) throw std::runtime_error(SDL_GetError());
@@ -862,8 +865,48 @@ int main(int argc, char **argv) try {
 
   // ---------------- programs, shadow map and post buffers
   GLuint terrainProg = program(TerrainVS, TerrainFS().c_str()), meshProg = program(MeshVS, MeshFS().c_str()), spriteProg = program(SpriteVS, SpriteFS().c_str());
+  struct ActorMesh { std::vector<MeshPart> parts; std::vector<GLuint> textures; std::vector<std::array<float,4>> colours; };
+  std::map<std::string, ActorMesh> actorMeshes;
+  auto loadActor = [&](const std::string &name) {
+    if (actorMeshes.contains(name)) return;
+    auto source = p3::Model::load(p3::safePath(o.play / "assets", name + ".glb"));
+    ActorMesh mesh;
+    for (const auto &part : source.parts) {
+      const auto &material = source.materials.at(part.material);
+      Image im;
+      if (!material.texture.empty()) im = loadPng(material.texture);
+      else { im.w=im.h=1; im.rgba={255,255,255,255}; }
+      mesh.textures.push_back(texture(im)); mesh.colours.push_back(material.color);
+      std::vector<float> vertices;
+      for (auto idx : part.indices) {
+        const auto &v = part.vertices.at(idx);
+        vertices.insert(vertices.end(), {v.p.x,v.p.y,v.p.z,v.n.x,v.n.y,v.n.z,v.u,v.v});
+      }
+      MeshPart gpu;
+      GLuint vbo;
+      gl::GenVertexArrays(1,&gpu.vao); gl::BindVertexArray(gpu.vao);
+      gl::GenBuffers(1,&vbo); gl::BindBuffer(GL_ARRAY_BUFFER,vbo);
+      gl::BufferData(GL_ARRAY_BUFFER,GLsizeiptr(vertices.size()*sizeof(float)),vertices.data(),GL_STATIC_DRAW);
+      for(int i=0;i<3;i++)gl::EnableVertexAttribArray(i);
+      gl::VertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,32,nullptr);
+      gl::VertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,32,reinterpret_cast<void*>(12));
+      gl::VertexAttribPointer(2,2,GL_FLOAT,GL_FALSE,32,reinterpret_cast<void*>(24));
+      gpu.count=GLsizei(vertices.size()/8); mesh.parts.push_back(gpu);
+    }
+    actorMeshes.emplace(name,std::move(mesh));
+  };
+  std::unique_ptr<p3::HudRenderer> hud;
+  if(game) hud=std::make_unique<p3::HudRenderer>();
   GLuint propProg = program(PropVS, PropFS().c_str());
   GLuint shadowProg = program(ShadowVS, ShadowFS), downProg = program(QuadVS, DownFS), blurProg = program(QuadVS, BlurFS), finalProg = program(QuadVS, FinalFS);
+  GLuint markerProg=program(GLSL(layout(location=0) in vec3 position; layout(location=1) in vec4 colour; uniform mat4 VP; out vec4 tint; void main(){tint=colour;gl_Position=VP*vec4(position,1);}),
+                            GLSL(in vec4 tint;out vec4 frag;void main(){frag=tint;}));
+  GLuint markerVao,markerVbo;
+  gl::GenVertexArrays(1,&markerVao);gl::BindVertexArray(markerVao);
+  gl::GenBuffers(1,&markerVbo);gl::BindBuffer(GL_ARRAY_BUFFER,markerVbo);
+  gl::EnableVertexAttribArray(0);gl::EnableVertexAttribArray(1);
+  gl::VertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,28,nullptr);
+  gl::VertexAttribPointer(1,4,GL_FLOAT,GL_FALSE,28,reinterpret_cast<void*>(12));
   auto colourTarget = [](int w, int h, GLenum fmt) {
     GLuint t;
     gl::GenTextures(1, &t);
@@ -927,6 +970,13 @@ int main(int argc, char **argv) try {
     while (SDL_PollEvent(&e)) {
       if (e.type == SDL_EVENT_QUIT) run = false;
       if (e.type == SDL_EVENT_KEY_DOWN && e.key.key == SDLK_ESCAPE) run = false;
+      if (game && (e.type == SDL_EVENT_KEY_DOWN || e.type == SDL_EVENT_KEY_UP) && !e.key.repeat)
+        game->key(e.key.key==SDLK_F5?'v':int(e.key.key),e.type==SDL_EVENT_KEY_DOWN);
+      if (e.type == SDL_EVENT_WINDOW_FOCUS_LOST) {
+        if(game)for(char k:held)game->key(k,false);
+        if(game)game->focusLost();
+        held.clear();
+      }
       if ((e.type == SDL_EVENT_KEY_DOWN || e.type == SDL_EVENT_KEY_UP) && e.key.key < 128) {
         char k = char(std::tolower(int(e.key.key)));
         if (e.type == SDL_EVENT_KEY_DOWN) held.insert(k);
@@ -934,10 +984,14 @@ int main(int argc, char **argv) try {
       }
     }
     if (auto it = replay.find(frame); it != replay.end())
-      for (auto [down, k] : it->second) down ? (void)held.insert(k) : (void)held.erase(k);
+      for (auto [down, k] : it->second) {
+        down ? (void)held.insert(k) : (void)held.erase(k);
+        if(game)game->key(k,down);
+      }
+    const V3 beforeMove=player;
     // Move on the screen axes: the camera never turns.
     float mx = float(held.count('d')) - float(held.count('a')), mz = float(held.count('s')) - float(held.count('w'));
-    bool moving = mx != 0 || mz != 0;
+    bool moving = (mx != 0 || mz != 0) && (!game || game->walking());
     if (moving) {
       float l = std::hypot(mx, mz);
       V3 next = player + V3{mx / l, 0, mz / l} * (3.6f * dt);
@@ -956,8 +1010,16 @@ int main(int argc, char **argv) try {
     } else {
       animT += dt * .6f;
     }
+    if(game)game->update(dt,player.x,player.z);
+    if(game){
+      float dx=player.x-beforeMove.x,dz=player.z-beforeMove.z;
+      moving=std::hypot(dx,dz)>.0001f;
+      if(moving){if(std::abs(dz)>=std::abs(dx))facing=dz>0?0:2;else facing=1,faceLeft=dx<0;}
+    }
     player.y = groundY(player.x, player.z);
-    camTarget = camTarget + (player - camTarget) * std::min(1.f, dt * 4.f);
+    V3 target=player;
+    if(game)game->cameraTarget(target.x,target.z);
+    camTarget = camTarget + (target - camTarget) * std::min(1.f, dt * 4.f);
     const V3 focus = camTarget + V3{0, 1.2f, -2.5f};
     const V3 eye = focus + V3{0, std::sin(pitch), std::cos(pitch)} * distance;
     const float nearP = 1.f, farP = 120.f;
@@ -1027,6 +1089,11 @@ int main(int argc, char **argv) try {
       me.flip = facing == 1 && faceLeft ? 1.f : 0.f;
       pushInstance(me);
     }
+    if(game)for(auto person:game->people()) {
+      Instance npc; npc.sprite=charAnim.at("Idle_Down").first;
+      npc.w=npc.h=64/20.f; npc.at={person.x,groundY(person.x,person.z),person.z};
+      pushInstance(npc);
+    }
     const GLsizei solidInstances = GLsizei(instData.size() / 16);
     std::sort(faded.begin(), faded.end(), [&](std::size_t a, std::size_t b) { return scene[a].at.z < scene[b].at.z; });
     for (std::size_t i : faded) pushInstance(scene[i], 1.f - .72f * fades[i]);
@@ -1065,6 +1132,25 @@ int main(int argc, char **argv) try {
       gl::BindTexture(GL_TEXTURE_2D, atlasTex);
     };
 
+    std::vector<hd2d::Actor> actors = game ? game->actors() : std::vector<hd2d::Actor>{};
+    for(const auto &actor:actors)loadActor(actor.model);
+    auto drawActors = [&](const M4 &matrix, bool shadowPass) {
+      GLuint prog=shadowPass?shadowProg:meshProg;
+      gl::UseProgram(prog);
+      gl::UniformMatrix4fv(gl::GetUniformLocation(prog,"uVP"),1,GL_FALSE,matrix.m.data());
+      if(!shadowPass){lightUniforms(prog);gl::Uniform1i(gl::GetUniformLocation(prog,"uAtlas"),1);gl::Uniform1f(gl::GetUniformLocation(prog,"uAlpha"),1);}
+      for(const auto &actor:actors){
+        M4 m=M4::id();float c=std::cos(actor.yaw)*actor.scale,s=std::sin(actor.yaw)*actor.scale;
+        m.m[0]=c;m.m[2]=-s;m.m[8]=s;m.m[10]=c;m.m[5]=actor.scale;
+        m.m[12]=actor.x;m.m[13]=groundY(actor.x,actor.z)+actor.y;m.m[14]=actor.z;
+        gl::UniformMatrix4fv(gl::GetUniformLocation(prog,"uModel"),1,GL_FALSE,m.m.data());
+        const auto &mesh=actorMeshes.at(actor.model);
+        for(std::size_t i=0;i<mesh.parts.size();i++){
+          if(!shadowPass){gl::Uniform4fv(gl::GetUniformLocation(prog,"uFactor"),1,mesh.colours[i].data());gl::ActiveTexture(GL_TEXTURE1);gl::BindTexture(GL_TEXTURE_2D,mesh.textures[i]);}
+          gl::BindVertexArray(mesh.parts[i].vao);gl::DrawArrays(GL_TRIANGLES,0,mesh.parts[i].count);
+        }
+      }
+    };
     auto drawProps = [&](const M4 &matrix, bool shadowPass) {
       gl::UseProgram(propProg);
       gl::UniformMatrix4fv(gl::GetUniformLocation(propProg, "uVP"), 1, GL_FALSE, matrix.m.data());
@@ -1109,6 +1195,7 @@ int main(int argc, char **argv) try {
     gl::DrawArrays(GL_TRIANGLES, 0, GLsizei(tv.size()));
     gl::UniformMatrix4fv(gl::GetUniformLocation(shadowProg, "uModel"), 1, GL_FALSE, houseModel.m.data());
     for (const auto &part : houseParts) gl::BindVertexArray(part.vao), gl::DrawArrays(GL_TRIANGLES, 0, part.count);
+    drawActors(lightVP,true);
     gl::UseProgram(spriteProg);
     gl::UniformMatrix4fv(gl::GetUniformLocation(spriteProg, "uVP"), 1, GL_FALSE, lightVP.m.data());
     lightUniforms(spriteProg);
@@ -1151,10 +1238,13 @@ int main(int argc, char **argv) try {
     lightUniforms(meshProg);
     gl::Uniform1i(gl::GetUniformLocation(meshProg, "uAtlas"), 1);
     gl::Uniform1f(gl::GetUniformLocation(meshProg, "uAlpha"), 1.f);
+    const float white[4]={1,1,1,1};
+    gl::Uniform4fv(gl::GetUniformLocation(meshProg,"uFactor"),1,white);
     gl::ActiveTexture(GL_TEXTURE1);
     gl::BindTexture(GL_TEXTURE_2D, houseTex);
     if (houseFade <= .02f)
       for (const auto &part : houseParts) gl::BindVertexArray(part.vao), gl::DrawArrays(GL_TRIANGLES, 0, part.count);
+    drawActors(vp,false);
     gl::UseProgram(spriteProg);
     gl::UniformMatrix4fv(gl::GetUniformLocation(spriteProg, "uVP"), 1, GL_FALSE, vp.m.data());
     lightUniforms(spriteProg);
@@ -1162,6 +1252,29 @@ int main(int argc, char **argv) try {
     gl::BindVertexArray(spriteVao);
     gl::DrawArraysInstanced(GL_TRIANGLES, 0, 6, solidInstances);
     drawProps(vp, false);
+    if(game){
+      std::vector<float> markers;
+      auto vertex=[&](float x,float z,const hd2d::Telegraph &m,float alpha){markers.insert(markers.end(),{x,groundY(x,z)+.045f,z,m.hostile?1.f:.2f,m.hostile?.26f:.8f,m.hostile?.13f:.9f,alpha});};
+      for(const auto &m:game->telegraphs()){
+        if(m.lane){
+          float dx=m.toX-m.x,dz=m.toZ-m.z,len=std::max(.001f,std::hypot(dx,dz));
+          float nx=-dz/len*m.size,nz=dx/len*m.size;
+          for(auto p:std::vector<std::array<float,2>>{{m.x+nx,m.z+nz},{m.x-nx,m.z-nz},{m.toX-nx,m.toZ-nz},{m.x+nx,m.z+nz},{m.toX-nx,m.toZ-nz},{m.toX+nx,m.toZ+nz}})vertex(p[0],p[1],m,.18f+.25f*m.progress);
+        }else for(int i=0;i<64;i++){
+          float a=i*6.2831853f/64,b=(i+1)*6.2831853f/64,inner=std::max(0.f,m.size-.09f);
+          float ax=m.toX+std::cos(a)*m.size,az=m.toZ+std::sin(a)*m.size,bx=m.toX+std::cos(b)*m.size,bz=m.toZ+std::sin(b)*m.size;
+          float cx=m.toX+std::cos(a)*inner,cz=m.toZ+std::sin(a)*inner,dx=m.toX+std::cos(b)*inner,dz=m.toZ+std::sin(b)*inner;
+          for(auto p:std::vector<std::array<float,2>>{{ax,az},{bx,bz},{cx,cz},{cx,cz},{bx,bz},{dx,dz}})vertex(p[0],p[1],m,.72f);
+          if(m.size<8&&float(i)/64<m.progress){vertex(m.toX,m.toZ,m,.22f);vertex(cx,cz,m,.22f);vertex(dx,dz,m,.22f);}
+        }
+      }
+      if(!markers.empty()){
+        gl::UseProgram(markerProg);gl::UniformMatrix4fv(gl::GetUniformLocation(markerProg,"VP"),1,GL_FALSE,vp.m.data());
+        gl::BindVertexArray(markerVao);gl::BindBuffer(GL_ARRAY_BUFFER,markerVbo);gl::BufferData(GL_ARRAY_BUFFER,GLsizeiptr(markers.size()*sizeof(float)),markers.data(),GL_STREAM_DRAW);
+        gl::Enable(GL_BLEND);gl::BlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);gl::DepthMask(GL_FALSE);
+        gl::DrawArrays(GL_TRIANGLES,0,GLsizei(markers.size()/7));gl::DepthMask(GL_TRUE);gl::Disable(GL_BLEND);
+      }
+    }
     // The depth blur reads the scene as it was before anything faded, so it keeps the Wayfinder sharp.
     gl::BindFramebuffer(GL_READ_FRAMEBUFFER, sceneFbo);
     gl::BindFramebuffer(GL_DRAW_FRAMEBUFFER, depthCopyFbo);
@@ -1172,6 +1285,8 @@ int main(int argc, char **argv) try {
     gl::BlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     if (houseFade > .02f) {
       gl::UseProgram(meshProg);
+      gl::UniformMatrix4fv(gl::GetUniformLocation(meshProg,"uModel"),1,GL_FALSE,houseModel.m.data());
+      gl::Uniform4fv(gl::GetUniformLocation(meshProg,"uFactor"),1,white);
       gl::Uniform1f(gl::GetUniformLocation(meshProg, "uAlpha"), 1.f - .7f * houseFade);
       gl::ActiveTexture(GL_TEXTURE0);
       gl::BindTexture(GL_TEXTURE_2D, shadowTex);
@@ -1246,9 +1361,10 @@ int main(int argc, char **argv) try {
     gl::Uniform1f(gl::GetUniformLocation(finalProg, "uBlurOn"), o.blur ? 1.f : 0.f);
     gl::DrawArrays(GL_TRIANGLES, 0, 3);
     if (o.finish) gl::Finish();
+    if(game)hud->draw(game->hud(),W,H);
     auto cpuEnd = std::chrono::steady_clock::now();
 
-    if (o.every && frame % o.every == 0) {
+    if (o.every > 0 && frame % o.every == 0) {
       std::vector<std::uint8_t> px(std::size_t(W) * H * 3);
       gl::PixelStorei(GL_PACK_ALIGNMENT, 1);
       gl::ReadPixels(0, 0, W, H, GL_RGB, GL_UNSIGNED_BYTE, px.data());
@@ -1265,6 +1381,8 @@ int main(int argc, char **argv) try {
     if (o.frames && frame >= o.frames) run = false;
   }
   log << "frames=" << frame << "\n";
+  if(game)game->finish(o.out);
+  hud.reset();
   SDL_GL_DestroyContext(context);
   SDL_DestroyWindow(window);
   SDL_Quit();

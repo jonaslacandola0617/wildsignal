@@ -1,0 +1,32 @@
+name: HD-2D journey foundation
+on:
+  pull_request:
+    paths: ['src/journey/**', 'src/hd2d/**', 'src/CMakeLists.txt', 'tests/journey/**', 'data/journey/**', 'tools/prepare_journey.py', '.github/workflows/journey.yml']
+  push:
+    branches: [feat/hd2d-playable-direction]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - run: cmake --preset current-windows
+      - run: cmake --build build/current-windows --config Release --parallel 2
+      - run: ctest --test-dir build/current-windows -C Release --output-on-failure
+      - name: Package code only
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force out/journey | Out-Null
+          Copy-Item build/current-windows/current/Release/wildsignal_game.exe out/journey/
+          Copy-Item docs/rebuild/BUILD_AND_REVIEW.md out/journey/README.md
+          New-Item -ItemType Directory -Force out/journey/tools | Out-Null
+          Copy-Item tools/prepare_journey.py out/journey/tools/
+          Copy-Item data out/journey/data -Recurse
+          Copy-Item docs/rebuild/HD2D_GAME_DIRECTION.md out/journey/
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: wildsignal-journey-windows-code-only
+          path: out/journey
+          retention-days: 14

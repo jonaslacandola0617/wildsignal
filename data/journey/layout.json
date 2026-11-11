@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "region": "hearthgrove_test",
+  "status": "Small rebuilt opening scene; not the complete Hearthgrove Vale region",
+  "people": {
+    "mara": [-2, 3],
+    "fen": [-3, -7],
+    "juno": [13, 3],
+    "logwarden": [-16, -24]
+  },
+  "rest": [0, 3],
+  "wild": [6, 4],
+  "moss": [-8, -1]
+}

@@ -1,5 +1,7 @@
 # WILDSIGNAL — Game Design Document
 
+**Owner update, 2026-11-11:** the game is being rebuilt with HD-2D/2.5D game references informing its experience as well as its visuals. Read [the new direction and reference study](../rebuild/HD2D_GAME_DIRECTION.md) alongside these chapters. The new direction supersedes older visual/look-development rules; the locked gameplay, world and story remain the game brief.
+
 The single source of truth for what Wildsignal is and how it plays. Every agent and contributor reads this before design or gameplay work. When a chapter is **LOCKED**, it outranks every older design document in `docs/design` and `docs/planning`; those stay as history.
 
 ## How chapters are made
